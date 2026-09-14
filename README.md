@@ -1,79 +1,421 @@
-[![Syntax Status](https://github.com/openemr/openemr/actions/workflows/syntax.yml/badge.svg)](https://github.com/openemr/openemr/actions/workflows/syntax.yml)
-[![Styling Status](https://github.com/openemr/openemr/actions/workflows/styling.yml/badge.svg)](https://github.com/openemr/openemr/actions/workflows/styling.yml)
-[![Testing Status](https://github.com/openemr/openemr/actions/workflows/test.yml/badge.svg)](https://github.com/openemr/openemr/actions/workflows/test.yml)
-[![JS Unit Testing Status](https://github.com/openemr/openemr/actions/workflows/js-test.yml/badge.svg)](https://github.com/openemr/openemr/actions/workflows/js-test.yml)
-[![PHPStan](https://github.com/openemr/openemr/actions/workflows/phpstan.yml/badge.svg)](https://github.com/openemr/openemr/actions/workflows/phpstan.yml)
-[![Rector](https://github.com/openemr/openemr/actions/workflows/rector.yml/badge.svg)](https://github.com/openemr/openemr/actions/workflows/rector.yml)
-[![ShellCheck](https://github.com/openemr/openemr/actions/workflows/shellcheck.yml/badge.svg)](https://github.com/openemr/openemr/actions/workflows/shellcheck.yml)
-[![Docker Compose Linting](https://github.com/openemr/openemr/actions/workflows/docker-compose-lint.yml/badge.svg)](https://github.com/openemr/openemr/actions/workflows/docker-compose-lint.yml)
-[![Dockerfile Linting](https://github.com/openemr/openemr/actions/workflows/docker-lint-hadolint.yml/badge.svg)](https://github.com/openemr/openemr/actions/workflows/docker-lint-hadolint.yml)
-[![Isolated Tests](https://github.com/openemr/openemr/actions/workflows/isolated-tests.yml/badge.svg)](https://github.com/openemr/openemr/actions/workflows/isolated-tests.yml)
-[![Inferno Certification Test](https://github.com/openemr/openemr/actions/workflows/inferno-test.yml/badge.svg)](https://github.com/openemr/openemr/actions/workflows/inferno-test.yml)
-[![Composer Checks](https://github.com/openemr/openemr/actions/workflows/composer.yml/badge.svg)](https://github.com/openemr/openemr/actions/workflows/composer.yml)
-[![Composer Require Checker](https://github.com/openemr/openemr/actions/workflows/composer-require-checker.yml/badge.svg)](https://github.com/openemr/openemr/actions/workflows/composer-require-checker.yml)
-[![API Docs Freshness Checks](https://github.com/openemr/openemr/actions/workflows/api-docs.yml/badge.svg)](https://github.com/openemr/openemr/actions/workflows/api-docs.yml)
-[![codecov](https://codecov.io/gh/openemr/openemr/graph/badge.svg?token=7Eu3U1Ozdq)](https://codecov.io/gh/openemr/openemr)
+# Clinical Co-Pilot
 
-[![Backers on Open Collective](https://opencollective.com/openemr/backers/badge.svg)](#backers) [![Sponsors on Open Collective](https://opencollective.com/openemr/sponsors/badge.svg)](#sponsors)
+A Clinical Co-Pilot AI agent embedded in a forked [OpenEMR](https://open-emr.org)
+8.2 electronic health record system. The agent runs inside the EHR alongside the
+existing clinical workflow, reading real patient chart data — encounters,
+problems, medications, lab results — to assist clinicians at the point of care.
+This repository is a fork of OpenEMR 8.2.0-dev with the co-pilot built in;
+upstream OpenEMR's own README is preserved as
+[README-OPENEMR.md](README-OPENEMR.md).
 
-# OpenEMR
+**Deployed URL:** TBD
 
-[OpenEMR](https://open-emr.org) is a Free and Open Source electronic health records and medical practice management application. It features fully integrated electronic health records, practice management, scheduling, electronic billing, internationalization, free support, a vibrant community, and a whole lot more. It runs on Windows, Linux, Mac OS X, and many other platforms.
+**Architecture overview:** see `ARCHITECTURE.md` (in progress — not yet written)
 
-### Contributing
+---
 
-OpenEMR is a leader in healthcare open source software and comprises a large and diverse community of software developers, medical providers and educators with a very healthy mix of both volunteers and professionals. [Join us and learn how to start contributing today!](https://open-emr.org/wiki/index.php/FAQ#How_do_I_begin_to_volunteer_for_the_OpenEMR_project.3F)
+## 1. Prerequisites
 
-> Already comfortable with git? Check out [CONTRIBUTING.md](CONTRIBUTING.md) for quick setup instructions and requirements for contributing to OpenEMR by resolving a bug or adding an awesome feature 😊.
+### Host
 
-### Support
+| Component | Version | How confirmed |
+|---|---|---|
+| macOS on Apple Silicon (M-series), 15 CPU / 24 GB RAM | — | Given by the operator; not verified in this session |
+| Colima (Docker runtime — **not** Docker Desktop) | — | `docker context show` → `colima` |
+| Docker Engine | 29.7.1 client / 29.5.2 server | `docker version` |
+| Docker Compose | 5.5.1 | `docker compose version` |
+| Homebrew | — | Given by the operator; used to install `docker-compose` |
 
-Community and Professional support can be found [here](https://open-emr.org/wiki/index.php/OpenEMR_Support_Guide).
+Docker Desktop is not used. Colima must be sized up from its defaults before the
+stack will run comfortably — see step 2.
 
-Extensive documentation and forums can be found on the [OpenEMR website](https://open-emr.org) that can help you to become more familiar about the project 📖.
+### Inside the containers
 
-### Reporting Issues and Bugs
+These are the versions the stack actually runs, read live from the running
+containers rather than assumed:
 
-Report these on the [Issue Tracker](https://github.com/openemr/openemr/issues). If you are unsure if it is an issue/bug, then always feel free to use the [Forum](https://community.open-emr.org/) and [Chat](https://www.open-emr.org/chat/) to discuss about the issue 🪲.
+| Component | Version | How confirmed |
+|---|---|---|
+| OpenEMR | 8.2.0-dev (`v_database` 541) | `version.php` and the `version` DB table agree |
+| PHP | 8.5.6 | `docker compose exec -T openemr php -v` |
+| Apache httpd | 2.4.67 (Unix) | `docker compose exec -T openemr httpd -v` |
+| MariaDB server | 11.8.8-MariaDB | `docker compose exec -T mysql mariadb --version` |
+| Node.js / npm | v24.14.1 / 11.11.0 | `docker compose exec -T openemr node -v; npm -v` |
+| Composer | 2.10.1 | `docker compose exec -T openemr composer --version` |
+| Alpine Linux | 3.23.5 | `docker compose exec -T openemr cat /etc/alpine-release` |
+| phpMyAdmin | 5.2.3 | Pinned digest in `docker/development-easy/docker-compose.yml` |
 
-### Reporting Security Vulnerabilities
+The `openemr/openemr:flex` image publishes an arm64 manifest entry, so it runs
+native on Apple Silicon with no emulation (given by the operator). The MariaDB
+client inside the container self-reports `aarch64`, which is consistent with
+that.
 
-Check out [SECURITY.md](.github/SECURITY.md)
+---
 
-### API
+## 2. Setup
 
-Check out [API_README.md](API_README.md)
+Every command in this section was run in this repository, except where marked.
 
-### Docker
+### Step 1 — Clone the fork and add the upstream remote
 
-Check out [DOCKER_README.md](DOCKER_README.md)
-
-### FHIR
-
-Check out [FHIR_README.md](FHIR_README.md)
-
-### For Developers
-
-If using OpenEMR directly from the code repository, then the following commands will build OpenEMR (Node.js version 24.* is required) :
-
-```shell
-composer install --no-dev
-npm install
-npm run build
-composer dump-autoload -o
+```bash
+git clone git@github.com:paawandesai/clinical-copilot.git
+cd clinical-copilot
+git remote add upstream git@github.com:Gauntlet-HQ/openemr-base-clean.git
 ```
 
-### Contributors
+> The clone itself was not re-run in this session. The resulting remote
+> configuration is verified — `git remote -v` in this working copy reports
+> `origin  git@github.com:paawandesai/clinical-copilot.git` and
+> `upstream  git@github.com:Gauntlet-HQ/openemr-base-clean.git`.
 
-This project exists thanks to all the people who have contributed. [[Contribute]](CONTRIBUTING.md).
-<a href="https://github.com/openemr/openemr/graphs/contributors"><img src="https://opencollective.com/openemr/contributors.svg?width=890" /></a>
+### Step 2 — Size the Colima VM
 
+*(Given by the operator; not re-run in this session.)* Colima's defaults are too
+small for this stack. Resize before first start:
 
-### Sponsors
+```bash
+colima stop
+colima start --cpu 6 --memory 12 --disk 100 --vm-type vz --mount-type virtiofs
+```
 
-Thanks to our [ONC Certification Major Sponsors](https://www.open-emr.org/wiki/index.php/OpenEMR_Certification_Stage_III_Meaningful_Use#Major_sponsors)!
+The `--vm-type vz --mount-type virtiofs` flags matter: this stack bind-mounts
+the entire repository into the container, and virtiofs bind mounts are
+dramatically faster than the alternative.
 
+### Step 3 — Install the Docker Compose CLI plugin
 
-### License
+*(Given by the operator; not re-run in this session.)* A Colima install does not
+necessarily provide `docker compose`. If `docker compose` reports
+`unknown command`, install it and link it as a CLI plugin:
 
-[GNU GPL](LICENSE)
+```bash
+brew install docker-compose
+mkdir -p ~/.docker/cli-plugins
+ln -sfn "$(brew --prefix)/opt/docker-compose/bin/docker-compose" ~/.docker/cli-plugins/docker-compose
+```
+
+Confirm with `docker compose version` (expect `Docker Compose version 5.5.1` or
+later).
+
+### Step 4 — Start the three services this project needs
+
+```bash
+cd docker/development-easy
+HOST_UID=$(id -u) HOST_GID=$(id -g) docker compose up -d mysql openemr phpmyadmin
+```
+
+Two things are deliberate here:
+
+- **Only `mysql`, `openemr` and `phpmyadmin` are started.** `docker-compose.yml`
+  also defines `selenium`, `couchdb`, `openldap` and `mailpit`. Those are
+  upstream dev conveniences this project does not need, and leaving them down
+  saves memory. Naming the three services explicitly is what keeps the rest
+  stopped — a bare `docker compose up -d` would start everything.
+- **`HOST_UID` / `HOST_GID` must be exported.** The container entrypoint makes
+  apache adopt these ids. Without them apache defaults to uid 1000 and writes
+  bind-mounted files as uid 1000, which causes permission problems on any host
+  whose uid differs (macOS user accounts normally start at 501).
+
+> This exact invocation was not typed in this session — the stack was already
+> running. Its effects are verified: `docker inspect` shows `HOST_UID=501` and
+> `HOST_GID=20` in the container environment, `id apache` inside the container
+> reports `uid=501(apache) gid=20(dialout)` matching the host user, and
+> `docker compose ps --services --filter status=running` lists exactly
+> `mysql`, `openemr`, `phpmyadmin`.
+
+### Step 5 — Install OpenEMR (required — do not skip)
+
+**Compose will report every container healthy before OpenEMR is installed.** The
+containers being up is not the same as the application being usable; the install
+is a separate, explicit step. Run it:
+
+```bash
+docker compose exec -T openemr /root/devtools dev-reset-install-demodata
+```
+
+This wipes the database and reinstalls from scratch, then loads OpenEMR's
+standard demo dataset. It takes several minutes — most of it is
+`sql_upgrade.php` migrating the 5.0.0-era demo dataset forward to 8.2. It
+finishes with a block of `Set <global> to <value>` lines and exits 0.
+
+`openemr-cmd` (the CLI referenced throughout `CONTRIBUTING.md` and `CLAUDE.md`)
+is **not installed** in this environment. Every devtools command here is run
+through `docker compose exec -T openemr /root/devtools <subcommand>` instead,
+which is the documented equivalent. Run `/root/devtools` with no arguments and
+it prints nothing; the subcommand list lives in the comment header of the script
+itself (`docker compose exec -T openemr head -125 /root/devtools`).
+
+### Step 6 — Generate the OAuth2 key pair
+
+OpenEMR does not create its OAuth2 keys at install time. They are generated
+lazily on the first OAuth2 request, so until something triggers that, the health
+endpoint reports `oauth_keys: false`. Trigger it by registering a client:
+
+```bash
+docker compose exec -T openemr /root/devtools register-oauth2-client
+```
+
+Expected output — a client id and secret, and exit 0:
+
+```
+Registering a oauth2 client to site default
+client id: "zYinBZAW5lI5wznAUKl-GVw21tX4QyDeVE0UZQbwaIg"
+client secret: "81VXoufIzsEZm1R9acpTRZbstOfk3MG_EzjZGLOr7iXuZzoI3paf2YJVlAdCsWjIkUh55InsyV79QHmCRmwAXw"
+```
+
+This writes `oaprivate.key` (mode 0640) and `oapublic.key` (mode 0660) into
+`sites/default/documents/certificates/`. The passphrase protecting the private
+key is generated per-install from PHP's CSPRNG and stored encrypted in the
+`keys` table — it is not static or derived, so these values differ on every
+install.
+
+### Step 7 — Seed realistic patient data
+
+`dev-reset-install-demodata` alone leaves you with **3 patients, 3 encounters
+all dated 2014-02-01, and zero lab orders or results**. That is not enough to
+develop or demo a clinical co-pilot against. Generate realistic synthetic
+patients with Synthea:
+
+```bash
+docker compose exec -T openemr /root/devtools import-random-patients 5
+```
+
+Expected output ends with:
+
+```
+Completed patients import (5 patients) (4 total seconds) (0.8 average seconds per patient)
+Started uuid creation
+Completed uuid creation (4 total seconds; 0.0011111111111111 total hours)
+
+Finished patients import 5
+Completed run for following number of random patients: 5
+```
+
+Increase the count for a fuller dataset. Each patient takes a few seconds and
+brings a full history — encounters, conditions, medications and lab results.
+
+**First run only:** the command installs an OpenJDK 17 JRE into the container
+and downloads the ~197 MB Synthea JAR to `/root/synthea`. Both are cached
+afterwards. (Not re-observed in this session — the JAR and
+`openjdk version "17.0.20"` were already present.)
+
+#### The optional third argument
+
+`import-random-patients <count> [false]` takes an optional third argument. The
+literal string `false` turns off the importer's development mode:
+
+| Invocation | Mode | Behaviour |
+|---|---|---|
+| `import-random-patients 5` | Development mode **ON** | Prints `Development Mode is ON (performance mode)`. Imports via a single console call. **This is the form that works.** |
+| `import-random-patients 2 false` | Development mode **OFF** | Prints `Development Mode is OFF (audit log will be used)`. **Creates document rows but no patients — see Troubleshooting.** |
+
+**Use the two-argument form.** The `false` variant is documented here only
+because it looks like it works and does not. Details in Troubleshooting below.
+
+---
+
+## 3. Verification
+
+Run all five. Every expected output below was captured from this stack.
+
+**1. Readiness endpoint**
+
+```bash
+curl -sk https://localhost:9300/meta/health/readyz
+```
+
+```json
+{"status":"setup_required","checks":{"installed":false,"database":true,"filesystem":true,"session":true,"oauth_keys":true,"cache":true}}
+```
+
+`oauth_keys: true` confirms step 6 worked. Note that `installed` reports `false`
+and `status` reports `setup_required` **even on a correctly installed system** —
+that is a known reporting defect in this fork, not a sign your install failed;
+see `AUDIT.md`. Judge the install by the table and patient counts below, not by
+this field. A liveness probe is also available:
+
+```bash
+curl -sk https://localhost:9300/meta/health/livez     # => {"status":"alive"}
+```
+
+**2. Table count** — note the client binary is `mariadb`, not `mysql`:
+
+```bash
+docker compose exec -T mysql mariadb -uopenemr -popenemr openemr \
+  -e "SELECT COUNT(*) AS table_count FROM information_schema.tables WHERE table_schema='openemr';"
+```
+
+```
+table_count
+284
+```
+
+**3. Clinical data census** — confirms seeding actually landed:
+
+```bash
+docker compose exec -T mysql mariadb -uopenemr -popenemr openemr -t -e "
+SELECT (SELECT COUNT(*) FROM patient_data)     AS patients,
+       (SELECT COUNT(*) FROM form_encounter)   AS encounters,
+       (SELECT COUNT(*) FROM procedure_order)  AS lab_orders,
+       (SELECT COUNT(*) FROM procedure_result) AS lab_results,
+       (SELECT COUNT(*) FROM lists)            AS list_items;"
+```
+
+```
++----------+------------+------------+-------------+------------+
+| patients | encounters | lab_orders | lab_results | list_items |
++----------+------------+------------+-------------+------------+
+|       65 |       2800 |       7417 |        7259 |       2021 |
++----------+------------+------------+-------------+------------+
+```
+
+Your numbers will differ with how many Synthea patients you imported. What
+matters is that `patients` is well above 3 and `lab_results` is non-zero — if
+`lab_results` is 0 you are still on demo data only and step 7 did not run.
+
+**4. Login page responds**
+
+```bash
+curl -sk -o /dev/null -w '%{http_code}\n' https://localhost:9300/interface/login/login.php
+```
+
+```
+200
+```
+
+**5. Log in through a browser**
+
+| Service | URL | Credentials |
+|---|---|---|
+| OpenEMR (HTTPS) | https://localhost:9300/ | `admin` / `pass` |
+| OpenEMR (HTTP) | http://localhost:8300/ | `admin` / `pass` |
+| phpMyAdmin | http://localhost:8310/ | `openemr` / `openemr` |
+| MariaDB (direct) | `localhost:8320` | `openemr` / `openemr` |
+
+The HTTPS certificate is self-signed, so expect a browser warning. Both
+`http://localhost:8300/interface/login/login.php` and phpMyAdmin on 8310 were
+confirmed returning `200`.
+
+---
+
+## 4. Troubleshooting
+
+**`docker compose` returns "unknown command"**
+*Cause:* Colima does not necessarily ship the Compose CLI plugin, unlike Docker
+Desktop.
+*Fix:* `brew install docker-compose`, then
+`mkdir -p ~/.docker/cli-plugins && ln -sfn "$(brew --prefix)/opt/docker-compose/bin/docker-compose" ~/.docker/cli-plugins/docker-compose`.
+(Given by the operator.)
+
+**`docker compose exec mysql mysql ...` fails with "executable file not found"**
+*Cause:* The image is MariaDB 11.8.8. The client binary is `mariadb`; the
+`mysql` compatibility symlink is not present.
+*Fix:* Use `mariadb` — e.g.
+`docker compose exec -T mysql mariadb -uopenemr -popenemr openemr -e "..."`.
+The same applies to `mariadb-dump` instead of `mysqldump`.
+
+**Files written by the container are owned by uid 1000; permission errors on host-side edits or `git commit`**
+*Cause:* `HOST_UID` / `HOST_GID` were not exported when the stack was started, so
+the container entrypoint left apache at its default uid 1000. This stack
+bind-mounts the whole repo, so everything apache writes lands in your working
+tree with the wrong owner.
+*Fix:* Always start with
+`HOST_UID=$(id -u) HOST_GID=$(id -g) docker compose up -d mysql openemr phpmyadmin`.
+Verify with `docker compose exec -T openemr id apache` — the uid should match
+your `id -u` (501 on a standard macOS account), not 1000.
+
+**All containers report healthy, but OpenEMR is not usable**
+*Cause:* Container health and application installation are independent. A freshly
+started stack passes its health checks while the application is still
+uninstalled.
+*Fix:* Run step 5 explicitly:
+`docker compose exec -T openemr /root/devtools dev-reset-install-demodata`. Do
+not treat `docker compose ps` showing healthy as evidence the app is ready — use
+the table and patient counts in Verification instead.
+
+**`readyz` reports `"installed":false` and `"status":"setup_required"` on a working install**
+*Cause:* A known reporting defect in this fork; the field does not reflect actual
+install state once the application has bootstrapped. Documented in `AUDIT.md`.
+*Fix:* None needed — ignore that field. Verify the install with the table count
+and clinical census instead. The other checks in the same response
+(`database`, `filesystem`, `session`, `oauth_keys`, `cache`) are meaningful.
+
+**`openemr-cmd: command not found`**
+*Cause:* `openemr-cmd` is not installed in this environment, though
+`CONTRIBUTING.md` and `CLAUDE.md` assume it.
+*Fix:* Call the in-container script directly —
+`docker compose exec -T openemr /root/devtools <subcommand>`. This is equivalent
+for every subcommand. Note that running `/root/devtools` with no arguments
+prints nothing at all; the subcommand list is in the script's comment header
+(`docker compose exec -T openemr head -125 /root/devtools`).
+
+**`readyz` reports `"oauth_keys":false` after a successful install**
+*Cause:* OpenEMR generates its OAuth2 key pair lazily, on the first OAuth2
+request — not during installation. Until then the key files do not exist.
+*Fix:* `docker compose exec -T openemr /root/devtools register-oauth2-client`.
+Confirm with
+`docker compose exec -T openemr ls -la /var/www/localhost/htdocs/openemr/sites/default/documents/certificates/` —
+`oaprivate.key` and `oapublic.key` should both be present.
+
+**Only 3 patients, and every lab query returns nothing**
+*Cause:* You have `dev-reset-install-demodata` data only. That dataset is 3
+patients with 3 encounters all dated 2014-02-01 and zero rows in
+`procedure_order` / `procedure_result`.
+*Fix:* Seed with Synthea — `docker compose exec -T openemr /root/devtools
+import-random-patients 5` (or a larger count). Re-run the clinical census to
+confirm `lab_results` is non-zero.
+
+**`import-random-patients N false` reports success but no patients appear**
+*Cause:* Verified in this session: `import-random-patients 2 false` exits 0 and
+prints `System has successfully imported CCDA number: 1`, `... 2` and
+`Finished patients import 2`, but `patient_data` does not change. With
+development mode off, `contrib/util/ccda_import/import_ccda.php` takes a
+different path — it creates a `documents` row, then shells out to
+`openemr:ccda-import` and `openemr:ccda-newpatient` passing `--auth_name=`
+(empty). The devtools wrapper never supplies an auth name, and the `exec()`
+calls' exit statuses are not checked, so the failure is silent. The run leaves
+orphan `documents` rows with no patient attached.
+*Fix:* Use the two-argument form, `import-random-patients <count>`. If you have
+already run the `false` variant, its document rows are inert — identify them
+with
+`SELECT id, name FROM documents WHERE foreign_id IS NULL OR foreign_id = 0;`.
+
+**The stack is slow, or the container runs out of memory**
+*Cause:* Colima's default VM is undersized, and/or the mount type is not
+virtiofs. This stack bind-mounts the whole repository, so mount performance
+dominates.
+*Fix:* Resize as in step 2:
+`colima start --cpu 6 --memory 12 --disk 100 --vm-type vz --mount-type virtiofs`.
+(Given by the operator.)
+
+---
+
+## 5. Repository layout
+
+Only the parts relevant to this project. This is an OpenEMR fork, so most of the
+tree is upstream application code.
+
+```
+src/                        Modern PSR-4 code (OpenEMR\ namespace) — where co-pilot
+                            code belongs
+interface/                  Web UI controllers and templates (legacy entry points)
+library/                    Legacy procedural PHP helpers
+templates/                  Twig (modern) and Smarty (legacy) templates
+meta/health/index.php       /meta/health/livez and /readyz probe endpoints
+sql/                        Database schema and migrations
+tests/                      PHPUnit suites (unit, api, e2e, services, isolated)
+contrib/util/ccda_import/   CCDA importer used by import-random-patients
+docker/development-easy/    The compose stack used for local development
+  docker-compose.yml        Service, port, volume and environment definitions
+CLAUDE.md                   Coding standards and workflow for this repo
+README-OPENEMR.md           Upstream OpenEMR's original README
+ARCHITECTURE.md             Co-pilot architecture (in progress — not yet written)
+AUDIT.md                    Findings from the baseline audit (in progress — not yet written)
+```
+
+Inside the `openemr` container the repository is mounted twice: read-write at
+`/var/www/localhost/htdocs/openemr` and read-only at `/openemr`. `sites/`,
+`vendor/`, `node_modules/` and the theme and asset directories are named Docker
+volumes layered over the bind mount, so changes there do **not** appear in your
+working tree.
