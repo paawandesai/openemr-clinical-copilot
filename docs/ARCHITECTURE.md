@@ -342,7 +342,7 @@ silently assumed covered:**
 | Risk | Mitigated? | How |
 |---|---|---|
 | Fabricated or hallucinated clinical claims reach the physician | Yes | Source-verification layer (§5) — every claim bound to a real, this-turn `source_id`; unverified claims render as explicitly unverified, never dropped or softened. |
-| Cross-patient context leakage in a multi-turn exchange | Yes, within agent state | Conversation state exists only for Use Case 3, keyed to `(user, patient, session)`, invalidated on patient switch (§4) — not a fix for OpenEMR's own per-patient authorization gap (F-50; §4). |
+| Cross-patient context leakage in a multi-turn exchange | Yes, within agent state | Conversation state exists only for Use Case 3, keyed to `(user, patient, session)`, invalidated on patient switch — not a fix for OpenEMR's own per-patient authorization gap (F-50; §4). |
 | A future service (agent process, observability backend) repeats the Docker/UFW exposure pattern | Yes, by process | Binding verification via `ss`/`docker compose ps`/resolved `docker compose config` from an external vantage point is now a standing requirement for any new service in this Compose stack (§1). |
 | Trusting a misleading "success" signal from upstream tooling (OpenEMR's own or otherwise) | Yes, by design principle | Verification checks actual retrieved data, never an upstream success claim — directly motivated by F-15's observed intermittent silent-failure pattern (§5). |
 | Agent misreads a 401 as a transient/retryable auth failure | Yes | Agent holds its own decoded-JWT scope record and pre-checks before requesting, rather than inferring cause from HTTP status alone (§2). |
