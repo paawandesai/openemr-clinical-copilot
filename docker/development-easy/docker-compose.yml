@@ -4,7 +4,7 @@ services:
     image: mariadb:11.8.8@sha256:be1ef4fe5f14589325c08a41c76334097ce66c86264b75e1d28342c742782a61
     command: ['mariadbd', '--character-set-server=utf8mb4', '--ssl-ca=/etc/ssl/ca.pem', '--ssl_cert=/etc/ssl/server-cert.pem', '--ssl_key=/etc/ssl/server-key.pem']
     ports:
-    - "${WT_MYSQL_PORT:-8320}:3306"
+    - "127.0.0.1:18320:3306"
     volumes:
     - ../library/sql-ssl-certs-keys/easy/ca.pem:/etc/ssl/ca.pem:ro
     - ../library/sql-ssl-certs-keys/easy/server-cert.pem:/etc/ssl/server-cert.pem:ro
@@ -147,7 +147,7 @@ services:
     restart: always
     image: phpmyadmin:5.2.3@sha256:b16dc88d6e62b186dc4864adac4996fe0238587aa9f5ed507dcfc3894903a3f6
     ports:
-    - "${WT_PMA_PORT:-8310}:80"
+    - "127.0.0.1:18310:80"
     environment:
       PMA_HOSTS: mysql
     depends_on:
