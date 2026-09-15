@@ -37,6 +37,20 @@ def get_correlation_id() -> str | None:
     return _correlation_id_var.get()
 
 
+def bind_correlation_id(correlation_id: str) -> None:
+    """
+    Bind a correlation_id outside of an HTTP request — for background jobs
+    or standalone scripts (e.g. scripts/smoke_test_fhir.py) that want the
+    same correlation_id propagation CorrelationIdMiddleware provides for a
+    real request, without going through the ASGI app at all. Same two
+    operations the middleware itself performs. Does not auto-clear: a
+    short-lived script exiting is sufficient cleanup, unlike a
+    long-running server handling many requests in the same process.
+    """
+    _correlation_id_var.set(correlation_id)
+    structlog.contextvars.bind_contextvars(correlation_id=correlation_id)
+
+
 class CorrelationIdMiddleware(BaseHTTPMiddleware):
     """
     Generates a UUID per request if the caller didn't supply one via the
