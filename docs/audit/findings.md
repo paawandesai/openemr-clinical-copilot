@@ -1261,6 +1261,22 @@ Pass-2 droplet database commands were run as
   not evidence of work done anywhere in this codebase. Every ingestion or write
   path the co-pilot depends on must be verified by reading back the resulting
   rows, not by trusting the tool's own report.
+- **Correction (later session; recorded 2026-09-15):** the identical command
+  (`import-random-patients 5 false`) was run again in a later session and
+  imported **4 of 5** patients, not 0. The observation above is not disputed —
+  it is what happened in that run — but the finding's framing should be read
+  as **intermittent, not deterministic**: the same root cause (`$authName`
+  never set by the devtools wrapper, per
+  `contrib/util/ccda_import/import_ccda.php:195-207`) may still be the
+  mechanism, but it does not fail on every invocation, nor does it fail
+  completely when it does fail. This is `operator-reported` to this ledger,
+  not independently re-run in this session. Severity is **not** downgraded
+  from High: a command that silently succeeds somewhere between 0% and 80% of
+  the time on a supposedly all-or-nothing operation is arguably worse than a
+  guaranteed no-op, because partial success is far harder to notice — a
+  4-of-5 import looks like success unless every expected patient is
+  individually checked, and no existing tooling in this codebase does that
+  check.
 
 ### F-16 — Synthea generator/importer count mismatch, unreconciled
 - **Category:** Data Quality
@@ -1543,6 +1559,44 @@ Pass-2 droplet database commands were run as
 - **Implication for the agent:** Evaluation cases, golden answers and
   performance baselines must name the environment and seed they were built
   against. A test that references `pid=20` is meaningless on the droplet.
+
+### F-55 — POSITIVE: medication records carry machine-checkable RxNorm codes
+- **Category:** Data Quality
+- **Severity:** Positive
+- **Claim:** 311 of 312 prescriptions (99.7%) carry a non-empty
+  `rxnorm_drugcode` value. Medication claims can be attributed to a standard,
+  machine-checkable code, not just free text.
+- **Evidence:** droplet, post-reseed — a fresh `dev-reset-install-demodata`
+  followed by `import-random-patients 50` (development mode on) — in a later
+  session than the pass-2 census above. No separate timestamp was recorded
+  for this specific query; the closest anchor in this ledger is F-54's
+  `2026-09-15T00:54:04Z – 15:04:39Z` interval, the only droplet stack restart
+  between the incident's discovery and its fix whose container ran long
+  enough for this kind of session but whose bindings went unlogged — offered
+  as the nearest available session context, not a confirmed timestamp for
+  this query.
+  ```
+  $ (droplet) SELECT COUNT(*) total, SUM(rxnorm_drugcode IS NOT NULL AND rxnorm_drugcode <> '') coded FROM prescriptions;
+  +-------+-------+
+  | total | coded |
+  +-------+-------+
+  |   312 |   311 |
+  +-------+-------+
+  ```
+  This population (312 prescriptions) matches neither the pass-2 droplet
+  census (373, taken 2026-09-14T22:31:16Z) nor the local census (305),
+  confirming it reflects a distinct, later reseed rather than a re-read of
+  previously recorded data.
+- **Verified:** `first-hand`
+- **Implication for the agent:** Medication claims in the verification layer
+  can bind to `source_id` + RxNorm code — a stronger attribution surface than
+  most other clinical fields in this dataset. Contrast explicitly with F-19:
+  lab results carry zero reference ranges and zero abnormal flags across
+  7,259 (local) / 29,701 (droplet) `procedure_result` rows. Medications and
+  labs warrant different verification-strength assumptions in
+  `ARCHITECTURE.md` — the agent can cite a medication against a standard code
+  with high confidence, but cannot do the equivalent for a lab value's
+  clinical significance.
 
 ---
 
