@@ -1,0 +1,19 @@
+# Web service
+fastapi>=0.141.0
+uvicorn[standard]>=0.34.0
+
+# Agent orchestration (LangGraph graph not yet constructed — see app/main.py)
+langgraph>=1.2.11
+
+# Anthropic Python SDK — package name confirmed as `anthropic` on PyPI
+# (not e.g. `anthropic-sdk`); no LLM calls wired up yet — see app/health.py
+anthropic>=1.5.0
+
+# Data models — Claim/VerificationResult, FHIR resource models, metrics
+# event schemas (app/models/) are all pydantic v2
+pydantic>=2.9.0
+
+# Structured JSON logging with contextvars support, used by
+# app/middleware/logging.py + app/middleware/correlation.py to attach
+# correlation_id to every log line for a request's lifetime
+structlog>=26.1.0
