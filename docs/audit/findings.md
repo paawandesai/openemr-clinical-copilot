@@ -6,7 +6,24 @@ One entry per finding, no summary, no narrative.
 **System state at time of audit:** OpenEMR 8.2.0-dev (`v_database` 541), 284
 tables, `docker/development-easy` stack (mysql, openemr, phpmyadmin only).
 
-**Data census re-run 2026-09-14T18:25:02Z** and used throughout this ledger:
+**Pass 2 (2026-09-14T22:20Z – 2026-09-15T00:12Z):** adds the deployed droplet as
+a second audited environment, entries F-31–F-53, and in-place corrections
+marked **Correction (pass 2):** or **Cross-check (pass 2):**. All pass-2 SSH
+access to the droplet was as `root@201.79.25.22` from the operator workstation
+(egress IP `192.63.199.50`, confirmed by matching this session's own probe
+requests in the droplet access log at 22:24:35Z). All timestamps are UTC unless
+stated; droplet host clock, MariaDB (`@@system_time_zone` UTC) and PHP
+(`date_default_timezone_get()` UTC) were confirmed to agree.
+
+| | Local | Droplet |
+|---|---|---|
+| URL | `https://localhost:9300/` | `https://201.79.25.22:9300/` (also `http://201.79.25.22:8300/`) |
+| Commit checked out | `c4db1578b53293611665d9190fe13f1458312590` | `c4db1578b53293611665d9190fe13f1458312590` (clean tree, 0 untracked; see F-53) |
+| `README.md:11` | `**Deployed URL:** TBD` | `**Deployed URL:** TBD` (same commit — the README does not yet record the URL) |
+| Host | Colima profile `default`: 6 CPU, 12 GiB, aarch64, on Apple M5 Pro | DigitalOcean Droplet: 4 vCPU AMD EPYC 9555P (KVM), 12,248,264 kB RAM, 48 G disk, Ubuntu 24.04.4, metadata region `mem1` |
+| Stack | `docker/development-easy`, PHP 8.5.6 | same compose file, same image digests, PHP 8.5.6 (see F-48) |
+
+**Data census re-run 2026-09-14T18:25:02Z** and used throughout pass-1 entries:
 
 ```
 patients 65 · encounters 2800 · problems 1669 · allergies 43 · med_list 309
@@ -19,7 +36,40 @@ import was run during this session (60→65 patients, 2561→2800 encounters,
 6833→7259 lab results). Entries carrying corrected figures are marked
 **Correction:**.
 
-All database commands below were run from `docker/development-easy/`.
+**Census re-run in pass 2 against both databases with identical SQL** —
+local 2026-09-14T22:31:14Z, droplet 2026-09-14T22:31:16Z. Every local figure
+reproduces the 18:25:02Z census exactly.
+
+| Label | Definition (as run) | Local | Droplet |
+|---|---|---|---|
+| patients | `COUNT(*) FROM patient_data` | 65 | 53 |
+| encounters | `form_encounter` | 2800 | 3331 |
+| problems | `lists WHERE type='medical_problem'` | 1669 | 2384 |
+| allergies | `lists WHERE type='allergy'` | 43 | 59 |
+| med_list | `lists WHERE type='medication'` | 309 | 377 |
+| prescriptions | `prescriptions` | 305 | 373 |
+| lab_orders ⚠ | `procedure_order` (**all** order types) | 7417 | 11250 |
+| — of which `procedure_order_type='laboratory_test'` | | 596 | 1177 |
+| lab_reports | `procedure_report` | 596 | 1177 |
+| lab_results | `procedure_result` | 7259 | 29701 |
+| vitals | `form_vitals` | 65 | 53 |
+| immunizations | `immunizations` | 934 | 806 |
+| appointments | `openemr_postcalendar_events` | 11 | 11 |
+| documents | `documents` | 7 | 0 |
+| log | `log` | 2295 | 2305 |
+| audit_master | `audit_master` | 0 | 0 |
+| patients with ≥1 allergy row | `COUNT(DISTINCT pid) FROM lists WHERE type='allergy'` | 14 | 9 |
+| patients with ≥1 vitals row | `COUNT(DISTINCT pid) FROM form_vitals` | 65 | 53 |
+
+**Correction (pass 2) to the census label:** `lab_orders` counts every
+`procedure_order` row. Only 596 (local) / 1177 (droplet) are laboratory orders;
+the rest are Synthea procedure orders with no report — see F-42. The
+`log` count has since risen locally to 2321 because this session's API probes
+wrote rows (see "Audit side-effects of pass 2").
+
+All pass-1 database commands below were run from `docker/development-easy/`.
+Pass-2 droplet database commands were run as
+`ssh root@201.79.25.22 'docker exec -i development-easy-mysql-1 mariadb … openemr'`.
 
 ---
 
@@ -39,6 +89,11 @@ All database commands below were run from `docker/development-easy/`.
   76:      GITHUB_COMPOSER_TOKEN_ENCODED: Z2hwX0NpbnJ4aXlNd0NzcGZXWG1UWFUwcXhGa040elFKSDJoZGJXVw==
   77:      GITHUB_COMPOSER_TOKEN_ENCODED_ALTERNATE: '103 104 112 95 57 54 108 115 88 116 87 72 51 75 81 105 69 88 88 119 97 79 80 78 109 69 66 115 85 97 106 78 112 71 49 81 90 102 74 121'
   ```
+- **Cross-check (pass 2):** the running droplet container carries all three
+  variables in its environment (`docker exec … printenv` listed the names
+  `GITHUB_COMPOSER_TOKEN`, `GITHUB_COMPOSER_TOKEN_ENCODED`,
+  `GITHUB_COMPOSER_TOKEN_ENCODED_ALTERNATE`; values not printed). The pattern
+  is therefore live on an internet-facing host, not only in git. `first-hand`.
 - **Verified:** `first-hand`
 - **Implication for the agent:** Any secret the co-pilot introduces (LLM API
   keys, service credentials) must not follow this file's precedent. Secrets
@@ -92,6 +147,16 @@ All database commands below were run from `docker/development-easy/`.
   `is_enabled=1` and two extra grants, i.e. it was modified after registration.
   It is almost certainly the client behind F-07's successful token, so this
   ledger does not claim an as-shipped registered client ever worked.
+- **Cross-check (pass 2):** OpenEMR's own `log` table records the registration
+  INSERTs with their bound values. Decoding `comments` (base64 SQL) shows every
+  registration on both hosts inserted `grant_types='authorization_code'` —
+  local log ids 2118 (16:49:14), 2224 (17:38:20), 2233 (17:40:34); droplet ids
+  2118 (21:10:43), 2196 (22:12:17). On the droplet **both** current rows are
+  `is_enabled=1` with `authorization_code,password,refresh_token`, and on
+  neither host does any `log` row reference an `UPDATE` to `oauth_clients`. The
+  as-registered defaults claimed above are thus confirmed on a second
+  environment; the enabling was done by a path that writes nothing to the
+  audit log (F-40). `first-hand`.
 - **Verified:** `first-hand` (schema defaults, compose setting, live table
   state). The claim that all three failure modes surface as an identical opaque
   `invalid_client` is `operator-reported` — no token exchange was exercised here.
@@ -152,6 +217,10 @@ All database commands below were run from `docker/development-easy/`.
   ```
   `00/` is patient document storage and `procedure_results/` holds lab
   documents; the signing keys sit beside them under one parent.
+- **Cross-check (pass 2):** same layout on the droplet — `oaprivate.key`
+  (1886 B, `-rw-r-----`) and `oapublic.key` (451 B, `-rw-rw----`) created
+  21:10, i.e. at the first OAuth registration (21:10:43), not at install
+  (20:51:57). `first-hand`.
 - **Verified:** `first-hand`
 - **Implication for the agent:** Any document-tree traversal, backup, export or
   indexing the co-pilot performs must exclude `certificates/` explicitly. A
@@ -229,20 +298,39 @@ All database commands below were run from `docker/development-easy/`.
     Observation?patient=20        → 401
     Bearer garbage                → 401
   ```
-- **Verified:** `operator-reported`
+- **Cross-check (pass 2):** the forged-token row was reproduced first-hand on
+  both hosts:
+  ```
+  $ curl -sk -H 'Authorization: Bearer garbage' -w '\nHTTP %{http_code} total=%{time_total}\n' "https://localhost:9300/apis/default/fhir/Patient?_count=5"
+  {"error":"An error occurred","message":"The resource owner or authorization server denied the request.","code":0}
+  HTTP 401 total=0.183900
+  $ (same against https://201.79.25.22:9300)
+  {"error":"An error occurred","message":"The resource owner or authorization server denied the request.","code":0}
+  HTTP 401 total=0.328752
+  ```
+  The scope-refusal path was traced in source (see F-08 correction and F-51):
+  `src/RestControllers/Subscriber/AuthorizationListener.php:189-192` throws
+  `AccessDeniedException` when `requestHasScopeEntity()` is false. The
+  in-scope 200 and the two out-of-scope 401s remain unreproduced (no token).
+- **Verified:** `operator-reported` (overall). Forged-token refusal and the
+  enforcement code path are `first-hand`.
 - **Implication for the agent:** The co-pilot cannot widen its own data access
   by reusing a narrow token — scope must be requested up front for every
   resource type it intends to read. Scope enforcement is a real boundary and can
   be relied on as one.
 
-### F-08 — Out-of-scope and invalid-token responses are indistinguishable
+### F-08 — Out-of-scope and invalid-token responses share a status code but not a body
 - **Category:** Security
 - **Severity:** Low
-- **Claim:** A request refused for insufficient scope returns 401, the same
-  status and body as a request bearing a garbage token, so an authorization
-  failure cannot be told apart from an authentication failure.
+- **Claim (as corrected in pass 2):** A request refused for insufficient scope
+  returns 401 — the same status as a request bearing a garbage token, and never
+  the RFC 6750 403 — but the response **bodies differ**: out-of-scope yields
+  `"message":"Unauthorized"`, an invalid token yields
+  `"message":"The resource owner or authorization server denied the request."`.
+  The two failures can therefore be told apart, but only by string-matching
+  the message.
 - **Evidence:** operator-reported. From the F-07 probe set, the scoped-out
-  resources and the forged token produce the same result:
+  resources and the forged token produce the same status:
   ```
     MedicationRequest?patient=20  → 401 {"error":"An error occurred","message":"Unauthorized","code":0}
     Observation?patient=20        → 401
@@ -250,11 +338,33 @@ All database commands below were run from `docker/development-easy/`.
   ```
   Per RFC 6750 an insufficient-scope refusal would be 403; no `403` was observed
   in the probe set.
-- **Verified:** `operator-reported`
+- **Correction (pass 2):** the original claim said the two cases return "the
+  same status **and body**" and "cannot be told apart". The operator's probe
+  set only showed a body for the out-of-scope case. First-hand, a forged bearer
+  token (and no token at all) returns
+  `{"error":"An error occurred","message":"The resource owner or authorization server denied the request.","code":0}`
+  on both hosts (commands in F-07 cross-check). Source confirms two distinct
+  messages reach the same status:
+  - Out of scope: `AuthorizationListener.php:192` throws
+    `AccessDeniedException` → caught at `src/Common/Http/HttpRestRouteHandler.php:99`
+    → rethrown at `:112` as `new HttpException(Response::HTTP_UNAUTHORIZED, "Unauthorized", $exception)`.
+  - Invalid token: `src/RestControllers/Authorization/BearerTokenAuthorizationStrategy.php:342-344`
+    catches `OAuthServerException` and throws `new HttpException(401, $exception->getMessage(), $exception)`;
+    the message text is league/oauth2-server's
+    (`vendor/league/oauth2-server/src/Exception/OAuthServerException.php:244`
+    inside the container's vendor volume; `league/oauth2-server` 8.5.5 per `composer.lock`).
+  - Both are rendered by `src/RestControllers/Subscriber/ExceptionHandlerListener.php:44-45`
+    (status from `HttpException::getStatusCode()`) and `:51` (`'error' => 'An error occurred'`),
+    with `'message' => $exception->getMessage()`.
+  Status-code equality and the absence of 403 stand; body equality does not.
+- **Verified:** `operator-reported` (out-of-scope responses). Invalid-token
+  responses and both source paths are `first-hand`.
 - **Implication for the agent:** The co-pilot must not treat a 401 as "token
   expired, refresh and retry" — an infinite refresh loop against a
   permanently-out-of-scope resource is the failure mode. It needs its own record
   of which scopes it holds and must check that before requesting a resource.
+  The message string can serve as a secondary discriminator, but it is
+  library-owned text and should not be the primary control.
 
 ### F-09 — Token response `scope` disagrees with the JWT `scopes` claim
 - **Category:** Security
@@ -273,6 +383,590 @@ All database commands below were run from `docker/development-easy/`.
   string in the token response. Trusting the response field would understate
   what it holds and could drive incorrect self-limiting or incorrect error
   handling.
+
+### F-31 — Default `admin`/`pass` credential was live on the public internet for 1 h 22 min 21 s
+- **Category:** Security
+- **Severity:** High
+- **Claim:** On the droplet, the OpenEMR `admin` account accepted the default
+  password `pass` from the moment Apache began serving at
+  **2026-09-14T20:51:58Z** until the password was changed at
+  **2026-09-14T22:14:19Z** — a window of **4,941 s (1 h 22 min 21 s)** —
+  on ports reachable from the internet (F-33), including plaintext HTTP 8300.
+- **Evidence:**
+  - Default credential source: `docker/development-easy/docker-compose.yml:66-67`
+    `OE_USER: admin` / `OE_PASS: pass`; the container env on the droplet shows
+    `OE_USER=admin` and an `OE_PASS` variable (value not printed).
+  - Start of window — droplet container log (`docker logs -t development-easy-openemr-1`,
+    json-file driver, first line is the entrypoint at 20:49:47, so the log is complete):
+    ```
+    2026-09-14T20:51:29.679083661Z Running quick setup!
+    2026-09-14T20:51:57.339428643Z OpenEMR configured.
+    2026-09-14T20:51:57.719404307Z Setup Complete!
+    2026-09-14T20:51:58.832066520Z Starting apache!
+    2026-09-14T20:51:58.953860691Z [...] AH00163: Apache/2.4.67 (Unix) OpenSSL/3.5.7 configured -- resuming normal operations
+    ```
+    A demo-data reset ran at ~21:07 (readyz logged an SQL error at 21:07:11;
+    demo users' `last_update_password` is 21:07:29) and reinstalled with the
+    same `OE_PASS`.
+  - End of window:
+    ```
+    users_secure: admin | last_update_password 2026-09-14 22:14:19 | last_update 2026-09-14 22:14:19
+    access log:   2026-09-14T22:14:19.947969309Z 192.63.199.50 - - [14/Sep/2026:22:14:19 +0000] "POST /interface/usergroup/user_info_ajax.php HTTP/1.1" 200 65
+    ```
+    This is the only `user_info_ajax.php` request in the full access log.
+  - The change moved away from `pass` — offline `password_verify()` inside the
+    droplet container against stored hashes (no login attempted, hashes never
+    printed; script reads `users_secure` over the Docker network):
+    ```
+    admin  current hash          → does not verify 'pass'
+    admin  password_history1     → verifies 'pass'
+    admin  password_history2..4  → empty
+    ```
+    (Local, for contrast: `admin` current hash verifies `'pass'`.)
+  - Application logins during/after the window (OpenEMR `log`, comments base64-decoded):
+    ```
+    2026-09-14 22:13:12 login ''       success=0  "failure: 192.63.199.50. empty username or password"
+    2026-09-14 22:13:22 login testuser success=0  "failure: 192.63.199.50. user not found"
+    2026-09-14 22:13:52 login admin    success=1  "success: 192.63.199.50"
+    ```
+    These are the only login events dated 2026; the others are 2014/2017 rows
+    from the imported demo dump. The successful login used port 9300 (Referer
+    `https://201.79.25.22:9300/interface/login/login.php`).
+  - Lower bound corroboration: the first request from outside the container
+    was `2026-09-14T21:06:33Z 192.63.199.50 "GET /meta/health/readyz"`, proving
+    public reachability by then from at least the operator's network.
+- **Verified:** `first-hand` — window endpoints, credential state before and
+  after, and login events all re-derived this session from droplet artifacts.
+  Whether any *other* party used the credential is addressed in F-39.
+- **Implication for the agent:** Every fresh deployment of this stack is born
+  with a known admin credential and serves it to the internet within ~2 minutes
+  of container start. Co-pilot deployment automation must set credentials
+  *before* publishing ports, and must treat any instance that was ever reachable
+  with defaults as potentially accessed.
+
+### F-32 — Five demo accounts with username-as-password remain live on the internet, one in Administrators (ongoing)
+- **Category:** Security
+- **Severity:** High (exposure ongoing at 2026-09-15T00:12:00Z)
+- **Claim:** The demo-data install created five active OpenEMR users whose
+  password equals their username. They were not changed when `admin` was.
+  `physician` and `clinician` are authorized providers, and `zhportal` is in the
+  gacl **Administrators** group. The accounts have been exposed since
+  ~21:07:29Z and still were at the last check.
+- **Evidence:** offline `password_verify()` against stored hashes (no login
+  attempted; hashes never printed), re-run 2026-09-14T22:47:38Z and
+  2026-09-15T00:12:00Z with identical output:
+  ```
+  admin         active=1 authorized=1 algo=$2y$ default_match=none
+  accountant    active=1 authorized=0 algo=$2a$ default_match=username-as-password
+  clinician     active=1 authorized=1 algo=$2a$ default_match=username-as-password
+  physician     active=1 authorized=1 algo=$2a$ default_match=username-as-password
+  receptionist  active=1 authorized=0 algo=$2a$ default_match=username-as-password
+  zhportal      active=1 authorized=0 algo=$2a$ default_match=username-as-password
+  ```
+  ACL group membership (`gacl_aro` → `gacl_groups_aro_map` → `gacl_aro_groups`):
+  ```
+  admin → admin (id 11, "Administrators")   zhportal → admin (id 11, "Administrators")
+  accountant → back   clinician → clin   physician → doc   receptionist → front
+  ```
+  Login gates that would otherwise block these accounts are off:
+  ```
+  password_expiration_days 0 · password_grace_time 0 · password_max_failed_logins 20
+  secure_password '' · login_into_facility 0
+  ```
+  `users_secure.last_update_password` for all five is `2026-09-14 21:07:29`
+  (unchanged at 00:12Z). The login page is served publicly on 8300 and 9300
+  (F-33). The same five accounts with the same passwords exist locally.
+- **Verified:** `first-hand` for stored-credential state, group membership,
+  global settings and reachability of the login page. **Not verified:** that an
+  interactive login as these users succeeds end-to-end — deliberately not
+  attempted (it would create a live session as a clinical user on the exposed
+  host).
+- **Implication for the agent:** Changing `admin` alone does not secure a demo-
+  seeded instance. Any environment the co-pilot is evaluated on must enumerate
+  *all* `users_secure` rows and verify none match a known default before it is
+  exposed. Evaluation traffic should never run under shared demo identities,
+  because audit attribution (F-11) becomes meaningless.
+
+### F-33 — Docker-published ports bypass UFW; all four service ports are internet-reachable
+- **Category:** Security
+- **Severity:** High
+- **Claim:** The droplet's UFW policy allows only 22/80/443, but the Compose
+  stack publishes 8300 (HTTP), 9300 (HTTPS), 8310 (phpMyAdmin) and 8320
+  (MariaDB) on `0.0.0.0`/`[::]`. Docker's DNAT rules take effect before UFW, no
+  `DOCKER-USER` filter exists, and no upstream cloud firewall is filtering, so
+  all four ports are reachable from the internet.
+- **Evidence:**
+  - Compose binds without a host address: `docker-compose.yml:7`
+    `- "${WT_MYSQL_PORT:-8320}:3306"`, `:31` `- "${WT_HTTP_PORT:-8300}:80"`,
+    `:32` `- "${WT_HTTPS_PORT:-9300}:443"`, `:150` `- "${WT_PMA_PORT:-8310}:80"`.
+  - Droplet `docker ps`:
+    ```
+    development-easy-phpmyadmin-1   0.0.0.0:8310->80/tcp, [::]:8310->80/tcp
+    development-easy-openemr-1      0.0.0.0:8300->80/tcp, [::]:8300->80/tcp, 0.0.0.0:9300->443/tcp, [::]:9300->443/tcp
+    development-easy-mysql-1        0.0.0.0:8320->3306/tcp, [::]:8320->3306/tcp
+    ```
+  - Firewall state on the droplet:
+    ```
+    $ ufw status verbose
+    Status: active
+    Default: deny (incoming), allow (outgoing), deny (routed)
+    22/tcp (OpenSSH) ALLOW IN Anywhere · 80/tcp ALLOW IN Anywhere · 443/tcp ALLOW IN Anywhere  (+ v6)
+    $ iptables -S DOCKER-USER
+    -N DOCKER-USER
+    $ iptables -t nat -S DOCKER | grep -E "dport (8300|9300|8310|8320)"
+    -A DOCKER ! -i br-6b2b9346cdfc -p tcp -m tcp --dport 8320 -j DNAT --to-destination 172.18.0.2:3306
+    -A DOCKER ! -i br-6b2b9346cdfc -p tcp -m tcp --dport 8300 -j DNAT --to-destination 172.18.0.3:80
+    -A DOCKER ! -i br-6b2b9346cdfc -p tcp -m tcp --dport 9300 -j DNAT --to-destination 172.18.0.3:443
+    -A DOCKER ! -i br-6b2b9346cdfc -p tcp -m tcp --dport 8310 -j DNAT --to-destination 172.18.0.4:80
+    ```
+  - External probe from the operator workstation (22:24Z, re-run 00:12Z for 8300–8320):
+    ```
+    tcp/22 open · tcp/80 closed/filtered · tcp/443 closed/filtered
+    tcp/8300 open · tcp/9300 open · tcp/8310 open · tcp/8320 open
+    8300 login.php http=200 · 9300 login.php http=200 · 8310 → <title>phpMyAdmin</title>
+    ```
+  - No upstream cloud firewall: the droplet kernel log (current boot) holds
+    **424** `UFW BLOCK` entries from **338** distinct source IPs to arbitrary
+    ports between 20:25:27Z and 22:43:35Z (top: DPT=25565 ×9, 23 ×9, 5060 ×5,
+    53 ×4, 1433 ×4). DigitalOcean Cloud Firewalls drop unlisted inbound traffic
+    before it reaches the droplet, so unsolicited scans arriving at UFW mean
+    none is in place. UFW logging is `low` (rate-limited), so these are lower
+    bounds.
+  - Direct third-party reach: the OpenEMR access log contains
+    `2026-09-14T23:43:58Z 45.79.207.252 - - "GET / HTTP/1.0" 400 402 "-" "-"`
+    (whois: `LINODE-US`, Akamai Technologies) — a non-operator internet host
+    reaching the published Apache. The log format does not record which port.
+  - Local environment: Colima's SSH mux (`ssh: …/.colima/_lima/colima/ssh.sock [mux]`,
+    PID 23076) listens on `*:8300`, `*:8310`, `*:8320`, `*:9300` on the
+    workstation — all interfaces, not loopback. macOS Application Firewall
+    reports `enabled (State = 1)`.
+- **Verified:** `first-hand` for bindings, rule sets, operator-vantage
+  reachability, UFW block statistics and the 45.79.207.252 request.
+  Reachability of *local* ports from another LAN host was **not tested**.
+- **Implication for the agent:** Host firewall configuration is not evidence of
+  exposure control on a Docker host. Any co-pilot service port must bind to
+  `127.0.0.1` (or sit behind `DOCKER-USER` rules / a cloud firewall) and be
+  verified from an external vantage point, never by reading `ufw status`.
+
+### F-34 — Database reachable from the internet with default `root`/`root`; its TLS private keys are committed
+- **Category:** Security
+- **Severity:** High
+- **Claim:** MariaDB (tcp/8320) and phpMyAdmin (tcp/8310) — both
+  internet-reachable (F-33) — accept the Compose defaults: `root@'%'` with
+  password `root` and `openemr@'%'` with password `openemr`. Plaintext
+  connections are permitted, and the TLS CA and server private keys MariaDB
+  uses are tracked in git.
+- **Evidence:**
+  - Defaults: `docker-compose.yml:14` `MYSQL_ROOT_PASSWORD: root`, `:63`
+    `MYSQL_ROOT_PASS: root`, `:64-65` `MYSQL_USER: openemr` / `MYSQL_PASS: openemr`;
+    phpMyAdmin `:152` `PMA_HOSTS: mysql`.
+  - Account hosts and password equality, checked inside the droplet DB without
+    printing hashes:
+    ```
+    SELECT user, host FROM mysql.user;
+    openemr %  · root %  · healthcheck 127.0.0.1/::1/localhost · mariadb.sys localhost · root localhost
+    SELECT user, host, authentication_string = PASSWORD("root") AS pw_is_root FROM mysql.user WHERE user="root";
+    root localhost 1 · root % 1
+    SELECT user, host, authentication_string = PASSWORD("openemr") AS pw_is_openemr FROM mysql.user WHERE user="openemr";
+    openemr % 1
+    SELECT @@have_ssl, @@require_secure_transport;   → YES  0
+    ```
+  - TLS key material in git: `docker-compose.yml:9-11` mounts
+    `../library/sql-ssl-certs-keys/easy/{ca.pem,server-cert.pem,server-key.pem}`;
+    `git ls-files docker/library/sql-ssl-certs-keys/easy/` lists `ca-key.pem`,
+    `ca.pem`, `client-cert.pem`, `client-key.pem`, `client-req.pem`,
+    `server-cert.pem`, `server-key.pem`, `server-req.pem`; `server-key.pem`
+    begins `-----BEGIN RSA PRIVATE KEY-----`.
+  - Observed external DB activity: MariaDB `log_warnings=2`, `general_log=0`.
+    Counters at `Uptime` 5869 s: `Aborted_connects 3`, `Access_denied_errors 2`,
+    `Connections 571`. Every access-denied warning is internal
+    (`'openemr'@'172.18.0.3'` at 20:51:29 and 21:06:51); the only external
+    aborted connection is this session's own port probe
+    (`host: '192.63.199.50'` at 22:24:34, re-checked at 00:11Z). phpMyAdmin's
+    container log holds one request in total, from this session's probe.
+- **Verified:** `first-hand`. No remote database or phpMyAdmin login was
+  attempted. Successful external connections would **not** be logged under
+  `general_log=0`, so absence of access cannot be established.
+- **Implication for the agent:** The co-pilot must assume the database of any
+  environment built from this compose file is reachable and trivially
+  credentialed until proven otherwise. It must never connect to MariaDB as
+  `root`, and any PHI it caches must not live in this database under these
+  settings.
+
+### F-35 — Xdebug step debugger is trigger-activatable by any internet client
+- **Category:** Security
+- **Severity:** High
+- **Claim:** The internet-facing Apache/mod_php runtime on the droplet loads
+  Xdebug 3.5.0 with `xdebug.mode=debug,profile`,
+  `xdebug.start_with_request=trigger`, empty `xdebug.trigger_value` and
+  `xdebug.discover_client_host=1`. Any client that can send an HTTP request can
+  make the server open a DBGp debugging session back to an address the client
+  chooses — a known remote-code-execution vector.
+- **Evidence:**
+  - Environment: `XDEBUG_ON=1`, `XDEBUG_PROFILER_ON=1`,
+    `XDEBUG_CLIENT_HOST=host.docker.internal` (from `docker-compose.yml:71-74`).
+    Container log: `20:51:58.668 (1/1) Installing php85-pecl-xdebug (3.5.0-r0)`,
+    `20:51:58.829 XDebug installed and configured`.
+  - Effective settings (`/etc/php85/php.ini`, droplet container):
+    ```
+    1885:zend_extension=/usr/lib/php85/modules/xdebug.so
+    1891:xdebug.start_with_request=trigger
+    1900:xdebug.discover_client_host=1
+    1903:xdebug.mode=debug,profile
+    1909:xdebug.client_port=9003
+    1911:xdebug.client_host=host.docker.internal
+    ini_get: xdebug.trigger_value='' · xdebug.log='/tmp/xdebug.log' · xdebug.output_dir='/tmp'
+    ```
+    (`/etc/php85/conf.d/50_xdebug.ini` contains only commented lines; the
+    active configuration is in `php.ini`.) Local container reports the same
+    `debug,profile` / `discover=1`.
+  - Loaded in the web SAPI, not only CLI: Apache loads
+    `LoadModule php_module modules/mod_php85.so`, and `/tmp/xdebug.log` entries
+    start `[1311] Log opened at 2026-09-14 20:52:08`, where PID 1311 is an
+    `apache` `httpd` worker (`ps`).
+  - Xdebug documentation (https://xdebug.org/docs/all_settings, fetched this
+    session) on `discover_client_host`: *"Please note that there is no filter
+    available, and anybody who can connect to the webserver will then be able
+    to start a debugging session, even if their address does not match
+    xdebug.client_host."* On `trigger_value`: *"If this setting is set to a
+    non-empty string, then Xdebug will only trigger if the value matches the
+    value of this setting."*
+  - No evidence of use so far: `/tmp/xdebug.log` (1,797 lines at ~22:29Z)
+    contains only `Trigger value for 'XDEBUG_…' not found, so not activating`
+    messages; 0 lines match `connect|discover` (re-checked 00:11Z); 0
+    `cachegrind` profiler files in `/tmp`.
+- **Verified:** `first-hand` for configuration, SAPI loading and log state.
+  Exploitability was **not** tested — no trigger was sent.
+- **Implication for the agent:** Development debugging extensions make every
+  other control in this ledger moot on an exposed host. The co-pilot's
+  deployment must assert at startup that Xdebug is not loaded, or at minimum
+  that `xdebug.mode=off`, in any environment reachable beyond localhost.
+
+### F-36 — Self-signed `CN=localhost` certificate on a bare IP; plaintext HTTP login also served
+- **Category:** Security
+- **Severity:** Medium
+- **Claim:** The droplet serves HTTPS on 9300 with a self-signed certificate
+  generated at container start, whose subject is `CN=localhost` and which is
+  marked as a CA. There is no domain and no publicly trusted certificate. The
+  same login page is also served over plaintext HTTP on 8300.
+- **Evidence:**
+  ```
+  $ echo | openssl s_client -connect 201.79.25.22:9300 2>/dev/null | openssl x509 -noout -issuer -subject
+  issuer= /C=xx/ST=x/L=x/O=x/OU=x/CN=localhost
+  subject= /C=xx/ST=x/L=x/O=x/OU=x/CN=localhost
+  $ … | openssl x509 -noout -dates -fingerprint -sha256
+  notBefore=Sep 14 20:49:55 2026 GMT
+  notAfter=Sep 14 20:49:55 2027 GMT
+  SHA256 Fingerprint=F0:63:40:44:7E:1C:F4:87:75:F6:C1:86:84:5B:5E:4C:D5:66:F6:EF:1A:73:FF:BC:C1:B2:93:99:05:FD:BA:46
+  $ … | openssl x509 -noout -text   → RSA Public-Key: (4096 bit) · X509v3 Basic Constraints: critical CA:TRUE
+  $ echo | openssl s_client -connect 201.79.25.22:9300 -servername 201.79.25.22 2>&1 | grep "Verify return code"
+  Verify return code: 18 (self signed certificate)
+  ```
+  `notBefore` matches the container log line
+  `2026-09-14T20:49:55.990656807Z Configuring self-signed certificate as default...`.
+  Apache itself warns at start: `AH01906: … server certificate is a CA certificate (BasicConstraints: CA == TRUE !?)`
+  and `AH01909: … server certificate does NOT include an ID which matches the server name`.
+  The local stack serves a different self-signed `CN=localhost` certificate
+  (SHA256 `1D:4F:78:7F:…:4E:DC`), confirming per-container generation.
+  Plaintext: `curl http://201.79.25.22:8300/interface/login/login.php` → 200.
+- **Verified:** `first-hand`
+- **Implication for the agent:** Clients of the deployed co-pilot (browsers,
+  SMART apps, the co-pilot's own server-to-server calls) cannot validate this
+  endpoint and will be pushed toward `--insecure`/`verify=False`, which also
+  disables protection against interception. Any co-pilot HTTP client must pin
+  or trust an explicit CA, never disable verification globally. Credentials or
+  PHI must never be sent to port 8300.
+
+### F-37 — `readyz` returns exception messages to unauthenticated callers with HTTP 200
+- **Category:** Security
+- **Severity:** Low
+- **Claim:** The unauthenticated `/meta/health/readyz` endpoint catches every
+  `Throwable` and returns its raw message in the JSON body with status 200 —
+  on the droplet, to the internet.
+- **Evidence:** `meta/health/index.php:91-95`:
+  ```php
+  } catch (\Throwable $e) {
+      // Even on error, return 200 with error details in body
+      // This ensures the probe doesn't fail just because of an exception
+      $response = new JsonResponse(['status' => 'error', 'message' => $e->getMessage()]);
+      $response->send();
+  }
+  ```
+  Circumstantial: during the droplet's demo reset the healthcheck probe got a
+  422-byte 200 response instead of the usual 136–137 bytes, immediately after
+  an SQL error was logged:
+  ```
+  2026-09-14T21:07:11.508205930Z [...] SQL Error with statement:query failed: SELECT gl_name, gl_index, gl_value FROM globals ORDER BY gl_name
+  2026-09-14T21:07:11.510609525Z ::1 - - [14/Sep/2026:21:07:11 +0000] "GET /meta/health/readyz HTTP/1.1" 200 422 "-" "curl/8.19.0"
+  ```
+  That response body was not captured, so it is not known whether the error
+  path at `:91-95` or the normal checker path produced it.
+- **Verified:** `first-hand` (source). Leak not exercised.
+- **Implication for the agent:** Contradicts this repo's own rule ("Never expose
+  `$e->getMessage()` in user-facing output"). Any co-pilot health or error
+  endpoint must log exceptions and return generic text.
+
+### F-38 — POSITIVE: droplet SSH is key-only; the one non-operator SSH login is attributable to DigitalOcean's console path
+- **Category:** Security
+- **Severity:** Positive
+- **Claim:** SSH password and keyboard-interactive authentication are disabled.
+  Every SSH login since first boot used a public key, and every login except
+  one came from the operator's key. That one came from a DigitalOcean-owned
+  address with a key not present in `authorized_keys`, consistent with
+  DigitalOcean's web Droplet Console.
+- **Evidence:**
+  ```
+  $ sshd -T | grep -E "^(passwordauthentication|permitrootlogin|pubkeyauthentication|kbdinteractiveauthentication) "
+  permitrootlogin yes · pubkeyauthentication yes · passwordauthentication no · kbdinteractiveauthentication no
+  /root/.ssh/authorized_keys: 1 key, type ssh-ed25519
+
+  /var/log/auth.log "Accepted":
+  20:17:48 Accepted publickey for root from 198.211.111.194 port 57438 ssh2: ECDSA SHA256:qwUbdDi3JJgCQyYsDxkAR7leoBgWClk8M01ClO6CGNI   (disconnected 20:18:15)
+  20:20:16, 20:20:57, 20:23:39, 20:50:09, 22:22:11, 22:24:06, 22:24:15 …
+           Accepted publickey for root from 192.63.199.50 … ED25519 SHA256:wNJrbBibqKX…
+  ```
+  Operator workstation: `ssh-keygen -lf ~/.ssh/id_ed25519.pub` →
+  `SHA256:wNJrbBibqKXwJ…`, matching. `whois 198.211.111.194` →
+  `NetName: DIGITALOCEAN-198-211-96-0`, `OrgName: DigitalOcean, LLC`.
+  `systemctl is-active droplet-agent` → `active`.
+- **Verified:** `first-hand`. The Droplet Console attribution is an inference
+  from address ownership, key absence and agent presence; it was not confirmed
+  with DigitalOcean.
+- **Caveat:** `PermitRootLogin yes`: all operator activity runs as root, and
+  `deploy` (uid 1000) is in the `docker` group, which is root-equivalent.
+- **Implication for the agent:** Shell access is not the weak point; the
+  application-layer exposures above are. Co-pilot operations should still move
+  to a non-root user, because the web container writes into `deploy`'s
+  checkout (F-48).
+
+### F-39 — POSITIVE (bounded): no non-operator client reached OpenEMR or phpMyAdmin during the `admin`/`pass` window
+- **Category:** Security
+- **Severity:** Positive
+- **Claim:** Within the logs available on the droplet, no party other than the
+  operator, the containers themselves and the droplet's own IP made an HTTP
+  request to OpenEMR or phpMyAdmin between 20:51:58Z and 22:14:19Z, and no
+  application login came from any address other than the operator's.
+- **Evidence:** full access log from container creation, client-IP summary
+  taken 2026-09-15T00:11:30Z:
+  ```
+  260 192.63.199.50  21:06:33Z – 00:09:52Z   (operator; includes this session's probes)
+  201 ::1            20:52:08Z – 00:10:40Z   (in-container healthcheck curl/8.19.0)
+    4 127.0.0.1      22:13:12Z – 22:14:05Z   (Apache "internal dummy connection")
+    1 201.79.25.22   21:10:36Z               (droplet's own public IP, curl/8.5.0, readyz)
+    1 45.79.207.252  23:43:58Z               ("GET / HTTP/1.0" 400 — after the admin window)
+  ```
+  phpMyAdmin container log: 1 request in total (`192.63.199.50`, this session).
+  OpenEMR `log`: the only 2026 login events are the three in F-31, all from
+  `192.63.199.50`. Since 22:50Z the operator IP's requests are only
+  `dated_reminders.php` (77), `dated_reminders_counter.php` (5) and
+  `background_service/$run` (5), i.e. an open browser tab polling.
+  `api_token` rows: 0 (no API token has ever been issued on the droplet).
+- **Verified:** `first-hand`
+- **Limits:** (1) MariaDB successful connections are not logged
+  (`general_log=0`), so direct DB access on 8320 cannot be ruled out (F-34).
+  (2) The logs live on the exposed host and are not tamper-evident. (3) The
+  demo accounts of F-32 remain exposed after this window; the single later
+  third-party request (45.79.207.252) was a malformed `GET /` with no login.
+- **Implication for the agent:** The operator can treat OpenEMR-layer access
+  during the window as unobserved, but not the database. Any claim that "no
+  PHI was accessed" must carry limit (1). The data is synthetic, which bounds
+  real-world harm.
+
+### F-54 — RESOLVED: MariaDB and phpMyAdmin were publicly reachable through Docker's UFW bypass; an additive override did not close them; a base-file fix did
+- **Category:** Security
+- **Severity:** High (resolved — loopback-only replacements running from 2026-09-15T15:17:54Z)
+- **Claim:** MariaDB (container port 3306) and phpMyAdmin (container port 80)
+  were reachable from the public internet at the droplet's IP on host ports
+  8320 and 8310, despite UFW's default-deny policy and an allow-list of only
+  22/80/443. Root cause: Docker publishes ports with its own nat-table DNAT
+  rules. The rewritten packets traverse the FORWARD chain, where Docker's chains
+  run ahead of UFW's, and never reach the INPUT chain, where UFW's allow-list is
+  enforced. UFW never saw Docker-published traffic, so the restrictive policy
+  gave false confidence while both services stayed publicly bound. MariaDB
+  accepted the default `root`/`root` credential while exposed. During the
+  exposure window UFW blocked 1,674 distinct external source IPs on *other*
+  ports (338 of them in the first ~2 h), and one external host
+  (`45.79.207.252`) reached OpenEMR directly. A first remediation via
+  `docker-compose.override.yml` did not remove the public bindings, because
+  Compose merges `ports` lists additively. The fix that worked edits the base
+  file (commit `b0a0bcc`). The public exposure lasted at least **3 h 47 min 48 s**
+  and at most **18 h 09 min 12 s** — see the reconstruction below.
+- **Evidence:**
+  - Pre-fix binding and reachability:
+    - `first-hand` (pass 2, F-33): droplet `docker ps` showed
+      `0.0.0.0:8320->3306/tcp, [::]:8320->3306/tcp` and
+      `0.0.0.0:8310->80/tcp, [::]:8310->80/tcp`. `nc -z` from the operator
+      workstation (egress `192.63.199.50`) found 8320 and 8310 open at
+      2026-09-14T22:24Z and 2026-09-15T00:12:01Z, and 8310 served
+      `<title>phpMyAdmin</title>`.
+    - `operator-reported`: `ss -tlnp` on the droplet showed `LISTEN` on
+      `0.0.0.0:8320` and `0.0.0.0:8310`, and `nc -zv <droplet-ip> 8320` / `8310`
+      from an external laptop both succeeded.
+  - Mechanism (`first-hand`; chain layout read 2026-09-15 ~15:29Z, and the fix
+    does not change it):
+    ```
+    $ iptables -t nat -S PREROUTING
+    -A PREROUTING -m addrtype --dst-type LOCAL -j DOCKER
+    $ iptables -S FORWARD | head -8
+    -P FORWARD DROP
+    -A FORWARD -j DOCKER-USER
+    -A FORWARD -j DOCKER-FORWARD
+    -A FORWARD -j ufw-before-logging-forward
+    -A FORWARD -j ufw-before-forward
+    -A FORWARD -j ufw-after-forward
+    -A FORWARD -j ufw-after-logging-forward
+    -A FORWARD -j ufw-reject-forward
+    $ iptables -S DOCKER-USER
+    -N DOCKER-USER
+    ```
+    The pre-fix DNAT rules (`--dport 8320 -j DNAT --to-destination 172.18.0.2:3306`,
+    `--dport 8310 -j DNAT --to-destination 172.18.0.4:80`) and
+    `ufw status` (default deny incoming; allow 22/80/443) are recorded in F-33.
+    UFW's own log is consistent with the bypass. Across the whole boot it holds
+    `UFW BLOCK … DPT=8320` only at 2026-09-15T00:37:39Z (`SRC=192.63.199.50`,
+    15 s after the original containers detached) and 15:27:50Z (this session's
+    post-fix probe). The successful pre-fix probes at 22:24Z and 00:12:01Z left
+    no UFW entry. UFW logging is `low` (rate-limited), so this absence is
+    corroborating, not conclusive.
+  - Default credentials (`first-hand`, pass 2 ~22:30Z, F-34):
+    `authentication_string = PASSWORD("root")` → `1` for both `root@'%'` and
+    `root@localhost`; plaintext connections allowed
+    (`@@require_secure_transport` 0). Not re-checked for the later intervals
+    (no `docker exec` in this task). No remote login was ever attempted.
+  - Scanning and third-party reach (`first-hand`, droplet kernel log):
+    `UFW BLOCK` entries from 2026-09-14T20:49:36Z to 2026-09-15T15:17:43Z:
+    **3,335** entries from **1,674** distinct sources (first 20:49:58Z, last
+    15:17:40Z). The pass-2 subset (20:25:27Z–22:43:35Z) had 424 entries from 338
+    sources. Blocks aimed at MySQL's *default* port 3306 came from 7 external
+    sources inside the window (`193.163.125.223`, `71.6.232.30`,
+    `18.217.208.51`, `176.32.193.16`, `89.37.172.143`, `138.197.0.183`,
+    `20.65.179.159`). These are refused attempts on unpublished ports.
+    DNAT'd traffic to 8320/8310 is not logged by UFW, so these figures neither
+    show nor exclude contact with the exposed services. Separately, the OpenEMR
+    access log records
+    `2026-09-14T23:43:58Z 45.79.207.252 - - "GET / HTTP/1.0" 400` (F-33).
+  - Failed first remediation:
+    - `operator-reported`: with an override adding loopback-only alternates
+      (`127.0.0.1:18320`, `127.0.0.1:18310`), `docker compose ps` showed both
+      `0.0.0.0:8320` (still public) and `127.0.0.1:18320` bound simultaneously.
+    - `first-hand`, droplet `journalctl -u docker`: container starts failed at
+      00:37:31Z, 00:39:16Z, 00:46:51Z, 00:52:08Z and 15:04:45Z, each with
+      `level=warning msg="Failed to allocate port" error="failed to bind host port 127.0.0.1:8320/tcp: address already in use"`.
+      The previous containers had already detached at 00:37:24Z, so this is
+      consistent with a configuration that still carried the base file's
+      all-interfaces 8320 mapping *plus* a loopback mapping on the same port.
+    - `first-hand`, local reproduction of the merge behaviour (2026-09-15): a
+      local override `127.0.0.1:8320:3306` plus the base file resolved in
+      `docker compose config` to two entries for mysql (`published: "8320"`
+      with no `host_ip`, and `host_ip: 127.0.0.1` `published: "8320"`). The
+      container's `PortBindings` were
+      `{"3306/tcp":[{"HostIp":"","HostPort":"8320"},{"HostIp":"127.0.0.1","HostPort":"8320"}]}`,
+      and it failed with the same `address already in use`. A scratch override
+      using `ports: !override` resolved to a single `127.0.0.1` entry.
+  - Working fix (`first-hand`): commit `b0a0bcc122609ffedae5da0685036c388beef6b4`,
+    message `(fix): docker setup`, changing only
+    `docker/development-easy/docker-compose.yml:7`
+    `- "${WT_MYSQL_PORT:-8320}:3306"` → `- "127.0.0.1:18320:3306"` and `:150`
+    `- "${WT_PMA_PORT:-8310}:80"` → `- "127.0.0.1:18310:80"`. It was pushed to
+    `origin` (`labs.gauntletai.com`) `main`. Verified locally before the commit:
+    `docker compose config` resolved mysql to `host_ip: 127.0.0.1`
+    `published: "18320"` and phpmyadmin to `host_ip: 127.0.0.1`
+    `published: "18310"` only. `docker compose ps` showed
+    `127.0.0.1:18320->3306/tcp` and `127.0.0.1:18310->80/tcp` with no
+    `0.0.0.0` on either line, and the test stack was torn down afterwards.
+    Droplet deployment, read-only: `docker-compose.yml` lines 7 and 150 carry
+    the new mappings (mtime `2026-09-15 15:16:48Z`); `docker-compose.override.yml`
+    is absent; the new `docker-proxy` processes started
+    `Tue Sep 15 15:17:43 2026` (`-host-ip 127.0.0.1 -host-port 18320`) and
+    `15:17:54` (`-host-ip 127.0.0.1 -host-port 18310`).
+- **Remediation verified from three vantage points:**
+  1. **Droplet, `ss -tlnp`** — `first-hand`, 2026-09-15T15:28:11Z (the operator
+     reports the same result):
+     ```
+     LISTEN 0 4096 127.0.0.1:18310 0.0.0.0:* users:(("docker-proxy",pid=73497,fd=8))
+     LISTEN 0 4096 127.0.0.1:18320 0.0.0.0:* users:(("docker-proxy",pid=73215,fd=8))
+     LISTEN 0 4096   0.0.0.0:9300  0.0.0.0:* users:(("docker-proxy",pid=73407,fd=8))
+     LISTEN 0 4096   0.0.0.0:8300  0.0.0.0:* users:(("docker-proxy",pid=73385,fd=8))
+     LISTEN 0 4096      [::]:9300     [::]:* users:(("docker-proxy",pid=73414,fd=8))
+     LISTEN 0 4096      [::]:8300     [::]:* users:(("docker-proxy",pid=73391,fd=8))
+     ```
+     No listener exists on 8320 or 8310, and neither service has a
+     `0.0.0.0`/`[::]` binding.
+  2. **External `nc`:** the operator reports that 18320 and 18310 timed out and
+     9300 connected (`operator-reported`). The droplet's UFW log corroborates
+     those probes as blocked at the host: `SRC=192.63.199.50 DPT=18320` at
+     15:19:00Z and `DPT=18310` at 15:20:19Z. Re-run from the same egress IP at
+     2026-09-15T15:27:50Z (`first-hand`): `tcp/8320`, `tcp/8310`, `tcp/18320`,
+     `tcp/18310` closed/filtered; `tcp/9300` and `tcp/8300` open. The operator's
+     laptop and this workstation share the egress `192.63.199.50`, so they are
+     one network vantage point, not two.
+  3. **Independent external port-checking service** (a network controlled by
+     neither the droplet nor the laptop) reported 18310 closed —
+     `operator-reported`. The service name, timestamp and raw output were not
+     provided to this ledger, and the result for 18320 was not reported.
+- **Exposure window — reconstruction (bounded, not exact):** container network
+  attach/detach times come from the droplet kernel log
+  (`journalctl -k`, `br-…: port N(veth…) entered forwarding/disabled state`),
+  and failures from the dockerd journal. MariaDB, host port 8320:
+  ```
+  2026-09-14T20:49:36Z → 2026-09-15T00:37:24Z   3 h 47 min 48 s   original stack; 0.0.0.0:8320 observed first-hand   PUBLIC (established)
+  2026-09-15T00:37:24Z → 00:54:04Z              16 min 40 s       mysql not running (4 failed starts, above)          closed
+  2026-09-15T00:54:04Z → 15:04:39Z              14 h 10 min 35 s  stack started; bindings not logged                  public per operator's dual-binding report (inferred)
+  2026-09-15T15:04:39Z → 15:05:39Z              1 min 00 s        not running (failed start 15:04:45Z)                closed
+  2026-09-15T15:05:39Z → 15:16:28Z              10 min 49 s       stack started; bindings not logged                  unknown; base file still public until 15:16:48Z mtime
+  2026-09-15T15:17:43Z →                                          127.0.0.1:18320 only (ss, 15:28:11Z)                closed
+  ```
+  Lower bound (established): **3 h 47 min 48 s**. Upper bound (all
+  unlogged intervals public): **18 h 09 min 12 s**. phpMyAdmin (8310) follows
+  the same intervals, starting ~11 s later (its bridge ports attached
+  20:49:47Z, 00:54:15Z, 15:05:49–50Z) and ending within ~1 s of MariaDB's.
+- **Blocked — exact exposure duration:** not precisely reconstructable. What is
+  missing:
+  1. The port bindings of the stacks that ran 00:54:04Z–15:04:39Z and
+     15:05:39Z–15:16:28Z. The kernel log records only attach/detach, dockerd
+     logs no bindings for successful starts, and the containers have since
+     been removed, so their `HostConfig` cannot be inspected.
+  2. The operator's dual-binding `docker compose ps` observation carries no
+     timestamp.
+  3. The override file has been deleted from the droplet, so its creation time
+     is not recoverable from the filesystem.
+  4. The suggested cross-check of UFW log timestamps against the override's
+     creation time cannot bound exposure: UFW never logs DNAT'd traffic to
+     published ports, so its log shows only when a port was *not* published.
+
+  What would pin it: `docker events` or dockerd debug logs captured at the time,
+  a timestamped `docker compose ps` / `ss -tlnp` from each stack, or a
+  timestamped record of the operator's commands (none was available to this
+  ledger). Whether anyone *used* the exposure is separately unestablishable:
+  MariaDB does not log successful connections (`general_log=0`, F-34/F-39).
+- **Correction to the brief:** "338 distinct external IPs scanning the host
+  during this period" counts only the pass-2 sample (20:25:27Z–22:43:35Z).
+  Across the exposure window the figure is 1,674 sources (3,335 entries). In
+  both cases these are UFW-blocked attempts on unpublished ports, not observed
+  scans of 8320/8310.
+- **Verified:** `first-hand`: pre-fix bindings and reachability in the
+  first interval, the chain layout, default credentials (22:30Z), UFW
+  statistics, the `45.79.207.252` request, the dockerd bind failures and
+  kernel attach/detach timeline, the local merge reproduction, the fix commit
+  and its local verification, the droplet deployment state, and post-fix
+  `ss` (15:28:11Z) plus external `nc` (15:27:50Z). `operator-reported`: the
+  pre-fix droplet `ss -tlnp`, the droplet dual-binding `docker compose ps`,
+  the operator's own post-fix laptop probes (corroborated by UFW log entries),
+  and the independent port-checker result. F-33 and F-34 remain point-in-time
+  pass-2 observations; their 8310/8320 exposure is closed as of this entry,
+  while 8300/9300 remain public by design.
+- **Implication for the agent:** Container network exposure cannot be assumed
+  safe from host firewall state: Docker's port publishing operates beneath the
+  firewall layer and is invisible to it. Compose override files cannot remove
+  a base file's port mappings either (they merge additively unless the list is
+  marked `!override`/`!reset`). Any deployment running Docker alongside a
+  host-level firewall must check actual bound listen addresses directly
+  (`ss -tlnp`, `docker compose ps`, and the resolved `docker compose config`),
+  not firewall rule state, before treating a service as non-public. This
+  applies directly to this project's future services — the agent sidecar and
+  the observability backend (Langfuse). Each must have its bindings verified
+  the same way, including from a genuinely external vantage point (a network
+  other than the operator's egress), before being declared internal-only.
 
 ---
 
@@ -308,6 +1002,8 @@ All database commands below were run from `docker/development-easy/`.
 - **Correction / addition to the brief:** `audit_events_cdr` is also empty, not
   only `audit_events_query`. The eight categories listed as enabled are
   confirmed `1`.
+- **Cross-check (pass 2):** the identical query against the droplet returns
+  the identical 14 rows and values. `first-hand`.
 - **Verified:** `first-hand`
 - **Implication for the agent:** A read-only co-pilot generates almost no audit
   trail in the default configuration — the exact opposite of what a chart-reading
@@ -352,6 +1048,11 @@ All database commands below were run from `docker/development-easy/`.
   `http-request-select` **28** (was 14), `other-*` **1862** (was 1800).
   1862/2295 = **81.1%**, so the 81% claim stands. `patient-record-insert` fired
   50 times against **65** patients now on file (brief said 60).
+- **Correction (pass 2):** pass-2 API probes added 26 local rows (13 `api`,
+  13 `http-request-select`, 22:32:55–22:36:18). Re-measured 2026-09-15T00:11Z:
+  total **2321**, `other-*` **1862** → **80.2%**. The claim holds at ≈80%.
+  The drift itself illustrates the finding: diagnostic traffic, not clinical
+  access, is what the log accumulates.
 - **Verified:** `first-hand`
 - **Implication for the agent:** The co-pilot cannot depend on OpenEMR's
   existing log for its own access accounting. It must emit its own structured
@@ -370,6 +1071,9 @@ All database commands below were run from `docker/development-easy/`.
   | enable_atna_audit                    |          |
   | enable_auditlog_encryption           |          |
   ```
+- **Cross-check (pass 2):** both empty on the droplet too. With no ATNA export,
+  the only copy of the droplet's audit trail sits in a database that is
+  reachable from the internet with default root credentials (F-34). `first-hand`.
 - **Verified:** `first-hand`
 - **Implication for the agent:** Anything the co-pilot writes to the audit log —
   including prompts or context excerpts, if it logs those — lands unencrypted
@@ -385,6 +1089,7 @@ All database commands below were run from `docker/development-easy/`.
   ```
   | gbl_force_log_breakglass             | 1        |
   ```
+- **Cross-check (pass 2):** `1` on the droplet too. `first-hand`.
 - **Verified:** `first-hand`
 - **Implication for the agent:** None. Emergency-access logging is already on;
   the co-pilot should not disable it (note that the CCDA importer's dev mode
@@ -409,6 +1114,73 @@ All database commands below were run from `docker/development-easy/`.
 - **Implication for the agent:** None directly. Recorded so that the empty
   `audit_master`/`audit_details` tables are not later misread as proof that
   audited import does not work — it was never successfully exercised.
+
+### F-40 — Out-of-band database edits leave no trace in OpenEMR's audit log
+- **Category:** Compliance
+- **Severity:** Medium
+- **Claim:** Security-relevant rows were changed after creation on both hosts
+  (OAuth clients enabled and granted `password`/`refresh_token`) with no
+  corresponding `log` entry, while their creation *was* logged. Changes made
+  directly against the database — which F-34 makes possible from the internet
+  on the droplet — are invisible to the audit trail.
+- **Evidence:** droplet, all `log` rows whose decoded SQL mentions `oauth_clients`:
+  ```
+  $ … mariadb -uroot -proot openemr -N < (SELECT id, date, CAST(FROM_BASE64(comments) AS CHAR) FROM log WHERE CAST(FROM_BASE64(comments) AS CHAR) LIKE '%oauth_clients%' ORDER BY id;)
+  2118  2026-09-14 21:10:43  INSERT INTO `oauth_clients` (… `grant_types`, …) VALUES (…) ('<redacted>','user','A Private App',…,'authorization_code',…
+  2196  2026-09-14 22:12:17  INSERT INTO `oauth_clients` (… `grant_types`, …) VALUES (…) ('<redacted>','user','A Private App',…,'authorization_code',…
+  ```
+  (long secret/token values were redacted from output before display). Current rows:
+  ```
+  A Private App | is_enabled 1 | is_confidential 1 | authorization_code,password,refresh_token | register_date 2026-09-14 22:12:17
+  A Private App | is_enabled 1 | is_confidential 1 | authorization_code,password,refresh_token | register_date 2026-09-14 21:10:43
+  ```
+  No `UPDATE` row exists. Locally the same query returns only the three
+  INSERTs (ids 2118, 2224, 2233), yet client `773KrZky…` is enabled with
+  `password,refresh_token` (F-02). The access log shows no OpenEMR admin-UI
+  request that could have edited clients on the droplet (the operator's only
+  admin-side POST was `user_info_ajax.php`, F-31).
+- **Verified:** `first-hand` for the logged INSERTs, the current row state and
+  the absence of logged updates. *How* the rows were changed (direct SQL,
+  phpMyAdmin, or a `…NoLog` code path) was not established.
+- **Implication for the agent:** OpenEMR's audit log is an application-layer
+  record, not a database-layer one. If the co-pilot's compliance story depends
+  on detecting tampering with its own configuration or access tables, it needs
+  DB-level controls (restricted DB accounts, binlog/audit plugin) rather than
+  OpenEMR's `log`.
+
+### F-41 — POSITIVE (with caveats): the database stays inside a HIPAA-eligible Droplet rather than Managed Databases
+- **Category:** Compliance
+- **Severity:** Positive
+- **Claim:** MySQL/MariaDB runs as a container on the same droplet as OpenEMR,
+  not on DigitalOcean Managed Databases. DigitalOcean's published
+  HIPAA-eligible product list includes Droplets and omits Managed Databases, so
+  this placement keeps ePHI-bearing data on a covered product. The operator
+  reports the choice was deliberate for this reason.
+- **Evidence:**
+  - Topology (first-hand): droplet `docker ps` shows `development-easy-mysql-1`
+    (`mariadb:11.8.8`) on the same host; the OpenEMR container env has
+    `MYSQL_HOST=mysql` (the Compose service name).
+  - Vendor list (documentation-sourced, fetched 2026-09-14 from
+    https://www.digitalocean.com/trust/hipaa-at-do): the page directs customers
+    to upload ePHI "exclusively to the following DigitalOcean's HIPAA Eligible
+    products", listing *Backups & Snapshots* (Droplet Backups, Volumes Block
+    Storage Snapshots), *Compute* (Droplets, GPU Droplets, Kubernetes),
+    *Management Tools* (Monitoring), *Inference Engine* (1-Click Models),
+    *Networking* (Firewalls, Load Balancers, Reserved IPs, VPC), *Storage*
+    (Spaces Object Storage, Volume Block Storage), *Containers & Images*
+    (Container Registry, Custom Images). Managed Databases does not appear on
+    the list. The page carries no "last updated" date.
+  - Intent: `operator-reported`.
+- **Caveats:** (1) Eligibility requires an executed BAA with DigitalOcean; no
+  evidence of one was available to this audit. (2) The placement is right, but
+  the database is currently internet-exposed with default credentials (F-34),
+  which a BAA does not cure. (3) The dataset is synthetic.
+- **Verified:** `first-hand` (topology) · documentation-sourced (product list) ·
+  `operator-reported` (deliberate intent; BAA status unknown).
+- **Implication for the agent:** Any co-pilot datastore (vector index, cache,
+  conversation log) holding PHI must follow the same rule — no Managed
+  Databases, and no other product off DigitalOcean's eligible list, unless that
+  list changes.
 
 ---
 
@@ -481,6 +1253,9 @@ All database commands below were run from `docker/development-easy/`.
   (document row, `foreign_id=0`, no patient). That they came from another
   `false`-mode run is **suspected, unconfirmed** — the invocation was not
   observed.
+- **Cross-check (pass 2):** the droplet's `documents` table has **0** rows and
+  its `audit_master` is 0, consistent with only development-mode imports
+  having been run there. `first-hand`.
 - **Verified:** `first-hand`
 - **Implication for the agent:** Exit code 0 and success-shaped log output are
   not evidence of work done anywhere in this codebase. Every ingestion or write
@@ -504,6 +1279,17 @@ All database commands below were run from `docker/development-easy/`.
   Not reproduced here — the 5-patient run performed in this session reported
   `Records: total=5, alive=5, dead=0` and `Finished patients import 5`, with no
   loss.
+- **Correction (pass 2) — flag, not refutation:** the 50→48 run cannot be
+  matched to either database. Patient rows grouped by insert time:
+  - Local: one batch of **57** Synthea patients (pids 4–60, inserted
+    16:51:53–16:53:12) plus the 5-patient batch (pids 61–65, 18:15:12–18:15:15).
+  - Droplet: one batch of **50** (pids 4–53, 21:11:52–21:19:13), with **50**
+    CCDA files still present in the container's `/tmp/synthea/output/ccda` —
+    50 written, 50 imported, no loss.
+
+  Neither host holds a 48-patient batch. The loss may have occurred in a run
+  whose output was later superseded, but that is unobserved. The claim stays
+  `operator-reported` and is now also **unreconciled with observed state**.
 - **Verified:** `operator-reported`
 - **Implication for the agent:** The patient population is not a known-complete
   set. The co-pilot must not infer absence of a record from absence in the
@@ -558,7 +1344,8 @@ All database commands below were run from `docker/development-easy/`.
   numbers. The current database no longer reflects them.
 - **Implication for the agent:** Never demo or evaluate the co-pilot on demo
   data alone — three same-day encounters with no labs will make retrieval and
-  citation look like they work when neither has been exercised.
+  citation look like they work when neither has been exercised. (The same dump
+  also carries the default-password demo users of F-32.)
 
 ### F-19 — Lab results carry values and units but no reference ranges or abnormal flags
 - **Category:** Data Quality
@@ -589,6 +1376,9 @@ All database commands below were run from `docker/development-easy/`.
   | range       | varchar(255) |                                                        |
   | abnormal    | varchar(31)  | no,yes,high,low                                        |
   ```
+- **Cross-check (pass 2):** droplet `procedure_result`: total **29701**,
+  `range_blank` 29701, `abnormal_blank` 29701, `has_result` 29701, `has_units`
+  29701. The property holds independently of population. `first-hand`.
 - **Verified:** `first-hand`
 - **Implication for the agent:** This is the single hardest constraint on the
   co-pilot. It can cite a lab value but cannot justify calling it "normal",
@@ -607,6 +1397,9 @@ All database commands below were run from `docker/development-easy/`.
 - **Correction:** 65 vitals, not 60 — the count tracks the patient count, which
   rose to 65 after this session's 5-patient import. The one-per-patient
   relationship is unchanged.
+- **Cross-check (pass 2):** local `COUNT(DISTINCT pid) FROM form_vitals` = 65
+  (every patient exactly one row); droplet `vitals 53` = `patients 53` =
+  distinct pids 53, against 3331 encounters. `first-hand`.
 - **Verified:** `first-hand`
 - **Implication for the agent:** The co-pilot cannot show vitals trends over
   time, and must not imply a vitals reading belongs to a specific encounter.
@@ -615,12 +1408,18 @@ All database commands below were run from `docker/development-easy/`.
 ### F-21 — Allergies present for a minority of patients
 - **Category:** Data Quality
 - **Severity:** Medium
-- **Claim:** 43 allergy rows exist across 65 patients, so most patients have no
-  allergy record at all.
+- **Claim (as corrected in pass 2):** 43 allergy rows exist across 65 patients, and only **14** patients
+  (21.5%) have any allergy record — 51 of 65 have none.
 - **Evidence:** From the census of 2026-09-14T18:25:02Z: `allergies 43`,
-  `patients 65`. Row count is of `lists` where `type='allergy'`; 43 rows may
-  cover fewer than 43 distinct patients.
+  `patients 65`. Row count is of `lists` where `type='allergy'`.
 - **Correction:** 43 rows, not 39 — count rose with this session's import.
+- **Correction (pass 2):** the original entry noted that "43 rows may cover
+  fewer than 43 distinct patients" and left "most patients have none" as an
+  inference. Measured:
+  `SELECT COUNT(DISTINCT pid) FROM lists WHERE type='allergy'` → local **14**
+  of 65; droplet **9** of 53 (59 rows). The claim is now measured rather than
+  inferred, and stronger than stated. Closes verification gap 7. The worst-case
+  patient pid=20 has **0** allergy rows (F-46).
 - **Verified:** `first-hand`
 - **Implication for the agent:** "No known allergies" and "allergies were never
   captured" are different clinical statements and this data cannot distinguish
@@ -631,9 +1430,10 @@ All database commands below were run from `docker/development-easy/`.
 ### F-22 — Outlier patient exceeds any reasonable context window
 - **Category:** Data Quality
 - **Severity:** High
-- **Claim:** Patient `pid=20` has 530 encounters, 92 problems, 907 lab orders
-  and 9 prescriptions — roughly 18x the median encounter count — so assembling
-  that patient's full record into a prompt is not possible.
+- **Claim (as corrected in pass 2):** Patient `pid=20` has 530 encounters, 92 problems, 907 procedure
+  orders (130 of them laboratory orders) and 9 prescriptions — roughly 18x the
+  median encounter count — so assembling that patient's full record into a
+  prompt is not possible.
 - **Evidence:**
   ```
   $ docker compose exec -T mysql mariadb -uopenemr -popenemr openemr -t -e "SELECT (SELECT COUNT(*) FROM form_encounter WHERE pid=20) AS encounters, (SELECT COUNT(*) FROM lists WHERE pid=20 AND type='medical_problem') AS problems, (SELECT COUNT(*) FROM procedure_order WHERE patient_id=20) AS lab_orders, (SELECT COUNT(*) FROM prescriptions WHERE patient_id=20) AS prescriptions;"
@@ -651,6 +1451,14 @@ All database commands below were run from `docker/development-easy/`.
 - **Correction:** problems = **92**, not 101. Encounters, lab orders and
   prescriptions confirmed as stated. Measured median is **29**, so 530 is ~18x
   median (the brief said ~20x); range across patients is 1 to 530.
+- **Correction (pass 2):** the column labelled `lab_orders` above is
+  `COUNT(*) FROM procedure_order`, which includes non-laboratory procedure
+  orders (F-42). For pid=20:
+  `SELECT procedure_order_type, COUNT(*) FROM procedure_order WHERE patient_id=20 GROUP BY 1`
+  → `laboratory_test 130`, `order 777`. Those 130 lab orders have 130 reports
+  and **3,040** result rows. The outlier claim stands, and is now quantified:
+  a raw SQL dump of this patient's record is **974,140 bytes** (F-46). The
+  droplet's worst case is pid=27 with 410 encounters (range 1–410, mean 62.8).
 - **Verified:** `first-hand`
 - **Implication for the agent:** Whole-chart prompting is not a viable design at
   any patient volume. The co-pilot needs retrieval — time-windowed,
@@ -660,8 +1468,9 @@ All database commands below were run from `docker/development-easy/`.
 ### F-23 — Encounter dates span more than a century
 - **Category:** Data Quality
 - **Severity:** Low
-- **Claim:** Encounter dates run from 1922-11-04 to 2026-09-12, including
-  future-dated records relative to the audit date.
+- **Claim (as corrected in pass 2):** Encounter dates run from 1922-11-04 to
+  2026-09-12 locally (a 104-year span); the newest records are two days before
+  the audit date.
 - **Evidence:**
   ```
   $ docker compose exec -T mysql mariadb -uopenemr -popenemr openemr -t -e "SELECT MIN(date) mn, MAX(date) mx FROM form_encounter;"
@@ -671,11 +1480,69 @@ All database commands below were run from `docker/development-easy/`.
   | 1922-11-04 18:15:55 | 2026-09-12 16:42:47 |
   +---------------------+---------------------+
   ```
+- **Correction (pass 2):** the original claim said the range included
+  "future-dated records relative to the audit date". The maximum shown in the
+  evidence above (2026-09-12 16:42:47) precedes the audit date (2026-09-14),
+  and the droplet maximum (2026-09-10 13:55:13) does too, so no future-dated
+  encounter was observed; the claim is withdrawn. The span itself is
+  population-specific: droplet `form_encounter` runs **1945-04-25 01:27:11** to
+  **2026-09-10 13:55:13** (81 years). `first-hand`.
 - **Verified:** `first-hand`
 - **Implication for the agent:** Relative date reasoning ("recent", "last
   year") must be computed against the encounter date, not assumed to fall in a
   plausible window. Date parsing and sorting must handle a 104-year span without
   overflow or two-digit-year ambiguity.
+
+### F-42 — `procedure_order` is 92% non-laboratory; "lab orders" figures overstate labs about 12x
+- **Category:** Data Quality
+- **Severity:** Medium
+- **Claim:** Of 7,417 local `procedure_order` rows only **596** are laboratory
+  orders; the other **6,821** are Synthea procedure orders (depression
+  screening, renal dialysis, dental care, etc.) that never have a report or
+  result. The same split holds on the droplet (1,177 of 11,250). Every
+  `procedure_report` belongs to a `laboratory_test` order. Questionnaire
+  instruments are also stored as laboratory tests.
+- **Evidence:**
+  ```
+  $ … -e "SELECT po.procedure_order_type, COUNT(*) orders, SUM(EXISTS(SELECT 1 FROM procedure_report pr WHERE pr.procedure_order_id=po.procedure_order_id)) with_report FROM procedure_order po GROUP BY po.procedure_order_type ORDER BY orders DESC;"
+  LOCAL                                   DROPLET
+  order            6821   with_report 0   order            10073   with_report 0
+  laboratory_test   596   with_report 596 laboratory_test   1177   with_report 1177
+
+  -- top procedure_name for type 'order' (local):
+  Depression screening (procedure) 649 · Renal dialysis (procedure) 410
+  Assessment of health and social care needs (procedure) 366 · Medication reconciliation (procedure) 303
+  Dental consultation and report (procedure) 273 · Oral health education (procedure) 269 …
+
+  -- top procedure_name for type 'laboratory_test' (local):
+  Generalized anxiety disorder 7 item (GAD-7) 110 · Basic metabolic panel - Blood 104
+  CBC panel - Blood by Automated count 84 · Lipid panel with direct LDL - Serum or Plasma 62 …
+  ```
+  `procedure_order_code.procedure_type` shows the identical split.
+- **Verified:** `first-hand`
+- **Implication for the agent:** "Lab" retrieval must filter
+  `procedure_order_type='laboratory_test'`; otherwise it returns hundreds of
+  result-less procedures per patient. Conversely, procedures such as dialysis
+  are clinically important and are *only* discoverable through this table. GAD-7
+  scores arriving as "lab results" must not be characterised with lab-range
+  logic (cf. F-19).
+
+### F-43 — Local and droplet hold different synthetic populations
+- **Category:** Data Quality
+- **Severity:** Informational
+- **Claim:** The two environments were seeded by separate Synthea runs and do
+  not share patients. Per-patient volume differs markedly — the droplet has
+  fewer patients but about 4x the lab results — so any count, outlier or timing
+  measured in one environment does not transfer numerically to the other.
+- **Evidence:** census table above (2026-09-14T22:31Z). Derived: lab results
+  per Synthea patient — local batch 1 6,833/57 = **120**, droplet 29,701/50 =
+  **594**; encounters per patient mean — local **43.1**, droplet **62.8**; worst
+  case — local pid=20 (530 encounters), droplet pid=27 (410). Demo-dump
+  patients pids 1–3 (dated 2014) are present in both.
+- **Verified:** `first-hand`
+- **Implication for the agent:** Evaluation cases, golden answers and
+  performance baselines must name the environment and seed they were built
+  against. A test that references `pid=20` is meaningless on the droplet.
 
 ---
 
@@ -692,19 +1559,27 @@ All database commands below were run from `docker/development-easy/`.
   FHIR Patient?_count=5 → 200 in 0.375s. Local, native arm64, single user,
   no contention, no LLM. This is the floor.
   ```
+- **Cross-check (pass 2):** an authenticated read could not be reproduced (no
+  token; see F-47). Unauthenticated reference points on the same endpoint,
+  local, 5 runs: `Patient?_count=5` with no token → 401 in median **0.116 s**;
+  `fhir/metadata` → 200 in median **0.324 s**. These bracket framework
+  overhead, not an authenticated read. `first-hand`.
 - **Verified:** `operator-reported`
 - **Implication for the agent:** A co-pilot turn that makes several FHIR calls
   before even reaching the model starts from a multi-second floor. Data
   retrieval must be parallelised and cached per turn, and the UI needs to stream
   or show progress rather than block.
 
-### F-25 — Lab join drives from a full scan of `procedure_report`
+### F-25 — Lab join plan is cost-based: it scans `procedure_report` only when that table is smaller than the patient's own orders
 - **Category:** Performance
-- **Severity:** Medium
-- **Claim:** The three-table lab join filtered by `patient_id` does not seek by
-  patient first — the optimiser drives from `procedure_report` with a full table
-  scan, then joins back to `procedure_order`, despite `procedure_order` being
-  indexed on `patient_id`.
+- **Severity:** Low (was Medium — corrected in pass 2, see below)
+- **Claim (as corrected in pass 2):** For the worst-case local patient
+  (pid=20), the optimiser drives the three-table lab join from a full scan of
+  `procedure_report` rather than seeking `procedure_order` by `patient_id`. This
+  is a cost-based choice specific to that data shape — pid=20's 907 orders
+  outnumber the entire 596-row report table. For typical local patients, and
+  for the droplet's worst case, the optimiser seeks by `patient_id` first. The
+  measured cost difference is ~0.1 ms, within noise.
 - **Evidence:**
   ```
   $ docker compose exec -T mysql mariadb -uopenemr -popenemr openemr -t -e "
@@ -734,12 +1609,47 @@ All database commands below were run from `docker/development-easy/`.
   scan**, not an index scan — across **596** rows, not 561. This makes the
   finding stronger than stated, and the conclusion unchanged: the indexes exist,
   so this is a query-shape problem, not a missing-index problem.
+- **Correction (pass 2):** re-verified, and the earlier conclusion was
+  over-generalised.
+  1. The 596 rows are the **entire** `procedure_report` table (census
+     `lab_reports 596`; `information_schema.tables.table_rows` 596). Statistics
+     are not stale.
+  2. Sizes for pid=20: 907 orders (`patient_id` index entries), 130 reports,
+     3,040 results. Scanning 596 report rows is cheaper than probing 907 index
+     entries, so the plan is reasonable here.
+  3. For other local patients the plan seeks by patient first:
+     `pid=18` (220 orders) and `pid=4` (133 orders) → `po ref patient_id`, then
+     `pr ref procedure_order_id`, then `prs ref procedure_report_id`.
+  4. On the droplet (1,177 reports) the worst-case patient pid=27 (711 orders)
+     gets the patient-first plan by default.
+  5. Measured with `ANALYZE FORMAT=JSON` (executes the SELECT; `r_total_time_ms`), 3 runs each:
+     ```
+     LOCAL pid=20  default (pr ALL 596 → po eq_ref → prs ref):         1.121 · 1.093 · 1.148 ms
+     LOCAL pid=20  STRAIGHT_JOIN (po ref 907 → pr ref → prs ref):      1.038 · 1.056 · 1.013 ms
+     DROPLET pid=27 default (already po ref 711 → pr ref → prs ref):   1.415 · 1.418 · 1.403 ms
+     DROPLET pid=27 STRAIGHT_JOIN (identical plan):                    1.256 · 1.286 · 1.367 ms
+     ```
+     On the droplet the *same* plan varies by 0.05–0.16 ms between the two
+     statements, so the local ~0.1 ms gap is within noise.
+
+  The claim "does not seek by patient first" is true only for pid=20 locally.
+  The severity is lowered to Low because no material cost was measured. The
+  scaling concern survives only as a conditional: if one patient's order count
+  exceeds the global report count at larger scale, the scan grows with global
+  lab volume.
+  This exact join shape exists in the codebase only as dead code —
+  `src/Services/ProcedureService.php:558-576` `searchProcedureReports()` builds
+  the `$query` string but never executes or returns it, and no caller exists
+  (`grep -rn searchProcedureReports src interface library apis` finds only the
+  declaration).
 - **Verified:** `first-hand`
-- **Implication for the agent:** The co-pilot must not issue this join shape for
-  lab retrieval. Select `procedure_order` by `patient_id` (optionally with
-  `datepid` for a date window) into a narrow set first, then join reports and
-  results to that — otherwise lab lookups degrade linearly with total lab volume
-  rather than with the patient's own.
+- **Implication for the agent (as corrected in pass 2; previously "must not issue
+  this join shape … otherwise lab lookups degrade linearly with total lab volume
+  rather than with the patient's own"):** No special query shape is needed for lab
+  retrieval at current scale. Filter by `patient_id` plus
+  `procedure_order_type='laboratory_test'` (F-42) and a date window, and
+  re-check the plan with `ANALYZE` if order volume per patient approaches the
+  global report count.
 
 ### F-26 — readyz loads the full framework on every probe
 - **Category:** Performance
@@ -770,10 +1680,215 @@ All database commands below were run from `docker/development-easy/`.
   full-bootstrap `readyz` and the minimal `livez` is small (tens of
   milliseconds) and overlaps across runs. The framework load is real per the
   source comment; the performance penalty is not demonstrated to be large here.
+- **Correction (pass 2) to the note on magnitude:** re-measured with 5 runs per
+  endpoint (2026-09-14 ~22:32Z), the distributions do **not** overlap:
+  ```
+  localhost readyz: 0.136 0.133 0.132 0.121 0.117  (median 0.132 s)
+  localhost livez:  0.065 0.053 0.046 0.048 0.051  (median 0.051 s)
+  droplet   readyz: 0.417 0.281 0.282 0.372 0.302  (median 0.302 s)
+  droplet   livez:  0.232 0.238 0.226 0.272 0.228  (median 0.232 s)
+  ```
+  Locally, readyz's fastest run (0.117 s) is slower than livez's slowest
+  (0.065 s); the median gap is ~81 ms (~2.6x). The earlier 2-run livez sample (0.140/0.089 s)
+  was likely warm-up affected. The penalty is still modest in absolute terms,
+  but it is consistent. `livez` short-circuits before any bootstrap at
+  `meta/health/index.php:30-34`; `readyz` requires `interface/globals.php` at
+  `:66`. The Compose healthcheck invokes readyz every minute
+  (`docker-compose.yml:120` `https://localhost/meta/health/readyz`, `:123`
+  `interval: 1m`), which the droplet access log confirms (`::1 … "GET /meta/health/readyz" … "curl/8.19.0"` once per minute).
 - **Verified:** `first-hand`
 - **Implication for the agent:** If the co-pilot adds its own health or
   readiness endpoint, it should not copy this pattern — a probe that boots the
   whole framework will not stay cheap as the deployment grows. Low priority.
+
+### F-44 — Droplet compute profile: plan type not verifiable from inside, and DigitalOcean shared CPU has no credit throttling
+- **Category:** Performance
+- **Severity:** Informational
+- **Claim:** The droplet presents 4 vCPU (AMD EPYC 9555P, KVM) and ~12 GB RAM.
+  The operator reports a Shared (non-Dedicated) plan. That cannot be confirmed
+  from inside the guest. On DigitalOcean, shared vCPUs are subject to
+  hypervisor contention, observable as steal time — not to AWS-style
+  CPU-credit throttling. Cumulative steal since boot, including the Synthea
+  import, is effectively zero.
+- **Evidence:**
+  ```
+  $ lscpu → Model name: AMD EPYC 9555P 64-Core Processor · Thread(s) per core: 1 · Core(s) per socket: 4 · Socket(s): 1 · Hypervisor vendor: KVM
+  $ grep MemTotal /proc/meminfo → 12248264 kB     $ docker info → NCPU=4 MemTotal=12542222336 Arch=x86_64
+  $ dmidecode -s system-product-name → Droplet    $ metadata /v1/region → mem1
+  $ getconf CLK_TCK → 100
+  $ awk '/^cpu /' /proc/stat (uptime 7740 s) → steal 12 jiffies (0.12 s) · iowait 29381 (293.8 s) · user 35640 · system 28897
+  $ vmstat 1 5 → st column 0 in all samples
+  ```
+  The DigitalOcean metadata service exposes no size/plan field (keys: `id`,
+  `hostname`, `user-data`, `vendor-data`, `public-keys`, `region`, `interfaces/`,
+  `dns/`, `floating_ip/`, `reserved_ip/`, `tags/`, `features/`, `virtual_ips/`),
+  and `doctl` is not installed on the workstation.
+  DigitalOcean documentation (https://docs.digitalocean.com/products/droplets/concepts/choosing-a-plan/,
+  fetched this session): "With shared CPU Droplets, the hyper-thread allocated
+  to the Droplet may be shared between multiple other Droplets"; "shared CPU
+  Droplets *can* have access to full hyper-threads, but it's not guaranteed."
+  The page describes no CPU-credit mechanism.
+  Local comparison: Colima `default` profile — 6 CPUs, 12 GiB, aarch64, docker
+  runtime — on an Apple M5 Pro host (`hw.ncpu` 15, `hw.memsize`
+  25,769,803,776). Colima vCPUs are not multi-tenant, but they share the host
+  with macOS workloads.
+- **Correction to the brief:** "burstable CPU credit throttling" is not a
+  DigitalOcean mechanism per the cited documentation. The relevant caveat for
+  load-test interpretation is neighbour-driven steal time on shared vCPUs,
+  which should be recorded (`/proc/stat` steal, `vmstat st`) during any load
+  test. The environments also differ in CPU architecture (x86_64 vs aarch64)
+  and core count (4 vs 6), and the droplet shows substantial cumulative iowait.
+- **Verified:** `first-hand` (guest-visible CPU, memory, steal, iowait;
+  DigitalOcean docs fetched). `operator-reported`: the plan type
+  (Shared, "4 vCPU/12GB").
+- **Implication for the agent:** Latency comparisons between local and droplet
+  confound architecture, core count, I/O and tenancy. Load-test results must
+  capture steal and iowait alongside latency, so application regressions are
+  not confused with host effects.
+
+### F-45 — Synthea import was slower per patient on the droplet; the size of the gap depends on the normaliser
+- **Category:** Performance
+- **Severity:** Informational
+- **Claim:** Measured by patient-row insert timestamps, the droplet imported
+  Synthea patients at **9.00 s** per patient against **1.41 s** locally (6.4x).
+  The runs were not identical, though: droplet patients carry ~5x more lab
+  results each. Normalised by clinical row volume, the droplet is **1.3x–4.3x**
+  slower. This is a resourcing observation, not a defect.
+- **Evidence:** `patient_data.date` (= `regdate`) is written at insert, and
+  consecutive inserts approximate per-patient import time:
+  ```
+  batch    host     patients  pids   first insert  last insert  span   s/patient-interval  encounters  lab_results  list rows
+  batch1   local         57  4–60   16:51:53Z     16:53:12Z    79 s   1.41                2558        6833         1846
+  batch2   local        5  61–65  18:15:12Z     18:15:15Z     3 s   0.75                 239         426          166
+  batch1   droplet     50  4–53   21:11:52Z     21:19:13Z   441 s   9.00                3328       29701         2811
+
+  inter-insert gaps:  local batch1 min 0 / max 28 / mean 1.41 s, 0 gaps ≥30 s
+                      droplet      min 0 / max 127 / mean 9.00 s, 4 gaps ≥30 s
+  ```
+  (Encounters, lab results and list rows are counted for the pid range of each
+  batch; lab results via `procedure_result → procedure_report → procedure_order.patient_id`.)
+  Normalisations, local batch1 → droplet:
+  ```
+  per patient interval     1.41 s    → 9.00 s     6.4x
+  per encounter            30.9 ms   → 132.5 ms   4.3x
+  per list row             42.8 ms   → 156.9 ms   3.7x
+  per 1,000 lab results    11.6 s    → 14.8 s     1.3x
+  ```
+  Host context: cumulative steal on the droplet since boot is 0.12 s, while
+  cumulative iowait is 293.8 s (F-44), so contention for CPU is not a
+  plausible explanation; I/O and per-core speed remain candidates, unmeasured.
+  The droplet's uuid-registry pass followed at 21:19:15–21:19:23Z
+  (`security-administration-insert` rows in `log`).
+- **Limits of the proxy:** timestamps have 1-second resolution; the span covers
+  N−1 inter-insert intervals and excludes the last patient's clinical rows and
+  the uuid pass; wall-clock from the importer's own output was not available
+  for either run.
+- **Verified:** `first-hand` (DB-timestamp reconstruction on both hosts).
+  `operator-reported`: that the two runs used the same Synthea invocation, and
+  that the local VM is "6 vCPU/12GB dedicated" (the 6 CPU / 12 GiB figure is
+  confirmed first-hand via `colima list`; "dedicated" is not a Colima term).
+- **Implication for the agent:** Import or indexing jobs the co-pilot adds
+  (embeddings, chart summaries) will scale with clinical row volume, not with
+  patient count. Budgets and progress reporting should be expressed per row
+  type, and timing comparisons across environments must normalise for data
+  volume.
+
+### F-46 — Worst-case SQL context assembly takes ~5–7 ms server-side; the ~1 MB payload is the constraint
+- **Category:** Performance
+- **Severity:** Informational
+- **Claim:** A full SQL-level assembly of the worst-case local patient (pid=20)
+  — demographics, encounters, problems, allergies, medication list,
+  prescriptions, immunizations, vitals, procedure orders and lab results —
+  runs in **5.1–6.9 ms** of server time and returns **974,140 bytes**. Database
+  latency is not the bottleneck for context building; volume is.
+- **Definition of "context assembly":** no co-pilot code exists yet, so this
+  measures the ten `SELECT *` queries a naive assembler would issue, in one
+  MariaDB session. It is not a FHIR-level assembly (blocked, F-47), and raw TSV
+  bytes are an upper bound on prompt size, not a token count.
+  ```sql
+  SELECT * FROM patient_data WHERE pid=@pid;
+  SELECT * FROM form_encounter WHERE pid=@pid ORDER BY date;
+  SELECT * FROM lists WHERE pid=@pid AND type='medical_problem';
+  SELECT * FROM lists WHERE pid=@pid AND type='allergy';
+  SELECT * FROM lists WHERE pid=@pid AND type='medication';
+  SELECT * FROM prescriptions WHERE patient_id=@pid;
+  SELECT * FROM immunizations WHERE patient_id=@pid;
+  SELECT * FROM form_vitals WHERE pid=@pid;
+  SELECT po.*, poc.procedure_code, poc.procedure_name FROM procedure_order po JOIN procedure_order_code poc ON poc.procedure_order_id=po.procedure_order_id WHERE po.patient_id=@pid;
+  SELECT po.procedure_order_id, po.date_ordered, pr.date_report, pr.report_status, prs.* FROM procedure_order po JOIN procedure_report pr ON pr.procedure_order_id=po.procedure_order_id JOIN procedure_result prs ON prs.procedure_report_id=pr.procedure_report_id WHERE po.patient_id=@pid;
+  ```
+- **Evidence (local, pid=20):**
+  ```
+  wall-clock via `docker compose exec -T mysql mariadb --batch`, 5 runs each (Python perf_counter):
+    baseline SELECT 1:      0.205 0.082 0.098 0.089 0.080   median 0.089 s
+    context assembly:       0.105 0.095 0.101 0.089 0.091   median 0.095 s
+  server-side (SET profiling=1; SHOW PROFILES), 3 passes over the 10 queries:
+    pass1 6.92 ms · pass2 5.21 ms · pass3 5.13 ms   (lab-results join is the largest single query: 3.02 / 2.43 / 2.39 ms)
+  output: 974,140 bytes · 4,612 lines   (bytes/4 heuristic ≈ 243,535 tokens — heuristic only, not tokenised)
+
+  per section (rows / bytes):
+    patient_data 1 / 2,182 · form_encounter 530 / 145,985 · problems 92 / 24,028 · allergies 0 / 0
+    medications(lists) 9 / 2,638 · prescriptions 9 / 3,020 · immunizations 14 / 2,865 · form_vitals 1 / 480
+    procedure_order+code 907 / 221,453 · lab results join 3,040 / 571,489
+  ```
+  **Droplet, pid=27 (worst case there):**
+  ```
+  wall-clock via ssh + docker exec: baseline SELECT 1 median 0.942 s (0.968 0.942 0.775 0.847 0.979)
+                                    context assembly median 1.049 s (1.102 1.045 1.049 1.049 1.050)
+  server-side: 6.83 · 6.16 · 6.02 ms
+  output: 749,934 bytes · 3,521 lines
+  ```
+  The wall-clock deltas over baseline (~6 ms local, ~107 ms droplet over SSH)
+  are dominated by transport; server-side time is comparable across hosts.
+- **Verified:** `first-hand`
+- **Implication for the agent:** Retrieval latency from the database is
+  negligible; the design pressure is entirely on selection and summarisation.
+  Lab results alone are 59% of pid=20's raw bytes, and encounters plus procedure
+  orders another 38%. Those three sections are where windowing and truncation
+  (F-22) must act first. A time-to-first-token budget should be spent on the
+  model, not the query.
+
+### F-47 — First network-path latency to the droplet (unauthenticated); authenticated FHIR read blocked
+- **Category:** Performance
+- **Severity:** Informational
+- **Claim:** From the operator workstation over the public internet
+  (~53 ms RTT), unauthenticated requests to the droplet complete in
+  ~0.23–0.59 s median, ~0.1–0.3 s slower than the same endpoints on localhost.
+  TLS setup alone costs ~110 ms per new connection. An authenticated FHIR read
+  against the droplet could **not** be performed.
+- **Evidence:** `curl -sk -o /dev/null -w "code=%{http_code} dns=%{time_namelookup} tcp=%{time_connect} tls=%{time_appconnect} ttfb=%{time_starttransfer} total=%{time_total} bytes=%{size_download}"`, 5 sequential runs each, new connection per run, ~22:32Z:
+  ```
+  $ ping -c 5 201.79.25.22 → round-trip min/avg/max/stddev = 49.825/52.847/56.732/2.279 ms
+
+  endpoint                              droplet totals (median)                       localhost totals (median)
+  /meta/health/livez          200  0.232 0.238 0.226 0.272 0.228 (0.232)   0.065 0.053 0.046 0.048 0.051 (0.051)
+  /meta/health/readyz         200  0.417 0.281 0.282 0.372 0.302 (0.302)   0.136 0.133 0.132 0.121 0.117 (0.132)
+  /apis/default/fhir/metadata 200  0.588 0.762 0.581 0.586 0.693 (0.588)   0.493 0.327 0.310 0.324 0.306 (0.324)   35,811 B
+  /apis/default/fhir/Patient?_count=5 (no token)
+                              401  0.403 0.307 0.304 0.395 0.307 (0.307)   0.119 0.113 0.108 0.118 0.116 (0.116)   113 B
+  Bearer garbage, Patient     401  0.329 (1 run)                             0.184 (1 run)
+
+  droplet connection phases, typical run: tcp ≈ 0.050–0.053 s · TLS complete ≈ 0.110–0.115 s
+  (outliers: tcp 0.150 / 0.115, TLS 0.241 / 0.183 on first-in-series runs)
+  ```
+- **Blocked — authenticated FHIR read on the droplet:** no bearer token was
+  obtainable within this task's constraints. `api_token` has **0** rows on the
+  droplet (no token has ever been issued there). Both registered clients permit
+  the `password` grant (F-40), but a password grant needs a user credential.
+  The changed `admin` password is not held by this audit. Using a demo account's
+  default password (F-32) would mean logging in to an exposed host with a
+  known-weak credential, and creating a new client or user would be a write.
+  None was done. OAuth discovery also advertises `https://localhost:9300/oauth2/default/token`
+  as the token endpoint (F-49), so a standards-following client would not reach
+  the droplet's token endpoint without overriding discovery.
+- **Verified:** `first-hand` for all unauthenticated timings; authenticated
+  read **blocked** (reason above).
+- **Implication for the agent:** A co-pilot running off-box pays ~110 ms TLS
+  setup plus ~50 ms RTT per round-trip before OpenEMR does any work, so it must
+  reuse connections (keep-alive / HTTP/2) and batch FHIR reads. The operator's
+  local 0.375 s authenticated floor (F-24) should be expected to rise by at
+  least the ~0.19 s localhost→droplet gap seen on the 401 path, before any
+  load.
 
 ---
 
@@ -790,13 +1905,33 @@ All database commands below were run from `docker/development-easy/`.
 - **Evidence:** Documentation-sourced, from `CLAUDE.md` ("Technology Stack" and
   "Project Structure"). Directory existence confirmed first-hand: `src/` (36
   entries), `library/` (88), `templates/` (32), `interface/` (46).
-- **Verified:** `first-hand` for directory structure; the framework/version
-  claims are documentation-sourced from `CLAUDE.md`, not independently verified
-  against `composer.json`.
+- **Correction (pass 2) — versions now verified against the lockfile:**
+  ```
+  composer.json:14 "php": ">=8.2.0" · :244 platform "php": "8.2"
+  composer.json:49 "adodb/adodb-php": "^5.22.11"   → composer.lock v5.22.11
+  composer.json:54 "doctrine/dbal": "^4.4"         → composer.lock 4.4.3
+  composer.json:75 "laminas/laminas-mvc": "^3.8.0" → composer.lock 3.8.0
+  composer.json:115 "smarty/smarty": "^4.5.6"      → composer.lock v4.5.6
+  composer.json:122 "symfony/event-dispatcher": "^7.3" → composer.lock v7.4.9
+  composer.json:128 "symfony/http-kernel": "^7.3"  → composer.lock v7.4.13  (symfony/dependency-injection v7.4.13)
+  composer.json:133 "twig/twig": "^3.22.2"         → composer.lock v3.27.1
+  package.json:72 "bootstrap": "4.6.2" · :94 "jquery": "3.7.1"
+  ```
+  All `CLAUDE.md` framework claims hold, with two refinements. (1) ADOdb is
+  still a *direct* dependency (`adodb/adodb-php` 5.22.11), not only a surface
+  emulated over DBAL. (2) The runtime PHP in both environments is **8.5.6**
+  (`php -r 'echo PHP_VERSION;'` local; `php -v` droplet), while Composer
+  resolves dependencies against a **platform of 8.2** — code is tested against
+  8.2 constraints but executed on 8.5. Angular's version was not found under a
+  top-level `"angular…"` key in `package.json` and remains documentation-sourced.
+  Closes verification gap 6.
+- **Verified:** `first-hand` for directory structure and (pass 2) dependency
+  versions and runtime PHP; Angular 1.8 remains documentation-sourced.
 - **Implication for the agent:** Co-pilot code belongs in `/src` under PSR-4
   with strict types, but it must interoperate with legacy callers that expect
   globals and ADODB-style results. Plan an explicit boundary layer rather than
-  letting legacy patterns leak into new code.
+  letting legacy patterns leak into new code. Any co-pilot PHP dependency must
+  install under the 8.2 platform constraint and be tested on the 8.5 runtime.
 
 ### F-28 — Integration points relevant to this project all exist
 - **Category:** Architecture
@@ -821,13 +1956,28 @@ All database commands below were run from `docker/development-easy/`.
   oe-module-ehi-exporter          oe-module-faxsms
   oe-module-prior-authorizations  oe-module-weno
   ```
+- **Correction (pass 2):** all counts re-verified identical (64 / 33 / 14 / 24;
+  same 5 ACL files; same 8 modules). Two refinements:
+  1. `gacl/` holds phpGACL's **admin UI, docs and config** (`admin/`, `docs/`,
+     `Cache_Lite/`, `gacl.ini.php`, `profiler.inc.php`, licence/readme files) —
+     not the ACL engine. The engine is `src/Gacl/Gacl.php:38` `class Gacl`
+     (with `GaclApi.php:24`, `GaclAdminApi.php:26`), which
+     `AclMain.php:123` imports as `OpenEMR\Gacl\Gacl`. See F-50.
+  2. The module "precedent" exists **on disk only**. In both environments the
+     `modules` table holds just the five Laminas modules (`type=1`:
+     Immunization, Syndromicsurveillance, Documents, Ccr, Carecoordination);
+     none of the eight custom modules is registered, so none is bootstrapped
+     (`src/Core/ModulesApplication.php:141` loads only
+     `mod_active = 1 AND type != 1`). No custom module code path has been
+     exercised at runtime in this audit. See F-52.
 - **Verified:** `first-hand`
 - **Implication for the agent:** No new integration mechanism needs inventing.
   The co-pilot UI panel should follow the `oe-module-*` convention in
   `interface/modules/custom_modules/`, hook into `src/Events/` via the Symfony
   dispatcher rather than patching core files, read through `src/Services/FHIR/`,
   and gate every access through `src/Common/Acl/AclMain.php` rather than
-  implementing its own permission checks.
+  implementing its own permission checks. Registration in `modules` is a
+  separate, required step — having the directory present does nothing.
 
 ### F-29 — Container health is independent of application readiness
 - **Category:** Architecture
@@ -840,7 +1990,23 @@ All database commands below were run from `docker/development-easy/`.
   NOT installed; readyz returned status:setup_required. Container liveness and
   application readiness are independent.
   ```
-- **Verified:** `operator-reported`
+- **Cross-check (pass 2) — mechanism verified in source and config:** the
+  healthcheck *cannot* fail on application state, because readyz never returns
+  a failing HTTP status:
+  - `docker/development-easy/docker-compose.yml:112-124`: test is
+    `/usr/bin/curl --fail --insecure --location --show-error --silent https://localhost/meta/health/readyz`
+    (`--fail` only reacts to HTTP ≥ 400), `interval: 1m`, `retries: 3`.
+  - `meta/health/index.php:70` `new JsonResponse($checker->getResultsArray())`
+    and `:73-78` the `setup_required` response are both constructed without a
+    status argument (default 200). `:91-95` returns 200 even on an exception
+    ("Even on error, return 200 with error details in body").
+  - Observed on both hosts: `curl -sk https://…:9300/meta/health/readyz` →
+    HTTP 200 with body
+    `{"status":"setup_required","checks":{"installed":false,…}}`, and both
+    containers report `(healthy)` in `docker ps`.
+  The operator's observation is the expected consequence. `first-hand`.
+- **Verified:** `operator-reported` (the specific not-installed episode);
+  mechanism `first-hand`.
 - **Implication for the agent:** The co-pilot's own startup must not treat
   container health as a signal that the EHR is usable. It needs an explicit
   application-level readiness gate — and given F-30, that gate cannot be the
@@ -881,12 +2047,340 @@ All database commands below were run from `docker/development-easy/`.
   $ curl -sk https://localhost:9300/meta/health/readyz
   {"status":"setup_required","checks":{"installed":false,"database":true,"filesystem":true,"session":true,"oauth_keys":true,"cache":true}}
   ```
+- **Cross-check (pass 2):** all cited lines re-read this session and
+  unchanged. The droplet (284 tables, 53 patients) returns the byte-identical
+  body at `https://201.79.25.22:9300/meta/health/readyz`. Its once-a-minute
+  healthcheck responses are logged as 136–137 bytes — this body — except a
+  single 422-byte response during the demo reset at 21:07:11Z (F-37).
+  `first-hand`.
 - **Verified:** `first-hand`
 - **Implication for the agent:** The co-pilot must not gate startup, health
   checks or deployment automation on `readyz`'s `installed` field or top-level
   `status`. The sibling checks (`database`, `filesystem`, `session`,
   `oauth_keys`, `cache`) are meaningful and can be used; readiness itself needs
   an independent probe such as a table or row count.
+
+### F-48 — The deployment runs the development-easy stack verbatim, not the `docker/release/` build
+- **Category:** Architecture
+- **Severity:** Medium
+- **Claim:** The droplet runs `docker/development-easy/docker-compose.yml`
+  unmodified. That means development mode, developer tools, Xdebug with the
+  profiler, a writable bind mount of the git checkout into the web container,
+  and a composer/npm/webpack build at every container start. The hardened
+  multi-stage build in `docker/release/` was not used. The operator reports
+  this is permitted by the Stage 2 specification; it is nonetheless a real
+  security and performance tradeoff (F-31–F-37).
+- **Evidence:**
+  - Compose project labels on the droplet container:
+    `com.docker.compose.project.working_dir=/home/deploy/openemr-clinical-copilot/docker/development-easy`,
+    `config_files=…/docker/development-easy/docker-compose.yml`; the checkout is
+    clean at `c4db157` (F-53), so the file in use is the committed one.
+  - Running container environment (selected; secrets not printed):
+    ```
+    EASY_DEV_MODE=yes · EASY_DEV_MODE_NEW=yes · DEVELOPER_TOOLS=yes
+    XDEBUG_ON=1 · XDEBUG_PROFILER_ON=1 · XDEBUG_CLIENT_HOST=host.docker.internal
+    OPENEMR_DOCKER_ENV_TAG=easy-dev-docker · MYSQL_HOST=mysql · OE_USER=admin
+    OPENEMR_SETTING_site_addr_oath=https://localhost:9300 · OPENEMR_SETTING_oauth_password_grant=3
+    OPENEMR_SETTING_rest_api=1 · …rest_fhir_api=1 · …rest_portal_api=1 · …rest_system_scopes_api=1
+    SELENIUM_USE_GRID=true · SELENIUM_HOST=selenium · SELENIUM_BASE_URL=http://openemr
+    secret-bearing variable names present: MYSQL_ROOT_PASS, MYSQL_PASS, OE_PASS, GITHUB_COMPOSER_TOKEN(+_ENCODED, +_ENCODED_ALTERNATE),
+                                           OPENEMR_SETTING_couchdb_pass, OPENEMR_SETTING_SMTP_PASS
+    ```
+    These match `docker-compose.yml:60-90`.
+  - Images: `openemr/openemr:flex` (`:29` pinned `sha256:1d2c8345a320…`),
+    `mariadb:11.8.8` (`:4`, `be1ef4fe5f14…`), `phpmyadmin:5.2.3` (`:148`,
+    `b16dc88d6e62…`); `docker images` on the droplet shows IDs `1d2c8345a320`,
+    `be1ef4fe5f14`, `b16dc88d6e62`.
+  - Source bind-mounted read-write: `:34` `${OPENEMR_DIR:-../..}:/openemr:ro`,
+    `:35` `${OPENEMR_DIR:-../..}:/var/www/localhost/htdocs/openemr:rw`. Container
+    log `20:49:47Z Adopting host uid/gid: HOST_UID=1000 HOST_GID=1000`, and on
+    the host `id deploy` → `uid=1000(deploy) … groups=…,987(docker)`. The
+    web server therefore writes into `deploy`'s git checkout as `deploy`.
+  - Build at boot (container log): `apk` installs 155 packages including
+    Chromium (from 20:49:47Z); composer install (20:49:56–20:50:10Z); npm
+    `added 1174 packages … 26 vulnerabilities (2 low, 11 moderate, 11 high, 2 critical)`
+    (20:50:33Z); webpack production theme build (20:50:33–20:51:02Z);
+    `EASY_DEV_MODE_NEW enabled: Using local repository from /openemr`
+    (20:49:55Z). Setup settings are echoed to the log, including
+    `Set couchdb_pass to password` and `Set SMTP_PASS to openemr` (20:51:57Z).
+    Start to "Starting apache!" took 131 s.
+  - The untaken path exists: `docker/release/` contains `Dockerfile`,
+    `openemr.sh`, `ssl.sh`, `xdebug.sh`, `auto_configure.php`, `php.ini`, etc.;
+    `Dockerfile:193` `FROM base AS production` and `:430` `FROM production AS final`
+    (multi-stage, build-time assets; the Dockerfile still copies `xdebug.sh` at
+    `:263`, so its default Xdebug state was not verified). Separately,
+    `docker/production/docker-compose.yml:13` also sets
+    `MYSQL_ROOT_PASSWORD: root` and publishes `80:80`/`443:443` (`:30-31`).
+    Switching compose files alone would therefore not remove the default
+    credentials.
+  - Spec permission: no Stage 2 specification exists in the repository
+    (`grep -rniE "stage ?2"` over `README.md` and `docs/` returns nothing).
+- **Verified:** `first-hand` (topology, env, mounts, build log, alternatives on
+  disk). `operator-reported`: that the Stage 2 specification permits this
+  topology.
+- **Implication for the agent:** The co-pilot will be evaluated on a host whose
+  startup is non-deterministic (network-fetched dependencies, 26 npm audit
+  findings at build) and whose web user can rewrite the application source.
+  Before the co-pilot handles real PHI, the deployment must move to a built,
+  immutable image (`docker/release/` or equivalent) with dev tooling removed and
+  credentials injected, not defaulted.
+
+### F-49 — OAuth/SMART discovery advertises `https://localhost:9300` on the public deployment
+- **Category:** Architecture
+- **Severity:** Medium
+- **Claim:** The droplet's OAuth2/OIDC and SMART discovery documents name
+  `https://localhost:9300` as the issuer and as every endpoint, because
+  `site_addr_oath` is set from the Compose default. Standards-following external
+  clients (SMART apps, the co-pilot if it runs off-box) will be pointed at
+  their own localhost.
+- **Evidence:**
+  ```
+  $ curl -sk https://201.79.25.22:9300/oauth2/default/.well-known/openid-configuration | python3 -c '…'
+  issuer = https://localhost:9300/oauth2/default
+  authorization_endpoint = https://localhost:9300/oauth2/default/authorize
+  token_endpoint = https://localhost:9300/oauth2/default/token
+  jwks_uri = https://localhost:9300/oauth2/default/jwk
+  registration_endpoint = https://localhost:9300/oauth2/default/registration
+  grant_types_supported = ['authorization_code', 'password', 'refresh_token']
+  $ curl -sk https://201.79.25.22:9300/apis/default/fhir/.well-known/smart-configuration | python3 -c '…'
+  smart issuer = https://localhost:9300/apis/default/fhir
+  smart token_endpoint = https://localhost:9300/oauth2/default/token
+  smart authorization_endpoint = https://localhost:9300/oauth2/default/authorize
+  ```
+  Source of the value: `docker-compose.yml:83`
+  `OPENEMR_SETTING_site_addr_oath: 'https://localhost:${WT_HTTPS_PORT:-9300}'`;
+  container log `20:51:57Z Set site_addr_oath to https://localhost:9300`;
+  droplet `globals.site_addr_oath` = `https://localhost:9300`. Both registered
+  clients' `redirect_uri` is `https://localhost:9300/swagger/oauth2-redirect.html`
+  (from the decoded INSERTs, F-40).
+- **Verified:** `first-hand` for discovery output and configuration source.
+  **Not verified:** the `iss` claim inside an issued token (no token, F-47).
+- **Implication for the agent:** An off-box co-pilot doing SMART/OIDC discovery
+  against the droplet will fail, or silently talk to its own host. Either
+  `site_addr_oath` must be set to the public origin at deploy time, or the
+  co-pilot must be configured with explicit endpoints and must validate `iss`
+  against a configured value rather than the discovered one.
+
+### F-50 — ACL layer: section-level phpGACL behind a static facade, with an implicit session dependency and no patient scoping
+- **Category:** Architecture
+- **Severity:** Informational
+- **Claim:** Authorization is phpGACL, ported into `src/Gacl/` and wrapped by the
+  static `AclMain`. A check answers "may user U perform action R on section S"
+  — it takes no patient argument, so there is no per-patient or care-team
+  scoping in the core ACL. When no user is passed it reads the user from the
+  active session. REST routes invoke it explicitly per route.
+- **Evidence:**
+  - Facade and engine: `src/Common/Acl/AclMain.php:123` `use OpenEMR\Gacl\Gacl;`,
+    `:125` `class AclMain`, `:128` `private static $gaclObject;`, `:136`
+    `self::$gaclObject = new Gacl();` (one shared instance per request).
+    Engine `src/Gacl/Gacl.php:38` `class Gacl {`, `:229` `acl_check(…)`,
+    `:307` `acl_query($aco_section_value, $aco_value, $aro_section_value, $aro_value, …)`.
+    `gacl/` contains admin UI/docs/config only (F-28 correction).
+  - Check signature and semantics — `AclMain.php:166`
+    `public static function aclCheckCore($section, $value, $user = '', $return_value = ''): bool`;
+    `:170` `$user = $session->get('authUser') ?? '';` when `$user` is empty;
+    `:174` superuser short-circuit (`admin`/`super` grants everything);
+    `:181` `$gacl_object->acl_query($section, $value, 'users', $user, null, null, null, null, null, true);`;
+    `:234` `if (!$deny && $access) {` (an explicit deny wins).
+  - Reach: 531 `AclMain::aclCheckCore` call lines across 305 files in `src`,
+    `interface`, `library`, `apis` (grep; custom modules not counted).
+  - REST bridge: `src/RestControllers/Config/RestConfig.php:180-183`
+    `request_authorization_check()` passes the request session's `authUser` to
+    `authorization_check()` (`:185`), which calls `aclCheckCore` at `:187` and
+    throws at `:192` `AccessDeniedHttpException("Organization policy does not have permit access resource")`.
+    Example FHIR use:
+    `apis/routes/_rest_routes_fhir_r4_us_core_3_1_0.inc.php:590`
+    `RestConfig::request_authorization_check($request, "patients", "demo");`
+    inside `"GET /fhir/Patient"` (`:578`), skipped for patient-context requests
+    (`:583` `if ($request->isPatientRequest())` binds `_id` to the token's
+    patient instead). The FHIR route file contains 64
+    `request_authorization_check` calls.
+  - Dead code: `RestConfig::scope_check()` (`:201`) has no callers anywhere in
+    `src apis interface library modules`. OAuth scope enforcement actually
+    happens in `AuthorizationListener.php:189-192` (F-51).
+  - Seeded groups, droplet: `admin` and `zhportal` → Administrators;
+    `physician` → `doc`; `clinician` → `clin`; `receptionist` → `front`;
+    `accountant` → `back` (F-32).
+- **Verified:** `first-hand`
+- **Implication for the agent:** Two independent gates apply to every co-pilot
+  API read: OAuth scope (F-51) and gacl section ACL (`patients`/`demo`,
+  `patients`/`med`, …) evaluated for the token's user. Neither `aclCheckCore`
+  nor a `user/…` scope restricts *which patient*. Other patient-filtering
+  mechanisms exist elsewhere (e.g. the Laminas `PatientFilter` module on the UI
+  `ViewEvent`, F-52), but none was found on the FHIR `GET /fhir/Patient` path
+  read in this audit. If the co-pilot must limit itself to the current
+  encounter's patient, it has to enforce that itself or use patient-context
+  tokens. Background or CLI
+  co-pilot code must always pass `$user` explicitly, because the session
+  fallback at `:170` silently evaluates as the empty user.
+
+### F-51 — FHIR/REST layer: route files dispatch to controllers wrapping service classes; scope enforcement lives in a kernel listener
+- **Category:** Architecture
+- **Severity:** Informational
+- **Claim:** FHIR R4 endpoints are closures in one route file. Each builds a
+  controller that delegates to a `Fhir*Service`, and those mostly wrap the
+  pre-existing OpenEMR domain services. The services are instantiated with
+  `new` rather than injected. OAuth scope checks run in a Symfony kernel event
+  listener before the route closure. Several FHIR resources fan out to many
+  underlying services.
+- **Evidence:**
+  - Routes: `apis/routes/` holds `_rest_routes_fhir_r4_us_core_3_1_0.inc.php`
+    (876 lines, **65** `"GET /fhir/…"` routes), `_rest_routes_standard.inc.php`
+    (717), `_rest_routes_portal.inc.php` (49). Examples:
+    `:73` `"GET /fhir/AllergyIntolerance"`, `:167` `"GET /fhir/Condition"`,
+    `:297` `"GET /fhir/Encounter"`, `:470` `"GET /fhir/MedicationRequest"`,
+    `:493` `"GET /fhir/Observation"`, `:578` `"GET /fhir/Patient"`
+    (`:581` `$controller = new FhirPatientRestController();`).
+  - Controllers: `src/RestControllers/` 33 entries / 92 PHP files recursively;
+    `src/RestControllers/FHIR/` 38 entries; route discovery dispatches a
+    `RestApiCreateEvent` in `FHIR/Finder/FhirRouteFinder.php:31`,
+    `Finder/StandardRouteFinder.php:37` and `Finder/PortalRouteFinder.php:33`.
+  - Services: `src/Services/FHIR/` 64 entries / 103 PHP files recursively.
+    `FhirServiceBase.php:36` `abstract class FhirServiceBase`, with `:223`
+    `getOne($fhirResourceId, $puuidBind = null)` and `:240`
+    `getAll($fhirSearchParameters, $puuidBind = null)`; abstract
+    `parseOpenEMRRecord` (`:157`) and `searchForOpenEMRRecords` (`:303`).
+    `FhirPatientService.php:49` extends it, `:58` `private PatientService $patientService;`,
+    `:115` `$this->patientService = new PatientService();`.
+  - Fan-out: `FhirObservationService.php:41` registers **ten** mapped
+    services at `:64-73` (SocialHistory, Vitals, Laboratory, ObservationForm,
+    HistorySdoh, Patient, Employer, AdvanceDirective,
+    TreatmentInterventionPreference, CareExperiencePreference). Laboratory
+    observations resolve through `Observation/FhirObservationLaboratoryService.php:72`
+    `$this->service = new ProcedureService();` (an `ObservationLabService`
+    alternative is commented out at `:66`). `ProcedureService::search()` (`:76`)
+    builds a derived-table query starting
+    `FROM procedure_order WHERE activity = 1` (`:188-189`) with `LEFT JOIN`s to
+    report and result subqueries.
+  - Scope enforcement:
+    `src/RestControllers/Authorization/BearerTokenAuthorizationStrategy.php:209-211`
+    builds the scope-validator array from the token's `oauth_scopes` and attaches
+    it to the request. `src/RestControllers/Subscriber/AuthorizationListener.php:189-192`:
+    ```php
+    // check access token scopes
+    $scopeEntity = ScopeEntity::createFromString($scope);
+    if (!$restRequest->requestHasScopeEntity($scopeEntity)) {
+        throw new AccessDeniedException($scopeType, $restRequest->getResource() ?? '', "scope " . $scope . " not in access token");
+    ```
+    Error mapping as in F-08. Subscribers present: `ApiResponseLoggerListener`,
+    `AuthorizationListener`, `CORSListener`, `ExceptionHandlerListener`,
+    `OAuth2AuthorizationListener`, `RoutesExtensionListener`,
+    `SessionCleanupListener`, `SiteSetupListener`, `TelemetryListener`,
+    `ViewRendererListener`.
+- **Verified:** `first-hand` (source). The Observation fan-out's query cost was
+  **not** measured, because no authenticated FHIR request could be made (F-47).
+- **Implication for the agent:** `Observation?patient=X` is not one query — it
+  is up to ten service searches, and the lab path uses a derived-table query
+  shape different from F-25's. A co-pilot that wants labs should always pass
+  `category` (and/or `code`) on Observation searches: `FhirObservationService.php:84`
+  declares `category` as a token search parameter, `:117-130` narrows the mapped
+  services by category, `:132-146` narrows by code, and only when neither is
+  given does `:148-150` fall back to all mapped services. (The exact category
+  token each mapped service accepts was not enumerated.) Because services are `new`-constructed
+  inside controllers, in-process reuse from a module means constructing the
+  same classes, not resolving them from a container.
+
+### F-52 — Event dispatcher and module mechanism: patient-dashboard and REST-route hooks exist; zero custom modules are installed; no read/access event exists
+- **Category:** Architecture
+- **Severity:** Informational
+- **Claim:** The kernel exposes a single Symfony `EventDispatcher`. Custom
+  modules subscribe from an `openemr.bootstrap.php`, but only when registered
+  and active in the `modules` table, and no custom module is registered in
+  either environment. Hooks exist for injecting UI into the patient dashboard
+  and for adding REST routes. There are save-events for services, but no event
+  for "a patient record was read".
+- **Evidence:**
+  - Dispatcher: `src/Core/Kernel.php:62`
+    `$definition = new Definition(EventDispatcher::class, [new Reference('service_container')]);`
+    (with `RegisterListenersPass` at `:61`); `:226-235` `getEventDispatcher()`
+    returns the container's `event_dispatcher` or throws.
+  - Module loading: `src/Core/ModulesApplication.php:39`
+    `const CUSTOM_MODULE_BOOSTRAP_NAME = 'openemr.bootstrap.php';`, `:141`
+    `SELECT mod_name, mod_directory FROM modules WHERE mod_active = 1 AND type != 1 …`,
+    `:155` sets `mod_active = 0` if the bootstrap file is unreadable.
+  - Installed modules, both hosts (`SELECT … FROM modules`): only mod_id 1–5,
+    `type=1`, `mod_active=1`: Immunization, Syndromicsurveillance, Documents,
+    Ccr, Carecoordination. No `type != 1` rows exist.
+  - On-disk custom modules and what each contains: all eight have
+    `openemr.bootstrap.php` and `info.txt`; `moduleConfig.php` is absent from
+    `oe-module-dorn` and `oe-module-ehi-exporter`. Example bootstrap
+    (`oe-module-dashboard-context/openemr.bootstrap.php`): registers a PSR-4
+    namespace through `ModulesClassLoader`, fetches
+    `OEGlobalsBag::getInstance()->getKernel()->getEventDispatcher()`, then
+    `(new Bootstrap($eventDispatcher))->subscribeToEvents()`.
+  - Patient dashboard hook: `src/Events/PatientDemographics/RenderEvent.php:30`
+    `EVENT_SECTION_LIST_RENDER_TOP`, `:37` `…_BEFORE`, `:44` `…_AFTER`, `:51`
+    `EVENT_RENDER_POST_PAGELOAD`; dispatched with the patient id at
+    `interface/patient_file/summary/demographics.php:1354` (`BEFORE`) and
+    `:1533` (`AFTER`). Subscribers on disk:
+    `oe-module-weno/src/Bootstrap.php:168` (`BEFORE`) and
+    `oe-module-claimrev-connect/src/Bootstrap.php:153` (`AFTER`, only if
+    `CONFIG_ENABLE_ELIGIBILITY_CARD`, `:152`). `oe-module-dashboard-context`
+    defines a dashboard widget at `src/Bootstrap.php:60-62`, but its
+    registration is commented out at `:57`
+    (`//$this->registerDashboardWidget(); …`); the module actually wires a
+    page-heading widget (`:78-81`, `PageHeadingRenderEvent::EVENT_PAGE_HEADING_RENDER`)
+    and a menu item.
+  - REST extension: `src/Events/RestApiExtend/RestApiCreateEvent.php:10`
+    `EVENT_HANDLE = 'restConfig.route_map.create'` (dispatch sites in F-51);
+    also `RestApiScopeEvent`, `RestApiResourceServiceEvent`,
+    `RestApiSecurityCheckEvent` (`:24` `'api.route.security.check'`).
+  - Data events: `src/Events/Services/ServiceSaveEvent.php:24`
+    `EVENT_PRE_SAVE = 'service.save.pre'`, `:30` `EVENT_POST_SAVE = 'service.save.post'`,
+    dispatched e.g. at `src/Services/EncounterService.php:381` and `:408`.
+    A grep for `const EVENT_.*(READ|VIEW|ACCESS)` under `src/Events` finds only
+    UI events: `PatientDemographics/ViewEvent.php:28`
+    `'patientDemographics.view'` (dispatched at `demographics.php:1055`,
+    consumed by the Laminas `PatientFilter` module at
+    `interface/modules/zend_modules/module/PatientFilter/Module.php:79`),
+    `PatientDocumentViewCCDAEvent` and `PatientDocumentTreeViewFilterEvent`.
+    Nothing fires on a FHIR/REST or service-layer read.
+  - Dispatch breadth: 182 `dispatch(` occurrences in `src`, `interface`,
+    `library` PHP files (45 files under `src`).
+- **Verified:** `first-hand`
+- **Implication for the agent:** The co-pilot panel can be delivered as a
+  custom module subscribing to `patientDemographics.render.section.before/after`
+  (the weno/claimrev precedent), and co-pilot API endpoints can be added via
+  `restConfig.route_map.create` without touching core. Installing it is a
+  `modules` table registration, which no existing custom module has exercised
+  in these environments. Because no read/access event exists, the co-pilot
+  cannot delegate its access auditing to an event subscriber; it must write its
+  own access records (F-11) at the point it reads.
+
+### F-53 — POSITIVE: the code live on the droplet is exactly the audited commit
+- **Category:** Architecture
+- **Severity:** Positive
+- **Claim:** The droplet serves an unmodified checkout of commit
+  `c4db1578b53293611665d9190fe13f1458312590` — the same commit as the local
+  audit checkout and as `origin/main` — so every source citation in this ledger
+  applies to the deployed code.
+- **Evidence:**
+  ```
+  droplet$ G="git -C /home/deploy/openemr-clinical-copilot -c safe.directory=… --no-optional-locks"
+  droplet$ $G rev-parse HEAD                     → c4db1578b53293611665d9190fe13f1458312590
+  droplet$ $G branch -vv                         → * main c4db157 [origin/main] audit: raw findings ledger from stage 3 instrumentation
+  droplet$ $G status --porcelain=v1 --untracked-files=no | head   → (empty)
+  droplet$ $G status --porcelain=v1 | grep -c "^??"               → 0
+  droplet$ $G reflog                             → c4db157 HEAD@{2026-09-14 20:46:42 +0000}: clone: from https://labs.gauntletai.com/paawandesai/openemr-clinical-copilot.git
+  droplet$ $G remote -v                          → origin https://labs.gauntletai.com/paawandesai/openemr-clinical-copilot.git
+  droplet$ grep -n "Deployed URL" README.md      → 11:**Deployed URL:** TBD
+  local$   git rev-parse HEAD                    → c4db1578b53293611665d9190fe13f1458312590
+  local$   git ls-remote origin refs/heads/main  → c4db1578b53293611665d9190fe13f1458312590
+  local$   git ls-remote github refs/heads/main  → ef3d4909fadab9b3280452d08a1aa746e3fa7502
+  ```
+  Re-checked 2026-09-15T00:11Z: HEAD unchanged, 0 porcelain lines. The web
+  container's bind mount (F-48) serves this directory directly.
+- **Notes:** (1) `README.md:11` still reads `**Deployed URL:** TBD` at this
+  commit; the live URL is `https://201.79.25.22:9300/`. (2) The `github` remote's
+  `main` is still at the initial import `ef3d490`; only `origin` carries the
+  Stage 1/3 commits. (3) The working tree is writable by the web server (F-48),
+  so "clean now" does not prove "clean throughout".
+- **Verified:** `first-hand`
+- **Implication for the agent:** Deployed-code provenance can currently be
+  asserted by commit hash. Once the co-pilot ships, the deploy procedure should
+  record the hash at deploy time and verify a clean tree, so later audits can
+  repeat this check. That guarantee disappears if the bind-mounted, writable
+  checkout is kept.
 
 ---
 
@@ -908,16 +2402,134 @@ Recorded so that absence of evidence is not later read as evidence of absence.
    surface as the same opaque `invalid_client` is operator-reported. No token
    exchange was performed in this session, so the three causes were not
    individually distinguished.
-4. **F-16's 4% generation loss — not reproduced.** The 5-patient run performed
-   here reported 5 generated and 5 imported with no loss. The 50/48 gap and the
-   `Person does not have insurance` exception are operator-reported only.
+4. **F-16's 4% generation loss — not reproduced, and now unmatched.** The
+   5-patient run performed here reported 5 generated and 5 imported with no
+   loss. The 50/48 gap and the `Person does not have insurance` exception are
+   operator-reported only. Pass 2: neither database contains a 48-patient batch
+   (local 57 + 5; droplet 50 with 50 CCDA files present).
 5. **F-09's token/JWT scope mismatch — not reproduced.** No token was minted
    first-hand, so neither the token response body nor the decoded JWT claims
    were inspected directly.
-6. **F-27's framework and version claims — documentation-sourced.** Laminas MVC,
-   Symfony components, Twig 3.x, Smarty 4.5 and Doctrine DBAL 4.x are taken from
-   `CLAUDE.md` and were not verified against `composer.json` or the installed
-   `vendor/` tree.
-7. **F-21 counts rows, not patients.** 43 allergy rows across 65 patients; the
-   number of distinct patients with at least one allergy record was not
-   computed, so "most patients have none" is an inference from the row count.
+6. **~~F-27's framework and version claims — documentation-sourced.~~ Closed
+   in pass 2.** Verified against `composer.json`/`composer.lock` (F-27
+   correction). Angular 1.8 alone remains documentation-sourced.
+7. **~~F-21 counts rows, not patients.~~ Closed in pass 2.** Distinct patients
+   with an allergy row measured: 14/65 local, 9/53 droplet.
+8. **Authenticated FHIR read against the droplet — blocked** (F-47). No token
+   obtainable without the changed admin password, a demo-default login, or a
+   write; `api_token` is empty.
+9. **Droplet plan type (Shared vs Dedicated) — not determinable from the
+   guest** (F-44). No size field in metadata; `doctl` absent. Operator-reported.
+10. **Demo-account interactive login — deliberately not attempted** (F-32).
+    Stored-hash matches and disabled login gates were verified; an end-to-end
+    session was not.
+11. **Xdebug exploitability — not tested** (F-35). Configuration and SAPI
+    loading verified; no trigger sent.
+12. **Successful external MariaDB connections — unobservable** (F-34, F-39).
+    `general_log=0`; only failed/aborted connections are logged.
+13. **Local port reachability from another LAN host — not tested** (F-33).
+    Colima's mux listens on all interfaces; the macOS firewall is enabled but
+    its effect on these sockets was not probed.
+14. **DigitalOcean BAA execution — unknown** (F-41).
+15. **"Spec-permitted for Stage 2" — operator-reported** (F-48). No
+    specification document exists in the repository.
+16. **`iss` claim inside an issued token — not inspected** (F-49).
+17. **Synthea import timing — DB-timestamp proxy only** (F-45). 1-second
+    resolution; importer wall-clock output not available; "same invocation on
+    both hosts" is operator-reported.
+18. **How the `oauth_clients` rows were modified — not established** (F-40).
+19. **Body of the 422-byte readyz response at 21:07:11Z — not captured** (F-37).
+20. **Default Xdebug state of the `docker/release/` image — not verified** (F-48).
+21. **Query cost of the FHIR Observation fan-out — not measured** (F-51).
+22. **Independent-vantage probe — attempted, not independent.** A fetch via the
+    session's web-fetch tool egressed from the same `192.63.199.50` (logged
+    22:43:00Z as `"\x16\x03\x01\x05\xa7\x01" 400`). Internet reachability is
+    instead evidenced by the 338-source UFW block log and the
+    `45.79.207.252` request (F-33).
+
+---
+
+## Audit side-effects of pass 2
+
+Recorded so that artifacts created by the audit are not later mistaken for
+operator or attacker activity.
+
+1. **Droplet file outside the repository: `/root/.gitconfig`.** Created
+   2026-09-14T22:24:47Z by an unintended `git config --global --add safe.directory /home/deploy/openemr-clinical-copilot`
+   included in a command meant to be read-only. Contents (58 bytes):
+   `[safe]` / `directory = /home/deploy/openemr-clinical-copilot`. The file
+   holds only this entry, so it was most likely created by that command
+   (prior absence cannot be proven). **Not reverted**, to avoid a further write;
+   all later git reads used `-c safe.directory=… --no-optional-locks`.
+   Re-checked unchanged at 00:11Z. See R-8.
+2. **Database rows written by probe traffic** (no SQL writes were issued):
+   - Droplet: 15 `api` rows in `log` and 15 `api_log` rows (22:32:49–22:36:19Z,
+     `192.63.199.50`) from unauthenticated `fhir/metadata`, `fhir/Patient` and
+     discovery requests; an unknown share of `http-request-*` rows in the same
+     period (not separable from the operator's open browser session).
+   - Local: 13 `api`, 13 `http-request-select` and 13 `api_log` rows
+     (22:32:55–22:36:18Z); `log` total 2295 → 2321.
+3. **Log lines:** droplet OpenEMR access/error log entries for every probe
+   (including PHP warnings `Undefined array key "version"` at 22:32:49–52Z and
+   `RestConfig->verifyAccessToken` errors for token-less requests); a 400 entry
+   at 22:43:00Z from the web-fetch attempt; MariaDB
+   `Aborted connection 529 … host: '192.63.199.50'` at 22:24:34Z (TCP port
+   probe); one phpMyAdmin access-log line; probable `/tmp/xdebug.log` entries
+   from CLI `php` invocations inside the droplet container (offline hash checks,
+   `ini_get` reads); SSH session records in droplet `wtmp`/`auth.log` from
+   22:22:11Z. Equivalent access-log lines exist in the local container.
+4. **Not done:** no application or phpMyAdmin logins; no remote MariaDB login;
+   no `INSERT`/`UPDATE`/`DELETE`/`ANALYZE TABLE` (only `SELECT`, `SHOW`,
+   `EXPLAIN`, `ANALYZE [FORMAT=JSON] SELECT` — which executes the SELECT and
+   reports runtime statistics without updating table statistics — and
+   `SET profiling`); no container, compose, config or repository file changed on
+   either host. Local `git status --porcelain` shows only this file; droplet
+   porcelain output is empty.
+5. **Outside both hosts:** helper scripts, a copy of the droplet container log
+   and query outputs were kept in the session scratchpad (outside the
+   repository). DigitalOcean and Xdebug documentation were fetched; `whois` was
+   run for `198.211.111.194` and `45.79.207.252`.
+
+---
+
+## Recommendations requiring changes outside this file (not performed)
+
+This task permitted edits to `docs/audit/findings.md` only. Each item below
+needs a change elsewhere and was deliberately left undone.
+
+**Urgent — exposure verified ongoing at 2026-09-15T00:12:00Z**
+
+- **R-1 (F-32):** On the droplet, deactivate or re-password `accountant`,
+  `clinician`, `physician`, `receptionist` and `zhportal`, and remove `zhportal`
+  from Administrators. Afterwards re-run the offline hash check across all
+  `users_secure` rows.
+- **R-2 (F-33, F-34):** Close 8310 and 8320 to the internet: drop the
+  `phpmyadmin` service from the droplet stack, and bind MariaDB to
+  `127.0.0.1`/the Docker network only (Compose override, `DOCKER-USER` rules,
+  or a DigitalOcean Cloud Firewall allowing only 22 and the chosen HTTPS port).
+  Verify from a vantage point other than `192.63.199.50`.
+- **R-3 (F-34):** Rotate the MariaDB `root` and `openemr` passwords, drop
+  `root@'%'`, and stop mounting the git-tracked TLS keys.
+- **R-4 (F-35):** Disable Xdebug on the droplet (`XDEBUG_ON`/`XDEBUG_PROFILER_ON`
+  unset, or `xdebug.mode=off`) and confirm via `php -r 'var_dump(extension_loaded("xdebug"));'`
+  under Apache, not just the CLI.
+
+**Follow-up**
+
+- **R-5 (F-34, F-39):** Treat the droplet database as potentially accessed from
+  MariaDB container start (2026-09-14T20:49:36Z) until R-2/R-3 are complete.
+  The dataset is synthetic.
+- **R-6 (F-36, F-49):** Put the deployment behind a domain with a publicly
+  trusted certificate, stop serving plaintext 8300, and set `site_addr_oath` to
+  the public origin.
+- **R-7 (F-48):** Move to a built, immutable image (`docker/release/` or
+  equivalent) without developer tooling or a writable source bind mount, with
+  injected credentials. Note `docker/production/docker-compose.yml` also
+  defaults `MYSQL_ROOT_PASSWORD: root`.
+- **R-8 (side-effect 1):** Remove `/root/.gitconfig` on the droplet
+  (`rm /root/.gitconfig`), which this audit created.
+- **R-9 (F-10, F-11):** Enable `audit_events_query` before any co-pilot read
+  path touches real data.
+- **R-10 (F-53):** In a separate reviewed change, record the deployed URL
+  `https://201.79.25.22:9300/` and commit `c4db1578b53293611665d9190fe13f1458312590`
+  at `README.md:11`, which currently reads `TBD`.
