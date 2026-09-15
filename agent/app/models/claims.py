@@ -21,6 +21,8 @@ from __future__ import annotations
 
 from pydantic import BaseModel, Field
 
+from app.models.fhir_resources import FhirResourceType
+
 
 class Claim(BaseModel):
     """
@@ -57,12 +59,15 @@ class Claim(BaseModel):
         ),
     )
 
-    resource_type: str = Field(
+    resource_type: FhirResourceType = Field(
         ...,
         description=(
             "Which of the five FHIR resource types (ARCHITECTURE.md §3) "
             "source_id belongs to — Condition, MedicationRequest, "
-            "AllergyIntolerance, Encounter, or Observation. Required so "
+            "AllergyIntolerance, Encounter, or Observation (see "
+            "app/models/fhir_resources.py for the enum, shared with the "
+            "metrics_events.py event models so this value is never a "
+            "free-text string in two different shapes). Required so "
             "verification strength can vary by field/resource type per "
             "§5: medications bind to an RxNorm code, labs bind to a LOINC "
             "code only and can never carry a normal/abnormal "
