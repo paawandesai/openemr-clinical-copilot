@@ -44,8 +44,9 @@ they constrain everything else.
    cases.** Only Follow-Up Drilling needs it (USERS.md); Pre-Visit Brief and
    Change Detection are each single-turn by the use case's own definition.
    State is keyed to user + patient + session and invalidated on patient
-   switch, specifically to prevent cross-patient context leakage in the one
-   place conversation memory exists at all.
+   switch — the primary mitigation against cross-patient leakage within the
+   agent's own state, not OpenEMR's own per-patient authorization gap
+   (F-50; §4).
 6. **MySQL stays self-hosted inside the droplet, not on a managed database
    product.** DigitalOcean's BAA covers Droplets, Kubernetes, Spaces, and
    Volumes but explicitly excludes Managed Databases (F-41); ePHI-bearing
