@@ -2,15 +2,11 @@
 Health and readiness endpoints — kept deliberately separate.
 
 /health: always 200. Answers "is the process up," nothing more.
-/ready:  answers "can this service actually do its job right now." Each
-         dependency check below is a stub — this task scaffolds the
-         service; it does not wire a real FHIR client, LLM provider, or
-         observability backend. The observability backend check in
-         particular cannot be implemented yet, not just left unimplemented:
-         ARCHITECTURE.md §6 lists that backend's placement as an
-         explicitly open, undecided risk, so there is nothing concrete to
-         check against until that decision is made. Stated here rather
-         than faked.
+/ready:  answers "can this service actually do its job right now." The
+         FHIR and LLM provider checks below are still stubs. The
+         observability backend check is real: it reports whether the
+         self-hosted Langfuse export (agent/docs/observability.md) is
+         configured, reachable, and accepting this service's API keys.
 
 Kept as two separate endpoints, and /ready returns 503 when any dependency
 isn't actually verified healthy, on purpose: this project's own audit
@@ -23,6 +19,8 @@ from __future__ import annotations
 
 from fastapi import APIRouter
 from fastapi.responses import JSONResponse
+
+from app.middleware.langfuse_export import check_export_health
 
 router = APIRouter()
 
@@ -57,21 +55,20 @@ def _check_llm_provider() -> None:
 
 def _check_observability_backend() -> None:
     """
-    TODO: this cannot be implemented yet, not just left unimplemented.
-    ARCHITECTURE.md §6 lists the observability backend's placement
-    (on-droplet vs. elsewhere; which service shape) as an explicitly OPEN,
-    undecided risk — there is nothing concrete to check against until that
-    decision is made.
+    Self-hosted Langfuse (agent/docs/observability.md). Raises
+    ObservabilityExportUnavailable — reported below as unhealthy — when
+    export is not configured, Langfuse is unreachable, or it rejects the
+    API keys. Never makes a network call on this thread: it reads the
+    result of a background auth check refreshed every 15 s, and a result
+    older than 60 s is never reported as healthy
+    (app/middleware/langfuse_export.py).
     """
-    raise NotImplementedError(
-        "Observability backend dependency check — ARCHITECTURE.md §6 "
-        "(placement not yet decided)"
-    )
+    check_export_health()
 
 
-# Every entry here must stay a stub until the corresponding real
-# dependency exists — see the TODOs above for exactly what each one still
-# needs and which ARCHITECTURE.md section governs it.
+# FHIR and LLM provider stay stubs until the corresponding real dependency
+# exists — see the TODOs above for exactly what each one still needs and
+# which ARCHITECTURE.md section governs it.
 _DEPENDENCY_CHECKS = {
     "fhir": _check_fhir,
     "llm_provider": _check_llm_provider,
@@ -82,11 +79,12 @@ _DEPENDENCY_CHECKS = {
 @router.get("/ready")
 async def ready() -> JSONResponse:
     """
-    Runs each dependency stub above and reports its status. Every check is
-    currently `not_implemented` by construction, so this endpoint honestly
-    reports `not_ready` (HTTP 503) rather than repeating the
-    unconditional-200 pattern this project's own audit flagged as a defect
-    in OpenEMR's own readiness endpoint.
+    Runs each dependency check above and reports its status. While the FHIR
+    and LLM provider checks are `not_implemented`, this endpoint honestly
+    reports `not_ready` (HTTP 503) even when the observability backend is
+    healthy, rather than repeating the unconditional-200 pattern this
+    project's own audit flagged as a defect in OpenEMR's own readiness
+    endpoint.
     """
     checks: dict[str, dict[str, str]] = {}
     all_healthy = True
@@ -97,7 +95,7 @@ async def ready() -> JSONResponse:
         except NotImplementedError as exc:
             all_healthy = False
             checks[name] = {"status": "not_implemented", "detail": str(exc)}
-        except Exception as exc:  # pragma: no cover - defensive; not yet reachable
+        except Exception as exc:  # e.g. ObservabilityExportUnavailable; messages are F-37-safe
             all_healthy = False
             checks[name] = {"status": "unhealthy", "detail": str(exc)}
 

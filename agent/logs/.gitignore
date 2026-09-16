@@ -1,0 +1,4 @@
+# Captured agent stdout (compute_metrics.py input). Carries patient_session_key
+# and FHIR source ids — never committed.
+*
+!.gitignore
