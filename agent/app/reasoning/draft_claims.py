@@ -21,20 +21,22 @@ What the model is given:
   in code rather than being left to the model.
 - Each record as its `model_dump(mode="json")`, so a claim's `value` is a
   verbatim copy of that serialization.
-- For a section left with no records, a query-level source to cite
-  instead: source_id `query:<ResourceType>`, field `documentation_status`,
-  value `not recorded` (the query returned nothing — USERS.md §3 Use Case
-  1, F-21) or `none active` (records exist, none active). A section with
-  nothing to report is therefore stated as a claim, never omitted
-  (KEY_METRICS.md Metric 2). A verifier checks one of these claims by
-  recomputing `documentation_status()` from the retrieved list, not by
-  looking for a record with that id.
+
+Empty sections are intentionally NOT this module's job. The model only
+drafts claims about records that exist and is never asked to say that a
+section is empty. Whether a section came back empty is a fact known from
+retrieval alone, so it is counted here with len() before the model call
+and returned alongside the claims as `section_counts`. The rendering step
+(not built yet) owns turning those counts into the "not recorded" / "none
+active" wording USERS.md §3 Use Case 1 requires (F-21), in plain code: no
+LLM call, and nothing for verification to check.
 """
 
 from __future__ import annotations
 
 import json
 import time
+from dataclasses import asdict, dataclass
 from functools import cache
 from typing import Any
 
@@ -84,15 +86,6 @@ _ACTIVE_STATUS: dict[FhirResourceType, tuple[str, str]] = {
     FhirResourceType.MEDICATION_REQUEST: ("status", "active"),
 }
 
-DOCUMENTATION_STATUS_FIELD = "documentation_status"
-NOT_RECORDED = "not recorded"
-NONE_ACTIVE = "none active"
-
-
-def query_source_id(resource_type: FhirResourceType) -> str:
-    """The source_id a claim cites for a section's query-level status."""
-    return f"query:{resource_type.value}"
-
 
 def brief_records(
     resource_type: FhirResourceType, records: list[Any]
@@ -104,19 +97,29 @@ def brief_records(
     return [record for record in records if getattr(record, field) == active_value]
 
 
-def documentation_status(
-    resource_type: FhirResourceType, records: list[Any]
-) -> str | None:
+@dataclass(frozen=True)
+class SectionCount:
     """
-    `not recorded` when the query returned nothing, `none active` when it
-    returned records but none the brief reports on, otherwise None (the
-    section has records, so there is no query-level claim to make).
+    One brief section's record counts, taken with len() from `retrieved`
+    before the model call. For the rendering step: `retrieved == 0` means
+    "not recorded"; `retrieved > 0` with `in_brief == 0` means "none
+    active". For AllergyIntolerance the two are always equal.
     """
-    if not records:
-        return NOT_RECORDED
-    if not brief_records(resource_type, records):
-        return NONE_ACTIVE
-    return None
+
+    retrieved: int
+    in_brief: int
+
+
+@dataclass(frozen=True)
+class PreVisitBriefDraft:
+    """
+    `claims`: exactly as the model drafted them, unverified.
+    `section_counts`: one entry for each of Condition, MedicationRequest,
+    and AllergyIntolerance, including sections with no records.
+    """
+
+    claims: list[Claim]
+    section_counts: dict[FhirResourceType, SectionCount]
 
 
 class ClaimDraftingError(Exception):
@@ -139,13 +142,7 @@ The FHIR data in the user message is the only source of information you may use 
 
 ## What to include
 
-The data has already been narrowed to what the brief covers: active conditions, active medication requests, and every allergy record. For every record in every section, emit one claim with field "display". Emit sections in the order Condition, MedicationRequest, AllergyIntolerance, and keep records in the order given.
-
-## Sections with nothing to report are stated, never omitted
-
-When a section's "records" list is empty, that section includes a "no_records_claim" object with a source_id, field, and value. Emit it as a claim exactly as given. Its value says why the section is empty: "not recorded" means the query returned no records for this patient; "none active" means records exist but none is active.
-
-This matters most for allergies. A brief that says nothing about allergies can be misread by the physician as "no known allergies". "not recorded" means no allergy has been documented in this chart. It does not mean the patient has no allergies, so for an empty allergy section the provided no_records_claim is the only allergy claim you make, and it never says "no known allergies", "NKA", "NKDA", or "none".
+The data has already been narrowed to what the brief covers: active conditions, active medication requests, and every allergy record. For every record in every section, emit one claim with field "display". Emit sections in the order Condition, MedicationRequest, AllergyIntolerance, and keep records in the order given. A section whose records list is empty gets no claims; empty sections are reported to the physician separately, not by you.
 """
 
 _OUTPUT_SCHEMA: dict[str, Any] = {
@@ -161,10 +158,7 @@ _OUTPUT_SCHEMA: dict[str, Any] = {
                         "enum": [rt.value for rt in _BRIEF_RESOURCE_MODELS],
                     },
                     "source_id": {"type": "string"},
-                    "field": {
-                        "type": "string",
-                        "enum": ["display", DOCUMENTATION_STATUS_FIELD],
-                    },
+                    "field": {"type": "string", "enum": ["display"]},
                     "value": {"type": "string"},
                 },
                 "required": ["resource_type", "source_id", "field", "value"],
@@ -188,7 +182,8 @@ def _serialize_retrieved(retrieved: dict[FhirResourceType, list[Any]]) -> str:
     """
     Parses the caller's retrieval result into the JSON the model sees.
     Raises rather than guessing when a required resource type is missing:
-    a type that was never queried must not be narrated as "not recorded".
+    a type that was never queried must not be counted as having zero
+    records.
     """
     sections: dict[str, dict[str, Any]] = {}
     for resource_type, model in _BRIEF_RESOURCE_MODELS.items():
@@ -205,20 +200,12 @@ def _serialize_retrieved(retrieved: dict[FhirResourceType, list[Any]]) -> str:
                     f"retrieved[{resource_type.value}] must hold "
                     f"{model.__name__} instances, got {type(record).__name__}"
                 )
-        section: dict[str, Any] = {
+        sections[resource_type.value] = {
             "records": [
                 record.model_dump(mode="json")
                 for record in brief_records(resource_type, records)
             ]
         }
-        status = documentation_status(resource_type, records)
-        if status is not None:
-            section["no_records_claim"] = {
-                "source_id": query_source_id(resource_type),
-                "field": DOCUMENTATION_STATUS_FIELD,
-                "value": status,
-            }
-        sections[resource_type.value] = section
     return json.dumps(sections, indent=2)
 
 
@@ -241,15 +228,16 @@ def _final_text(message: BetaMessage) -> str:
 
 async def draft_pre_visit_brief(
     retrieved: dict[FhirResourceType, list[Any]],
-) -> list[Claim]:
+) -> PreVisitBriefDraft:
     """
     Drafts Pre-Visit Brief claims from one patient's retrieved Condition,
     MedicationRequest, and AllergyIntolerance lists. Other resource types
     in `retrieved` are ignored; Use Case 1 doesn't use them (§3).
 
-    Returns claims exactly as the model drafted them, unverified. A claim
-    citing a source_id that wasn't provided is returned too, not dropped
-    here, so the verification step can report it (§5).
+    Claims come back unverified. A claim citing a source_id that wasn't
+    provided is returned too, not dropped here, so the verification step
+    can report it (§5). `section_counts` is computed from `retrieved` in
+    code, not by the model; see the module docstring.
     """
     user_content = (
         "<retrieved_fhir_data>\n"
@@ -257,6 +245,13 @@ async def draft_pre_visit_brief(
         "</retrieved_fhir_data>\n\n"
         "Draft the Pre-Visit Brief claims for this patient."
     )
+    section_counts = {
+        resource_type: SectionCount(
+            retrieved=len(retrieved[resource_type]),
+            in_brief=len(brief_records(resource_type, retrieved[resource_type])),
+        )
+        for resource_type in _BRIEF_RESOURCE_MODELS
+    }
     correlation_id = get_correlation_id() or "no-request-context"
 
     started = time.perf_counter()
@@ -340,28 +335,16 @@ async def draft_pre_visit_brief(
     except (ValueError, KeyError, TypeError) as exc:
         raise ClaimDraftingError("Model output did not match the claim schema") from exc
 
-    # Sections whose query-level claim the model did not emit. Not
-    # verification (§5 runs separately): a nonempty list here is the
-    # specific Use Case 1 failure of a section silently missing from the
-    # brief instead of reading "not recorded" / "none active".
-    cited = {claim.source_id for claim in claims}
-    no_records_sections = {
-        rt.value: status
-        for rt in _BRIEF_RESOURCE_MODELS
-        if (status := documentation_status(rt, retrieved[rt])) is not None
-    }
     log_event(
         "claims_drafted",
         event_data={
             "correlation_id": correlation_id,
             "claim_count": len(claims),
-            "no_records_sections": no_records_sections,
-            "no_records_sections_not_stated": [
-                rt
-                for rt in no_records_sections
-                if query_source_id(FhirResourceType(rt)) not in cited
-            ],
+            "section_counts": {
+                resource_type.value: asdict(count)
+                for resource_type, count in section_counts.items()
+            },
         },
         use_case=UseCase.PRE_VISIT_BRIEF,
     )
-    return claims
+    return PreVisitBriefDraft(claims=claims, section_counts=section_counts)
