@@ -153,7 +153,9 @@ def _display_text(codeable_concept: dict[str, Any] | None, fallback: str) -> str
 
 
 def _emit_retrieval_event(
-    resource_type: FhirResourceType, use_case: UseCase | None
+    resource_type: FhirResourceType,
+    use_case: UseCase | None,
+    patient_session_key: str | None,
 ) -> None:
     """
     KEY_METRICS.md Metric 5 (Retrieval Coverage per Query) is computed by
@@ -164,6 +166,11 @@ def _emit_retrieval_event(
     a later task), this function deliberately does NOT emit a fabricated
     event with a guessed use_case, which would corrupt Metric 5's rollup
     with a false label. It logs that the event was skipped instead.
+
+    `patient_session_key` is passed through to the log line as given.
+    KEY_METRICS.md rolls Metric 5 up per (user, patient, session)
+    (ARCHITECTURE.md §4); None is only for standalone callers with no
+    session context, such as scripts/smoke_test_fhir.py.
     """
     from app.middleware.logging import log_event  # local import: avoids a
 
@@ -177,6 +184,7 @@ def _emit_retrieval_event(
                 "resource_type": resource_type.value,
                 "reason": "no use_case supplied by caller",
             },
+            patient_session_key=patient_session_key,
         )
         return
 
@@ -189,6 +197,7 @@ def _emit_retrieval_event(
         "retrieval_event",
         event_data=event.model_dump(mode="json"),
         use_case=use_case,
+        patient_session_key=patient_session_key,
     )
 
 
@@ -203,6 +212,7 @@ async def get_conditions(
     patient_id: str,
     *,
     use_case: UseCase | None = None,
+    patient_session_key: str | None = None,
 ) -> list[Condition]:
     """
     ARCHITECTURE.md §3: Condition is required by Use Case 1 (active
@@ -223,7 +233,7 @@ async def get_conditions(
                 ),
             )
         )
-    _emit_retrieval_event(FhirResourceType.CONDITION, use_case)
+    _emit_retrieval_event(FhirResourceType.CONDITION, use_case, patient_session_key)
     return conditions
 
 
@@ -232,6 +242,7 @@ async def get_medication_requests(
     patient_id: str,
     *,
     use_case: UseCase | None = None,
+    patient_session_key: str | None = None,
 ) -> list[MedicationRequest]:
     """
     ARCHITECTURE.md §3: MedicationRequest is required by Use Case 1
@@ -253,7 +264,9 @@ async def get_medication_requests(
                 or datetime.min,
             )
         )
-    _emit_retrieval_event(FhirResourceType.MEDICATION_REQUEST, use_case)
+    _emit_retrieval_event(
+        FhirResourceType.MEDICATION_REQUEST, use_case, patient_session_key
+    )
     return requests
 
 
@@ -262,6 +275,7 @@ async def get_allergy_intolerances(
     patient_id: str,
     *,
     use_case: UseCase | None = None,
+    patient_session_key: str | None = None,
 ) -> list[AllergyIntolerance]:
     """
     ARCHITECTURE.md §3: AllergyIntolerance is required by Use Case 1 only.
@@ -284,7 +298,9 @@ async def get_allergy_intolerances(
                 recorded_date=_parse_datetime(r.get("recordedDate")),
             )
         )
-    _emit_retrieval_event(FhirResourceType.ALLERGY_INTOLERANCE, use_case)
+    _emit_retrieval_event(
+        FhirResourceType.ALLERGY_INTOLERANCE, use_case, patient_session_key
+    )
     return allergies
 
 
@@ -294,6 +310,7 @@ async def get_encounters(
     count: int = 2,
     *,
     use_case: UseCase | None = None,
+    patient_session_key: str | None = None,
 ) -> list[Encounter]:
     """
     ARCHITECTURE.md §3: Encounter is required by Use Case 2 (current visit
@@ -320,7 +337,7 @@ async def get_encounters(
             # it's skipped rather than modeled with a fabricated date.
             continue
         encounters.append(Encounter(source_id=r["id"], date=_parse_datetime(start)))
-    _emit_retrieval_event(FhirResourceType.ENCOUNTER, use_case)
+    _emit_retrieval_event(FhirResourceType.ENCOUNTER, use_case, patient_session_key)
     return encounters
 
 
@@ -330,6 +347,7 @@ async def get_observations(
     since: datetime | None = None,
     *,
     use_case: UseCase | None = None,
+    patient_session_key: str | None = None,
 ) -> list[Observation]:
     """
     ARCHITECTURE.md §3: Observation is required by Use Case 2 (new lab
@@ -378,5 +396,7 @@ async def get_observations(
                 or datetime.min,
             )
         )
-    _emit_retrieval_event(FhirResourceType.OBSERVATION, use_case)
+    _emit_retrieval_event(
+        FhirResourceType.OBSERVATION, use_case, patient_session_key
+    )
     return observations

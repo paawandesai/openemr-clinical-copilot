@@ -256,8 +256,11 @@ def _emit_claim_verified_event(
         use_case=use_case,
         patient_session_key=patient_session_key,
     )
+    # The name compute_metrics.py and the Langfuse exporter read Metrics 1
+    # and 2 from: snake_case of the model class, like every other metric
+    # event (app/middleware/langfuse_export.py).
     log_event(
-        "claim_verified",
+        "claim_verified_event",
         event_data=event.model_dump(mode="json"),
         use_case=use_case,
         patient_session_key=patient_session_key,

@@ -228,6 +228,8 @@ def _final_text(message: BetaMessage) -> str:
 
 async def draft_pre_visit_brief(
     retrieved: dict[FhirResourceType, list[Any]],
+    *,
+    patient_session_key: str | None = None,
 ) -> PreVisitBriefDraft:
     """
     Drafts Pre-Visit Brief claims from one patient's retrieved Condition,
@@ -238,6 +240,12 @@ async def draft_pre_visit_brief(
     provided is returned too, not dropped here, so the verification step
     can report it (§5). `section_counts` is computed from `retrieved` in
     code, not by the model; see the module docstring.
+
+    `patient_session_key` goes on every event this call logs; Metric 6
+    groups cost per (user, patient, session) by it (ARCHITECTURE.md §4).
+    None is only for standalone callers with no session context, such as
+    scripts/smoke_test_claims.py; app/graph/pre_visit_brief.py always
+    passes one.
     """
     user_content = (
         "<retrieved_fhir_data>\n"
@@ -283,6 +291,7 @@ async def draft_pre_visit_brief(
                 "error_type": type(exc).__name__,
             },
             use_case=UseCase.PRE_VISIT_BRIEF,
+            patient_session_key=patient_session_key,
         )
         raise
     latency_ms = round((time.perf_counter() - started) * 1000)
@@ -314,6 +323,7 @@ async def draft_pre_visit_brief(
             "stop_reason": message.stop_reason,
         },
         use_case=UseCase.PRE_VISIT_BRIEF,
+        patient_session_key=patient_session_key,
     )
 
     if message.stop_reason == "refusal":
@@ -349,5 +359,6 @@ async def draft_pre_visit_brief(
             },
         },
         use_case=UseCase.PRE_VISIT_BRIEF,
+        patient_session_key=patient_session_key,
     )
     return PreVisitBriefDraft(claims=claims, section_counts=section_counts)

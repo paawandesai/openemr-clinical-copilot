@@ -374,6 +374,17 @@ silently assumed covered:**
   knowable fact, not something that benefits from the draft-then-verify
   pattern used for everything else.
 
+  **Assumption this depends on:** the zero-results rendering logic assumes
+  every relevant resource type is queried on every Pre-Visit Brief
+  invocation. That holds today — the Pre-Visit Brief graph
+  (`agent/app/graph/pre_visit_brief.py`) queries all three of its required
+  types on every run, with no partial or selective retrieval path, and
+  `draft_claims.py` refuses input missing any of the three. If selective or
+  partial retrieval is ever introduced (e.g. for Change Detection or
+  Follow-Up Drilling, or as a future optimization), this assumption must be
+  revisited: a resource type that was never queried must not be silently
+  rendered identically to one that was queried and returned zero results.
+
 ## 6. Risks and Mitigations
 
 | Risk | Mitigated? | How |

@@ -13,6 +13,7 @@ from pathlib import Path
 import pytest
 from structlog.testing import capture_logs
 
+from app.middleware.langfuse_export import CLAIM_VERIFIED_EVENT
 from app.models.claims import Claim, VerificationResult
 from app.models.fhir_resources import (
     AllergyIntolerance,
@@ -193,7 +194,9 @@ def test_claim_verified_event_fires_for_every_claim_pass_or_fail() -> None:
     with capture_logs() as logs:
         results = verify(claims)
 
-    events = [log for log in logs if log.get("event_type") == "claim_verified"]
+    # The constant compute_metrics.py and the Langfuse exporter read Metrics 1
+    # and 2 by, so a rename on either side fails here.
+    events = [log for log in logs if log.get("event_type") == CLAIM_VERIFIED_EVENT]
     assert len(events) == len(claims) == len(logs)
     for log, result in zip(events, results):
         event = ClaimVerifiedEvent.model_validate(log["event_data"])

@@ -2,8 +2,13 @@
 fastapi>=0.141.0
 uvicorn[standard]>=0.34.0
 
-# Agent orchestration (LangGraph graph not yet constructed — see app/main.py)
+# Agent orchestration — the Pre-Visit Brief graph (app/graph/pre_visit_brief.py)
 langgraph>=1.2.11
+
+# Already installed with LangGraph (via langchain-core); declared because
+# app/graph/pre_visit_brief.py imports it directly to force LangSmith tracing
+# off, so graph state holding chart records is never posted externally.
+langsmith>=0.3.45
 
 # Anthropic Python SDK — package name confirmed as `anthropic` on PyPI
 # (not e.g. `anthropic-sdk`); no LLM calls wired up yet — see app/health.py

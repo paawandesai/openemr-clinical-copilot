@@ -14,6 +14,8 @@ thread it through by hand.
 from __future__ import annotations
 
 import uuid
+from collections.abc import Iterator
+from contextlib import contextmanager
 from contextvars import ContextVar
 
 import structlog
@@ -49,6 +51,23 @@ def bind_correlation_id(correlation_id: str) -> None:
     """
     _correlation_id_var.set(correlation_id)
     structlog.contextvars.bind_contextvars(correlation_id=correlation_id)
+
+
+@contextmanager
+def correlation_scope(correlation_id: str) -> Iterator[None]:
+    """
+    Bind a correlation_id for the duration of a `with` block, then restore
+    whatever was bound before. For code that runs several interactions in
+    one process outside an HTTP request (e.g. app/graph/pre_visit_brief.py
+    invoked from a script): unlike bind_correlation_id, nothing leaks into
+    the next interaction, so their log lines never share an id.
+    """
+    token = _correlation_id_var.set(correlation_id)
+    try:
+        with structlog.contextvars.bound_contextvars(correlation_id=correlation_id):
+            yield
+    finally:
+        _correlation_id_var.reset(token)
 
 
 class CorrelationIdMiddleware(BaseHTTPMiddleware):
