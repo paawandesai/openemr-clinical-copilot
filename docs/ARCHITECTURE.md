@@ -89,12 +89,28 @@ to the EHR's own database (see §2).
 
 **Where the agent process lives:** as an additional service in the same
 Compose stack, on the same droplet — not a separate host, and not (yet) a
-specific service shape. Placing agent compute and any future observability
-backend (e.g., a Langfuse-style tracing service) outside the droplet would
+specific service shape. Placing agent compute outside the droplet would
 either require its own BAA-covered placement decision or risk PHI leaving
-covered infrastructure through request/response logging; that decision is
-explicitly **not yet made** and is called out under Risks (§6) rather than
-asserted here as settled.
+covered infrastructure through request/response logging; the agent's
+service shape is explicitly **not yet decided** and is called out under
+Risks (§6) rather than asserted here as settled.
+
+**Where observability lives — decided for this submission.** The live path
+is `agent/scripts/compute_metrics.py`: a local script that reads the
+agent's own structured stdout log directly and computes all six
+`docs/KEY_METRICS.md` metrics, with no dashboard, no observability backend,
+no second droplet, and no deployment dependency. This is a deliberate
+choice, not a fallback: a general observability platform needs dashboards
+built before it yields six specific numbers; a small script goes directly
+at those six numbers with nothing in between. Self-hosted Langfuse
+(`agent/observability/docker-compose.langfuse.yml`) is fully built and
+verified working locally, including the PHI-safe configuration that keeps
+auto-instrumentation from exporting prompt or completion content, and
+`agent/docs/observability.md` §9 holds a command-level checklist for
+standing it up on a second droplet reached only over DigitalOcean's private
+VPC network — still a BAA-covered product (F-41), never Langfuse Cloud. It
+is **not deployed**: that second droplet is an explicit v2, post-submission
+step.
 
 ### Case study: the Docker/UFW port-exposure incident (F-54)
 
@@ -369,7 +385,8 @@ silently assumed covered:**
 | Agent misreads a 401 as a transient/retryable auth failure | Yes | Agent holds its own decoded-JWT scope record and pre-checks before requesting, rather than inferring cause from HTTP status alone (§2). |
 | Real PHI is deployed onto the currently-audited stack as-is | **No — open** | The audited droplet runs the development Compose stack, not the hardened `docker/release` build (F-48): Xdebug loaded live, a writable git-checkout bind-mount, dependency builds against upstream registries on every boot. Stated as an explicit precondition to close, not something this plan resolves by naming it. |
 | Retrieval incompleteness (the right record never fetched) silently passes as "verified" | **No — open** | Outside what source-verification can catch by construction (§5). Requires separate retrieval-completeness evaluation this plan does not yet define. |
-| Agent compute / logging backend placement creates new ePHI-handling surface outside covered infrastructure | **No — open** | Not yet decided which specific service shape the agent process and any observability backend take, only that they are planned to stay on the same covered droplet (§1). |
+| Observability backend creates new ePHI-handling surface outside covered infrastructure | Yes, for this submission | No observability backend is deployed. All six metrics are computed by `agent/scripts/compute_metrics.py` from the agent's own stdout log, with no second service or host (§1). Self-hosted Langfuse is built and verified locally but deferred to v2: a second droplet (a BAA-covered product, F-41) on the private VPC network, per the checklist in `agent/docs/observability.md` §9. |
+| Agent compute placement creates new ePHI-handling surface outside covered infrastructure | **No — open** | Not yet decided which specific service shape the agent process takes, only that it is planned to stay on the same covered droplet (§1). |
 
 Three risks are stated here as genuinely open, not mitigated, because
 overstating this plan's coverage would itself be the kind of unverifiable

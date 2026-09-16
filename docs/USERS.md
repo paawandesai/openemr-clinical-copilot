@@ -108,7 +108,7 @@ forces the physician to do the same manual scan-and-triage work every time
 regardless of what actually matters this visit. An agent can prioritize and
 compress that variable-length list into a handful of sentences, and — this is
 the part no static widget can do — it can say "allergies: not recorded" as an
-explicit, worded claim instead of rendering an empty list a physician could
+explicit, worded statement instead of rendering an empty list a physician could
 misread as "no known allergies" (F-21's exact concern). A dashboard shows
 what's there; this use case requires narrating what's there *and* what's
 missing.
