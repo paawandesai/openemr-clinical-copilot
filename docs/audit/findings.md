@@ -968,6 +968,81 @@ Pass-2 droplet database commands were run as
   the same way, including from a genuinely external vantage point (a network
   other than the operator's egress), before being declared internal-only.
 
+### F-56 — MITIGATED: LangGraph's bundled LangSmith tracing sends the graph's run state to a third-party service when `LANGSMITH_TRACING=true`
+- **Category:** Security
+- **Severity:** High (mitigated — tracing forced off at the Pre-Visit Brief
+  entry point, commit `3cbd8a4`)
+- **Claim:** LangGraph installs the `langsmith` package as a transitive
+  dependency. If `LANGSMITH_TRACING=true` is set — a plausible accident: a
+  copied `.env`, a stray default, a misconfigured deployment — each graph run
+  is traced and its state POSTed to LangSmith. No API key is needed for the
+  request to be sent, and the built-in destination is LangSmith Cloud
+  (`https://api.smith.langchain.com`), a third-party SaaS with no BAA recorded
+  anywhere in this project (contrast F-41). The Pre-Visit Brief graph's state
+  holds the retrieved chart records (conditions, medications, allergies), the
+  drafted claims and the rendered brief, so an unguarded run would send
+  patient chart data off-host: PHI exfiltration with no attacker required,
+  triggered by environment misconfiguration alone. The current dataset is
+  synthetic (F-41), so today that would expose synthetic records; the
+  mechanism is identical for real PHI.
+- **Evidence:**
+  - Dependency (`first-hand`, agent environment built from
+    `agent/requirements.txt`, 2026-09-16): `langgraph` 1.2.11 requires
+    `langchain-core` (1.6.3), which requires `langsmith` (0.12.5);
+    `pip show langsmith` reports `Required-by: langchain-core`. Before commit
+    `3cbd8a4`, `agent/requirements.txt` did not name `langsmith`.
+  - Default destination (`first-hand`, installed source): with no endpoint
+    variable set, `langsmith.utils.get_api_url(None)` returns
+    `https://api.smith.langchain.com`.
+  - Outbound POST of graph state (`first-hand`, 2026-09-16 ~18:06Z, local
+    capture only): a one-node LangGraph graph whose node writes the marker
+    string `SENTINEL-STATE-VALUE` into state, run with `LANGSMITH_TRACING=true`
+    and `LANGSMITH_ENDPOINT` pointed at an HTTP recorder on `127.0.0.1`, each
+    case in a fresh process:
+    ```
+    no guard, LANGSMITH_API_KEY set     → POST /runs/multipart, 4007 bytes, marker in body
+    no guard, no API key in environment → POST /runs/multipart, 4007 bytes, marker in body, no x-api-key header
+    tracing_context(enabled=False)      → no requests (recorder answered control GETs immediately before and after)
+    ```
+    First observed earlier the same day while building the graph (trace
+    `01a0ab4e-b754-…`, UUIDv7 time 2026-09-16T17:40:57Z): with the endpoint set
+    to a closed local port, `langsmith` logged
+    `Failed to multipart ingest runs: … POST http://127.0.0.1:9/runs/multipart … Content-Length: 3983`.
+    Inside that run's node, `langsmith.utils.tracing_is_enabled()` and
+    langchain-core's `_tracing_v2_is_enabled()` both returned `True`; under
+    `tracing_context(enabled=False)` both returned `False`.
+  - Not captured, deliberately: a payload from the real Pre-Visit Brief graph,
+    and any request to LangSmith Cloud — either would have sent chart records
+    off-host. That the real payload carries chart data is inferred from the
+    probe (state values appear in the body) and the graph's state schema
+    (`agent/app/graph/pre_visit_brief.py:100`, `PreVisitBriefState`:
+    `retrieved`, `draft`, `results`, `text`). Whether the runtime context
+    holding the clinician's bearer token would also be serialized was not
+    checked.
+  - Environment at time of writing (`first-hand`, variable names only):
+    `agent/.env` sets only `FHIR_*` and `ANTHROPIC_API_KEY`, and the operator
+    shell had no `LANGSMITH_*` or `LANGCHAIN_*` variables.
+- **Remediation:** commit `3cbd8a4` — `run_pre_visit_brief()` runs the graph
+  inside `tracing_context(enabled=False)` on every invocation
+  (`agent/app/graph/pre_visit_brief.py:351`) rather than relying on the
+  variable being unset, and `agent/requirements.txt:11` declares `langsmith`
+  explicitly, with the reason. Residual gaps: (1) the guard sits at that entry
+  point only — the compiled graph is also exported as `PRE_VISIT_BRIEF_GRAPH`
+  (`agent/app/graph/pre_visit_brief.py:308`), and calling its `ainvoke`
+  directly bypasses the guard; (2) any future graph or entry point needs the
+  same guard; (3) no automated test covers it — the capture probe above was
+  run outside the repository.
+- **Verified:** `first-hand` (transitive install; default endpoint; POST of
+  graph state with and without an API key; suppression by the guard) ·
+  inferred, not captured (chart records in the real graph's payload; delivery
+  to LangSmith Cloud).
+- **Implication for the agent:** This is one instance of a general risk: an
+  LLM orchestration framework can bundle telemetry or tracing integrations
+  whose defaults are more permissive than a PHI-handling system can tolerate.
+  Dependencies must be audited for outbound network calls, not only reviewed
+  for their primary function — the egress counterpart of F-54's rule that
+  listening ports are checked directly rather than assumed.
+
 ---
 
 ## COMPLIANCE
