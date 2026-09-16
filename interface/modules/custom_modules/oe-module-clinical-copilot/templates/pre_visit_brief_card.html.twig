@@ -1,0 +1,47 @@
+{#
+ # Pre-Visit Brief card on the patient dashboard (Bootstrap::buildCard()).
+ # TwigContainer environments do not autoescape: every value is escaped here.
+ #
+ # @package   OpenEMR
+ # @link      https://www.open-emr.org
+ # @author    Paawan Desai <paawankdesai@gmail.com>
+ # @copyright Copyright (c) 2026 Paawan Desai <paawankdesai@gmail.com>
+ # @license   https://github.com/openemr/openemr/blob/master/LICENSE GNU General Public License 3
+ #}
+{% extends "patient/card/card_base.html.twig" %}
+
+{% block content %}
+    <div class="clinical-copilot-brief px-1" id="{{ (id ~ '_root')|attr }}"
+         data-endpoint="{{ endpoint|attr }}"
+         data-pid="{{ pid|attr }}"
+         data-csrf-token="{{ csrfToken|attr }}"
+         data-collapse-id="{{ id|attr }}">
+        <div class="cc-status small text-muted" role="status" aria-live="polite"></div>
+        <div class="cc-error alert alert-danger py-2 px-3 mb-2 small d-none" role="alert"></div>
+        <div class="cc-brief d-none"></div>
+        <div class="d-flex flex-wrap justify-content-between align-items-center mt-1">
+            <span class="cc-verification small mr-2"></span>
+            <button type="button" class="btn btn-secondary btn-sm cc-regenerate" disabled>{{ "Regenerate"|xlt }}</button>
+        </div>
+        <p class="small text-muted mt-2 mb-0">{{ "Drafted by the Clinical Co-Pilot from the problem list, medications and allergies in this chart. Each item is checked against the chart record it cites; items that fail that check are marked Unverified. Confirm in the chart before acting on it."|xlt }}</p>
+    </div>
+    <script src="{{ scriptUrl|attr }}"></script>
+    <script>
+        (function (copilot) {
+            if (copilot && copilot.initPreVisitBriefCard) {
+                copilot.initPreVisitBriefCard(document.getElementById({{ (id ~ '_root')|js_escape }}), {
+                    generating: {{ "Generating the Pre-Visit Brief..."|xlj }},
+                    generatedAt: {{ "Generated at"|xlj }},
+                    verifiedAll: {{ "All %claims% items verified against the chart"|xlj }},
+                    verifiedSome: {{ "%verified% of %claims% items verified against the chart; %unverified% unverified"|xlj }},
+                    noClaims: {{ "No chart items to verify"|xlj }},
+                    notRecorded: {{ "Not recorded"|xlj }},
+                    noneActive: {{ "None active"|xlj }},
+                    unverified: {{ "Unverified"|xlj }},
+                    reference: {{ "Reference"|xlj }},
+                    unreachable: {{ "The brief could not be loaded. If your OpenEMR session has expired, log in again and reopen this chart."|xlj }}
+                });
+            }
+        })(window.oeClinicalCopilot);
+    </script>
+{% endblock %}

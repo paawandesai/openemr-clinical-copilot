@@ -259,6 +259,28 @@ bounded by what OpenEMR itself supports; this architecture does not
 introduce an agent-side per-patient ACL to compensate, for the same
 drift-risk reason it does not reimplement authorization generally.
 
+**In the chart: how the clinician's token is obtained — decided and
+deployed.** The Pre-Visit Brief card on the patient dashboard
+(`interface/modules/custom_modules/oe-module-clinical-copilot`) never asks
+the physician to log in again and never uses a service account. It
+exchanges the physician's live OpenEMR session for a token through
+OpenEMR's own SMART EHR launch. A dedicated confidential client, flagged
+*Skip EHR Launch Authorization Flow*, receives an authorization code for
+the session's user. The module redeems that code with its client secret
+and PKCE.
+
+The module performs the launch server side, over loopback. The browser
+variant posts to `site_addr_oath`, which is `localhost` on the droplet
+(F-49). Server side, the token also never reaches the browser, and the
+browser never calls the agent (which has no CORS and a privately-issued
+certificate). The token's `sub` is the physician; its scopes are the
+client's registration, `openid` plus the four reads; one is minted per
+brief. Verified live on the droplet: JWT `sub` = the logged-in user's UUID,
+a FHIR read succeeded with it, and the agent returned a brief.
+
+Details, limits and operator checks:
+`oe-module-clinical-copilot/README.md` and its `docs/deployment.md`.
+
 ## 3. Tool Scope
 
 Tool scope is a direct, cited mapping from `docs/USERS.md`'s three use
@@ -446,6 +468,7 @@ silently assumed covered:**
 | Cross-patient context leakage in a multi-turn exchange | Yes, within agent state | Conversation state exists only for Use Case 3, keyed to `(user, patient, session)`, invalidated on patient switch — not a fix for OpenEMR's own per-patient authorization gap (F-50; §4). |
 | A future service (agent process, observability backend) repeats the Docker/UFW exposure pattern | Yes, by process | Binding verification via `ss`/`docker compose ps`/resolved `docker compose config` from an external vantage point is now a standing requirement for any new service in this Compose stack (§1). |
 | Trusting a misleading "success" signal from upstream tooling (OpenEMR's own or otherwise) | Yes, by design principle | Verification checks actual retrieved data, never an upstream success claim — directly motivated by F-15's observed intermittent silent-failure pattern (§5). |
+| The chart integration mints clinician tokens outside OpenEMR's authorization decisions | Yes | Tokens come only from OpenEMR's own authorize and token endpoints, via its EHR-launch skip flow, for a live session's user. Client enablement, the redirect URI, launch-token decryption and scopes (capped by the client registration) stay OpenEMR's decisions. The session cookie and client secret are only ever sent to a loopback address, enforced in configuration. The token never reaches the browser. Each brief writes a `patient-record` audit event (§2; module README). Not closed: one token plus one LLM call per chart open, with no caching or rate limiting; tokens are not revoked after use (1 h expiry). |
 | Agent misreads a 401 as a transient/retryable auth failure | Yes | Agent holds its own decoded-JWT scope record and pre-checks before requesting, rather than inferring cause from HTTP status alone (§2). |
 | Real PHI is deployed onto the currently-audited stack as-is | **No — open** | The audited droplet runs the development Compose stack, not the hardened `docker/release` build (F-48): Xdebug loaded live, a writable git-checkout bind-mount, dependency builds against upstream registries on every boot. Stated as an explicit precondition to close, not something this plan resolves by naming it. |
 | Retrieval incompleteness (the right record never fetched) silently passes as "verified" | **No — open** | Outside what source-verification can catch by construction (§5). Requires separate retrieval-completeness evaluation this plan does not yet define. |
