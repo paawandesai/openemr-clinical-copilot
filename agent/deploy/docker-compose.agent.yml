@@ -36,6 +36,11 @@ services:
       # OpenEMR serves a self-signed CN=localhost certificate (F-36); the
       # client's documented, temporary exception. See deployment.md.
       FHIR_VERIFY_TLS: ${FHIR_VERIFY_TLS:-false}
+      # Load-test only (agent/load-test/README.md). Default false — must
+      # never be true for real briefs: a stubbed claim is a verbatim copy
+      # of the source record, not a model's output. No new port or
+      # binding, so F-54 is unaffected either way.
+      AGENT_STUB_LLM_DRAFTING: ${AGENT_STUB_LLM_DRAFTING:-false}
     read_only: true
     tmpfs:
       - /tmp
