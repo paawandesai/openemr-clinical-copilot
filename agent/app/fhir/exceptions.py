@@ -43,5 +43,15 @@ class FhirNotFoundError(FhirClientError):
     """
 
 
+class PatientNotFoundError(FhirClientError):
+    """
+    Raised by ensure_patient_exists() when a direct Patient read finds no
+    such patient: HTTP 404 for an unknown id, HTTP 400 for a malformed one
+    (both confirmed live). Kept separate from FhirNotFoundError so that only
+    this — not, say, a misconfigured base URL — is reported as "patient not
+    found".
+    """
+
+
 class FhirServerError(FhirClientError):
     """Raised on any other non-2xx response (5xx, or an unexpected 4xx)."""

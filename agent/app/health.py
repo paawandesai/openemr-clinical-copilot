@@ -2,27 +2,148 @@
 Health and readiness endpoints — kept deliberately separate.
 
 /health: always 200. Answers "is the process up," nothing more.
-/ready:  answers "can this service actually do its job right now." The
-         FHIR and LLM provider checks below are still stubs. The
-         observability backend check is real: it reports whether the
-         self-hosted Langfuse export (agent/docs/observability.md) is
-         configured, reachable, and accepting this service's API keys.
+/ready:  200 only when the service can produce a Pre-Visit Brief right now;
+         otherwise 503, naming the dependency that is down. Contract:
+         ReadyResponse in app/models/api.py.
 
-Kept as two separate endpoints, and /ready returns 503 when any dependency
-isn't actually verified healthy, on purpose: this project's own audit
-(ARCHITECTURE.md §1, F-48) documents OpenEMR's own readyz endpoint always
-returning HTTP 200 regardless of actual install state — a pattern this
-service deliberately does not repeat.
+Required checks (decide readiness):
+  fhir          GET {FHIR_BASE_URL}/metadata answers with a
+                CapabilityStatement. Unauthenticated by necessity: the agent
+                holds no token of its own (ARCHITECTURE.md §2), so this
+                proves OpenEMR's FHIR API is up, not that any clinician's
+                token will be accepted.
+  llm_provider  The Anthropic API accepts this service's API key and serves
+                the drafting model (models.retrieve — no tokens consumed).
+
+Reported, not required:
+  observability_backend  Self-hosted Langfuse export
+                (agent/docs/observability.md). "disabled" when not
+                configured, which is the intended state for this submission
+                (ARCHITECTURE.md §1: metrics come from stdout via
+                scripts/compute_metrics.py). Export failures never affect a
+                brief (app/middleware/langfuse_export.py), so they do not
+                make the service unready either.
+
+Each required probe's result is cached for _CACHE_TTL_SECONDS, so polling
+/ready — it is publicly reachable — cannot turn into load on OpenEMR or
+calls against the API key. Probes time out after _PROBE_TIMEOUT_SECONDS and
+never retry. Details returned are fixed strings: no URLs, paths or
+exception text (F-37).
+
+Separate endpoints, and 503 when a dependency is not verified healthy, on
+purpose: this project's own audit (ARCHITECTURE.md §1, F-48) documents
+OpenEMR's readyz endpoint returning HTTP 200 regardless of actual state — a
+pattern this service does not repeat.
 """
 
 from __future__ import annotations
 
+import asyncio
+import time
+from collections.abc import Awaitable, Callable
+from dataclasses import dataclass
+from functools import cache
+from typing import Literal
+
+import anthropic
+import httpx
+import structlog
 from fastapi import APIRouter
 from fastapi.responses import JSONResponse
 
-from app.middleware.langfuse_export import check_export_health
+from app.fhir import client as fhir_client
+from app.fhir.exceptions import FhirClientError
+from app.middleware import langfuse_export
+from app.middleware.langfuse_export import ObservabilityExportUnavailable, check_export_health
+from app.models.api import DependencyCheck, ReadyResponse
+from app.reasoning.draft_claims import MODEL
 
 router = APIRouter()
+
+_CACHE_TTL_SECONDS = 15.0
+_PROBE_TIMEOUT_SECONDS = 5.0
+
+
+@dataclass(frozen=True)
+class _Outcome:
+    status: Literal["healthy", "unhealthy", "disabled"]
+    detail: str | None = None
+
+
+_HEALTHY = _Outcome("healthy")
+
+
+class _CachedProbe:
+    """A probe whose last result is reused for _CACHE_TTL_SECONDS."""
+
+    def __init__(self, probe: Callable[[], Awaitable[_Outcome]]) -> None:
+        self._probe = probe
+        self._outcome: _Outcome | None = None
+        self._checked_at = float("-inf")
+
+    async def outcome(self) -> _Outcome:
+        if self._outcome is None or time.monotonic() - self._checked_at > _CACHE_TTL_SECONDS:
+            self._outcome = await self._probe()
+            self._checked_at = time.monotonic()
+        return self._outcome
+
+    def reset(self) -> None:
+        self._outcome = None
+
+
+async def _probe_fhir() -> _Outcome:
+    try:
+        await fhir_client.check_capability_statement(timeout_seconds=_PROBE_TIMEOUT_SECONDS)
+    except httpx.TransportError:
+        return _Outcome("unhealthy", "OpenEMR FHIR API unreachable")
+    except FhirClientError:
+        return _Outcome("unhealthy", "OpenEMR FHIR API returned an unexpected response")
+    except Exception:
+        structlog.get_logger().error("readiness_probe_failed", check="fhir", exc_info=True)
+        return _Outcome("unhealthy", "OpenEMR FHIR API check failed")
+    return _HEALTHY
+
+
+@cache
+def _anthropic_client() -> anthropic.AsyncAnthropic:
+    # Same credential resolution as app/reasoning/draft_claims.py.
+    return anthropic.AsyncAnthropic()
+
+
+async def _probe_llm_provider() -> _Outcome:
+    client = _anthropic_client().with_options(timeout=_PROBE_TIMEOUT_SECONDS, max_retries=0)
+    try:
+        await client.models.retrieve(MODEL)
+    except (anthropic.AuthenticationError, anthropic.PermissionDeniedError):
+        return _Outcome("unhealthy", "LLM provider rejected the configured API key")
+    except anthropic.NotFoundError:
+        return _Outcome("unhealthy", "Drafting model is not available to the configured API key")
+    except anthropic.RateLimitError:
+        return _Outcome("unhealthy", "LLM provider is rate limiting the configured API key")
+    except anthropic.APIConnectionError:
+        return _Outcome("unhealthy", "LLM provider unreachable")
+    except anthropic.APIStatusError:
+        return _Outcome("unhealthy", "LLM provider returned an error")
+    except Exception:
+        # e.g. no API key configured at all.
+        structlog.get_logger().error("readiness_probe_failed", check="llm_provider", exc_info=True)
+        return _Outcome("unhealthy", "LLM provider check failed")
+    return _HEALTHY
+
+
+def _observability_outcome() -> _Outcome:
+    """Non-blocking: check_export_health reads a background-refreshed result."""
+    if not langfuse_export.export_configured():
+        return _Outcome("disabled", "Langfuse export not configured")
+    try:
+        check_export_health()
+    except ObservabilityExportUnavailable as exc:  # messages are F-37-safe
+        return _Outcome("unhealthy", str(exc))
+    return _HEALTHY
+
+
+_FHIR = _CachedProbe(_probe_fhir)
+_LLM_PROVIDER = _CachedProbe(_probe_llm_provider)
 
 
 @router.get("/health")
@@ -31,77 +152,26 @@ async def health() -> dict[str, str]:
     return {"status": "alive"}
 
 
-def _check_fhir() -> None:
-    """
-    TODO: implement a real FHIR reachability/token check.
-    Not implemented in this scaffold — ARCHITECTURE.md §2: the agent reads
-    exclusively through OpenEMR's FHIR R4 API under the requesting
-    clinician's own OAuth2 token. No FHIR client exists yet in this task.
-    """
-    raise NotImplementedError("FHIR dependency check — ARCHITECTURE.md §2")
-
-
-def _check_llm_provider() -> None:
-    """
-    TODO: implement a real LLM provider reachability check.
-    Not implemented in this scaffold — ARCHITECTURE.md §5: the reasoning
-    model that drafts structured claims. No LLM client exists yet in this
-    task.
-    """
-    raise NotImplementedError(
-        "LLM provider dependency check — ARCHITECTURE.md §5"
-    )
-
-
-def _check_observability_backend() -> None:
-    """
-    Self-hosted Langfuse (agent/docs/observability.md). Raises
-    ObservabilityExportUnavailable — reported below as unhealthy — when
-    export is not configured, Langfuse is unreachable, or it rejects the
-    API keys. Never makes a network call on this thread: it reads the
-    result of a background auth check refreshed every 15 s, and a result
-    older than 60 s is never reported as healthy
-    (app/middleware/langfuse_export.py).
-    """
-    check_export_health()
-
-
-# FHIR and LLM provider stay stubs until the corresponding real dependency
-# exists — see the TODOs above for exactly what each one still needs and
-# which ARCHITECTURE.md section governs it.
-_DEPENDENCY_CHECKS = {
-    "fhir": _check_fhir,
-    "llm_provider": _check_llm_provider,
-    "observability_backend": _check_observability_backend,
-}
-
-
-@router.get("/ready")
+@router.get(
+    "/ready",
+    response_model=ReadyResponse,
+    responses={503: {"model": ReadyResponse, "description": "A required dependency is down"}},
+)
 async def ready() -> JSONResponse:
-    """
-    Runs each dependency check above and reports its status. While the FHIR
-    and LLM provider checks are `not_implemented`, this endpoint honestly
-    reports `not_ready` (HTTP 503) even when the observability backend is
-    healthy, rather than repeating the unconditional-200 pattern this
-    project's own audit flagged as a defect in OpenEMR's own readiness
-    endpoint.
-    """
-    checks: dict[str, dict[str, str]] = {}
-    all_healthy = True
-    for name, check in _DEPENDENCY_CHECKS.items():
-        try:
-            check()
-            checks[name] = {"status": "healthy"}
-        except NotImplementedError as exc:
-            all_healthy = False
-            checks[name] = {"status": "not_implemented", "detail": str(exc)}
-        except Exception as exc:  # e.g. ObservabilityExportUnavailable; messages are F-37-safe
-            all_healthy = False
-            checks[name] = {"status": "unhealthy", "detail": str(exc)}
+    fhir, llm_provider = await asyncio.gather(_FHIR.outcome(), _LLM_PROVIDER.outcome())
+    observability = _observability_outcome()
 
-    status_code = 200 if all_healthy else 503
-    body = {
-        "status": "ready" if all_healthy else "not_ready",
-        "checks": checks,
-    }
-    return JSONResponse(status_code=status_code, content=body)
+    is_ready = fhir.status == "healthy" and llm_provider.status == "healthy"
+    body = ReadyResponse(
+        status="ready" if is_ready else "not_ready",
+        checks={
+            "fhir": DependencyCheck(status=fhir.status, required=True, detail=fhir.detail),
+            "llm_provider": DependencyCheck(
+                status=llm_provider.status, required=True, detail=llm_provider.detail
+            ),
+            "observability_backend": DependencyCheck(
+                status=observability.status, required=False, detail=observability.detail
+            ),
+        },
+    )
+    return JSONResponse(status_code=200 if is_ready else 503, content=body.model_dump(mode="json"))

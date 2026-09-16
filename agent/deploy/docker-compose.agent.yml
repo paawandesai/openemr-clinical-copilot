@@ -1,0 +1,92 @@
+# Clinical Co-Pilot agent, deployed next to OpenEMR's docker/development-easy
+# stack on the same host, without touching that stack's compose file.
+# Decisions, required settings and the post-deploy binding check:
+# agent/docs/deployment.md.
+#
+#   cd agent/deploy
+#   docker compose --env-file /etc/clinical-copilot/agent.env \
+#     -f docker-compose.agent.yml up -d --build --wait
+#
+# The env file holds the API key; its format is .env.example. On the droplet
+# it lives outside the code tree (deployment.md explains why).
+#
+# Exactly one host port is published: 8443 on IPv4, by the TLS proxy. The
+# agent's own port 8000 is never published (F-54: check actual bindings with
+# `ss -tlnp` after every deploy, never assume them from this file).
+
+name: clinical-copilot-agent
+
+services:
+  agent:
+    build:
+      context: ..
+    image: clinical-copilot-agent:local
+    restart: unless-stopped
+    # No `ports:` — reachable only from the proxy, on this project's network.
+    #
+    # Not on OpenEMR's development-easy_default network: MySQL sits there with
+    # default root/root credentials (F-34), and a container on that network
+    # reaches it directly. The agent reaches OpenEMR the way any client does,
+    # through its published HTTPS port via the Docker host gateway.
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    environment:
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:?set ANTHROPIC_API_KEY in the env file (see .env.example)}
+      FHIR_BASE_URL: ${FHIR_BASE_URL:-https://host.docker.internal:9300/apis/default/fhir}
+      # OpenEMR serves a self-signed CN=localhost certificate (F-36); the
+      # client's documented, temporary exception. See deployment.md.
+      FHIR_VERIFY_TLS: ${FHIR_VERIFY_TLS:-false}
+    read_only: true
+    tmpfs:
+      - /tmp
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=3)"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
+
+  proxy:
+    image: caddy:2.11.4-alpine@sha256:5f5c8640aae01df9654968d946d8f1a56c497f1dd5c5cda4cf95ab7c14d58648
+    restart: unless-stopped
+    depends_on:
+      agent:
+        condition: service_healthy
+    ports:
+      # Public by design: graders, the eval suite and load tests call the
+      # agent from outside. IPv4 only. Every data-bearing request still
+      # needs a clinician token OpenEMR accepts. See deployment.md.
+      - "0.0.0.0:8443:8443"
+    environment:
+      AGENT_PUBLIC_HOST: ${AGENT_PUBLIC_HOST:?set AGENT_PUBLIC_HOST (the address clients use) in the env file (see .env.example)}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    read_only: true
+    cap_drop:
+      - ALL
+    cap_add:
+      # The caddy binary carries this file capability; without it in the
+      # bounding set the binary cannot even start. It binds 8443 regardless.
+      - NET_BIND_SERVICE
+    security_opt:
+      - no-new-privileges:true
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
+
+volumes:
+  caddy_data: {}
+  caddy_config: {}

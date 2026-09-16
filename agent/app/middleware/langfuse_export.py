@@ -448,6 +448,15 @@ def export_event(
         )
 
 
+def export_configured() -> bool:
+    """
+    True when any LANGFUSE_* export variable is set, i.e. export was meant to
+    be on. A partial configuration counts, so it is reported, not hidden.
+    False is the intended state for this submission (ARCHITECTURE.md §1).
+    """
+    return any(os.environ.get(name) for name in _REQUIRED_ENV)
+
+
 def check_export_health() -> None:
     """
     Called by /ready (app/health.py `_check_observability_backend`). Raises

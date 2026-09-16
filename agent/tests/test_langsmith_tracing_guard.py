@@ -194,6 +194,12 @@ class _TracingEnabled(unittest.TestCase):
             counts = {rt: SectionCount(retrieved=len(rs), in_brief=len(rs)) for rt, rs in retrieved.items()}
             return PreVisitBriefDraft(claims=claims, section_counts=counts)
 
+        async def fake_patient_read(token: str, patient_id: str) -> None:
+            self.fhir_calls += 1
+
+        patcher = mock.patch.object(pvb.fhir_client, "ensure_patient_exists", fake_patient_read)
+        patcher.start()
+        self.addCleanup(patcher.stop)
         for name, resource_type in (
             ("get_conditions", FhirResourceType.CONDITION),
             ("get_medication_requests", FhirResourceType.MEDICATION_REQUEST),

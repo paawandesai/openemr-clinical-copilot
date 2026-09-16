@@ -1,0 +1,34 @@
+# TLS in front of the agent (agent/docs/deployment.md). The only public entry
+# point; the agent itself is reachable only on the compose network.
+{
+	# No admin API listener at all.
+	admin off
+	# Only 8443 is served; never try to claim :80 for redirects.
+	auto_https disable_redirects
+	# The container has no system trust store to install a root into.
+	skip_install_trust
+	# Clients connecting by IP address send no SNI.
+	default_sni {$AGENT_PUBLIC_HOST}
+}
+
+https://{$AGENT_PUBLIC_HOST}:8443 {
+	# Certificate from Caddy's own local CA: encrypted, but not publicly
+	# trusted (no domain name for a public CA). Clients either trust the
+	# exported root or skip verification; deployment.md shows both.
+	tls internal
+
+	# POST /pre-visit-brief bodies are two short strings.
+	request_body {
+		max_size 16KB
+	}
+
+	header {
+		-Server
+		X-Content-Type-Options nosniff
+	}
+
+	# No access log: Caddy's request logs would add client addresses and
+	# request details to the host's logs, and the agent logs every request
+	# it serves itself.
+	reverse_proxy agent:8000
+}

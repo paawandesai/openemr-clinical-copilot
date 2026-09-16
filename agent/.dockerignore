@@ -1,0 +1,18 @@
+# The image needs only requirements.txt and app/ (see Dockerfile). Everything
+# else stays out of the build context — above all any .env holding a key.
+.env
+.env.*
+**/.env
+**/.env.*
+.venv/
+venv/
+logs/
+**/__pycache__/
+.pytest_cache/
+.DS_Store
+tests/
+scripts/
+docs/
+deploy/
+observability/
+api-collection/

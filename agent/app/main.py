@@ -1,33 +1,42 @@
 """
 FastAPI entrypoint — Clinical Co-Pilot agent service.
 
-Scaffold only (see /agent/README.md). This wires together the load-bearing
-instrumentation — correlation ID + structured logging, which
-docs/KEY_METRICS.md states is a precondition for computing any of its six
-metrics — and the two health endpoints. It does not yet call FHIR, call an
-LLM, or run verification; see the `raise NotImplementedError` stubs in
-app/health.py for exactly where the next task picks up. No LangGraph graph
-is constructed here yet, for the same reason.
+Routes:
+  GET  /health           liveness (app/health.py)
+  GET  /ready            dependency readiness (app/health.py)
+  POST /pre-visit-brief  the Pre-Visit Brief pipeline (app/api/pre_visit_brief.py)
+
+Contracts for all three live in app/models/api.py; /docs and /openapi.json
+publish them. Deployment: agent/docs/deployment.md.
+
+Correlation ID + structured logging are wired first because
+docs/KEY_METRICS.md states they are a precondition for computing any of its
+six metrics: every log line a request produces carries its correlation_id.
 """
 
 from __future__ import annotations
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
+from fastapi.exceptions import RequestValidationError
+from fastapi.responses import JSONResponse
 
+from app.api.pre_visit_brief import ApiError
+from app.api.pre_visit_brief import router as pre_visit_brief_router
 from app.health import router as health_router
-from app.middleware.correlation import CorrelationIdMiddleware
+from app.middleware.correlation import CorrelationIdMiddleware, get_correlation_id
 from app.middleware.logging import configure_logging
+from app.models.api import ErrorCode, ErrorResponse
 
 configure_logging()
 
 app = FastAPI(
     title="Clinical Co-Pilot Agent",
     description=(
-        "Scaffold service for the Clinical Co-Pilot agent. See "
-        "docs/ARCHITECTURE.md, docs/USERS.md, and docs/KEY_METRICS.md at "
-        "the repository root for the design this implements."
+        "Pre-Visit Brief (docs/USERS.md Use Case 1) over OpenEMR's FHIR API, "
+        "with every drafted claim verified against the retrieved records "
+        "before it renders. Design: docs/ARCHITECTURE.md at the repository root."
     ),
-    version="0.1.0",
+    version="0.2.0",
 )
 
 # Load-bearing, not optional: every downstream metric in
@@ -35,4 +44,30 @@ app = FastAPI(
 # correlation_id for its request's lifetime.
 app.add_middleware(CorrelationIdMiddleware)
 
+
+def _error(status_code: int, error: ErrorCode, message: str, headers: dict[str, str] | None = None) -> JSONResponse:
+    body = ErrorResponse(
+        error=error,
+        message=message,
+        correlation_id=get_correlation_id() or "no-request-context",
+    )
+    return JSONResponse(status_code=status_code, content=body.model_dump(mode="json"), headers=headers)
+
+
+@app.exception_handler(ApiError)
+async def _api_error(request: Request, exc: ApiError) -> JSONResponse:
+    return _error(exc.status_code, exc.error, exc.message, exc.headers)
+
+
+@app.exception_handler(RequestValidationError)
+async def _invalid_request(request: Request, exc: RequestValidationError) -> JSONResponse:
+    # Field locations and rule messages only — never the submitted values.
+    problems = "; ".join(
+        f"{'.'.join(str(part) for part in err['loc'][1:]) or 'body'}: {err['msg']}"
+        for err in exc.errors()
+    )
+    return _error(422, ErrorCode.INVALID_REQUEST, f"Request does not match the contract: {problems}")
+
+
 app.include_router(health_router)
+app.include_router(pre_visit_brief_router)

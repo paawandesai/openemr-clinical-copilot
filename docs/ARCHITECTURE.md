@@ -384,6 +384,11 @@ silently assumed covered:**
   Follow-Up Drilling, or as a future optimization), this assumption must be
   revisited: a resource type that was never queried must not be silently
   rendered identically to one that was queried and returned zero results.
+  It also assumes the patient exists. OpenEMR's FHIR search answers an
+  unknown or malformed patient id with HTTP 200 and an empty Bundle, exactly
+  as for a real patient with nothing recorded (confirmed live 2026-09-16), so
+  the retrieve step reads the Patient itself first and stops with "patient
+  not found" on a 404 or 400 instead of rendering "not recorded".
 
 ## 6. Risks and Mitigations
 

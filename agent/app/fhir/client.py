@@ -25,10 +25,16 @@ from __future__ import annotations
 import os
 from datetime import datetime
 from typing import Any
+from urllib.parse import quote
 
 import httpx
 
-from app.fhir.exceptions import FhirAuthError, FhirNotFoundError, FhirServerError
+from app.fhir.exceptions import (
+    FhirAuthError,
+    FhirNotFoundError,
+    FhirServerError,
+    PatientNotFoundError,
+)
 from app.middleware.correlation import get_correlation_id
 from app.models.fhir_resources import (
     AllergyIntolerance,
@@ -205,6 +211,51 @@ def _parse_datetime(value: str | None) -> datetime | None:
     if not value:
         return None
     return datetime.fromisoformat(value)
+
+
+async def check_capability_statement(timeout_seconds: float = 5.0) -> None:
+    """
+    Unauthenticated reachability probe for /ready: GET {FHIR_BASE_URL}/metadata.
+    Confirmed live: OpenEMR serves its CapabilityStatement (FHIR 4.0.1) there
+    without a token. This proves the FHIR API is up and answering; it cannot
+    prove any clinician's token is valid, since the agent holds none (§2).
+    Raises FhirServerError on a wrong response; httpx.TransportError on no
+    response at all.
+    """
+    async with httpx.AsyncClient(verify=_VERIFY_TLS, timeout=timeout_seconds) as http:
+        response = await http.get(f"{FHIR_BASE_URL}/metadata")
+    _raise_for_status(response)
+    try:
+        resource_type = response.json().get("resourceType")
+    except ValueError as exc:
+        raise FhirServerError("FHIR metadata response was not JSON") from exc
+    if resource_type != "CapabilityStatement":
+        raise FhirServerError("FHIR metadata response was not a CapabilityStatement")
+
+
+async def ensure_patient_exists(token: str, patient_id: str) -> None:
+    """
+    ARCHITECTURE.md §3's implicit Patient read — resolving that the chart
+    exists — made explicit, because the searches below cannot do it.
+    Confirmed live: Condition/MedicationRequest/AllergyIntolerance searches
+    for an unknown or malformed patient id all return HTTP 200 with an
+    empty Bundle, exactly like a real patient with nothing recorded. Without
+    this read, a mistyped id renders as "Allergies: not recorded".
+    GET Patient/<id> does tell them apart: 200 exists, 404 unknown id, 400
+    malformed id. The response body — demographics — is discarded unread.
+    Emits no retrieval_event: Patient is a precondition, not a tool-scope
+    resource (§3; app/models/fhir_resources.py).
+    """
+    headers = {"Authorization": f"Bearer {token}"}
+    async with httpx.AsyncClient(verify=_VERIFY_TLS, timeout=_TIMEOUT_SECONDS) as http:
+        response = await http.get(
+            f"{FHIR_BASE_URL}/Patient/{quote(patient_id, safe='')}", headers=headers
+        )
+    if response.status_code in (400, 404):
+        raise PatientNotFoundError(
+            f"FHIR Patient read returned {response.status_code} for the requested id"
+        )
+    _raise_for_status(response)
 
 
 async def get_conditions(

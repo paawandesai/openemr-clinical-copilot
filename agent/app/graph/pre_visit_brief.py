@@ -7,7 +7,9 @@ Pre-Visit Brief pipeline — USERS.md §3 Use Case 1, end to end.
             "Data required" for Use Case 1 (USERS.md §3, ARCHITECTURE.md
             §3), all three on every run, under the caller's own clinician
             token (§2). Encounter and Observation belong to Change
-            Detection and are never queried here.
+            Detection and are never queried here. First reads the Patient
+            itself: FHIR search answers an unknown patient id with empty
+            results, which would otherwise render as "not recorded".
   draft     app/reasoning/draft_claims.py: structured claims plus
             section_counts. The only LLM call in the graph.
   verify    app/verification/checker.py: one VerificationResult per claim
@@ -221,6 +223,9 @@ async def _retrieve(
     state: PreVisitBriefState, runtime: Runtime[PreVisitBriefContext]
 ) -> dict[str, Any]:
     ctx = runtime.context
+    # Raises PatientNotFoundError before any search runs, so an unknown id
+    # never reaches rendering and logs no retrieval events.
+    await fhir_client.ensure_patient_exists(ctx.token, ctx.patient_id)
     conditions, medications, allergies = await asyncio.gather(
         fhir_client.get_conditions(
             ctx.token,

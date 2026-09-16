@@ -1,0 +1,283 @@
+{
+  "info": {
+    "name": "Clinical Co-Pilot Agent — Pre-Visit Brief",
+    "description": "Runnable checks for the deployed agent: liveness, readiness, a real Pre-Visit Brief, and its failure paths. Run the folders in order (Newman does by default): folder 2 fetches a clinician token from OpenEMR and stores it for folders 3 and 4. See agent/api-collection/README.md.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "1. Liveness and readiness",
+      "item": [
+        {
+          "name": "GET /health",
+          "request": {
+            "method": "GET",
+            "url": "{{agent_url}}/health"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200 and alive', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "  pm.expect(pm.response.json()).to.eql({ status: 'alive' });",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "GET /ready",
+          "request": {
+            "method": "GET",
+            "url": "{{agent_url}}/ready"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const body = pm.response.json();",
+                  "pm.test('ready: FHIR and LLM provider healthy (a 503 names the dependency that is down)', function () {",
+                  "  pm.expect(body.checks.fhir.status, 'fhir: ' + body.checks.fhir.detail).to.eql('healthy');",
+                  "  pm.expect(body.checks.llm_provider.status, 'llm_provider: ' + body.checks.llm_provider.detail).to.eql('healthy');",
+                  "  pm.response.to.have.status(200);",
+                  "  pm.expect(body.status).to.eql('ready');",
+                  "});",
+                  "pm.test('observability backend is reported but not required', function () {",
+                  "  pm.expect(body.checks.observability_backend.required).to.eql(false);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "2. Get a clinician token (OpenEMR password grant)",
+      "item": [
+        {
+          "name": "POST OpenEMR /oauth2/default/token",
+          "request": {
+            "method": "POST",
+            "url": "{{openemr_url}}/oauth2/default/token",
+            "header": [
+              { "key": "Content-Type", "value": "application/x-www-form-urlencoded" }
+            ],
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": [
+                { "key": "grant_type", "value": "password" },
+                { "key": "client_id", "value": "{{client_id}}" },
+                { "key": "client_secret", "value": "{{client_secret}}" },
+                { "key": "username", "value": "{{openemr_username}}" },
+                { "key": "password", "value": "{{openemr_password}}" },
+                { "key": "user_role", "value": "users" },
+                { "key": "scope", "value": "openid user/Patient.read user/Condition.read user/MedicationRequest.read user/AllergyIntolerance.read" }
+              ]
+            },
+            "description": "This request goes to OpenEMR, not the agent: the agent never mints tokens (ARCHITECTURE.md §2). The four read scopes are exactly what the Pre-Visit Brief reads. Tokens last one hour."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('OpenEMR issued an access token', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "  const token = pm.response.json().access_token;",
+                  "  pm.expect(token).to.be.a('string').and.not.empty;",
+                  "  pm.collectionVariables.set('access_token', token);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "3. Pre-Visit Brief",
+      "item": [
+        {
+          "name": "POST /pre-visit-brief (seeded patient)",
+          "request": {
+            "method": "POST",
+            "url": "{{agent_url}}/pre-visit-brief",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{access_token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"patient_id\": \"{{patient_id}}\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200 with a rendered brief', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "  const body = pm.response.json();",
+                  "  pm.expect(body.brief).to.include('Pre-Visit Brief');",
+                  "  pm.expect(body.patient_id).to.eql(pm.variables.get('patient_id'));",
+                  "});",
+                  "pm.test('every claim is accounted for as verified or unverified', function () {",
+                  "  const v = pm.response.json().verification;",
+                  "  pm.expect(v.verified + v.unverified).to.eql(v.claims);",
+                  "  pm.expect(pm.response.json().claims.length).to.eql(v.claims);",
+                  "});",
+                  "pm.test('patient_session_key is user:patient:session', function () {",
+                  "  const body = pm.response.json();",
+                  "  pm.expect(body.patient_session_key.endsWith(':' + body.patient_id + ':' + body.session_id)).to.be.true;",
+                  "});",
+                  "pm.test('correlation id matches the response header', function () {",
+                  "  pm.expect(pm.response.headers.get('X-Correlation-ID')).to.eql(pm.response.json().correlation_id);",
+                  "});",
+                  "pm.test('the bearer token is never echoed', function () {",
+                  "  pm.expect(pm.response.text()).to.not.include(pm.collectionVariables.get('access_token'));",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "4. Failure paths",
+      "item": [
+        {
+          "name": "No Authorization header → 401",
+          "request": {
+            "method": "POST",
+            "url": "{{agent_url}}/pre-visit-brief",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"patient_id\": \"{{patient_id}}\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('401 missing_bearer_token', function () {",
+                  "  pm.response.to.have.status(401);",
+                  "  pm.expect(pm.response.json().error).to.eql('missing_bearer_token');",
+                  "  pm.expect(pm.response.headers.get('WWW-Authenticate')).to.eql('Bearer');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Malformed patient_id → 422",
+          "request": {
+            "method": "POST",
+            "url": "{{agent_url}}/pre-visit-brief",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{access_token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"patient_id\": \"not-a-patient-id\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('422 invalid_request', function () {",
+                  "  pm.response.to.have.status(422);",
+                  "  pm.expect(pm.response.json().error).to.eql('invalid_request');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Unknown patient → 404",
+          "request": {
+            "method": "POST",
+            "url": "{{agent_url}}/pre-visit-brief",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{access_token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"patient_id\": \"{{$guid}}\"\n}"
+            },
+            "description": "A random UUID. Without the agent's Patient read, OpenEMR's FHIR search would answer with empty results and the brief would say 'not recorded'."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('404 patient_not_found', function () {",
+                  "  pm.response.to.have.status(404);",
+                  "  pm.expect(pm.response.json().error).to.eql('patient_not_found');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Token OpenEMR rejects → 401",
+          "request": {
+            "method": "POST",
+            "url": "{{agent_url}}/pre-visit-brief",
+            "header": [
+              { "key": "Authorization", "value": "Bearer eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMDAwMDAwMC0wMDAwLTQwMDAtODAwMC0wMDAwMDAwMDAwMDAifQ.bm90LWEtcmVhbC1zaWduYXR1cmU" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"patient_id\": \"{{patient_id}}\"\n}"
+            },
+            "description": "A well-formed JWT with an invalid signature. OpenEMR answers expired, revoked and out-of-scope tokens identically (F-08), so the agent does not claim which it was."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('401 fhir_token_rejected', function () {",
+                  "  pm.response.to.have.status(401);",
+                  "  pm.expect(pm.response.json().error).to.eql('fhir_token_rejected');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "variable": [
+    { "key": "access_token", "value": "" }
+  ]
+}
