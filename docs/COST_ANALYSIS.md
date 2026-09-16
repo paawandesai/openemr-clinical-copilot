@@ -183,22 +183,20 @@ Metric 6). Langfuse's Sonnet 5 price table therefore matches current
 published pricing, which that doc asks to confirm before its numbers are
 used.
 
-### 2.2 Estimate
+### 2.2 Measured
 
-This assumes 25–150 real drafting calls during development: roughly 5–15
-smoke-test runs at 2–4 calls each, plus up to about 50 calls against the
-droplet endpoint.
+**Total Claude API spend: $0.36 (measured).** Source: the Anthropic
+Console Usage page, read 2026-09-16, for the last 30 days across all
+workspaces and keys. All of it is token cost on `claude-opus-5`, the only
+model the agent calls, and it is concentrated on 2026-09-16. Web search,
+code execution and session runtime are all $0.00. Because the figure
+covers every key, it is an upper bound on the agent's own share.
 
-```
-25 calls  × $0.0160 = $0.40
-150 calls × $0.0160 = $2.40
-150 calls × $0.0651 (every chart at 25 records, §1.3) = $9.77
-```
-
-**Best estimate: $1–3 of Claude API spend for the agent. It is under $10
-even if every chart was large.** The exact figure is on the Claude Console
-Usage page for the workspace that holds this project's key. This document
-could not access that page.
+Cross-check: $0.36 ÷ $0.0160 per brief (§1.2) ≈ 22 briefs of the measured
+size. That fits the smoke-test and manual-verification runs made during
+development, as reported by the operator; no run log records the count.
+If some of those charts were larger (§1.3), the actual number of calls
+was lower.
 
 Not included:
 
@@ -623,7 +621,7 @@ against Anthropic's published feature-eligibility table.
 | Tokens per record and the outlier brief cost | **Estimated** from one data point. |
 | Change Detection and Follow-Up Drilling tokens | **Estimated.** Neither is built. |
 | 20 encounters/day, 21 days/month, peak factor 2, follow-up rates | **Assumed.** |
-| Development spend of $1–3 | **Estimated.** One call's usage was read; the rest is inferred from what the scripts do. |
+| Development spend of $0.36 | **Measured.** Anthropic Console Usage page, last 30 days, all workspaces and keys, read 2026-09-16. |
 | The droplet breaking at about 1K users | **Estimated.** OpenEMR FHIR throughput is unmeasured (F-24, F-47). |
 | Sonnet 5 and Haiku 4.5 quality on the brief | **Unknown** until an eval runs. |
 
@@ -636,8 +634,8 @@ against Anthropic's published feature-eligibility table.
 2. **Call `count_tokens` on the system prompt and schema.** It is free and
    confirms whether the static prefix clears Opus 5's 512-token cache
    minimum and Sonnet 5's 1,024.
-3. **Read the development spend from the Claude Console's Usage page** for
-   this project's workspace, to replace §2.2's estimate.
+3. **Done:** the development spend was read from the Anthropic Console's
+   Usage page on 2026-09-16 ($0.36, §2.2).
 4. **Load-test with a stubbed model call** at 83 and 833 briefs per minute,
    to find where OpenEMR's FHIR endpoint on the droplet saturates (§4.9).
 5. **When Change Detection and Follow-Up Drilling ship,** record their
