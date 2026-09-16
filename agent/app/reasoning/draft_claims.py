@@ -30,11 +30,20 @@ and returned alongside the claims as `section_counts`. The rendering step
 (not built yet) owns turning those counts into the "not recorded" / "none
 active" wording USERS.md §3 Use Case 1 requires (F-21), in plain code: no
 LLM call, and nothing for verification to check.
+
+Load testing (agent/load-test/README.md): AGENT_STUB_LLM_DRAFTING=true
+short-circuits the one Anthropic call this module makes, so an infra load
+test measures the agent's own behavior at concurrency — connection
+handling, FHIR round-trips, queue depth — without paying for or being
+confounded by the LLM's latency. Off by default; must never be true on a
+deployment serving real briefs, since a stubbed claim is a verbatim copy of
+the source record, not a model's output (see _stub_draft).
 """
 
 from __future__ import annotations
 
 import json
+import os
 import time
 from dataclasses import asdict, dataclass
 from functools import cache
@@ -70,6 +79,15 @@ _MAX_TOKENS = 64000
 # request, the API re-runs it on Anthropic's recommended fallback model
 # inside the same call. The model that actually served it is logged.
 _FALLBACK_BETA = "server-side-fallback-2026-07-01"
+
+# See the module docstring's "Load testing" note. Same true/false parsing
+# as FHIR_VERIFY_TLS (app/fhir/client.py): defaults to off.
+_STUB_LLM_DRAFTING = os.environ.get("AGENT_STUB_LLM_DRAFTING", "false").strip().lower() not in (
+    "false",
+    "0",
+    "",
+    "no",
+)
 
 # ARCHITECTURE.md §3: the resource types Use Case 1 requires, and the
 # narrow model each retrieved list must hold.
@@ -226,6 +244,61 @@ def _final_text(message: BetaMessage) -> str:
     return text_blocks[-1]
 
 
+def _stub_draft(
+    retrieved: dict[FhirResourceType, list[Any]],
+    *,
+    section_counts: dict[FhirResourceType, SectionCount],
+    correlation_id: str,
+    patient_session_key: str | None,
+) -> PreVisitBriefDraft:
+    """
+    AGENT_STUB_LLM_DRAFTING=true path — load testing only (module
+    docstring). No Anthropic call: drafts one claim per brief record,
+    field "display", value copied verbatim from that record. That is
+    exactly the claim shape SYSTEM_PROMPT asks the real model for on the
+    golden path, so every claim verifies, but with no LLM latency or cost.
+
+    Logs claims_drafted exactly as the real path does (section_counts is
+    unaffected by stubbing), but logs llm_call_stubbed in place of
+    llm_usage_event, so compute_metrics.py's cost metric (6) can never
+    mistake a stubbed run's zero-cost claims for a real, billed call.
+    """
+    claims = [
+        Claim(
+            source_id=record.source_id,
+            field="display",
+            value=record.display,
+            resource_type=resource_type,
+        )
+        for resource_type in _BRIEF_RESOURCE_MODELS
+        for record in brief_records(resource_type, retrieved[resource_type])
+    ]
+    log_event(
+        "llm_call_stubbed",
+        event_data={
+            "correlation_id": correlation_id,
+            "requested_model": MODEL,
+            "claim_count": len(claims),
+        },
+        use_case=UseCase.PRE_VISIT_BRIEF,
+        patient_session_key=patient_session_key,
+    )
+    log_event(
+        "claims_drafted",
+        event_data={
+            "correlation_id": correlation_id,
+            "claim_count": len(claims),
+            "section_counts": {
+                resource_type.value: asdict(count)
+                for resource_type, count in section_counts.items()
+            },
+        },
+        use_case=UseCase.PRE_VISIT_BRIEF,
+        patient_session_key=patient_session_key,
+    )
+    return PreVisitBriefDraft(claims=claims, section_counts=section_counts)
+
+
 async def draft_pre_visit_brief(
     retrieved: dict[FhirResourceType, list[Any]],
     *,
@@ -246,6 +319,12 @@ async def draft_pre_visit_brief(
     None is only for standalone callers with no session context, such as
     scripts/smoke_test_claims.py; app/graph/pre_visit_brief.py always
     passes one.
+
+    AGENT_STUB_LLM_DRAFTING=true (module docstring, "Load testing")
+    short-circuits to _stub_draft before any of the above is built, other
+    than the validation `_serialize_retrieved` already performs — kept so
+    a caller missing a required resource type fails identically whether
+    stubbed or not.
     """
     user_content = (
         "<retrieved_fhir_data>\n"
@@ -261,6 +340,14 @@ async def draft_pre_visit_brief(
         for resource_type in _BRIEF_RESOURCE_MODELS
     }
     correlation_id = get_correlation_id() or "no-request-context"
+
+    if _STUB_LLM_DRAFTING:
+        return _stub_draft(
+            retrieved,
+            section_counts=section_counts,
+            correlation_id=correlation_id,
+            patient_session_key=patient_session_key,
+        )
 
     started = time.perf_counter()
     try:
