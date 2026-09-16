@@ -336,6 +336,17 @@ silently assumed covered:**
   never characterizes a result as normal or abnormal. A separately-cited,
   LOINC-keyed reference-range source is a scoped v2 addition — explicitly
   not attempted here — not an oversight in v1's design.
+- **Source-to-patient attribution.** Verification checks claim-to-source
+  attribution, not source-to-patient attribution. It confirms a claim's
+  `source_id` is among what was retrieved this turn; it does not
+  independently confirm that the retrieved records belong to the patient
+  in the current conversation — the resource models it compares against
+  carry no patient field at all. Cross-patient contamination is currently
+  mitigated only at the conversation-state layer (the
+  `(user, patient, session)` key and invalidation on patient switch, §4),
+  not re-checked here: if that scoping has a bug, a claim sourced from the
+  wrong patient's record passes verification cleanly. This is an open gap,
+  not a resolved one.
 
 ## 6. Risks and Mitigations
 
