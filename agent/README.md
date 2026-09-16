@@ -92,7 +92,7 @@ With Docker:
 
 ```bash
 docker build -t clinical-copilot-agent .
-docker run -p 8000:8000 clinical-copilot-agent
+docker run -p 127.0.0.1:8000:8000 clinical-copilot-agent
 ```
 
 Then:
