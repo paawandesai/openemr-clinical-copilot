@@ -75,6 +75,7 @@ services:
       AGENT_PUBLIC_HOST: ${AGENT_PUBLIC_HOST:?set AGENT_PUBLIC_HOST (the address clients use) in the env file (see .env.example)}
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - ./ui:/srv/ui:ro
       - caddy_data:/data
       - caddy_config:/config
     read_only: true
