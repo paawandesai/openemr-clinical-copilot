@@ -315,7 +315,9 @@ hypothetical one.
 **What verification catches:** fabricated claims (a value the model stated
 that no retrieved record actually contains), and cross-patient
 contamination in a claim's source (a claim whose cited `source_id` belongs
-to a different patient than the one in context).
+to a different patient than the one in context), provided this turn's
+retrieval was itself correctly scoped to the current patient — see
+"Source-to-patient attribution" below for the case where it wasn't.
 
 **What verification does not catch — stated as known limitations, not
 silently assumed covered:**
