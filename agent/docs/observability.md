@@ -219,7 +219,7 @@ cd agent
 pip install -r requirements.txt
 set -a; . observability/agent-langfuse.env; set +a
 python scripts/send_langfuse_test_event.py   # exits non-zero unless the data actually arrived
-python -m unittest discover -s tests          # 18 tests, no network
+python -m unittest discover -s tests          # 35 tests, no network
 
 # UI: http://localhost:3000
 #   user: admin@clinical-copilot.test
@@ -397,6 +397,33 @@ is visible in Tracing, not silent.
   Langfuse's price table against Anthropic's current published prices.
   Custom prices go in *Settings → Models*.
 
+### Without Langfuse: `scripts/compute_metrics.py`
+
+The same six metrics can be computed from the agent's stdout alone. Every
+`log_event()` writes its JSON line to stdout (`logging.py`) and then
+exports it, so no dashboard, deployment or second droplet is needed.
+
+- **Capture:** `configure_logging()` writes to stdout only, so redirect it:
+  `uvicorn app.main:app … >> logs/agent-stdout.jsonl`. That path is the
+  script's default `--log-file`; `-` reads stdin. `agent/logs/` is
+  gitignored.
+- **Output:** each metric prints the event type and fields it came from,
+  and the log line numbers that contributed, so it can be re-derived by
+  hand.
+- **Insufficient data:** printed as `insufficient data — 0 events of type X
+  found`, never a fabricated 0% or 100%.
+- **Exit code:** 1 when an absolute is broken — Metric 2 below 100%, or
+  Metric 3's invariant violated.
+- **Cost:** USD is reported only with an explicit `--prices` file, because
+  no pricing constant exists in this codebase.
+- **Verified 2026-09-16:** run against a real captured run of
+  `send_langfuse_test_event.py`:
+  - Values: 50.0% / 100.0% / invariant holds / p50 = p95 = 41.7 s / 3 of 3
+    types / 4,550 tokens.
+  - With a price file built from local Langfuse's `claude-sonnet-5` table,
+    the script computed $0.008660, which equals Langfuse's recorded
+    `totalCost` of 0.00866 for the same trace.
+
 ## 7. Proof — the real test event, and what the UI shows
 
 `scripts/send_langfuse_test_event.py` sends one synthetic Pre-Visit Brief
@@ -459,6 +486,14 @@ screenshotted; this describes those screenshots.
 ## 8. Known gaps (local)
 
 - **No `LlmUsageEvent` model** in `metrics_events.py` yet (§6, Metric 6).
+- **Metric 6 event-name mismatch at merge.** The claim-drafting branch's
+  committed call site logs `llm_call` (`served_model` / `requested_model`),
+  not `llm_usage_event` (`model`).
+  - `compute_metrics.py` reads both.
+  - The Langfuse exporter maps only `llm_usage_event` to a priced
+    GENERATION, so `llm_call` would land as a plain EVENT with no cost.
+  - Fix at merge: either rename the call site, or alias `llm_call` in
+    `langfuse_export.py`.
 - **Metric 5's mean fractional coverage** needs API arithmetic (§6).
 - **Dashboards are recipes, not provisioned objects.** Widgets live in each
   Langfuse instance's Postgres, so they must be created (or exported and
