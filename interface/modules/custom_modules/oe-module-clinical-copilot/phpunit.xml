@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+Clinical Co-Pilot module isolated tests. From the OpenEMR root:
+  vendor/bin/phpunit -c interface/modules/custom_modules/oe-module-clinical-copilot/phpunit.xml
+-->
+<phpunit xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:noNamespaceSchemaLocation="https://schema.phpunit.de/11.5/phpunit.xsd"
+         bootstrap="tests/bootstrap.php"
+         colors="true"
+         failOnDeprecation="true"
+         failOnWarning="true"
+         failOnNotice="true">
+  <testsuites>
+    <testsuite name="clinical-copilot">
+      <directory>tests</directory>
+    </testsuite>
+  </testsuites>
+  <php>
+    <ini name="error_reporting" value="-1"/>
+  </php>
+</phpunit>
