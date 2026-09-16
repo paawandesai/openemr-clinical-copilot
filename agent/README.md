@@ -6,7 +6,7 @@ cases in `docs/USERS.md` and the success metrics in `docs/KEY_METRICS.md`.
 
 ## Status: scaffold only
 
-This service does not yet call FHIR, call an LLM, or run verification.
+This service does not yet call FHIR or run verification.
 What exists today:
 
 - A FastAPI app with correlation-ID + structured JSON logging
@@ -20,6 +20,10 @@ What exists today:
   (`app/models/fhir_resources.py`, per `ARCHITECTURE.md` §3), and the log
   event shapes `KEY_METRICS.md`'s six metrics will eventually be computed
   from (`app/models/metrics_events.py`).
+- One LLM call: `app/reasoning/draft_claims.py` drafts Pre-Visit Brief
+  claims (`docs/USERS.md` Use Case 1) from retrieved FHIR records via the
+  Anthropic API. No endpoint calls it yet; `scripts/smoke_test_claims.py`
+  exercises it against the deployed droplet.
 - `/health` and `/ready` endpoints, kept deliberately separate. `/ready`'s
   dependency checks (FHIR, LLM provider, observability backend) are stubs
   — see `app/health.py`.
@@ -27,7 +31,7 @@ What exists today:
 Every stub in this codebase raises `NotImplementedError` with a comment
 citing the `ARCHITECTURE.md` or `KEY_METRICS.md` section it implements, so
 the next task knows exactly where to pick up. Nothing here computes an
-actual metric, calls FHIR, calls an LLM, or verifies a claim.
+actual metric, calls FHIR, or verifies a claim.
 
 ## Running locally
 
