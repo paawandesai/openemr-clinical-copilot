@@ -1,16 +1,83 @@
 # Clinical Co-Pilot
 
-A Clinical Co-Pilot AI agent embedded in a forked [OpenEMR](https://open-emr.org)
-8.2 electronic health record system. The agent runs inside the EHR alongside the
-existing clinical workflow, reading real patient chart data — encounters,
-problems, medications, lab results — to assist clinicians at the point of care.
-This repository is a fork of OpenEMR 8.2.0-dev with the co-pilot built in;
-upstream OpenEMR's own README is preserved as
+A Clinical Co-Pilot AI agent built into a fork of [OpenEMR](https://open-emr.org)
+8.2.0-dev. Upstream OpenEMR's own README is preserved as
 [README-OPENEMR.md](README-OPENEMR.md).
 
-**Deployed URL:** TBD
+**Repository (submission):** https://labs.gauntletai.com/paawandesai/openemr-clinical-copilot
 
-**Architecture overview:** see `ARCHITECTURE.md` (in progress — not yet written)
+## Deployed application
+
+> **OPERATOR — FILL IN BEFORE SUBMITTING:** the deployment is moving to a new
+> host, so the host is still a placeholder. After the migration, run the
+> command below from the repository root with the new host's public IP. It
+> fills in every placeholder and turns the two URLs in the table into links.
+> Then delete this note.
+>
+> ```bash
+> IP=NEW.HOST.IP; sed -i '' -E "s#\`(https://)<DEPLOYED_URL>(:[0-9]+)\`#\1$IP\2#g; s#<DEPLOYED_URL>#$IP#g" README.md
+> ```
+
+| What | URL |
+|---|---|
+| **OpenEMR**, with the Clinical Co-Pilot card embedded in the patient chart | `https://<DEPLOYED_URL>:9300` |
+| **Agent API + standalone Pre-Visit Brief UI** | `https://<DEPLOYED_URL>:8443` |
+
+**The certificates are self-signed.** Neither port has a certificate from a
+public CA: OpenEMR's is self-signed, and the agent's comes from its proxy's
+local CA. Your browser will show a warning for each port. Accept it once and
+continue. With `curl`, pass `-k`.
+
+How to see the agent:
+
+- **In the chart (the embed).** Open port 9300 and log in as a clinician with
+  medical-record access, e.g. `physician`. Go to **Finder**, then open any
+  patient. The patient's **Dashboard** opens, and its first card is
+  **Clinical Co-Pilot: Pre-Visit Brief**, above Demographics. It generates
+  the brief when the chart opens. Users without medical-record access, such
+  as `receptionist`, do not see the card. Walkthrough:
+  [module deployment §3](interface/modules/custom_modules/oe-module-clinical-copilot/docs/deployment.md).
+- **Standalone UI.** Open `https://<DEPLOYED_URL>:8443/`, then paste a
+  patient's FHIR id and a clinician's OpenEMR access token. **Need a token?**
+  on the page shows the command to get one.
+- **API.** `GET /health`, `GET /ready`, `POST /pre-visit-brief`, and
+  `GET /docs` (the OpenAPI contract), all on port 8443. The easiest way to
+  run every workflow is the [Postman collection](agent/api-collection/README.md).
+
+Audit, eval and load-test records name the host they were run against, which
+is the pre-migration host.
+
+## What this project is
+
+A **Pre-Visit Brief** agent for a primary care physician about to open the
+next patient's chart. It lists active problems, current medications and
+allergies, and appears as a card in this OpenEMR fork's patient chart. The
+agent (`agent/`, FastAPI + LangGraph) reads the chart only through OpenEMR's
+FHIR R4 API, using the clinician's own OAuth token. Its one LLM call drafts
+claims, each tied to a source record. Before anything is shown, a
+deterministic checker compares each claim to that record. Claims that fail
+are marked UNVERIFIED, never silently dropped. Every request carries a
+correlation id through structured JSON logs. An eval suite and load tests run
+against the deployed agent.
+
+## Deliverables
+
+The graded documents live under `docs/` and `agent/`.
+
+| Deliverable | Where |
+|---|---|
+| Setup guide | This README: §1–4 cover OpenEMR. For the agent, see [agent/README.md](agent/README.md) and [agent/docs/deployment.md](agent/docs/deployment.md) |
+| Audit | [docs/AUDIT.md](docs/AUDIT.md) (summary plus all findings). Evidence ledger: [docs/audit/findings.md](docs/audit/findings.md) |
+| Users and use cases | [docs/USERS.md](docs/USERS.md) |
+| Agent architecture | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) |
+| Key metrics | [docs/KEY_METRICS.md](docs/KEY_METRICS.md) |
+| AI cost analysis | [docs/COST_ANALYSIS.md](docs/COST_ANALYSIS.md) |
+| Eval dataset | Suite and case descriptions: [agent/evals/README.md](agent/evals/README.md). Latest results: [agent/evals/RESULTS.md](agent/evals/RESULTS.md) |
+| Load and baseline performance tests | Results: [agent/load-test/RESULTS.md](agent/load-test/RESULTS.md). Method: [agent/load-test/README.md](agent/load-test/README.md) |
+| API collection (Postman) | [agent/api-collection/clinical-copilot-agent.postman_collection.json](agent/api-collection/clinical-copilot-agent.postman_collection.json). How to run it: [agent/api-collection/README.md](agent/api-collection/README.md) |
+| Agent setup and deployment | [agent/README.md](agent/README.md), [agent/docs/deployment.md](agent/docs/deployment.md) |
+| OpenEMR chart embed | [interface/modules/custom_modules/oe-module-clinical-copilot/README.md](interface/modules/custom_modules/oe-module-clinical-copilot/README.md) |
+| Observability | [agent/docs/observability.md](agent/docs/observability.md) |
 
 ---
 
@@ -59,15 +126,19 @@ Every command in this section was run in this repository, except where marked.
 ### Step 1 — Clone the fork and add the upstream remote
 
 ```bash
-git clone git@github.com:paawandesai/clinical-copilot.git
-cd clinical-copilot
+git clone https://labs.gauntletai.com/paawandesai/openemr-clinical-copilot.git
+cd openemr-clinical-copilot
 git remote add upstream git@github.com:Gauntlet-HQ/openemr-base-clean.git
 ```
 
-> The clone itself was not re-run in this session. The resulting remote
-> configuration is verified — `git remote -v` in this working copy reports
-> `origin  git@github.com:paawandesai/clinical-copilot.git` and
-> `upstream  git@github.com:Gauntlet-HQ/openemr-base-clean.git`.
+> **Clone from `labs.gauntletai.com`, not GitHub.**
+> `github.com/paawandesai/clinical-copilot` is a stale mirror. It holds only
+> the initial OpenEMR import (1 commit on `main`) and none of the agent, embed,
+> evals or docs.
+>
+> The clone itself was not re-run. `git remote -v` in the working copy reports
+> `origin  https://labs.gauntletai.com/paawandesai/openemr-clinical-copilot.git`
+> and `upstream  git@github.com:Gauntlet-HQ/openemr-base-clean.git`.
 
 ### Step 2 — Size the Colima VM
 
@@ -213,6 +284,19 @@ literal string `false` turns off the importer's development mode:
 **Use the two-argument form.** The `false` variant is documented here only
 because it looks like it works and does not. Details in Troubleshooting below.
 
+### Step 8 — Run the agent and the chart embed
+
+The steps above bring up OpenEMR only. The agent is a separate Python service
+in `agent/`, and it needs an `ANTHROPIC_API_KEY`. To set it up:
+
+- Run it locally or run its tests: [agent/README.md](agent/README.md), under
+  *Running locally*.
+- Deploy it as a container behind a TLS proxy, next to OpenEMR:
+  [agent/docs/deployment.md](agent/docs/deployment.md).
+- Enable the patient-chart card, set up its OAuth client and trust the
+  agent's CA:
+  [oe-module-clinical-copilot/README.md](interface/modules/custom_modules/oe-module-clinical-copilot/README.md).
+
 ---
 
 ## 3. Verification
@@ -232,7 +316,7 @@ curl -sk https://localhost:9300/meta/health/readyz
 `oauth_keys: true` confirms step 6 worked. Note that `installed` reports `false`
 and `status` reports `setup_required` **even on a correctly installed system** —
 that is a known reporting defect in this fork, not a sign your install failed;
-see `AUDIT.md`. Judge the install by the table and patient counts below, not by
+see [docs/AUDIT.md](docs/AUDIT.md). Judge the install by the table and patient counts below, not by
 this field. A liveness probe is also available:
 
 ```bash
@@ -336,7 +420,8 @@ the table and patient counts in Verification instead.
 
 **`readyz` reports `"installed":false` and `"status":"setup_required"` on a working install**
 *Cause:* A known reporting defect in this fork; the field does not reflect actual
-install state once the application has bootstrapped. Documented in `AUDIT.md`.
+install state once the application has bootstrapped. Documented in
+[docs/AUDIT.md](docs/AUDIT.md).
 *Fix:* None needed — ignore that field. Verify the install with the table count
 and clinical census instead. The other checks in the same response
 (`database`, `filesystem`, `session`, `oauth_keys`, `cache`) are meaningful.
@@ -397,8 +482,18 @@ Only the parts relevant to this project. This is an OpenEMR fork, so most of the
 tree is upstream application code.
 
 ```
-src/                        Modern PSR-4 code (OpenEMR\ namespace) — where co-pilot
-                            code belongs
+agent/                      The Clinical Co-Pilot agent (Python, FastAPI + LangGraph)
+  app/                      Retrieval, drafting, verification, rendering, HTTP API
+  evals/                    Eval suite and RESULTS.md
+  load-test/                Load/baseline performance tests and RESULTS.md
+  api-collection/           Postman collection and environment
+  deploy/                   Compose file, Caddy TLS proxy, standalone UI (deploy/ui)
+  docs/                     deployment.md, observability.md
+interface/modules/custom_modules/oe-module-clinical-copilot/
+                            OpenEMR module: the Pre-Visit Brief card in the patient chart
+docs/                       AUDIT.md, USERS.md, ARCHITECTURE.md, KEY_METRICS.md,
+                            COST_ANALYSIS.md; audit/findings.md is the evidence ledger
+src/                        Modern PSR-4 code (OpenEMR\ namespace)
 interface/                  Web UI controllers and templates (legacy entry points)
 library/                    Legacy procedural PHP helpers
 templates/                  Twig (modern) and Smarty (legacy) templates
@@ -410,8 +505,6 @@ docker/development-easy/    The compose stack used for local development
   docker-compose.yml        Service, port, volume and environment definitions
 CLAUDE.md                   Coding standards and workflow for this repo
 README-OPENEMR.md           Upstream OpenEMR's original README
-ARCHITECTURE.md             Co-pilot architecture (in progress — not yet written)
-AUDIT.md                    Findings from the baseline audit (in progress — not yet written)
 ```
 
 Inside the `openemr` container the repository is mounted twice: read-write at
