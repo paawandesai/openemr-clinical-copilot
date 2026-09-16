@@ -28,11 +28,21 @@ so it is passed explicitly into every call that logs, never looked up.
 Three things kept out of anything that could leave the process:
 - The bearer token is LangGraph runtime *context*, not graph state, so no
   checkpointer or state dump can ever hold it. (No checkpointer is used.)
-- LangSmith tracing is forced off for every run. langsmith is installed
+  A fully traced run's payload was checked and does not contain it
+  (docs/audit/findings.md F-56; tests/test_langsmith_tracing_guard.py).
+- LangSmith tracing can never run over this graph. langsmith is installed
   with LangGraph, and with LANGSMITH_TRACING=true set it posts full graph
-  state — here, retrieved chart records — to an external service. Same
-  reasoning as the Langfuse exporter's refusal to export auto-instrumented
-  spans (app/middleware/langfuse_export.py).
+  state — here, retrieved chart records — to an external service (F-56).
+  Two layers, so no single mistake reopens it:
+    1. PRE_VISIT_BRIEF_GRAPH, the only handle to the compiled graph this
+       module exports, runs it with tracing forced off, and takes no
+       RunnableConfig — tracing_context(enabled=False) does not stop a
+       tracer passed in explicitly as a callback.
+    2. Every node refuses to run while a LangSmith tracer is attached to
+       its run (TracingEnabledError), however it got there: a graph
+       reached some other way fails before any chart record is retrieved.
+  Same reasoning as the Langfuse exporter's refusal to export
+  auto-instrumented spans (app/middleware/langfuse_export.py).
 - No node logs rendered text, claim values, or record contents.
 
 Not built here: the brief's one-line "changed since last visit" pointer
@@ -50,6 +60,9 @@ from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
 from typing import Annotated, Any, TypedDict
 
+from langchain_core.callbacks import BaseCallbackManager
+from langchain_core.runnables import RunnableConfig
+from langchain_core.tracers.langchain import LangChainTracer
 from langgraph.graph import END, START, StateGraph
 from langgraph.runtime import Runtime
 from langsmith import tracing_context
@@ -144,6 +157,64 @@ def _timed(name: str, node: _Node) -> _Node:
         return {**update, "node_seconds": {name: time.perf_counter() - started}}
 
     return timed_node
+
+
+class TracingEnabledError(RuntimeError):
+    """A node was asked to run with a LangSmith tracer attached (F-56)."""
+
+
+def _refuse_if_traced(config: RunnableConfig) -> None:
+    """
+    Raises if a LangSmith tracer is attached to this run. That is the
+    ground truth for whether this node's inputs and outputs are about to be
+    posted, whatever put the tracer there: LANGSMITH_TRACING, an explicit
+    callback, or a parent traced run.
+    """
+    callbacks = config.get("callbacks")
+    if isinstance(callbacks, BaseCallbackManager):
+        handlers = [*callbacks.handlers, *callbacks.inheritable_handlers]
+    else:
+        handlers = list(callbacks or [])
+    if any(isinstance(handler, LangChainTracer) for handler in handlers):
+        raise TracingEnabledError(
+            "Refusing to run a Pre-Visit Brief node with a LangSmith tracer "
+            "attached: graph state holds chart records (docs/audit/findings.md "
+            "F-56). Run the graph through PRE_VISIT_BRIEF_GRAPH or "
+            "run_pre_visit_brief()."
+        )
+
+
+def _untraced(node: _Node) -> Callable[..., Awaitable[dict[str, Any]]]:
+    async def untraced_node(
+        state: PreVisitBriefState,
+        config: RunnableConfig,
+        runtime: Runtime[PreVisitBriefContext],
+    ) -> dict[str, Any]:
+        _refuse_if_traced(config)
+        return await node(state, runtime)
+
+    return untraced_node
+
+
+class UntracedGraph:
+    """
+    The only handle to the compiled graph this module exports. Its one way
+    to run the graph forces LangSmith tracing off first. Deliberately not a
+    LangGraph Runnable: stream, astream_events, batch, with_config and the
+    rest each start a run of their own, and LangGraph adds such entry
+    points over time, so anything not listed here is simply unavailable
+    rather than unguarded. No RunnableConfig is accepted, because a tracer
+    passed as a callback is attached even inside tracing_context(enabled=False).
+    """
+
+    def __init__(self, compiled: Any) -> None:
+        self._compiled = compiled
+
+    async def ainvoke(
+        self, input: PreVisitBriefState, *, context: PreVisitBriefContext
+    ) -> dict[str, Any]:
+        with tracing_context(enabled=False):
+            return await self._compiled.ainvoke(input, context=context)
 
 
 async def _retrieve(
@@ -293,10 +364,10 @@ def render_brief(
 
 def _build_graph() -> Any:
     graph = StateGraph(PreVisitBriefState, context_schema=PreVisitBriefContext)
-    graph.add_node("retrieve", _timed("retrieve", _retrieve))
-    graph.add_node("draft", _timed("draft", _draft))
-    graph.add_node("verify", _timed("verify", _verify))
-    graph.add_node("render", _timed("render", _render))
+    graph.add_node("retrieve", _untraced(_timed("retrieve", _retrieve)))
+    graph.add_node("draft", _untraced(_timed("draft", _draft)))
+    graph.add_node("verify", _untraced(_timed("verify", _verify)))
+    graph.add_node("render", _untraced(_timed("render", _render)))
     graph.add_edge(START, "retrieve")
     graph.add_edge("retrieve", "draft")
     graph.add_edge("draft", "verify")
@@ -305,7 +376,7 @@ def _build_graph() -> Any:
     return graph.compile()
 
 
-PRE_VISIT_BRIEF_GRAPH = _build_graph()
+PRE_VISIT_BRIEF_GRAPH = UntracedGraph(_build_graph())
 
 
 async def run_pre_visit_brief(
@@ -348,7 +419,7 @@ async def run_pre_visit_brief(
         trigger_ts=trigger_ts,
     )
     correlation_id = get_correlation_id() or str(uuid.uuid4())
-    with correlation_scope(correlation_id), tracing_context(enabled=False):
+    with correlation_scope(correlation_id):
         final = await PRE_VISIT_BRIEF_GRAPH.ainvoke(
             {"node_seconds": {}}, context=context
         )

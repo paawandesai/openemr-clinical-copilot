@@ -970,8 +970,9 @@ Pass-2 droplet database commands were run as
 
 ### F-56 — MITIGATED: LangGraph's bundled LangSmith tracing sends the graph's run state to a third-party service when `LANGSMITH_TRACING=true`
 - **Category:** Security
-- **Severity:** High (mitigated — tracing forced off at the Pre-Visit Brief
-  entry point, commit `3cbd8a4`)
+- **Severity:** High (mitigated — two guard layers on the Pre-Visit Brief graph,
+  covered by a regression test; guarding future graphs is still manual, see
+  Remediation)
 - **Claim:** LangGraph installs the `langsmith` package as a transitive
   dependency. If `LANGSMITH_TRACING=true` is set — a plausible accident: a
   copied `.env`, a stray default, a misconfigured deployment — each graph run
@@ -1011,37 +1012,118 @@ Pass-2 droplet database commands were run as
     Inside that run's node, `langsmith.utils.tracing_is_enabled()` and
     langchain-core's `_tracing_v2_is_enabled()` both returned `True`; under
     `tracing_context(enabled=False)` both returned `False`.
-  - Not captured, deliberately: a payload from the real Pre-Visit Brief graph,
-    and any request to LangSmith Cloud — either would have sent chart records
-    off-host. That the real payload carries chart data is inferred from the
-    probe (state values appear in the body) and the graph's state schema
-    (`agent/app/graph/pre_visit_brief.py:100`, `PreVisitBriefState`:
-    `retrieved`, `draft`, `results`, `text`). Whether the runtime context
-    holding the clinician's bearer token would also be serialized was not
-    checked.
+  - The real graph's payload (`first-hand`, 2026-09-16 ~19:26Z, committed code
+    at `39ccd52`, local capture, every non-loopback DNS lookup refused): the
+    exported `PRE_VISIT_BRIEF_GRAPH.ainvoke` was called directly with
+    `LANGSMITH_TRACING=true`, with FHIR retrieval and claim drafting replaced by
+    fakes returning marker records. It sent `POST /runs/multipart`, 14,701
+    bytes, holding five runs — `LangGraph` (root), `retrieve`, `draft`,
+    `verify`, `render`. The markers were in the root run's outputs and in the
+    inputs or outputs of every node run (condition marker 14 times,
+    medication and allergy 5 each); the root and `retrieve` inputs were only
+    `{"node_seconds":{}}`. The faked calls run inside nodes as plain
+    coroutines and add no runs of their own, so real FHIR and Anthropic calls
+    would change the values in this payload, not its shape.
+  - Bearer token — checked, not present (`first-hand`, same run): a sentinel
+    token passed in the runtime context (`PreVisitBriefContext`, the only place
+    it lives — graph state has no field for it,
+    `agent/app/graph/pre_visit_brief.py:113`) reached the FHIR layer on all 3
+    calls and appeared 0 times in the captured bodies and headers. Also
+    absent: the context's other fields (patient ID, session key), `Bearer `,
+    `PreVisitBriefContext`, `__pregel_runtime`. Every run's metadata held
+    `ls_integration`, `LANGSMITH_TRACING`, `LANGSMITH_ENDPOINT` and
+    `revision_id`; node runs added LangGraph's `langgraph_node`,
+    `langgraph_step`, `langgraph_path`, `langgraph_triggers` and
+    `langgraph_checkpoint_ns`; SDK and platform details sat under `runtime`.
+    None of it carries runtime context. LangSmith copies environment
+    variables into metadata, but only `LANGCHAIN_*`/`LANGSMITH_*` ones minus
+    its own keys (`langsmith/env/_runtime_env.py`,
+    `get_langchain_env_var_metadata`); `FHIR_CLIENT_SECRET`, `FHIR_CLIENT_ID`
+    and `ANTHROPIC_API_KEY` were set in that process and were not in the
+    payload.
+  - A tracer passed explicitly as a callback is not stopped by the guard
+    (`first-hand`, 2026-09-16, one-node graph): under
+    `tracing_context(enabled=False)` with `LANGSMITH_TRACING=true`, a
+    `LangChainTracer` passed via `config={"callbacks": [...]}` was still
+    attached to the node's run; without it, none was.
   - Environment at time of writing (`first-hand`, variable names only):
     `agent/.env` sets only `FHIR_*` and `ANTHROPIC_API_KEY`, and the operator
     shell had no `LANGSMITH_*` or `LANGCHAIN_*` variables.
-- **Remediation:** commit `3cbd8a4` — `run_pre_visit_brief()` runs the graph
-  inside `tracing_context(enabled=False)` on every invocation
-  (`agent/app/graph/pre_visit_brief.py:351`) rather than relying on the
-  variable being unset, and `agent/requirements.txt:11` declares `langsmith`
-  explicitly, with the reason. Residual gaps: (1) the guard sits at that entry
-  point only — the compiled graph is also exported as `PRE_VISIT_BRIEF_GRAPH`
-  (`agent/app/graph/pre_visit_brief.py:308`), and calling its `ainvoke`
-  directly bypasses the guard; (2) any future graph or entry point needs the
-  same guard; (3) no automated test covers it — the capture probe above was
-  run outside the repository.
+- **Remediation:**
+  - Commit `3cbd8a4`: `run_pre_visit_brief()` ran the graph inside
+    `tracing_context(enabled=False)`, and `agent/requirements.txt:11` declares
+    `langsmith` explicitly.
+  - Closed 2026-09-16, in the change that revised this entry:
+    1. **Exported graph object** (was residual gap 1). `PRE_VISIT_BRIEF_GRAPH`
+       is now an `UntracedGraph` (`agent/app/graph/pre_visit_brief.py:199`), not
+       a LangGraph object. Its only way to run the graph, `ainvoke`, forces
+       tracing off (`:216`) and accepts no `RunnableConfig`, so the explicit
+       tracer callback above has no way in. `stream`, `astream_events`,
+       `batch`, `with_config` and the rest do not exist on it.
+       `run_pre_visit_brief()` goes through it, so that guard lives in one
+       place. Second layer: every node is wrapped (`_untraced`, `:187`, applied
+       at `:367` onward) and raises `TracingEnabledError` before doing
+       anything if a `LangChainTracer` is attached to its run
+       (`_refuse_if_traced`, `:166`). The compiled graph reached another way
+       (`PRE_VISIT_BRIEF_GRAPH._compiled`, `_build_graph()`) therefore fails
+       before any chart record is retrieved or the token is used.
+       `agent/requirements.txt:16` declares `langchain-core`, now imported
+       directly.
+    2. **Automated test** (was residual gap 3).
+       `agent/tests/test_langsmith_tracing_guard.py`, 8 tests, in the suite
+       (124 passed). With `LANGSMITH_TRACING=true`, `LANGSMITH_ENDPOINT` on a
+       local recorder and every non-loopback DNS lookup refused, it asserts
+       that `run_pre_visit_brief()` and `PRE_VISIT_BRIEF_GRAPH.ainvoke` send
+       nothing and look up no `smith.langchain.com` host. It also asserts
+       that the compiled graph reached directly refuses before any retrieval
+       — whether the tracer comes from the environment or an explicit
+       callback — and that what the refused run traces holds neither the token
+       nor the chart markers. The exported object must expose no
+       other execution method, and no `app/graph` module may hold a raw
+       compiled graph. Control tests turn both layers off and assert the
+       recorder then receives the chart markers, so a silent recorder cannot
+       pass. `first-hand` checks that it fails when it should:
+       - Against the committed code at `39ccd52`,
+         `test_exported_graph_object_sends_nothing` failed with
+         `Lists differ: ['GET /info (0 bytes)', 'POST /runs/multipart (16458 bytes)'] != []`,
+         all 11 execution-method subtests failed, and the module scan found
+         `['PRE_VISIT_BRIEF_GRAPH']`.
+       - Against deliberately broken copies of the fixed code: removing the
+         `tracing_context` guard failed both "sends nothing" tests; removing
+         the node check failed both refusal tests (`TracingEnabledError not
+         raised`); adding the token to graph state failed the token test.
+    3. **Bearer token** (was "not checked" under Evidence): checked, not
+       present — see Evidence. The token test fails if it ever becomes
+       reachable.
+  - Residual gaps, still open:
+    1. Any future graph or entry point still needs both layers applied by
+       hand. The module scan catches a raw compiled graph held at module level
+       anywhere in `agent/app/graph/`. It does not catch one compiled and
+       invoked inside a function, or nodes added without `_untraced`.
+    2. Python has no private access: code that assembles its own graph from
+       this module's node functions without `_untraced`, or calls them
+       directly, is outside both layers.
+    3. The node check recognises LangSmith's `LangChainTracer` only. Another
+       callback handler that exports run data would not be refused.
 - **Verified:** `first-hand` (transitive install; default endpoint; POST of
-  graph state with and without an API key; suppression by the guard) ·
-  inferred, not captured (chart records in the real graph's payload; delivery
-  to LangSmith Cloud).
+  graph state with and without an API key; suppression by the guard; chart
+  records in the real graph's trace payload, with marker records in place of
+  FHIR data; bearer token and the other runtime-context fields absent from
+  that payload; explicit tracer callbacks surviving `tracing_context`; both
+  guard layers and the token check exercised by
+  `agent/tests/test_langsmith_tracing_guard.py`, which fails on the pre-fix
+  code and on each deliberate breakage) · not captured (delivery to LangSmith
+  Cloud, deliberately never attempted) · inferred (the same payload shape
+  when the records come from the droplet's real FHIR API).
 - **Implication for the agent:** This is one instance of a general risk: an
   LLM orchestration framework can bundle telemetry or tracing integrations
   whose defaults are more permissive than a PHI-handling system can tolerate.
   Dependencies must be audited for outbound network calls, not only reviewed
   for their primary function — the egress counterpart of F-54's rule that
-  listening ports are checked directly rather than assumed.
+  listening ports are checked directly rather than assumed. A guard needs the
+  same treatment: `tracing_context(enabled=False)` reads as "tracing off" but
+  does not detach a tracer passed in explicitly, which only surfaced by
+  testing it.
 
 ---
 

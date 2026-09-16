@@ -10,6 +10,11 @@ langgraph>=1.2.11
 # off, so graph state holding chart records is never posted externally.
 langsmith>=0.3.45
 
+# Also installed with LangGraph; declared because app/graph/pre_visit_brief.py
+# imports it directly so every node can refuse to run while a LangSmith
+# tracer is attached (docs/audit/findings.md F-56). Same bounds LangGraph sets.
+langchain-core>=1.4.7,<2
+
 # Anthropic Python SDK — package name confirmed as `anthropic` on PyPI
 # (not e.g. `anthropic-sdk`); no LLM calls wired up yet — see app/health.py
 anthropic>=1.5.0
