@@ -315,7 +315,9 @@ hypothetical one.
 **What verification catches:** fabricated claims (a value the model stated
 that no retrieved record actually contains), and cross-patient
 contamination in a claim's source (a claim whose cited `source_id` belongs
-to a different patient than the one in context).
+to a different patient than the one in context), provided this turn's
+retrieval was itself correctly scoped to the current patient — see
+"Source-to-patient attribution" below for the case where it wasn't.
 
 **What verification does not catch — stated as known limitations, not
 silently assumed covered:**
@@ -336,6 +338,25 @@ silently assumed covered:**
   never characterizes a result as normal or abnormal. A separately-cited,
   LOINC-keyed reference-range source is a scoped v2 addition — explicitly
   not attempted here — not an oversight in v1's design.
+- **Source-to-patient attribution.** Verification checks claim-to-source
+  attribution, not source-to-patient attribution. It confirms a claim's
+  `source_id` is among what was retrieved this turn; it does not
+  independently confirm that the retrieved records belong to the patient
+  in the current conversation — the resource models it compares against
+  carry no patient field at all. Cross-patient contamination is currently
+  mitigated only at the conversation-state layer (the
+  `(user, patient, session)` key and invalidation on patient switch, §4),
+  not re-checked here: if that scoping has a bug, a claim sourced from the
+  wrong patient's record passes verification cleanly. This is an open gap,
+  not a resolved one.
+- **Empty or all-inactive query results.** Whether a queried resource type
+  returned zero results (e.g. "allergies: not recorded,"
+  USERS.md §3 Use Case 1; F-21) or returned records but none currently
+  active (e.g. "medications: none active") is not a claim-verification
+  concern: the rendering step computes both directly from the retrieval
+  results, with no LLM involvement, because each is a deterministically
+  knowable fact, not something that benefits from the draft-then-verify
+  pattern used for everything else.
 
 ## 6. Risks and Mitigations
 

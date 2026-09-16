@@ -552,18 +552,20 @@ Follow [Conventional Commits](https://www.conventionalcommits.org/):
 - `fix(calendar): correct date parsing for recurring events`
 - `chore(deps): bump monolog/monolog to 3.10.0`
 
-### AI Assistance Trailer
+### No AI-Attribution Trailers
 
-If an AI assistant helped write a commit, add an `Assisted-by` trailer to that
-commit:
+Commit messages in this repository contain only the subject line and, if
+needed, a body explaining the change. No AI-attribution trailers of any kind.
+This is a hard rule, not a preference, and it holds regardless of what an AI
+tool or its commit tooling adds by default. **Never include:**
 
-```bash
-git commit --trailer "Assisted-by: Claude Code" -m "fix(calendar): correct date parsing"
-```
+- `Co-Authored-By:`
+- `Claude-Session:`
+- `Assisted-by:`
+- Any other trailer of similar shape that attributes a commit to an AI tool,
+  model, or session (e.g. `Generated-By:`), in any capitalization
 
-Use the name of the tool as the trailer value (e.g. `Claude Code`,
-`GitHub Copilot`, `ChatGPT`). When the AI agent creates commits automatically,
-this trailer is typically added for you.
+If a tool appends one of these automatically, remove it before committing.
 
 ## Service Layer Pattern
 
