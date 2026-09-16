@@ -1339,6 +1339,42 @@ Pass-2 droplet database commands were run as
   Databases, and no other product off DigitalOcean's eligible list, unless that
   list changes.
 
+### F-59 — Logged Metric 2 cannot detect a render step that hides failed claims
+- **Category:** Compliance / Observability
+- **Severity:** Medium (monitoring gap, not a live bug)
+- **Claim:** `KEY_METRICS.md` Metric 2 (Unverified-Claim Disclosure Rate) is the
+  share of failed claims actually surfaced to the physician, and "anything
+  under 100% here is a defect in the render step". As implemented it reads
+  `disclosed_as_unverified` from `claim_verified_event`, which the verifier
+  sets to `True` for every failed claim before rendering runs. Nothing after
+  rendering records what was shown, so the metric reports 100% whatever the
+  renderer does.
+- **Evidence:**
+  - Source (`first-hand`): `agent/app/verification/checker.py:155-161`
+    `_failed()` always sets `disclosed_as_unverified=True` and has no parameter
+    to do otherwise; `agent/scripts/compute_metrics.py:220` `metric_2`
+    computes the rate from that field alone.
+  - Eval case C5 (`first-hand`, run 2026-09-16 22:45–22:48Z): in-process
+    pipeline with live FHIR retrieval, the model's real draft replayed plus 4
+    injected failing claims, and the renderer replaced for the run by one that
+    drops failed claims.
+    ```
+    suite's check of the rendered text:  5 violation(s), e.g. Active problems: failed claim "severe" not disclosed as UNVERIFIED (1x)
+    compute_metrics.py, same run's own events:  result: 100.0%  (4 disclosed of 4 failed claims) — meets the 100% absolute
+    ```
+  - The real renderer discloses correctly (`first-hand`, same run): B2
+    (failed claims shown as UNVERIFIED across 5 live briefs) and C1–C4
+    (injected failures shown as UNVERIFIED with their reason) pass.
+- **Remediation:** not done. Record disclosure from the render step — one
+  event per failed claim, emitted after the brief text is built, saying
+  whether its UNVERIFIED line is present — and compute Metric 2 from that.
+- **Verified:** `first-hand`
+- **Implication for the agent:** Metric 2 is the production monitor for §5's
+  "never silently dropped" promise, and it would stay at 100% through exactly
+  the regression it exists to catch. Until it measures the rendered output,
+  the evidence that failures reach the physician is the eval suite (B2,
+  C1–C4), not the metric.
+
 ---
 
 ## DATA QUALITY
@@ -1754,6 +1790,111 @@ Pass-2 droplet database commands were run as
   `ARCHITECTURE.md` — the agent can cite a medication against a standard code
   with high confidence, but cannot do the equivalent for a lab value's
   clinical significance.
+
+### F-57 — Uncoded allergy renders as "(unspecified allergen)" and passes verification
+- **Category:** Data Quality / Verification
+- **Severity:** High
+- **Claim:** An allergy that OpenEMR stores without a coded allergen reaches the
+  physician as `(unspecified allergen)`, marked verified. OpenEMR's FHIR
+  mapping sends such a record with `code` set to the data-absent-reason
+  placeholder and the allergen name only in the resource narrative
+  (`text.div`). The agent's FHIR client reads only `code` and falls back to a
+  fixed string; the model copies that string; the verifier compares it with
+  the same parsed record and passes it. The API collection's own demo patient,
+  Phil Belford (`a2c0e096-23d5-4cf9-ad5b-4895597363a7`), has a penicillin
+  allergy that renders this way.
+- **Evidence:**
+  - OpenEMR mapping (`first-hand`, source): `src/Services/FHIR/FhirAllergyIntoleranceService.php:217`
+    sets `code` to `UtilsService::createDataAbsentUnknownCodeableConcept()`
+    when the record has no diagnosis code; `:221` puts the record's `title`
+    into the narrative (`createNarrative($dataRecord['title'], "additional")`).
+  - Raw resource (`first-hand`, droplet FHIR API, 2026-09-16 ~21:40Z),
+    `AllergyIntolerance/a2c0e096-2141-41eb-94a3-8295a93183e8`:
+    ```
+    "text": {"status": "additional", "div": "<div xmlns='http://www.w3.org/1999/xhtml'>penicillin</div>"}
+    "code": {"coding": [{"system": "http://terminology.hl7.org/CodeSystem/data-absent-reason", "code": "unknown", "display": "Unknown"}]}
+    ```
+  - Agent parsing (`first-hand`, source): `agent/app/fhir/client.py:139`
+    `_display_text` tries `code.text`, then coding displays, skipping the
+    data-absent system (`:154`), then returns the caller's fallback;
+    `get_allergy_intolerances` passes `fallback="(unspecified allergen)"`
+    (`:348`). The narrative is never read.
+  - Live brief (`first-hand`, deployed agent `POST /pre-visit-brief`, same
+    result in every run 2026-09-16 21:40Z–22:48Z):
+    ```
+    Allergies:
+      - (unspecified allergen)
+    verification: {"claims": 5, "verified": 5, "unverified": 0}
+    ```
+  - Eval cases (`first-hand`, run 2026-09-16 22:45–22:48Z, `agent/evals/RESULTS.md`):
+    ```
+    A5 FAIL  allergy a2c0e096-2141: chart names it ['penicillin'], brief shows ['(unspecified allergen)']
+    B1 FAIL  a2c0e096-23d5-4cf9-ad5b-4895597363a7: verified claim "(unspecified allergen)" on
+             AllergyIntolerance/a2c0e096-2141: the chart record does not hold that value (it holds ['penicillin'])
+    ```
+    Caught because the suite reads raw FHIR JSON with its own parser
+    (`agent/evals/oracle.py`, no imports from `agent/app/`). A check built on
+    the agent's parsed records would have passed.
+  - Extent (`first-hand`, same population): the only uncoded record among the
+    50 AllergyIntolerance records visible to the test clinician.
+- **Remediation:** not done. When `code` holds only data-absent-reason
+  codings, the FHIR client should take the display from the narrative text
+  (tags stripped) and keep the record marked as uncoded, not substitute a
+  fixed placeholder.
+- **Verified:** `first-hand` (mapping, raw resource, parsing path, live brief,
+  eval failures) · `operator-reported` (that this is the patient-safety failure
+  the case study brief opens with; the brief is not in the repository) ·
+  inferred (that allergies entered by hand without choosing a code take the
+  same path; this population holds one such record).
+- **Implication for the agent:** Verification (`ARCHITECTURE.md` §5)
+  guarantees that a claim matches the record as the agent parsed it, not what
+  OpenEMR stored. A parsing gap upstream of verification produces a verified,
+  wrong claim, and here a "5 of 5 verified" result hides a drug allergy. This
+  is §5's "source data accuracy" limitation observed live, on the demo
+  patient. Checking the brief needs a chart reader that shares no code with
+  the agent.
+
+### F-58 — Allergy clinical status is discarded before drafting; a resolved allergy would render as current
+- **Category:** Data Quality
+- **Severity:** Medium (latent — no live allergy is resolved)
+- **Claim:** OpenEMR's FHIR `AllergyIntolerance` carries `clinicalStatus`
+  (`active`, `resolved`, `inactive`), but the agent's allergy model has no
+  status field, so status never reaches the model or the renderer. A resolved
+  allergy would be listed under "Allergies:" as current, and the "none active"
+  wording the brief uses for all-inactive sections can never appear for
+  allergies.
+- **Evidence:**
+  - OpenEMR mapping (`first-hand`, source): `FhirAllergyIntoleranceService.php:117-121`
+    emits `resolved` when the record has an end date and outcome `1`,
+    `inactive` for any other end date, and `active` otherwise.
+  - Agent (`first-hand`, source): `agent/app/models/fhir_resources.py:125`
+    `AllergyIntolerance` holds `source_id`, `display` and `recorded_date` only;
+    `agent/app/reasoning/draft_claims.py:83` ("AllergyIntolerance has no status
+    field, so every allergy record counts"), so `brief_records` keeps every
+    allergy and the section's `in_brief` always equals `retrieved`.
+  - Eval case A6 (`first-hand`, run 2026-09-16 22:45–22:48Z): a real patient's
+    real Bundle (`a2c0e47b-ec57-40e5-be47-9844f7ae98a1`, 10 allergies) with
+    only `clinicalStatus` changed in-test to OpenEMR's `resolved` coding — no
+    write to the chart. Drafting was replaced by a stand-in that follows the
+    system prompt, since no model can act on a field it is not given.
+    ```
+    A6 FAIL  10 resolved allergies rendered under 'Allergies:' as current, e.g. ['Allergic disposition (finding)',
+             'Mold (organism)', 'House dust mite (organism)']; the model's input for AllergyIntolerance has only
+             ['display', 'recorded_date', 'source_id'], so no status can reach the brief
+    ```
+  - Live state (`first-hand`, droplet FHIR API, 2026-09-16 ~21:30Z): all 50
+    AllergyIntolerance records, across the 10 patients with any, report
+    `clinicalStatus` `active`. Nothing renders wrongly today.
+- **Remediation:** not done. Carry clinical status on the allergy model and
+  apply the same active filter used for conditions and medications, so
+  "none active" is reachable for allergies.
+- **Verified:** `first-hand` (mapping, model, eval result, live census) · not
+  observed on a real resolved allergy (none exists in this population).
+- **Implication for the agent:** The brief's "not recorded" / "none active"
+  distinction (`ARCHITECTURE.md` §5) holds for conditions and medications
+  only. For allergies it fails silently the first time a clinician records an
+  end date; that no live record has one is a property of this seed (F-43),
+  not of the code.
 
 ---
 
@@ -2593,6 +2734,51 @@ Pass-2 droplet database commands were run as
   repeat this check. That guarantee disappears if the bind-mounted, writable
   checkout is kept.
 
+### F-60 — `/ready` reports the model provider healthy while an exhausted credit balance fails every brief
+- **Category:** Architecture / Observability
+- **Severity:** Medium
+- **Claim:** `/ready`'s LLM check calls `models.retrieve`, which needs a valid
+  key but spends no tokens, so it cannot see a billing failure. On 2026-09-16
+  the Anthropic account's credit balance ran out during an eval run: briefs
+  failed while `/ready` stayed `ready` with `llm_provider: healthy`. The
+  failure itself was contained: fast 502s, no partial or empty brief.
+- **Evidence:**
+  - Source (`first-hand`): `agent/app/health.py:116`
+    `await client.models.retrieve(MODEL)`, documented at `:16` as "no tokens
+    consumed"; results cached for 15 s (`:63`).
+  - Outage (`first-hand`; the eval run that started 22:03Z — the later
+    22:45–22:48Z run was clean):
+    ```
+    22:03–22:05Z  eval G2: two concurrent POST /pre-visit-brief → HTTP 502 brief_generation_failed, in 0.7 s and 1.0 s
+                  eval E3 control (in-process, local key) → anthropic.BadRequestError
+    22:05:44Z     direct Messages API call, local key → 400 invalid_request_error "Your credit balance is too low
+                  to access the Anthropic API. ..." (request_id req_011Cf7sqvpom1efycJbP6GVd)
+    ~22:06Z       GET https://201.79.25.22:8443/ready → 200 {"status":"ready", ... "llm_provider":{"status":"healthy", ...}}
+    22:08–22:11Z  next eval run: briefs succeed again
+    ```
+  - Contained failure (`first-hand` + source): the failed requests carried an
+    error body with no `brief` field (eval G1 read one); the 502 path in
+    `agent/app/api/pre_visit_brief.py` returns `ErrorResponse` only, with "No
+    partial brief is returned".
+  - Not recoverable afterwards: the 22:03Z run's results file was overwritten
+    by the next run (its observations were read in-session first), and the
+    droplet agent container was recreated at 2026-09-16T22:17:46Z by a separate
+    deployment, so its logs for the window are gone.
+- **Remediation:** not done. Either a readiness check that spends a minimal
+  token budget on a slower cadence than `/ready` polling, or readiness that
+  also reflects recent `llm_call_failed` events (for example, consecutive
+  `invalid_request_error` / billing failures → `not_ready`).
+- **Verified:** `first-hand` (probe code; local credit error; `/ready` healthy
+  during the outage; droplet 502s) · inferred (that the droplet's 502s came from
+  the same account's credit exhaustion — the droplet's key and logs were not
+  available; see Verification gaps item 24).
+- **Implication for the agent:** A readiness probe blind to billing reports
+  healthy while the agent serves nothing, so an orchestrator keeps routing to
+  it and an operator watching `/ready` sees no incident. The failure mode
+  itself is a positive datapoint for the case study's failure-mode
+  requirement — fast, explicit, nothing partial — but it was visible only in
+  the failed requests.
+
 ---
 
 ## Verification gaps
@@ -2664,6 +2850,11 @@ Recorded so that absence of evidence is not later read as evidence of absence.
     exists with all LLM providers — `operator-reported`, since the brief is
     not in the repository — which is an assumption, not an agreement. Flow,
     coverage and the real-deployment requirement: `ARCHITECTURE.md` §6.
+24. **Cause of the droplet agent's 502s during the 2026-09-16 credit outage —
+    inferred** (F-60). The droplet's Anthropic key was not inspected, and the
+    agent container was recreated at 22:17:46Z, removing its logs for
+    22:03–22:06Z. That the same exhausted account caused them is inferred from
+    matching timing and the `brief_generation_failed` code.
 
 ---
 
