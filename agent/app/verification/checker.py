@@ -19,10 +19,11 @@ Invariant: a failed claim always leaves here with
 disclosed_as_unverified=True. KEY_METRICS.md Metric 2 allows "not
 disclosed" only as a deliberate, later render-step decision — never as
 something the verifier itself produces. VerificationResult
-(app/models/claims.py) lets any caller set that field freely, so the
-guarantee is enforced here instead: results are built only by _passed()
-and _failed(), and _failed() has no parameter through which the field
-could be set to anything but True.
+(app/models/claims.py) rejects an undeclared hidden failure anywhere it
+is constructed; this module goes further and never produces a hidden
+failure at all: results are built only by _passed() and _failed(), and
+_failed() has no parameter through which the field could be set to
+anything but True.
 
 What this module deliberately does NOT do (§5 known limitations):
 retrieval completeness, source-data accuracy, multi-record synthesis

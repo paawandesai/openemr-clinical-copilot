@@ -19,7 +19,9 @@ directly in terms of VerificationResult's `passed` and
 
 from __future__ import annotations
 
-from pydantic import BaseModel, Field
+from typing import Self
+
+from pydantic import BaseModel, Field, model_validator
 
 from app.models.fhir_resources import FhirResourceType
 
@@ -119,3 +121,34 @@ class VerificationResult(BaseModel):
             "which KEY_METRICS.md defines only over that failed subset."
         ),
     )
+
+    suppression_reason: str | None = Field(
+        default=None,
+        description=(
+            "Why a failed claim was deliberately hidden from the physician. "
+            "Distinct from `reason`, which says why verification failed. "
+            "The only legal way to produce passed=False with "
+            "disclosed_as_unverified=False — see "
+            "_reject_undeclared_silent_failure."
+        ),
+    )
+
+    @model_validator(mode="after")
+    def _reject_undeclared_silent_failure(self) -> Self:
+        """
+        §5: a failed claim is "never silently dropped." A hidden failure
+        must be declared via suppression_reason; one produced by accident
+        (passed=False, disclosed_as_unverified=False, no
+        suppression_reason) is a construction error, not a Metric 2 miss
+        discovered later.
+        """
+        if self.passed:
+            return self
+        if self.disclosed_as_unverified:
+            return self
+        if self.suppression_reason is not None:
+            return self
+        raise ValueError(
+            "failed claim must be disclosed_as_unverified=True unless "
+            "suppression_reason declares why it is being hidden"
+        )
