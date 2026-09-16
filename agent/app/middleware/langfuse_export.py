@@ -100,9 +100,20 @@ if TYPE_CHECKING:
 
 _REQUIRED_ENV = ("LANGFUSE_BASE_URL", "LANGFUSE_PUBLIC_KEY", "LANGFUSE_SECRET_KEY")
 
-# How long a successful/failed reachability check is trusted before
-# check_export_health() schedules another one in the background.
-_AUTH_CHECK_TTL_SECONDS = 60.0
+# How long a reachability check result is trusted before
+# check_export_health() schedules another one in the background, and the
+# age beyond which a result is not reported at all (see check_health).
+_AUTH_CHECK_TTL_SECONDS = 15.0
+_AUTH_CHECK_MAX_STALENESS_SECONDS = 60.0
+
+_AuthResult = Literal["ok", "unreachable", "rejected", "failed"]
+
+# Returned through /ready, so: no URLs, paths or exception text (F-37).
+_AUTH_FAILURE_MESSAGES: dict[str, str] = {
+    "unreachable": "Langfuse unreachable",
+    "rejected": "Langfuse rejected the configured API keys",
+    "failed": "Langfuse reachability check failed",
+}
 
 SpanLevel = Literal["DEBUG", "DEFAULT", "WARNING", "ERROR"]
 
@@ -148,8 +159,8 @@ class LangfuseExporter:
     def __init__(self, client: Langfuse) -> None:
         self._client = client
         self._auth_lock = threading.Lock()
-        self._auth_ok: bool | None = None
-        self._auth_checked_at = 0.0
+        self._auth_result: _AuthResult | None = None
+        self._auth_checked_at = float("-inf")
         self._auth_check_running = False
 
     # -- export -----------------------------------------------------------
@@ -301,33 +312,43 @@ class LangfuseExporter:
         and schedules a new one when the last is older than the TTL. Never
         makes a network call on the caller's thread, so /ready cannot stall
         the event loop while Langfuse is down.
+
+        Staleness is bounded: a result older than
+        _AUTH_CHECK_MAX_STALENESS_SECONDS is never reported as healthy, so
+        after Langfuse goes down /ready turns unhealthy within at most that
+        long even if nothing probed it in between.
         """
         with self._auth_lock:
-            stale = time.monotonic() - self._auth_checked_at > _AUTH_CHECK_TTL_SECONDS
-            if stale and not self._auth_check_running:
+            age = time.monotonic() - self._auth_checked_at
+            if age > _AUTH_CHECK_TTL_SECONDS and not self._auth_check_running:
                 self._auth_check_running = True
                 threading.Thread(
                     target=self._run_auth_check, name="langfuse-auth-check", daemon=True
                 ).start()
-            auth_ok = self._auth_ok
+            result = self._auth_result
 
-        if auth_ok is None:
+        if result is None or age > _AUTH_CHECK_MAX_STALENESS_SECONDS:
             raise ObservabilityExportUnavailable("Langfuse reachability not yet confirmed")
-        if not auth_ok:
-            raise ObservabilityExportUnavailable(
-                "Langfuse unreachable or API keys rejected"
-            )
+        if result != "ok":
+            raise ObservabilityExportUnavailable(_AUTH_FAILURE_MESSAGES[result])
 
     def _run_auth_check(self) -> None:
+        from httpx import TransportError
+
+        result: _AuthResult
         try:
-            ok = bool(self._client.auth_check())
-        except Exception:
-            ok = False
+            result = "ok" if self._client.auth_check() else "failed"
+        except TransportError:
+            result = "unreachable"
+        except Exception as exc:
+            result = "rejected" if getattr(exc, "status_code", None) in (401, 403) else "failed"
         with self._auth_lock:
-            self._auth_ok = ok
+            self._auth_result = result
             self._auth_checked_at = time.monotonic()
             self._auth_check_running = False
-        structlog.get_logger().info("observability_export_auth_check", ok=ok)
+        structlog.get_logger().info(
+            "observability_export_auth_check", ok=result == "ok", result=result
+        )
 
 
 _exporter: LangfuseExporter | None = None
@@ -429,11 +450,10 @@ def export_event(
 
 def check_export_health() -> None:
     """
-    For /ready (app/health.py `_check_observability_backend`, wired after the
-    parallel tracks merge — see observability.md). Raises
-    ObservabilityExportUnavailable when export is disabled, misconfigured, or
-    Langfuse is unreachable. Message strings contain no paths, URLs or
-    exception text (docs/AUDIT.md F-37).
+    Called by /ready (app/health.py `_check_observability_backend`). Raises
+    ObservabilityExportUnavailable when export is disabled, misconfigured,
+    Langfuse is unreachable, or it rejects the API keys. Message strings
+    contain no paths, URLs or exception text (docs/AUDIT.md F-37).
     """
     if _exporter is None:
         raise ObservabilityExportUnavailable(_disabled_reason or "Langfuse export disabled")

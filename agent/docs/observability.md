@@ -165,11 +165,21 @@ What happens with each configuration state:
 - Delivery is batched on a background thread, so a down Langfuse costs a
   request nothing.
 - `check_export_health()` answers "is export actually working" without
-  blocking. It reports a background auth check refreshed every 60 s, and
-  its messages contain no URLs, paths or exception text (F-37).
-- **Not yet wired into `/ready`.** `app/health.py` is likely being edited by
-  another track. After the tracks merge, the one-line follow-up is to have
-  `_check_observability_backend()` call `check_export_health()`.
+  blocking, and backs `/ready`'s `observability_backend` check
+  (`app/health.py`). It reports a background auth check refreshed every
+  15 s; a result older than 60 s is never reported as healthy. Details are
+  `Langfuse unreachable` (connection failure), `Langfuse rejected the
+  configured API keys` (401/403), `Langfuse reachability check failed`,
+  `Langfuse export not configured`, or `Langfuse reachability not yet
+  confirmed` — no URLs, paths or exception text (F-37).
+- **Verified live (2026-09-16):**
+  - Langfuse up → `"observability_backend": {"status": "healthy"}`.
+  - Containers stopped → the first probe served the 33 s-old cached result
+    and triggered a recheck; 3 s later `{"status": "unhealthy", "detail":
+    "Langfuse unreachable"}`, with no endpoint error.
+  - Restarted → `healthy` again within 3 s.
+  - `/health` stayed 200 throughout. `/ready` stays 503 overall while the
+    FHIR and LLM provider checks are still `not_implemented`.
 
 ### Langfuse v4 behaviours found during verification
 
@@ -448,8 +458,6 @@ screenshotted; this describes those screenshots.
 
 ## 8. Known gaps (local)
 
-- **`/ready` not yet wired** to `check_export_health()` (§4). One line,
-  after the tracks merge.
 - **No `LlmUsageEvent` model** in `metrics_events.py` yet (§6, Metric 6).
 - **Metric 5's mean fractional coverage** needs API arithmetic (§6).
 - **Dashboards are recipes, not provisioned objects.** Widgets live in each
@@ -602,7 +610,8 @@ Facts from DigitalOcean's docs (checked 2026-09-16) that the steps rely on:
       `observability_export_auth_check` with `"ok": true`.
 - [ ] Inside droplet 1's agent container:
       `python scripts/send_langfuse_test_event.py` → prints `VERIFIED`, exit 0.
-- [ ] If not already done: wire `/ready` → `check_export_health()` (§4).
+- [ ] `GET /ready` on droplet 1's agent → `"observability_backend":
+      {"status": "healthy"}`.
 - [ ] For load tests on droplet 1, record whether `LANGFUSE_*` export was
       enabled for each baseline run. The SDK's batching thread still runs on
       droplet 1.

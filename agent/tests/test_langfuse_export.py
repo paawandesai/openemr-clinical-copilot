@@ -19,6 +19,7 @@ import unittest
 from typing import Any
 from unittest import mock
 
+import httpx
 from langfuse import Langfuse
 
 from app.middleware import langfuse_export
@@ -42,11 +43,11 @@ class _FakeObservation:
 class _FakeClient:
     create_trace_id = staticmethod(Langfuse.create_trace_id)
 
-    def __init__(self, auth_ok: bool = True) -> None:
+    def __init__(self, auth: bool | BaseException = True) -> None:
         self.events: list[dict[str, Any]] = []
         self.generations: list[dict[str, Any]] = []
         self.scores: list[dict[str, Any]] = []
-        self.auth_ok = auth_ok
+        self.auth = auth
         self._n = 0
 
     def _observation(self, record: dict[str, Any]) -> _FakeObservation:
@@ -69,7 +70,12 @@ class _FakeClient:
         self.scores.append(kwargs)
 
     def auth_check(self) -> bool:
-        return self.auth_ok
+        # The real SDK raises httpx.ConnectError when nothing is listening
+        # and UnauthorizedError (status_code 401) on bad keys — verified
+        # against server 4.37.0.
+        if isinstance(self.auth, BaseException):
+            raise self.auth
+        return self.auth
 
     def flush(self) -> None:
         pass
@@ -297,34 +303,65 @@ class MetricDerivationTest(_Base):
         self.assertNotIn("output", client.events[0])
 
 
+class _Unauthorized(Exception):
+    status_code = 401
+
+
 class HealthTest(_Base):
+    def _wait_for_message(self, expected: str | None) -> str | None:
+        """Polls until check_export_health() passes (expected=None) or raises containing `expected`."""
+        deadline = time.monotonic() + 5
+        last: str | None = "never checked"
+        while time.monotonic() < deadline:
+            try:
+                langfuse_export.check_export_health()
+                last = None
+            except langfuse_export.ObservabilityExportUnavailable as exc:
+                last = str(exc)
+            if (expected is None and last is None) or (expected and last and expected in last):
+                return last
+            time.sleep(0.01)
+        return last
+
     def test_health_is_non_blocking_then_reflects_background_check(self) -> None:
-        self.install_fake(auth_ok=True)
+        self.install_fake(auth=True)
         with self.assertRaisesRegex(langfuse_export.ObservabilityExportUnavailable, "not yet confirmed"):
             langfuse_export.check_export_health()
-        deadline = time.monotonic() + 5
-        while time.monotonic() < deadline:
-            try:
-                langfuse_export.check_export_health()
-                break
-            except langfuse_export.ObservabilityExportUnavailable:
-                time.sleep(0.01)
-        else:
-            self.fail("background auth check never reported healthy")
+        self.assertIsNone(self._wait_for_message(None))
 
-    def test_rejected_credentials_report_unhealthy(self) -> None:
-        self.install_fake(auth_ok=False)
-        deadline = time.monotonic() + 5
-        message = ""
-        while time.monotonic() < deadline:
-            try:
-                langfuse_export.check_export_health()
-            except langfuse_export.ObservabilityExportUnavailable as exc:
-                message = str(exc)
-                if "rejected" in message:
-                    break
-            time.sleep(0.01)
-        self.assertIn("rejected", message)
+    def test_connection_failure_reports_unreachable(self) -> None:
+        self.install_fake(auth=httpx.ConnectError("connection refused"))
+        self.assertEqual(self._wait_for_message("unreachable"), "Langfuse unreachable")
+
+    def test_rejected_keys_report_rejected(self) -> None:
+        self.install_fake(auth=_Unauthorized())
+        self.assertEqual(
+            self._wait_for_message("rejected"), "Langfuse rejected the configured API keys"
+        )
+
+    def test_messages_never_leak_exception_text(self) -> None:
+        self.install_fake(auth=RuntimeError("secret internal detail http://10.0.0.5:3000"))
+        message = self._wait_for_message("failed")
+        self.assertEqual(message, "Langfuse reachability check failed")
+
+    def test_result_older_than_max_staleness_is_not_reported_healthy(self) -> None:
+        self.install_fake(auth=True)
+        exporter = langfuse_export._exporter
+        assert exporter is not None
+        exporter._auth_result = "ok"
+        exporter._auth_checked_at = time.monotonic() - langfuse_export._AUTH_CHECK_MAX_STALENESS_SECONDS - 1
+        exporter._auth_check_running = True  # hold the refresh so the stale result is what's read
+        with self.assertRaisesRegex(langfuse_export.ObservabilityExportUnavailable, "not yet confirmed"):
+            langfuse_export.check_export_health()
+
+    def test_result_within_ttl_is_reported_without_a_new_check(self) -> None:
+        client = self.install_fake(auth=httpx.ConnectError("would fail if called"))
+        exporter = langfuse_export._exporter
+        assert exporter is not None
+        exporter._auth_result = "ok"
+        exporter._auth_checked_at = time.monotonic()
+        langfuse_export.check_export_health()  # cached, fresh: passes, no network call
+        self.assertFalse(exporter._auth_check_running)
 
 
 if __name__ == "__main__":
