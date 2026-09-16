@@ -2657,6 +2657,13 @@ Recorded so that absence of evidence is not later read as evidence of absence.
     22:43:00Z as `"\x16\x03\x01\x05\xa7\x01" 400`). Internet reachability is
     instead evidenced by the 338-source UFW block log and the
     `45.79.207.252` request (F-33).
+23. **LLM-provider BAA — none executed or recorded** (added 2026-09-16; the
+    counterpart of item 14). Every Pre-Visit Brief sends retrieved chart
+    records to Anthropic's API. For this submission that flow is covered
+    only by the case study brief's instruction to act as if a signed BAA
+    exists with all LLM providers — `operator-reported`, since the brief is
+    not in the repository — which is an assumption, not an agreement. Flow,
+    coverage and the real-deployment requirement: `ARCHITECTURE.md` §6.
 
 ---
 

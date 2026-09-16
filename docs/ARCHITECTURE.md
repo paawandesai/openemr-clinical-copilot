@@ -75,7 +75,8 @@ they constrain everything else.
 
 A single DigitalOcean droplet running Docker Compose, hosting OpenEMR and
 its MySQL/MariaDB database as containers on the same host — mirroring the
-audited deployment (`docker/development-easy`, F-48).
+audited deployment (`docker/development-easy`, F-48) — and, as a separate
+Compose project on that same droplet, the agent (below).
 
 **Why self-hosted MySQL, not a managed database:** this is a compliance
 constraint, not a convenience one. DigitalOcean's published HIPAA-eligible
@@ -87,13 +88,60 @@ convenience. The agent introduces no new datastore that would need this
 same decision made twice: it reads through the FHIR API and writes nothing
 to the EHR's own database (see §2).
 
-**Where the agent process lives:** as an additional service in the same
-Compose stack, on the same droplet — not a separate host, and not (yet) a
-specific service shape. Placing agent compute outside the droplet would
-either require its own BAA-covered placement decision or risk PHI leaving
-covered infrastructure through request/response logging; the agent's
-service shape is explicitly **not yet decided** and is called out under
-Risks (§6) rather than asserted here as settled.
+**Where the agent process lives — decided and deployed.** On the same
+droplet as OpenEMR (`201.79.25.22`), so agent compute stays on the covered
+product (F-41). Placing it outside the droplet would either require its own
+BAA-covered placement decision or risk PHI leaving covered infrastructure
+through request/response logging. Its shape (`agent/deploy/`, operated per
+`agent/docs/deployment.md`):
+
+- **A separate Compose project** (`clinical-copilot-agent`), not a service
+  inside OpenEMR's `development-easy` stack, whose compose file is
+  unchanged.
+- **Its own Docker network, deliberately isolated from OpenEMR's.** A
+  container on OpenEMR's `development-easy_default` network gets a direct
+  TCP connection to `mysql:3306`, and MySQL still accepts the default
+  `root`/`root` credentials (F-34). The agent instead reaches OpenEMR's FHIR
+  API the way any other client does: through its published HTTPS port, via
+  the Docker host gateway (`https://host.docker.internal:9300`). From the
+  agent's network, MySQL is unreachable both by name and through the gateway
+  (tested live, 2026-09-16). §2's "no direct database connection anywhere in
+  the agent's data path" is therefore a property of the network, not only of
+  the code.
+- **One public port: `0.0.0.0:8443`** (IPv4), with TLS terminated by a Caddy
+  proxy in the same project. The agent's own uvicorn port 8000 is not
+  published. Every request that reads chart data needs a clinician token
+  OpenEMR accepts.
+- **One credential: `ANTHROPIC_API_KEY`.** This corrects an earlier
+  assumption that the agent would hold FHIR credentials. It holds none: the
+  clinician's own token carries FHIR access on each request (§2). The key is
+  stored at `/etc/clinical-copilot/agent.env` (mode 600, root only) and is
+  never in the image or the repository. It is also kept out of the OpenEMR
+  checkout, which is bind-mounted read-write into Apache's document root
+  (F-48), so a file there could be web-served.
+
+The bindings were verified by the rule in the case study below, after
+deployment on 2026-09-16. On the droplet, `ss -tlnp` showed exactly one new
+listener, `0.0.0.0:8443`, with MySQL and phpMyAdmin still on
+`127.0.0.1:18320` and `127.0.0.1:18310`. From outside the droplet, `nc`
+found 22, 8300, 9300 and 8443 open, and 8000, 18310, 18320, 3306 and 2019
+closed.
+
+**Stated limitations of this deployment:**
+
+- **The certificate is not publicly trusted.** It comes from Caddy's local
+  CA, because the droplet has no domain name (cf. F-36, R-6). Clients must
+  trust the exported root or skip verification, and a client that skips it
+  is not protected against interception.
+- **No rate limiting.** Anyone holding a valid clinician token can call the
+  endpoint repeatedly, and each call is an LLM request.
+- **External reachability was checked from a single vantage point:** the
+  operator's egress, `192.63.199.50`, which F-54 itself notes is not an
+  independent one. IPv6 was checked only on the host (`ss` shows no IPv6
+  listener on 8443); an external IPv6 probe was inconclusive.
+- **The agent → OpenEMR hop skips certificate verification.** OpenEMR's
+  certificate is self-signed (F-36), so the FHIR client's documented,
+  temporary exception applies. The hop stays on the host.
 
 **Where observability lives — decided for this submission.** The live path
 is `agent/scripts/compute_metrics.py`: a local script that reads the
@@ -402,8 +450,9 @@ silently assumed covered:**
 | Real PHI is deployed onto the currently-audited stack as-is | **No — open** | The audited droplet runs the development Compose stack, not the hardened `docker/release` build (F-48): Xdebug loaded live, a writable git-checkout bind-mount, dependency builds against upstream registries on every boot. Stated as an explicit precondition to close, not something this plan resolves by naming it. |
 | Retrieval incompleteness (the right record never fetched) silently passes as "verified" | **No — open** | Outside what source-verification can catch by construction (§5). Requires separate retrieval-completeness evaluation this plan does not yet define. |
 | Observability backend creates new ePHI-handling surface outside covered infrastructure | Yes, for this submission | No observability backend is deployed. All six metrics are computed by `agent/scripts/compute_metrics.py` from the agent's own stdout log, with no second service or host (§1). Self-hosted Langfuse is built and verified locally but deferred to v2: a second droplet (a BAA-covered product, F-41) on the private VPC network, per the checklist in `agent/docs/observability.md` §9. |
-| Agent compute placement creates new ePHI-handling surface outside covered infrastructure | **No — open** | Not yet decided which specific service shape the agent process takes, only that it is planned to stay on the same covered droplet (§1). |
+| Agent compute placement creates new ePHI-handling surface outside covered infrastructure | Yes — decided and deployed, with stated limitations | The agent runs on the same covered droplet (F-41) as its own Compose project on its own Docker network. From there it has no route to MySQL, which still accepts default `root`/`root` (F-34), and reaches OpenEMR only through the published FHIR port. One public port, `0.0.0.0:8443`, behind TLS; uvicorn's port 8000 is not published. Bindings were verified with `ss` on the host and external `nc` after deployment (§1). Its only credential is `ANTHROPIC_API_KEY`, in `/etc/clinical-copilot/agent.env` (mode 600) and never in the image or repository. Limitations (§1): the certificate is not publicly trusted (no domain), there is no rate limiting, and external checks came from the operator's egress only. |
+| Retrieved chart records leave the droplet for the LLM provider on every Pre-Visit Brief | Yes, for this exercise — covered by its stated BAA assumption, not an executed BAA | **Flow:** each brief sends the patient's active conditions, active medications and all allergy records to Anthropic's Messages API for claim drafting (`agent/app/reasoning/draft_claims.py`). The fields sent are FHIR record ids, names, statuses, RxNorm codes and dates; no demographics or patient id. That is PHI leaving the covered droplet, by design. **Coverage:** the case study brief directs treating every LLM provider as bound by a signed Business Associate Agreement under which no data is used for training ("act as if you have a signed Business Associate Agreement with all LLM providers" — as provided by the operator; the brief is not in this repository). That stated assumption is this submission's mitigation. No BAA with Anthropic has been executed or is recorded in this project. **Before real PHI:** an executed BAA with Anthropic (or a HIPAA-eligible endpoint / zero-data-retention arrangement). The current dataset is synthetic (F-41). |
 
-Three risks are stated here as genuinely open, not mitigated, because
+Two risks are stated here as genuinely open, not mitigated, because
 overstating this plan's coverage would itself be the kind of unverifiable
 claim §5 is designed to prevent everywhere else in this system.
