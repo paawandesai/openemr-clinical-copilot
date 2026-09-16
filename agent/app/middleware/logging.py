@@ -24,6 +24,11 @@ This module configures *how* logs are shaped and rendered. It does not
 decide *when* to log anything, and it implements no metric aggregation —
 KEY_METRICS.md's six metrics are computed from this data by something
 else, later; this task is instrumentation only.
+
+Export: every `log_event` line goes to stdout AND, when LANGFUSE_BASE_URL /
+LANGFUSE_PUBLIC_KEY / LANGFUSE_SECRET_KEY are set, to self-hosted Langfuse
+(app/middleware/langfuse_export.py; decision and metric mapping in
+agent/docs/observability.md). Unset, behaviour is stdout-only, as before.
 """
 
 from __future__ import annotations
@@ -34,6 +39,7 @@ from typing import Any
 
 import structlog
 
+from app.middleware import langfuse_export
 from app.models.metrics_events import UseCase
 
 
@@ -60,6 +66,9 @@ def configure_logging(level: int = logging.INFO) -> None:
         logger_factory=structlog.PrintLoggerFactory(file=sys.stdout),
         cache_logger_on_first_use=True,
     )
+    # After structlog is configured, so the enabled/disabled line it writes
+    # is rendered as JSON like every other line.
+    langfuse_export.init_exporter()
 
 
 def log_event(
@@ -98,5 +107,13 @@ def log_event(
         event_type=event_type,
         event_data=event_data or {},
         use_case=use_case.value if use_case else None,
+        patient_session_key=patient_session_key,
+    )
+    # In addition to stdout, not instead of it. No-op when export is not
+    # configured; never raises (app/middleware/langfuse_export.py).
+    langfuse_export.export_event(
+        event_type=event_type,
+        event_data=event_data or {},
+        use_case=use_case,
         patient_session_key=patient_session_key,
     )

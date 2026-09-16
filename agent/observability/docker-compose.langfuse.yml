@@ -1,0 +1,224 @@
+# Self-hosted Langfuse — LOCAL DEVELOPMENT stack for the Clinical Co-Pilot
+# agent's observability track. See agent/docs/observability.md for the
+# decision, the KEY_METRICS.md mapping, and the production-deployment gap.
+#
+# Derived from Langfuse's own docker-compose.yml at tag v4.37.0
+# (https://github.com/langfuse/langfuse/blob/v4.37.0/docker-compose.yml).
+# Langfuse ships no lighter "run Langfuse" variant: docker-compose.dev.yml
+# starts only the backing stores for people developing Langfuse itself (no
+# web/worker), and docker-compose.build.yml builds from source. All six
+# services below are required by Langfuse v4 — none can be dropped.
+#
+# Deliberate deviations from upstream, each one a security/hygiene choice:
+#
+#   1. PORTS. Exactly ONE host port is published: langfuse-web on
+#      127.0.0.1:${LANGFUSE_WEB_PORT:-3000}. Upstream publishes langfuse-web
+#      as "3000:3000" and MinIO as "9090:9000" — i.e. on 0.0.0.0 — and
+#      relies on "a security group or firewall" to restrict them. That is
+#      precisely the pattern docs/AUDIT.md F-54 documents failing on this
+#      project: Docker's NAT rules run ahead of UFW. The bind address is
+#      hardcoded, not parameterised, so no .env value can widen it.
+#      The five other upstream mappings (worker 3030, ClickHouse 8123/9000,
+#      MinIO console 9091, Redis 6379, Postgres 5432) were loopback upstream
+#      but are not needed on the host at all — they are removed entirely;
+#      services reach each other over the compose network. MinIO's 9090 is
+#      only needed for multi-modal media uploads and batch-export downloads,
+#      neither of which this agent uses (it never sends input/output
+#      payloads — see agent/docs/observability.md). Use
+#      `docker compose exec <service> ...` for debugging access.
+#
+#   2. SECRETS. Upstream ships working weak defaults (postgres/postgres,
+#      miniosecret, an all-zero ENCRYPTION_KEY, ...) marked "# CHANGEME".
+#      Here every secret is `${VAR:?...}` — the stack refuses to start
+#      until agent/observability/generate-env.sh has written random values
+#      to agent/observability/.env (gitignored).
+#
+#   3. TELEMETRY_ENABLED=false (upstream default true) — no usage telemetry
+#      leaves this deployment. AUTH_DISABLE_SIGNUP=true — the only account
+#      is the one created by headless initialisation.
+#
+#   4. Images pinned to langfuse 4.37.0 instead of the floating ":4" tag, so
+#      the stack verified locally is the stack deployed later.
+#
+#   5. Optional upstream env vars that default to empty (in-app AI agent,
+#      LLM connections, Azure/OCI blob, SMTP, Redis TLS, MCP) are omitted;
+#      Langfuse treats unset and empty identically for these.
+#
+#   6. Healthchecks added for langfuse-web and langfuse-worker (upstream has
+#      none), so `docker compose up --wait` means "actually serving", not
+#      "container process started".
+#
+#   7. restart: unless-stopped (upstream: always) — a local dev stack
+#      should stay stopped once stopped.
+#
+# Usage (from the repository root):
+#   agent/observability/generate-env.sh
+#   docker compose -f agent/observability/docker-compose.langfuse.yml up -d --wait
+#   open http://localhost:3000
+
+name: clinical-copilot-langfuse
+
+x-langfuse-env: &langfuse-env
+  NEXTAUTH_URL: http://localhost:${LANGFUSE_WEB_PORT:-3000}
+  DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD:?run generate-env.sh}@postgres:5432/postgres
+  SALT: ${SALT:?run generate-env.sh}
+  ENCRYPTION_KEY: ${ENCRYPTION_KEY:?run generate-env.sh}
+  TELEMETRY_ENABLED: "false"
+  LANGFUSE_ENABLE_EXPERIMENTAL_FEATURES: "false"
+  CLICKHOUSE_MIGRATION_URL: clickhouse://clickhouse:9000
+  CLICKHOUSE_URL: http://clickhouse:8123
+  CLICKHOUSE_USER: clickhouse
+  CLICKHOUSE_PASSWORD: ${CLICKHOUSE_PASSWORD:?run generate-env.sh}
+  CLICKHOUSE_CLUSTER_ENABLED: "false"
+  LANGFUSE_S3_EVENT_UPLOAD_BUCKET: langfuse
+  LANGFUSE_S3_EVENT_UPLOAD_REGION: auto
+  LANGFUSE_S3_EVENT_UPLOAD_ACCESS_KEY_ID: minio
+  LANGFUSE_S3_EVENT_UPLOAD_SECRET_ACCESS_KEY: ${MINIO_ROOT_PASSWORD:?run generate-env.sh}
+  LANGFUSE_S3_EVENT_UPLOAD_ENDPOINT: http://minio:9000
+  LANGFUSE_S3_EVENT_UPLOAD_FORCE_PATH_STYLE: "true"
+  LANGFUSE_S3_EVENT_UPLOAD_PREFIX: events/
+  LANGFUSE_S3_MEDIA_UPLOAD_BUCKET: langfuse
+  LANGFUSE_S3_MEDIA_UPLOAD_REGION: auto
+  LANGFUSE_S3_MEDIA_UPLOAD_ACCESS_KEY_ID: minio
+  LANGFUSE_S3_MEDIA_UPLOAD_SECRET_ACCESS_KEY: ${MINIO_ROOT_PASSWORD:?run generate-env.sh}
+  LANGFUSE_S3_MEDIA_UPLOAD_ENDPOINT: http://minio:9000
+  LANGFUSE_S3_MEDIA_UPLOAD_FORCE_PATH_STYLE: "true"
+  LANGFUSE_S3_MEDIA_UPLOAD_PREFIX: media/
+  LANGFUSE_S3_BATCH_EXPORT_ENABLED: "false"
+  REDIS_HOST: redis
+  REDIS_PORT: "6379"
+  REDIS_AUTH: ${REDIS_AUTH:?run generate-env.sh}
+
+x-langfuse-depends-on: &langfuse-depends-on
+  postgres:
+    condition: service_healthy
+  minio:
+    condition: service_healthy
+  redis:
+    condition: service_healthy
+  clickhouse:
+    condition: service_healthy
+
+services:
+  langfuse-worker:
+    image: docker.langfuse.com/langfuse/langfuse-worker:4.37.0
+    restart: unless-stopped
+    depends_on: *langfuse-depends-on
+    # No ports: nothing connects to the worker; it pulls its work from Redis.
+    environment:
+      <<: *langfuse-env
+    healthcheck:
+      # The server binds to the container's bridge IP ($HOSTNAME), not loopback.
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://$${HOSTNAME}:3030/api/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 30s
+
+  langfuse-web:
+    image: docker.langfuse.com/langfuse/langfuse:4.37.0
+    restart: unless-stopped
+    depends_on: *langfuse-depends-on
+    ports:
+      # The ONLY published port in this file. Loopback-only by construction
+      # (docs/AUDIT.md F-54). Never change the 127.0.0.1 prefix to reach it
+      # from elsewhere — use an SSH tunnel; see agent/docs/observability.md.
+      - "127.0.0.1:${LANGFUSE_WEB_PORT:-3000}:3000"
+    environment:
+      <<: *langfuse-env
+      NEXTAUTH_SECRET: ${NEXTAUTH_SECRET:?run generate-env.sh}
+      LANGFUSE_S3_MEDIA_UPLOAD_INTERNAL_ENDPOINT: http://minio:9000
+      AUTH_DISABLE_SIGNUP: "true"
+      # Headless initialisation: creates the org, project, API key pair and
+      # the single UI user on first boot, so no click-through setup (and no
+      # open sign-up page) is ever needed.
+      LANGFUSE_INIT_ORG_ID: clinical-copilot
+      LANGFUSE_INIT_ORG_NAME: Clinical Co-Pilot
+      LANGFUSE_INIT_PROJECT_ID: clinical-copilot-agent
+      LANGFUSE_INIT_PROJECT_NAME: clinical-copilot-agent
+      LANGFUSE_INIT_PROJECT_PUBLIC_KEY: ${LANGFUSE_INIT_PROJECT_PUBLIC_KEY:?run generate-env.sh}
+      LANGFUSE_INIT_PROJECT_SECRET_KEY: ${LANGFUSE_INIT_PROJECT_SECRET_KEY:?run generate-env.sh}
+      LANGFUSE_INIT_USER_EMAIL: ${LANGFUSE_INIT_USER_EMAIL:?run generate-env.sh}
+      LANGFUSE_INIT_USER_NAME: ${LANGFUSE_INIT_USER_NAME:-Local Admin}
+      LANGFUSE_INIT_USER_PASSWORD: ${LANGFUSE_INIT_USER_PASSWORD:?run generate-env.sh}
+    healthcheck:
+      # The server binds to the container's bridge IP ($HOSTNAME), not loopback.
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://$${HOSTNAME}:3000/api/public/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 60s
+
+  clickhouse:
+    image: docker.io/clickhouse/clickhouse-server:25.12
+    restart: unless-stopped
+    user: "101:101"
+    environment:
+      CLICKHOUSE_DB: default
+      CLICKHOUSE_USER: clickhouse
+      CLICKHOUSE_PASSWORD: ${CLICKHOUSE_PASSWORD:?run generate-env.sh}
+    volumes:
+      - langfuse_clickhouse_data:/var/lib/clickhouse
+      - langfuse_clickhouse_logs:/var/log/clickhouse-server
+    healthcheck:
+      test: wget --no-verbose --tries=1 --spider http://localhost:8123/ping || exit 1
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 1s
+
+  minio:
+    image: cgr.dev/chainguard/minio
+    restart: unless-stopped
+    entrypoint: sh
+    # create the 'langfuse' bucket before starting the service
+    command: -c 'mkdir -p /data/langfuse && minio server --address ":9000" --console-address ":9001" /data'
+    environment:
+      MINIO_ROOT_USER: minio
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:?run generate-env.sh}
+    volumes:
+      - langfuse_minio_data:/data
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 1s
+      timeout: 5s
+      retries: 5
+      start_period: 1s
+
+  redis:
+    image: docker.io/redis:7
+    restart: unless-stopped
+    command: >
+      --requirepass ${REDIS_AUTH:?run generate-env.sh}
+      --maxmemory-policy noeviction
+    volumes:
+      - langfuse_redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 3s
+      timeout: 10s
+      retries: 10
+
+  postgres:
+    image: docker.io/postgres:17
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 3s
+      timeout: 3s
+      retries: 10
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?run generate-env.sh}
+      POSTGRES_DB: postgres
+      TZ: UTC
+      PGTZ: UTC
+    volumes:
+      - langfuse_postgres_data:/var/lib/postgresql/data
+
+volumes:
+  langfuse_postgres_data:
+  langfuse_clickhouse_data:
+  langfuse_clickhouse_logs:
+  langfuse_minio_data:
+  langfuse_redis_data:

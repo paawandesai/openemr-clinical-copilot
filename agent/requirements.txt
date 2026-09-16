@@ -13,6 +13,12 @@ anthropic>=1.5.0
 # event schemas (app/models/) are all pydantic v2
 pydantic>=2.9.0
 
+# Self-hosted Langfuse export for log_event (app/middleware/langfuse_export.py).
+# SDK v4 requires a Langfuse server >= 3.63; verified against server 4.37.0
+# (agent/observability/docker-compose.langfuse.yml) — see
+# agent/docs/observability.md
+langfuse>=4.15.3,<5
+
 # Structured JSON logging with contextvars support, used by
 # app/middleware/logging.py + app/middleware/correlation.py to attach
 # correlation_id to every log line for a request's lifetime
