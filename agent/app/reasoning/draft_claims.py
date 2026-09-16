@@ -294,10 +294,13 @@ async def draft_pre_visit_brief(
     # KEY_METRICS.md Metric 6 (cost per interaction) is computed from the
     # token counts and served model. latency_ms is this call's share of
     # Metric 4's trigger-to-render interval, not the whole interval.
+    # `model` is the field the shared llm_usage_event schema reads (the
+    # observability branch's Langfuse exporter and compute_metrics.py).
     log_event(
-        "llm_call",
+        "llm_usage_event",
         event_data={
             "correlation_id": correlation_id,
+            "model": message.model,
             "requested_model": MODEL,
             "served_model": message.model,
             "fallback_ran": fallback_ran,
