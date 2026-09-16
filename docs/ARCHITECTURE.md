@@ -347,12 +347,14 @@ silently assumed covered:**
   not re-checked here: if that scoping has a bug, a claim sourced from the
   wrong patient's record passes verification cleanly. This is an open gap,
   not a resolved one.
-- **Empty query results.** Whether a queried resource type returned zero
-  results (e.g. "allergies: not recorded," USERS.md §3 Use Case 1; F-21) is
-  not a claim-verification concern: the rendering step computes it directly
-  from the retrieval results, with no LLM involvement, because it is a
-  deterministically knowable fact, not something that benefits from the
-  draft-then-verify pattern used for everything else.
+- **Empty or all-inactive query results.** Whether a queried resource type
+  returned zero results (e.g. "allergies: not recorded,"
+  USERS.md §3 Use Case 1; F-21) or returned records but none currently
+  active (e.g. "medications: none active") is not a claim-verification
+  concern: the rendering step computes both directly from the retrieval
+  results, with no LLM involvement, because each is a deterministically
+  knowable fact, not something that benefits from the draft-then-verify
+  pattern used for everything else.
 
 ## 6. Risks and Mitigations
 
