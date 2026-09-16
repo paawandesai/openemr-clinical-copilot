@@ -1,0 +1,774 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pre-Visit Brief</title>
+<style>
+  :root {
+    --bg: #f4f6f8;
+    --panel: #ffffff;
+    --panel-border: #dfe4e9;
+    --text: #182430;
+    --text-muted: #5b6b7a;
+    --text-faint: #8996a3;
+    --brand: #0e5f6e;
+    --brand-dark: #0a4a56;
+    --brand-tint: #e6f1f3;
+    --good: #157a45;
+    --good-bg: #e9f7ef;
+    --good-border: #b9e3c8;
+    --warn: #9a5b00;
+    --warn-bg: #fef3e0;
+    --warn-border: #f3d38a;
+    --bad: #a3231f;
+    --bad-bg: #fdecec;
+    --bad-border: #f3bcba;
+    --neutral: #566374;
+    --neutral-bg: #eef1f4;
+    --neutral-border: #dce1e7;
+    --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+    --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    --radius: 10px;
+    --shadow: 0 1px 2px rgba(16, 24, 32, 0.04), 0 4px 16px rgba(16, 24, 32, 0.06);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #10161c;
+      --panel: #161e26;
+      --panel-border: #29343f;
+      --text: #e7edf2;
+      --text-muted: #9fadb9;
+      --text-faint: #6d7c8a;
+      --brand: #4fb3c4;
+      --brand-dark: #7cc9d6;
+      --brand-tint: #17323a;
+      --good: #59d492;
+      --good-bg: #0f2a1c;
+      --good-border: #1e4a30;
+      --warn: #f2b944;
+      --warn-bg: #302505;
+      --warn-border: #55420c;
+      --bad: #f3706b;
+      --bad-bg: #341313;
+      --bad-border: #5c211f;
+      --neutral: #aab6c1;
+      --neutral-bg: #1b232b;
+      --neutral-border: #2b3640;
+      --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 4px 20px rgba(0, 0, 0, 0.35);
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #10161c;
+    --panel: #161e26;
+    --panel-border: #29343f;
+    --text: #e7edf2;
+    --text-muted: #9fadb9;
+    --text-faint: #6d7c8a;
+    --brand: #4fb3c4;
+    --brand-dark: #7cc9d6;
+    --brand-tint: #17323a;
+    --good: #59d492;
+    --good-bg: #0f2a1c;
+    --good-border: #1e4a30;
+    --warn: #f2b944;
+    --warn-bg: #302505;
+    --warn-border: #55420c;
+    --bad: #f3706b;
+    --bad-bg: #341313;
+    --bad-border: #5c211f;
+    --neutral: #aab6c1;
+    --neutral-bg: #1b232b;
+    --neutral-border: #2b3640;
+    --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 4px 20px rgba(0, 0, 0, 0.35);
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    line-height: 1.45;
+    -webkit-font-smoothing: antialiased;
+  }
+  .shell {
+    max-width: 760px;
+    margin: 0 auto;
+    padding: 20px 16px 64px;
+  }
+
+  .topbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 8px 2px 20px;
+  }
+  .brand { display: flex; align-items: center; gap: 12px; }
+  .brand-mark {
+    width: 40px; height: 40px; border-radius: 10px;
+    background: var(--brand); color: #fff;
+    display: flex; align-items: center; justify-content: center;
+    flex: none;
+  }
+  .brand h1 { font-size: 19px; margin: 0; letter-spacing: -0.01em; }
+  .brand p { margin: 1px 0 0; font-size: 12.5px; color: var(--text-muted); }
+  .env-pill {
+    font-size: 11px; font-weight: 600; color: var(--text-muted);
+    border: 1px solid var(--panel-border); border-radius: 999px;
+    padding: 4px 10px; white-space: nowrap;
+  }
+
+  .panel {
+    background: var(--panel);
+    border: 1px solid var(--panel-border);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    padding: 20px;
+    margin-bottom: 16px;
+  }
+
+  .field { margin-bottom: 16px; }
+  .field:last-of-type { margin-bottom: 0; }
+  label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 6px; color: var(--text); }
+  .hint { margin: 6px 0 0; font-size: 12.5px; color: var(--text-muted); }
+  input[type="text"], input[type="password"] {
+    width: 100%; font-size: 15px; font-family: var(--mono);
+    padding: 10px 12px; border-radius: 8px;
+    border: 1px solid var(--panel-border);
+    background: var(--bg); color: var(--text);
+  }
+  input[type="text"]:focus, input[type="password"]:focus {
+    outline: none; border-color: var(--brand);
+    box-shadow: 0 0 0 3px var(--brand-tint);
+  }
+  .token-row { display: flex; gap: 8px; }
+  .token-row input { flex: 1; min-width: 0; }
+  .ghost-btn {
+    border: 1px solid var(--panel-border); background: var(--panel); color: var(--text-muted);
+    border-radius: 8px; padding: 0 12px; font-size: 13px; cursor: pointer; white-space: nowrap;
+  }
+  .ghost-btn:hover { color: var(--text); border-color: var(--text-faint); }
+
+  .checkbox-row {
+    display: flex; align-items: center; gap: 7px;
+    font-size: 12.5px; font-weight: 400; color: var(--text-muted);
+    margin-top: 10px; cursor: pointer;
+  }
+  .checkbox-row input { margin: 0; }
+
+  details.token-help { margin-top: 10px; }
+  details.token-help summary {
+    font-size: 12.5px; color: var(--brand); cursor: pointer; font-weight: 600;
+    list-style: none;
+  }
+  details.token-help summary::-webkit-details-marker { display: none; }
+  details.token-help summary::before { content: "▸ "; }
+  details.token-help[open] summary::before { content: "▾ "; }
+  .help-body {
+    margin-top: 10px; padding: 12px 14px; background: var(--neutral-bg);
+    border: 1px solid var(--neutral-border); border-radius: 8px; font-size: 12.5px; color: var(--text-muted);
+  }
+  .help-body p { margin: 0 0 8px; }
+  .help-body p:last-child { margin-bottom: 0; }
+  pre.curl {
+    margin: 8px 0; padding: 10px 12px; background: var(--panel);
+    border: 1px solid var(--panel-border); border-radius: 6px;
+    font-family: var(--mono); font-size: 11.5px; color: var(--text);
+    overflow-x: auto; white-space: pre-wrap; word-break: break-all;
+  }
+
+  .primary-btn {
+    width: 100%; padding: 12px 16px; font-size: 15px; font-weight: 600;
+    border: none; border-radius: 8px; cursor: pointer;
+    background: var(--brand); color: #fff; margin-top: 4px;
+  }
+  .primary-btn:hover { background: var(--brand-dark); }
+  .primary-btn:disabled { opacity: 0.6; cursor: default; }
+
+  /* status / loading */
+  #statusArea { display: flex; align-items: center; gap: 12px; padding: 18px 20px; }
+  .spinner {
+    width: 20px; height: 20px; border-radius: 50%;
+    border: 2.5px solid var(--panel-border); border-top-color: var(--brand);
+    animation: spin 0.8s linear infinite; flex: none;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  #statusArea .status-text { font-size: 13.5px; color: var(--text-muted); }
+  #statusArea .status-elapsed { font-family: var(--mono); font-weight: 600; color: var(--text); }
+
+  /* error */
+  .error-panel {
+    border-color: var(--bad-border); background: var(--bad-bg);
+  }
+  .error-title { display: flex; align-items: center; gap: 9px; font-weight: 700; font-size: 15px; color: var(--bad); margin-bottom: 6px; }
+  .error-message { font-size: 13.5px; color: var(--text); margin: 0 0 8px; }
+  .error-meta { font-size: 11.5px; color: var(--text-muted); font-family: var(--mono); }
+
+  /* result header */
+  .result-head {
+    display: flex; align-items: flex-start; justify-content: space-between;
+    gap: 12px; flex-wrap: wrap; margin-bottom: 4px;
+  }
+  .patient-id { font-family: var(--mono); font-size: 13px; color: var(--text-muted); word-break: break-all; }
+  .patient-id strong { color: var(--text); font-weight: 600; }
+  .timing-badge {
+    display: inline-flex; align-items: center; gap: 6px;
+    font-size: 12.5px; font-weight: 700; padding: 6px 11px; border-radius: 999px;
+    white-space: nowrap;
+  }
+  .timing-fast { background: var(--good-bg); color: var(--good); border: 1px solid var(--good-border); }
+  .timing-ok { background: var(--warn-bg); color: var(--warn); border: 1px solid var(--warn-border); }
+  .timing-slow { background: var(--bad-bg); color: var(--bad); border: 1px solid var(--bad-border); }
+
+  .verify-banner {
+    display: flex; align-items: center; gap: 10px;
+    padding: 12px 16px; border-radius: 8px; font-size: 13.5px; font-weight: 600;
+    margin: 14px 0;
+  }
+  .verify-all { background: var(--good-bg); color: var(--good); border: 1px solid var(--good-border); }
+  .verify-partial { background: var(--warn-bg); color: var(--warn); border: 1px solid var(--warn-border); }
+  .verify-none { background: var(--neutral-bg); color: var(--neutral); border: 1px solid var(--neutral-border); }
+
+  .timing-breakdown { margin-top: 10px; font-size: 11.5px; color: var(--text-muted); }
+  .timing-bar { display: flex; height: 7px; border-radius: 4px; overflow: hidden; margin: 6px 0 8px; background: var(--neutral-bg); }
+  .timing-bar span { display: block; height: 100%; }
+  .timing-legend { display: flex; flex-wrap: wrap; gap: 10px 16px; }
+  .timing-legend .item { display: flex; align-items: center; gap: 5px; }
+  .timing-legend .swatch { width: 8px; height: 8px; border-radius: 2px; flex: none; }
+
+  /* section cards */
+  .section-card { margin-bottom: 14px; }
+  .section-card:last-child { margin-bottom: 0; }
+  .section-title {
+    display: flex; align-items: center; gap: 9px;
+    font-size: 15px; font-weight: 700; margin-bottom: 10px;
+  }
+  .section-title .icon { color: var(--brand); flex: none; }
+  .status-pill {
+    display: inline-flex; align-items: center; gap: 6px;
+    font-size: 13px; font-weight: 600; padding: 7px 12px; border-radius: 8px;
+  }
+  .pill-not-recorded { background: var(--neutral-bg); color: var(--neutral); border: 1px solid var(--neutral-border); }
+  .pill-none-active { background: var(--warn-bg); color: var(--warn); border: 1px solid var(--warn-border); }
+
+  ul.item-list { list-style: none; margin: 0; padding: 0; }
+  ul.item-list li {
+    display: flex; align-items: flex-start; gap: 9px;
+    padding: 8px 0; font-size: 14.5px; border-top: 1px solid var(--panel-border);
+  }
+  ul.item-list li:first-child { border-top: none; padding-top: 0; }
+  ul.item-list li .icon { flex: none; margin-top: 2px; }
+  ul.item-list li.verified .icon { color: var(--good); }
+  ul.item-list li.unverified { background: var(--warn-bg); border-radius: 6px; padding: 8px 10px; margin: 2px 0; border-top: none; }
+  ul.item-list li.unverified .icon { color: var(--warn); }
+  ul.item-list li .item-text { flex: 1; }
+  ul.item-list li .unverified-reason { display: block; font-size: 12px; color: var(--warn); margin-top: 2px; font-weight: 600; }
+  ul.item-list li .unverified-flag {
+    display: inline-block; font-size: 10.5px; font-weight: 800; letter-spacing: 0.03em;
+    color: var(--warn); background: var(--panel); border: 1px solid var(--warn-border);
+    border-radius: 4px; padding: 1px 6px; margin-right: 6px;
+  }
+  .note-line { font-size: 12.5px; color: var(--text-muted); font-style: italic; margin-top: 10px; }
+
+  /* claims table */
+  details.claims-detail summary {
+    font-size: 13px; font-weight: 700; cursor: pointer; color: var(--brand); list-style: none;
+    padding: 4px 0;
+  }
+  details.claims-detail summary::-webkit-details-marker { display: none; }
+  details.claims-detail summary::before { content: "▸ "; }
+  details.claims-detail[open] summary::before { content: "▾ "; }
+  table.claims-table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 12.5px; }
+  table.claims-table th {
+    text-align: left; font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.04em;
+    color: var(--text-faint); padding: 6px 8px; border-bottom: 1px solid var(--panel-border);
+  }
+  table.claims-table td { padding: 7px 8px; border-bottom: 1px solid var(--panel-border); vertical-align: top; }
+  table.claims-table tr:last-child td { border-bottom: none; }
+  table.claims-table .src-id { font-family: var(--mono); font-size: 11px; color: var(--text-muted); word-break: break-all; }
+  .status-chip { display: inline-flex; align-items: center; gap: 4px; font-weight: 700; font-size: 11.5px; }
+  .status-chip.ok { color: var(--good); }
+  .status-chip.no { color: var(--warn); }
+
+  details.raw-detail { margin-top: 4px; }
+  details.raw-detail summary { font-size: 12px; color: var(--text-faint); cursor: pointer; }
+  pre.raw-text {
+    margin-top: 8px; padding: 12px; background: var(--neutral-bg); border: 1px solid var(--neutral-border);
+    border-radius: 6px; font-family: var(--mono); font-size: 12px; white-space: pre-wrap; color: var(--text);
+  }
+
+  .footer-note { text-align: center; font-size: 11.5px; color: var(--text-faint); margin-top: 24px; }
+
+  [hidden] { display: none !important; }
+  svg { display: block; }
+</style>
+</head>
+<body>
+<div class="shell">
+
+  <header class="topbar">
+    <div class="brand">
+      <div class="brand-mark">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 12l2 2 4-4"/><circle cx="12" cy="12" r="9"/></svg>
+      </div>
+      <div>
+        <h1>Pre-Visit Brief</h1>
+        <p>Clinical Co-Pilot &middot; standalone view</p>
+      </div>
+    </div>
+    <span class="env-pill">Verified against the live chart</span>
+  </header>
+
+  <section class="panel">
+    <form id="briefForm">
+      <div class="field">
+        <label for="patientId">Patient ID</label>
+        <input id="patientId" type="text" placeholder="a2c0e096-23d5-4cf9-ad5b-4895597363a7" autocomplete="off" spellcheck="false" required>
+        <p class="hint">The FHIR Patient id of the chart being opened.</p>
+      </div>
+
+      <div class="field">
+        <label for="token">Access token</label>
+        <div class="token-row">
+          <input id="token" type="password" placeholder="Paste the clinician's OpenEMR access token" autocomplete="off" spellcheck="false" required>
+          <button type="button" id="toggleToken" class="ghost-btn">Show</button>
+        </div>
+        <label class="checkbox-row">
+          <input type="checkbox" id="rememberMe">
+          Remember patient ID and token in this browser tab only
+        </label>
+        <details class="token-help" id="tokenHelp">
+          <summary>Need a token?</summary>
+          <div class="help-body">
+            <p>This page never mints tokens itself &mdash; each request uses the
+            clinician's own OpenEMR access token, requested directly from
+            OpenEMR by whoever is running this demo. Run this once
+            (needs an OAuth client enabled for the password grant and a
+            clinician login):</p>
+            <pre class="curl" id="curlHelp"></pre>
+            <button type="button" id="copyCurl" class="ghost-btn">Copy command</button>
+            <p style="margin-top:10px;">Paste the <code>access_token</code> from the
+            response above. Tokens expire after one hour; request a fresh one if
+            the brief comes back "session expired."</p>
+          </div>
+        </details>
+      </div>
+
+      <button type="submit" class="primary-btn" id="runBtn">Run brief</button>
+    </form>
+  </section>
+
+  <section class="panel" id="statusArea" hidden>
+    <div class="spinner"></div>
+    <div>
+      <div class="status-text">Retrieving the chart, drafting and verifying the brief&hellip;</div>
+      <div class="status-elapsed"><span id="elapsedSeconds">0.0</span>s elapsed</div>
+    </div>
+  </section>
+
+  <section class="panel error-panel" id="errorArea" hidden></section>
+
+  <section id="resultArea" hidden></section>
+
+  <p class="footer-note">Calls <code>POST /pre-visit-brief</code> on this same host, over the same TLS connection that served this page.</p>
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  var STORAGE_KEY = "pvb_ui_session_v1";
+  var PATIENT_ID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+  var els = {
+    form: document.getElementById("briefForm"),
+    patientId: document.getElementById("patientId"),
+    token: document.getElementById("token"),
+    toggleToken: document.getElementById("toggleToken"),
+    rememberMe: document.getElementById("rememberMe"),
+    runBtn: document.getElementById("runBtn"),
+    statusArea: document.getElementById("statusArea"),
+    elapsedSeconds: document.getElementById("elapsedSeconds"),
+    errorArea: document.getElementById("errorArea"),
+    resultArea: document.getElementById("resultArea"),
+    curlHelp: document.getElementById("curlHelp"),
+    copyCurl: document.getElementById("copyCurl"),
+  };
+
+  // ---- icons (inline, no external assets) ----
+  var ICONS = {
+    problems: '<svg class="icon" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="2" width="8" height="4" rx="1"/><path d="M9 4H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2h-3"/><path d="M9 12h6M9 16h6"/></svg>',
+    meds: '<svg class="icon" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="9" width="18" height="6" rx="3" transform="rotate(-45 12 12)"/><line x1="8.5" y1="8.5" x2="15.5" y2="15.5"/></svg>',
+    allergy: '<svg class="icon" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>',
+    check: '<svg class="icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></svg>',
+    warn: '<svg class="icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>',
+    error: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>',
+    clock: '<svg class="icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>',
+  };
+
+  var SECTION_META = {
+    Condition: { label: "Active problems", icon: ICONS.problems },
+    MedicationRequest: { label: "Current medications", icon: ICONS.meds },
+    AllergyIntolerance: { label: "Allergies", icon: ICONS.allergy },
+  };
+  var SECTION_ORDER = ["Condition", "MedicationRequest", "AllergyIntolerance"];
+
+  var ERROR_TITLES = {
+    missing_bearer_token: "Access token needed",
+    malformed_bearer_token: "Access token not recognized",
+    fhir_token_rejected: "Session expired or not authorized",
+    invalid_request: "Check the patient ID",
+    patient_not_found: "Patient not found",
+    fhir_unavailable: "Chart system unreachable",
+    brief_generation_failed: "Brief could not be generated",
+    internal_error: "Something went wrong",
+  };
+
+  function escapeHtml(s) {
+    return String(s).replace(/[&<>"']/g, function (c) {
+      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
+    });
+  }
+
+  // ---- "need a token?" helper text, built from this page's own origin ----
+  function renderCurlHelp() {
+    var host = location.hostname || "<droplet-ip>";
+    var oauthUrl = "https://" + host + ":9300/oauth2/default/token";
+    var cmd =
+      "curl -k " + oauthUrl + " \\\n" +
+      "  --data-urlencode grant_type=password \\\n" +
+      "  --data-urlencode client_id=\"$FHIR_CLIENT_ID\" \\\n" +
+      "  --data-urlencode client_secret=\"$FHIR_CLIENT_SECRET\" \\\n" +
+      "  --data-urlencode username=\"$OPENEMR_USERNAME\" \\\n" +
+      "  --data-urlencode password=\"$OPENEMR_PASSWORD\" \\\n" +
+      "  --data-urlencode user_role=users \\\n" +
+      "  --data-urlencode scope=\"openid user/Patient.read user/Condition.read user/MedicationRequest.read user/AllergyIntolerance.read\"";
+    els.curlHelp.textContent = cmd;
+  }
+  renderCurlHelp();
+
+  els.copyCurl.addEventListener("click", function () {
+    var text = els.curlHelp.textContent;
+    var done = function () {
+      els.copyCurl.textContent = "Copied";
+      setTimeout(function () { els.copyCurl.textContent = "Copy command"; }, 1500);
+    };
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(done, done);
+    } else {
+      done();
+    }
+  });
+
+  els.toggleToken.addEventListener("click", function () {
+    var show = els.token.type === "password";
+    els.token.type = show ? "text" : "password";
+    els.toggleToken.textContent = show ? "Hide" : "Show";
+  });
+
+  // ---- remember-in-tab (sessionStorage only; cleared on tab close) ----
+  (function restore() {
+    try {
+      var raw = sessionStorage.getItem(STORAGE_KEY);
+      if (!raw) return;
+      var saved = JSON.parse(raw);
+      if (saved.patientId) els.patientId.value = saved.patientId;
+      if (saved.token) els.token.value = saved.token;
+      els.rememberMe.checked = true;
+    } catch (e) { /* private mode / storage disabled: ignore, form stays empty */ }
+  })();
+
+  function persistIfRemembering() {
+    try {
+      if (els.rememberMe.checked) {
+        sessionStorage.setItem(STORAGE_KEY, JSON.stringify({
+          patientId: els.patientId.value.trim(),
+          token: els.token.value.trim(),
+        }));
+      } else {
+        sessionStorage.removeItem(STORAGE_KEY);
+      }
+    } catch (e) { /* ignore */ }
+  }
+
+  // ---- parse the physician-facing brief text into section blocks ----
+  // Exact format from agent/app/graph/pre_visit_brief.py:render_brief —
+  // "<Heading>: <inline status>" or "<Heading>:\n  - <item>", blocks
+  // separated by a blank line, optionally followed by a footer paragraph.
+  function parseBrief(text) {
+    var blocks = text.split(/\n\n+/).map(function (b) { return b.split("\n"); });
+    var sections = [];
+    var footer = null;
+    for (var i = 1; i < blocks.length; i++) {
+      var block = blocks[i];
+      var m = /^(Active problems|Current medications|Allergies):\s*(.*)$/.exec(block[0]);
+      if (m) {
+        var items = block.slice(1)
+          .filter(function (l) { return l.trim().indexOf("-") === 0; })
+          .map(function (l) { return l.replace(/^\s*-\s*/, ""); });
+        sections.push({ resourceType: null, name: m[1], inline: m[2].trim(), items: items });
+      } else {
+        footer = block.join(" ").trim();
+      }
+    }
+    return { sections: sections, footer: footer };
+  }
+
+  function renderItem(raw) {
+    var m = /^UNVERIFIED:\s*"([\s\S]*)"\s*\(([^)]*)\)$/.exec(raw);
+    if (m) {
+      return (
+        '<li class="unverified">' +
+          '<span class="icon">' + ICONS.warn + "</span>" +
+          '<span class="item-text"><span class="unverified-flag">UNVERIFIED</span>' + escapeHtml(m[1]) +
+            '<span class="unverified-reason">Not verifiable against the chart: ' + escapeHtml(m[2]) + "</span>" +
+          "</span>" +
+        "</li>"
+      );
+    }
+    return (
+      '<li class="verified">' +
+        '<span class="icon">' + ICONS.check + "</span>" +
+        '<span class="item-text">' + escapeHtml(raw) + "</span>" +
+      "</li>"
+    );
+  }
+
+  function renderSectionCard(nameKey, section) {
+    var meta = SECTION_META[nameKey] || { label: section.name, icon: "" };
+    var html = '<div class="section-card"><div class="section-title">' + meta.icon + "<span>" + escapeHtml(meta.label) + "</span></div>";
+    if (!section.items.length && section.inline) {
+      var isNotRecorded = /^not recorded$/i.test(section.inline);
+      var pillClass = isNotRecorded ? "pill-not-recorded" : "pill-none-active";
+      var icon = isNotRecorded ? ICONS.warn : ICONS.warn;
+      var label = isNotRecorded ? "Not recorded" : "None active";
+      html += '<div class="status-pill ' + pillClass + '">' + icon + "<span>" + escapeHtml(label) +
+        (isNotRecorded ? "" : " &mdash; " + escapeHtml(section.inline.replace(/^none active\s*/i, ""))) +
+        "</span></div>";
+      if (isNotRecorded) {
+        html += '<p class="hint" style="margin-top:8px;">No ' + escapeHtml(meta.label.toLowerCase()) + ' records exist for this patient &mdash; this is different from "none": it was never captured.</p>';
+      }
+    } else if (section.items.length) {
+      html += '<ul class="item-list">' + section.items.map(renderItem).join("") + "</ul>";
+    } else {
+      html += '<p class="hint">No data.</p>';
+    }
+    html += "</div>";
+    return html;
+  }
+
+  function matchSectionKey(name) {
+    if (name === "Active problems") return "Condition";
+    if (name === "Current medications") return "MedicationRequest";
+    if (name === "Allergies") return "AllergyIntolerance";
+    return name;
+  }
+
+  function timingClass(totalSeconds) {
+    if (totalSeconds <= 5) return "timing-fast";
+    if (totalSeconds <= 10) return "timing-ok";
+    return "timing-slow";
+  }
+
+  function renderTimingBreakdown(timing) {
+    var parts = [
+      { key: "retrieve", label: "Retrieve chart", value: timing.retrieve_seconds, color: "#4fa3c4" },
+      { key: "draft", label: "Draft claims (LLM)", value: timing.draft_seconds, color: "#0e5f6e" },
+      { key: "verify", label: "Verify against chart", value: timing.verify_seconds, color: "#59a86c" },
+      { key: "render", label: "Render brief", value: timing.render_seconds, color: "#9a8f4f" },
+    ];
+    var total = timing.total_seconds || parts.reduce(function (s, p) { return s + p.value; }, 0);
+    var bar = parts.map(function (p) {
+      var pct = total > 0 ? Math.max(0, (p.value / total) * 100) : 0;
+      return '<span style="width:' + pct.toFixed(2) + '%;background:' + p.color + ';" title="' + p.label + ": " + p.value.toFixed(2) + 's"></span>';
+    }).join("");
+    var legend = parts.map(function (p) {
+      return '<span class="item"><span class="swatch" style="background:' + p.color + ';"></span>' +
+        escapeHtml(p.label) + ": " + p.value.toFixed(2) + "s</span>";
+    }).join("");
+    return (
+      '<div class="timing-breakdown">' +
+        '<div class="timing-bar">' + bar + "</div>" +
+        '<div class="timing-legend">' + legend + "</div>" +
+      "</div>"
+    );
+  }
+
+  function renderClaimsTable(claims) {
+    if (!claims.length) return "<p class=\"hint\">No claims were drafted for this brief.</p>";
+    var order = { Condition: 0, MedicationRequest: 1, AllergyIntolerance: 2 };
+    var sorted = claims.slice().sort(function (a, b) {
+      var oa = order.hasOwnProperty(a.resource_type) ? order[a.resource_type] : 9;
+      var ob = order.hasOwnProperty(b.resource_type) ? order[b.resource_type] : 9;
+      return oa - ob;
+    });
+    var rows = sorted.map(function (c) {
+      var statusHtml = c.verified
+        ? '<span class="status-chip ok">' + ICONS.check + " Verified</span>"
+        : '<span class="status-chip no">' + ICONS.warn + " Unverified</span>";
+      return (
+        "<tr>" +
+          "<td>" + escapeHtml((SECTION_META[c.resource_type] || {}).label || c.resource_type) + "</td>" +
+          "<td>" + escapeHtml(c.field) + "</td>" +
+          "<td>" + escapeHtml(c.value === null ? "—" : c.value) + "</td>" +
+          "<td>" + statusHtml + (c.unverified_reason ? '<div class="hint" style="margin-top:2px;">' + escapeHtml(c.unverified_reason) + "</div>" : "") + "</td>" +
+          '<td class="src-id" title="' + escapeHtml(c.source_id) + '">' + escapeHtml(c.source_id) + "</td>" +
+        "</tr>"
+      );
+    }).join("");
+    return (
+      '<table class="claims-table"><thead><tr>' +
+        "<th>Section</th><th>Field</th><th>Value</th><th>Status</th><th>Source id</th>" +
+      "</tr></thead><tbody>" + rows + "</tbody></table>"
+    );
+  }
+
+  function renderResult(data) {
+    var v = data.verification;
+    var allVerified = v.claims > 0 && v.unverified === 0;
+    var bannerClass = v.claims === 0 ? "verify-none" : (allVerified ? "verify-all" : "verify-partial");
+    var bannerIcon = v.claims === 0 ? "" : (allVerified ? ICONS.check : ICONS.warn);
+    var bannerText = v.claims === 0
+      ? "No claims were drafted for this brief."
+      : (v.verified + " of " + v.claims + " claim" + (v.claims === 1 ? "" : "s") + " verified against the chart" +
+         (v.unverified ? " &mdash; " + v.unverified + " flagged for review" : ""));
+
+    var parsed = parseBrief(data.brief);
+    var sectionsHtml = SECTION_ORDER.map(function (key) {
+      var section = parsed.sections.find(function (s) { return matchSectionKey(s.name) === key; });
+      if (!section) return "";
+      return renderSectionCard(key, section);
+    }).join("");
+    // Anything the parser found that isn't one of the three known sections
+    // (format drift) still gets rendered, never silently dropped.
+    var extraSections = parsed.sections.filter(function (s) {
+      return SECTION_ORDER.indexOf(matchSectionKey(s.name)) === -1;
+    }).map(function (s) { return renderSectionCard(s.name, s); }).join("");
+
+    var totalSeconds = data.timing.total_seconds;
+    var html =
+      '<section class="panel">' +
+        '<div class="result-head">' +
+          '<div class="patient-id">Patient <strong>' + escapeHtml(data.patient_id) + "</strong></div>" +
+          '<span class="timing-badge ' + timingClass(totalSeconds) + '">' + ICONS.clock + " " + totalSeconds.toFixed(2) + "s total</span>" +
+        "</div>" +
+        '<div class="verify-banner ' + bannerClass + '">' + bannerIcon + "<span>" + bannerText + "</span></div>" +
+        (sectionsHtml || '<p class="hint">The brief did not include any of the expected sections.</p>') +
+        extraSections +
+        (parsed.footer ? '<p class="note-line">' + escapeHtml(parsed.footer) + "</p>" : "") +
+      "</section>" +
+
+      '<section class="panel">' +
+        "<details class=\"claims-detail\"><summary>Verification detail &mdash; per-claim source attribution (" + v.claims + ")</summary>" +
+        renderClaimsTable(data.claims) +
+        "</details>" +
+        renderTimingBreakdown(data.timing) +
+        "<details class=\"raw-detail\"><summary>View raw brief text</summary><pre class=\"raw-text\">" + escapeHtml(data.brief) + "</pre></details>" +
+        '<p class="error-meta" style="margin-top:12px;color:var(--text-faint);">session ' + escapeHtml(data.session_id) +
+          " &middot; correlation " + escapeHtml(data.correlation_id) + "</p>" +
+      "</section>";
+
+    els.resultArea.innerHTML = html;
+    els.resultArea.hidden = false;
+  }
+
+  function renderError(status, body) {
+    var code = body && body.error;
+    var title = ERROR_TITLES[code] || ("Request failed (" + status + ")");
+    var message = (body && body.message) || "The server did not return a readable error.";
+    var correlationId = body && body.correlation_id;
+    els.errorArea.innerHTML =
+      '<div class="error-title">' + ICONS.error + "<span>" + escapeHtml(title) + "</span></div>" +
+      '<p class="error-message">' + escapeHtml(message) + "</p>" +
+      (correlationId ? '<p class="error-meta">correlation id: ' + escapeHtml(correlationId) + "</p>" : "");
+    els.errorArea.hidden = false;
+  }
+
+  function renderNetworkError() {
+    els.errorArea.innerHTML =
+      '<div class="error-title">' + ICONS.error + "<span>Couldn't reach the Pre-Visit Brief service</span></div>" +
+      '<p class="error-message">The request to this host failed before a response came back. Check the network connection and try again.</p>';
+    els.errorArea.hidden = false;
+  }
+
+  var elapsedTimer = null;
+  function startElapsedTimer() {
+    var start = performance.now();
+    els.elapsedSeconds.textContent = "0.0";
+    elapsedTimer = setInterval(function () {
+      els.elapsedSeconds.textContent = ((performance.now() - start) / 1000).toFixed(1);
+    }, 100);
+  }
+  function stopElapsedTimer() {
+    if (elapsedTimer) { clearInterval(elapsedTimer); elapsedTimer = null; }
+  }
+
+  els.form.addEventListener("submit", function (evt) {
+    evt.preventDefault();
+
+    var patientId = els.patientId.value.trim();
+    var token = els.token.value.trim();
+
+    els.errorArea.hidden = true;
+    els.resultArea.hidden = true;
+
+    if (!PATIENT_ID_PATTERN.test(patientId)) {
+      renderError(422, {
+        error: "invalid_request",
+        message: "That doesn't look like a FHIR patient id — it should look like a2c0e096-23d5-4cf9-ad5b-4895597363a7.",
+      });
+      return;
+    }
+    if (!token) {
+      renderError(401, {
+        error: "missing_bearer_token",
+        message: "Paste the clinician's OpenEMR access token above before running the brief.",
+      });
+      return;
+    }
+
+    persistIfRemembering();
+
+    els.runBtn.disabled = true;
+    els.runBtn.textContent = "Running…";
+    els.statusArea.hidden = false;
+    startElapsedTimer();
+
+    fetch("/pre-visit-brief", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": "Bearer " + token,
+      },
+      body: JSON.stringify({ patient_id: patientId }),
+    })
+      .then(function (resp) {
+        return resp.json().catch(function () { return null; }).then(function (body) {
+          return { status: resp.status, ok: resp.ok, body: body };
+        });
+      })
+      .then(function (result) {
+        stopElapsedTimer();
+        els.statusArea.hidden = true;
+        els.runBtn.disabled = false;
+        els.runBtn.textContent = "Run brief";
+        if (result.ok && result.body) {
+          renderResult(result.body);
+        } else {
+          renderError(result.status, result.body);
+        }
+      })
+      .catch(function () {
+        stopElapsedTimer();
+        els.statusArea.hidden = true;
+        els.runBtn.disabled = false;
+        els.runBtn.textContent = "Run brief";
+        renderNetworkError();
+      });
+  });
+})();
+</script>
+</body>
+</html>

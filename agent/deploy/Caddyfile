@@ -30,5 +30,28 @@ https://{$AGENT_PUBLIC_HOST}:8443 {
 	# No access log: Caddy's request logs would add client addresses and
 	# request details to the host's logs, and the agent logs every request
 	# it serves itself.
-	reverse_proxy agent:8000
+
+	# Standalone Pre-Visit Brief UI (agent/deploy/ui), same origin as the
+	# API it calls: no CORS to configure, no separate certificate for a
+	# browser to trust, and no additional public port (F-54). Everything
+	# under these paths goes to the agent; everything else is the static UI.
+	handle /pre-visit-brief* {
+		reverse_proxy agent:8000
+	}
+	handle /health* {
+		reverse_proxy agent:8000
+	}
+	handle /ready* {
+		reverse_proxy agent:8000
+	}
+	handle /docs* {
+		reverse_proxy agent:8000
+	}
+	handle /openapi.json {
+		reverse_proxy agent:8000
+	}
+	handle {
+		root * /srv/ui
+		file_server
+	}
 }
