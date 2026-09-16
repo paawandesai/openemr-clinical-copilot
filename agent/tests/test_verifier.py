@@ -267,6 +267,30 @@ def test_source_id_under_a_different_resource_type_does_not_verify() -> None:
     assert_failed(result, FailureReason.SOURCE_NOT_FOUND)
 
 
+def test_query_style_source_id_fails_as_not_found_without_special_casing() -> None:
+    """
+    Whether a queried type came back empty is decided by the rendering step
+    from the retrieved list itself, never by a claim (ARCHITECTURE.md §5).
+    A "query:" claim that still reaches the verifier must take the ordinary
+    not-found path. If this test starts failing, "query:" ids have become
+    resolvable somewhere — that is a deliberate behavior change, not a fix.
+    """
+    second_allergy = AllergyIntolerance(source_id="allergy-2", display="Latex")
+    retrieved = {FhirResourceType.ALLERGY_INTOLERANCE: [ALLERGY, second_allergy]}
+    c = claim(
+        FhirResourceType.ALLERGY_INTOLERANCE,
+        "query:AllergyIntolerance",
+        "documentation_status",
+        "not recorded",
+    )
+
+    [result] = verify([c], retrieved)
+
+    assert_failed(result, FailureReason.SOURCE_NOT_FOUND)
+    assert result.reason == "source_id not found in retrieved resources"
+    assert result.disclosed_as_unverified is True
+
+
 @pytest.mark.parametrize(
     "field",
     ["loinc_code", "not_a_field", "model_dump", "__class__", "source_id", ""],
