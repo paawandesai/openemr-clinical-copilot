@@ -1,8 +1,15 @@
-# Deployment — agent service on the OpenEMR droplet
+# Deployment — agent service on the OpenEMR host
 
-The agent runs on the same DigitalOcean droplet as OpenEMR (`64.177.42.210`),
-as its own Compose project (`agent/deploy/docker-compose.agent.yml`). OpenEMR's
+The agent runs on the same host as OpenEMR, a Vultr instance at
+`64.177.42.210`, as its own Compose project
+(`agent/deploy/docker-compose.agent.yml`). OpenEMR's
 `docker/development-easy` stack is not modified.
+
+The deployment moved from a DigitalOcean droplet (`201.79.25.22`) to Vultr
+late in the build. No BAA covers the Vultr host. That is acceptable only
+because all data is synthetic (`docs/ARCHITECTURE.md` §1,
+`docs/audit/findings.md` F-61). The network checks in §2 were run on the
+DigitalOcean droplet before the move.
 
 ```
 internet ──TLS──▶ 0.0.0.0:8443  proxy (Caddy)        ┐ compose project
@@ -25,7 +32,7 @@ bypass UFW (F-33, F-54), so 8443 is reachable from the internet whatever UFW
 says, and that is intended here.
 
 Why public: the API collection, the eval suite and load tests call the agent
-from outside the droplet.
+from outside the host.
 
 Why that is acceptable:
 
@@ -48,7 +55,7 @@ Why that is acceptable:
 Gaps, stated rather than assumed closed:
 
 - **Certificate not publicly trusted.** It comes from Caddy's local CA, since
-  the droplet has an IP address and no domain name. Clients either trust the
+  the host has an IP address and no domain name. Clients either trust the
   exported root (§5) or skip verification (`curl -k`, `newman --insecure`).
   Encrypted, but a client that skips verification is not protected against
   interception. Closing it needs a domain name and a public certificate.
@@ -75,8 +82,8 @@ on that network with default `root`/`root` credentials (F-34), and a
 container on it reaches `mysql:3306` directly. The agent never needs the
 database (ARCHITECTURE.md §2), so on its own network it has no route to it.
 
-Checked on the droplet (2026-09-16, throwaway containers, no credentials
-sent):
+Checked on the DigitalOcean droplet before the move to Vultr (2026-09-16,
+throwaway containers, no credentials sent):
 
 | From | Target | Result |
 |---|---|---|
@@ -95,7 +102,7 @@ API collection, the smoke tests), never by the agent.
 
 - Not in the image: supplied at runtime from an env file, and
   `agent/.dockerignore` keeps `.env` files out of the build context.
-- On the droplet the env file is `/etc/clinical-copilot/agent.env` (mode 600,
+- On the host the env file is `/etc/clinical-copilot/agent.env` (mode 600,
   format: `agent/deploy/.env.example`), **not** inside a code checkout. The
   OpenEMR checkout `/home/deploy/openemr-clinical-copilot` is bind-mounted
   read-write into Apache's document root, so a file placed there may be
@@ -110,14 +117,14 @@ From the repository root on the operator's laptop — ship the committed
 `agent/` tree (tracked files only: no `.env`, logs or virtualenv):
 
 ```bash
-DROPLET=root@64.177.42.210
+DEPLOY_HOST=root@64.177.42.210
 COMMIT=$(git rev-parse --short HEAD)
-ssh "$DROPLET" 'rm -rf /opt/clinical-copilot/agent && mkdir -p /opt/clinical-copilot'
-git archive "$COMMIT" agent | ssh "$DROPLET" 'tar -x -C /opt/clinical-copilot'
-ssh "$DROPLET" "echo $COMMIT > /opt/clinical-copilot/DEPLOYED_COMMIT"
+ssh "$DEPLOY_HOST" 'rm -rf /opt/clinical-copilot/agent && mkdir -p /opt/clinical-copilot'
+git archive "$COMMIT" agent | ssh "$DEPLOY_HOST" 'tar -x -C /opt/clinical-copilot'
+ssh "$DEPLOY_HOST" "echo $COMMIT > /opt/clinical-copilot/DEPLOYED_COMMIT"
 ```
 
-First deploy only — on the droplet, create the env file without the key
+First deploy only — on the host, create the env file without the key
 reaching shell history or the screen:
 
 ```bash
@@ -127,14 +134,14 @@ read -rsp 'ANTHROPIC_API_KEY: ' KEY; echo
 unset KEY
 ```
 
-Start (and, after later deploys, rebuild) — on the droplet:
+Start (and, after later deploys, rebuild) — on the host:
 
 ```bash
 cd /opt/clinical-copilot/agent/deploy
 docker compose --env-file /etc/clinical-copilot/agent.env -f docker-compose.agent.yml up -d --build --wait
 ```
 
-Verify the bindings — on the droplet:
+Verify the bindings — on the host:
 
 ```bash
 ss -tlnp | grep -v sshd
@@ -146,7 +153,7 @@ docker compose --env-file /etc/clinical-copilot/agent.env -f docker-compose.agen
 Expected: a new `0.0.0.0:8443` listener and nothing else new. `8300`/`9300`
 stay public. `18310`/`18320` stay `127.0.0.1`. No listener on 8000.
 
-Then, from a machine **outside** the droplet:
+Then, from a machine **outside** the host:
 
 ```bash
 for port in 8443 8000 18310 18320 3306 2019; do nc -z -w 3 64.177.42.210 $port && echo "$port open" || echo "$port closed"; done
@@ -173,7 +180,7 @@ The root persists in the `caddy_data` volume, so it survives restarts.
 
 **Metrics (KEY_METRICS.md) from the live service:** the agent logs to stdout,
 which Docker keeps (10 MB × 5 files). The log lines carry
-`patient_session_key` and FHIR source ids, so they stay on the droplet or the
+`patient_session_key` and FHIR source ids, so they stay on the host or the
 operator's machine:
 
 ```bash

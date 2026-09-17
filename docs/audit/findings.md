@@ -1375,6 +1375,73 @@ Pass-2 droplet database commands were run as
   the evidence that failures reach the physician is the eval suite (B2,
   C1–C4), not the metric.
 
+### F-61 — No BAA covers the deployment host since the move from DigitalOcean to Vultr
+- **Category:** Compliance
+- **Severity:** Low for this exercise (synthetic data only); blocking before
+  any real PHI
+- **Claim:** Late in the build the deployment moved from the DigitalOcean
+  droplet `201.79.25.22` (the audited host: F-38, F-41, F-44) to a Vultr host
+  at `64.177.42.210`, because of a payment constraint. F-41's positive
+  finding rests on DigitalOcean's HIPAA-eligible product list and does not
+  carry over. No BAA has been executed with Vultr, so the host that now holds
+  OpenEMR's database and runs the agent is not under any BAA. This is a
+  documented tradeoff for a synthetic-data exercise, not a claim of coverage.
+- **Evidence:**
+  - Provider (`first-hand`, `whois 64.177.42.210`, 2026-09-17 ~00:55Z):
+    ```
+    NetRange:       64.176.0.0 - 64.177.255.255
+    NetName:        CHOOP-1
+    OrgName:        The Constant Company, LLC
+    ```
+    The Constant Company, LLC is Vultr's operating company.
+  - Migration window (`first-hand`, repository records): the eval run at
+    2026-09-16T22:47:45Z still targeted `https://201.79.25.22:8443`
+    (`agent/evals/RESULTS.md`); commit `e81fdfc` (2026-09-17T00:16:40Z)
+    repointed the deployed references to `64.177.42.210`.
+  - Reason for the move (`operator-reported`): a payment constraint on the
+    DigitalOcean account.
+  - BAA status (`operator-reported`): no BAA with Vultr has been executed.
+    The operator also reports that Vultr does not offer one. **That second
+    point is not confirmed:** Vultr's compliance and trust-center pages
+    (`https://www.vultr.com/legal/compliance/`,
+    `https://www.vultr.com/trust-center/`) returned HTTP 403 to this
+    session's fetches (2026-09-17 ~00:57Z). Web-search summaries of those
+    pages describe Vultr supporting customers as a Business Associate
+    through executed BAAs. Whether Vultr would sign one for this account is
+    unestablished. Either way, none is in place.
+  - Dataset: the populations audited on the DigitalOcean droplet and locally
+    are OpenEMR demo data plus Synthea imports (`first-hand`: F-15–F-18,
+    F-43). The Vultr host is a fresh install, not a copy: FHIR ids from the
+    DigitalOcean host return nothing there, and the same patients carry new
+    ids (Phil Belford is `a2c36e54-af42-4c38-b86e-ade616ed5494` on Vultr). Its
+    population mixes OpenEMR demo patients with Synthea-named ones, such as
+    Tonja658 Grant908. That was checked live on 2026-09-17 by a separate
+    session (branch `fix/embed-vultr-config`, commit `45e6710`) and not
+    re-run for this entry. That the Vultr host holds only synthetic data,
+    per the case study brief's demo-data constraint, is `operator-reported`.
+    This session did not inspect the Vultr database.
+- **Remediation:** not done, and not needed while every record is synthetic.
+  Before any real PHI, move to a substrate under an executed BAA, such as
+  DigitalOcean's HIPAA-eligible products under a signed BAA (F-41), or
+  another provider's covered products under a signed agreement. Then
+  re-apply the placement rules to that provider's covered-product list:
+  database off any uncovered managed product (F-41), agent co-located or on
+  a covered product (`ARCHITECTURE.md` §1), observability backend on a
+  covered product (`agent/docs/observability.md` §9, written for
+  DigitalOcean).
+- **Verified:** `first-hand` (IP registrant; migration window from repository
+  records) · `first-hand` in a separate session, not re-run here (fresh
+  install with new FHIR ids) · `operator-reported` (reason for the move; no
+  executed BAA; synthetic-only contents of the Vultr host) · not verified (whether Vultr
+  offers a BAA — its pages were not retrievable, and search summaries
+  suggest it does; Verification gaps item 25).
+- **Implication for the agent:** `ARCHITECTURE.md` §1's placement decisions
+  were argued from F-41 and keep the right shape. On the current host,
+  though, they rest on the synthetic-data constraint alone, not on BAA
+  coverage. As deployed, neither the host nor the LLM provider (Verification
+  gaps item 23) is under an executed BAA. The deployment must not receive
+  real PHI in this state.
+
 ---
 
 ## DATA QUALITY
@@ -2855,6 +2922,11 @@ Recorded so that absence of evidence is not later read as evidence of absence.
     agent container was recreated at 22:17:46Z, removing its logs for
     22:03–22:06Z. That the same exhausted account caused them is inferred from
     matching timing and the `brief_generation_failed` code.
+25. **Vultr BAA availability — not established** (F-61; added 2026-09-17).
+    No BAA with Vultr is executed (operator-reported). Whether Vultr offers
+    one was not confirmed: its compliance pages returned HTTP 403, and
+    search summaries of them point the other way from the operator's
+    report.
 
 ---
 

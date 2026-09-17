@@ -102,19 +102,25 @@ docker exec clinical-copilot-agent-agent-1 python -c \
 
 ### Running the generator (from off-droplet)
 
+The `PATIENT_ID` below is Phil Belford on the current Vultr host. The
+recorded run (`RESULTS.md`) used his DigitalOcean id,
+`a2c0e096-23d5-4cf9-ad5b-4895597363a7`, which is still the default in
+`k6-infra.js` and `real_batch.sh`. That id does not exist on Vultr, a fresh
+install with new FHIR ids, so always pass `PATIENT_ID` explicitly.
+
 ```bash
 brew install k6   # or see https://k6.io/docs/get-started/installation/
 
 AGENT_BASE_URL=https://64.177.42.210:8443 \
 AGENT_TOKEN="$AGENT_TOKEN" \
-PATIENT_ID=a2c0e096-23d5-4cf9-ad5b-4895597363a7 \
+PATIENT_ID=a2c36e54-af42-4c38-b86e-ade616ed5494 \
 VUS=10 DURATION=30s \
   k6 run --summary-export=results-10vu.json k6-infra.js
 
 AGENT_TOKEN="$(./get_token.sh)"   # fresh token before the second run
 AGENT_BASE_URL=https://64.177.42.210:8443 \
 AGENT_TOKEN="$AGENT_TOKEN" \
-PATIENT_ID=a2c0e096-23d5-4cf9-ad5b-4895597363a7 \
+PATIENT_ID=a2c36e54-af42-4c38-b86e-ade616ed5494 \
 VUS=50 DURATION=30s \
   k6 run --summary-export=results-50vu.json k6-infra.js
 ```
@@ -126,9 +132,10 @@ during each level.
 
 ### Baseline CPU / memory / throughput
 
-Sampled with `docker stats --no-stream` on the droplet (DO's own
-monitoring dashboard is an equally valid source — this repo has no droplet
-API token, so the local `docker stats` view is what was actually used):
+Sampled with `docker stats --no-stream` on the droplet (the hosting
+provider's own monitoring graphs are another source — this repo has no
+provider API token, so the local `docker stats` view is what was actually
+used):
 
 ```bash
 # On the droplet, or via: ssh root@64.177.42.210 '...'
@@ -143,7 +150,7 @@ the same as VUs (a slow backend can turn 50 VUs into well under 50 req/s).
 
 ```bash
 AGENT_TOKEN="$(./get_token.sh)"
-N=5 AGENT_TOKEN="$AGENT_TOKEN" ./real_batch.sh
+N=5 AGENT_TOKEN="$AGENT_TOKEN" PATIENT_ID=a2c36e54-af42-4c38-b86e-ade616ed5494 ./real_batch.sh
 ```
 
 Prints per-request timing (from the response body's `timing` field — no
