@@ -55,7 +55,8 @@ host. No browser, so the card's JavaScript rendering was not re-checked here
 | Same, system trust store only | Refused: curl exit 60, "unable to get local issuer certificate". The trust rests on the configured CA file. |
 | Agent `/ready` from the container | 200, `fhir` and `llm_provider` healthy |
 | pid 1 dashboard | 200; the Co-Pilot card is present, ahead of Demographics |
-| pid 1 (Phil Belford), `brief.php` | 200 in 7 s. Active problems: HTN, Chronic Renal Insuficiency. Medications: Norvasc, Lisinopril. Allergies: (unspecified allergen). 5 of 5 claims verified. |
+| pid 1 (Phil Belford), `brief.php` | 200 in 7 s. Active problems: HTN, Chronic Renal Insuficiency. Medications: Norvasc, Lisinopril. Allergies: (unspecified allergen). 5 of 5 claims verified. The allergy line is defect F-57, not a clean result: his penicillin allergy is uncoded, so the name is lost and the placeholder still passes verification. |
+| pid 49 (Tonja658 Grant908), `brief.php` | 200. Two active problems, ten coded allergies by name (Bee venom, Aspirin, Shellfish, …), 16 of 16 claims verified. Each of her two current medications is listed twice: the chart holds each both in the medication list and as a prescription. |
 | pid 3 (Wanda Moore) | 200. All three sections not recorded; 0 claims. |
 | pid 5 (Agnus790 Reinger292) | 200. Active problems none active (14 on file), medications none active (4 on file), allergies not recorded. |
 | Server-side token flow | One `api_token` row per brief: `client_id` = the client above, user = `physician`, scope exactly `openid` plus the four reads, expiry 1 hour. (The token value was not read.) |
@@ -116,32 +117,40 @@ screens (no admin login was available), and a visual check in your theme.
      "Generated at HH:MM" above the brief.
 
    The wording comes from the LLM draft and may vary. The counts and the
-   verified state should not.
+   verified state should not. **"(unspecified allergen)" marked verified is
+   a known defect (F-57), not a correct result:** the chart records a
+   penicillin allergy without a code, and the brief loses its name. Step 7
+   shows allergies rendered correctly.
 5. Click **Regenerate**. The spinner shows again, then the brief with a new
    time.
 6. Finder → **Wanda Moore**. All three sections show a dark **Not recorded**
    badge, and the summary reads "No chart items to verify".
-7. Finder → **Agnus790 Reinger292**. **Active problems** and **Current
+7. Finder → **Tonja658 Grant908**. **Allergies** lists ten allergens by
+   name (Bee venom, Aspirin, Shellfish, …), and the summary reads "All 16
+   items verified against the chart". Fexofenadine and the epinephrine
+   auto-injector each appear twice under **Current medications**, because the
+   chart holds each one both in the medication list and as a prescription.
+8. Finder → **Agnus790 Reinger292**. **Active problems** and **Current
    medications** show a blue **None active** badge with "14 on file, none
    with active status" and "4 on file, none with active status";
    **Allergies** shows **Not recorded**.
-8. Click the card title to collapse the card, then reload the dashboard
+9. Click the card title to collapse the card, then reload the dashboard
    (the tab's reload icon). The card stays collapsed and no "Generating…"
    appears. Expand it, and the brief generates then.
-9. Patient-switch guard. With a chart open, open a *different* patient in a
-   second browser tab of the same login. Return to the first tab and click
-   **Regenerate**. Expect a red box: "A different patient is now open in
-   this session. Reload this chart…". No brief for the wrong patient.
-10. Log out, log in as `receptionist`, open Phil Belford. There is **no**
+10. Patient-switch guard. With a chart open, open a *different* patient in a
+    second browser tab of the same login. Return to the first tab and click
+    **Regenerate**. Expect a red box: "A different patient is now open in
+    this session. Reload this chart…". No brief for the wrong patient.
+11. Log out, log in as `receptionist`, open Phil Belford. There is **no**
     Clinical Co-Pilot card.
-11. Admin screens, as `admin`:
+12. Admin screens, as `admin`:
     - *Modules → Manage Modules*: **Clinical Co-Pilot** is listed as
       enabled.
     - *Administration → Config*: a **Clinical Co-Pilot** section with six
       settings, the secret masked.
     - *Administration → System → API Clients*: "Clinical Co-Pilot (chart
       embed)" is enabled, with *Skip EHR Launch Authorization Flow* on.
-12. Optional, what the agent sees: on the host, `docker logs
+13. Optional, what the agent sees: on the host, `docker logs
     clinical-copilot-agent-agent-1 2>&1 | grep pre_visit_brief` shows the
     run. Its `patient_session_key` starts with the logged-in user's UUID.
 
