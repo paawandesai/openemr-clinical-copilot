@@ -12,21 +12,26 @@ A Postman v2.1 collection that runs end to end without reading the source:
 Files:
 
 - `clinical-copilot-agent.postman_collection.json` — the requests and tests.
-- `droplet.postman_environment.json` — the deployment host's URLs and the
-  seeded patient `a2c0e096-23d5-4cf9-ad5b-4895597363a7`. The file name
-  predates the move from DigitalOcean to Vultr. Credentials are
-  empty placeholders; never commit filled-in values.
+- `droplet.postman_environment.json` — the deployment host's URLs and a
+  seeded `patient_id`. Credentials are empty placeholders; never commit
+  filled-in values.
 
-**The seeded patient is not a clean demo.** Phil Belford
-(`a2c0e096-23d5-…`) has a penicillin allergy stored without an allergen
-code. The brief shows it as `(unspecified allergen)` and counts it as
-verified. That is defect F-57 (`docs/audit/findings.md`), not correct
-output. The collection's checks still pass on this patient, because they
+**Set `patient_id` before running against the current host.** The file
+name and its default `patient_id`, `a2c0e096-23d5-4cf9-ad5b-4895597363a7`
+(Phil Belford), predate the move from DigitalOcean to Vultr. The Vultr host
+is a fresh install with new FHIR ids, so that id does not exist there.
+Phil Belford on Vultr is `a2c36e54-af42-4c38-b86e-ade616ed5494`.
+
+**Phil Belford is not a clean demo.** His penicillin allergy is stored
+without an allergen code. The brief shows it as `(unspecified allergen)`
+and counts it as verified. That is defect F-57 (`docs/audit/findings.md`),
+not correct output. The collection's checks still pass on him, because they
 test the contract, not the allergen name. To demo a brief whose allergies
-are named correctly, set `patient_id` to a patient with coded allergies,
-such as `a2c0e47b-ec57-40e5-be47-9844f7ae98a1`: 10 coded allergies, all
-named and verified in the 2026-09-16 eval run (case A4). Both ids were
-recorded on the DigitalOcean host before the migration.
+are named correctly, use a patient with coded allergies. On Vultr,
+Tonja658 Grant908 (`a2c37430-0a29-4c57-8195-2c924c2b654a`) has ten coded
+allergies, all returned verified. Her brief currently lists each current
+medication twice, because her chart holds each one both as a medication
+list entry and as a prescription.
 
 ## Run it
 
@@ -75,7 +80,7 @@ Then call the agent with the returned `access_token`:
 curl -k https://64.177.42.210:8443/pre-visit-brief \
   -H "Authorization: Bearer $ACCESS_TOKEN" \
   -H "Content-Type: application/json" \
-  -d '{"patient_id": "a2c0e096-23d5-4cf9-ad5b-4895597363a7"}'
+  -d '{"patient_id": "a2c37430-0a29-4c57-8195-2c924c2b654a"}'
 ```
 
 What you need from the operator:

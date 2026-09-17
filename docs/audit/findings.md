@@ -1411,9 +1411,15 @@ Pass-2 droplet database commands were run as
     unestablished. Either way, none is in place.
   - Dataset: the populations audited on the DigitalOcean droplet and locally
     are OpenEMR demo data plus Synthea imports (`first-hand`: F-15–F-18,
-    F-43). That the Vultr host holds only synthetic data, per the case study
-    brief's demo-data constraint, is `operator-reported`; the Vultr database
-    was not inspected for this entry.
+    F-43). The Vultr host is a fresh install, not a copy: FHIR ids from the
+    DigitalOcean host return nothing there, and the same patients carry new
+    ids (Phil Belford is `a2c36e54-af42-4c38-b86e-ade616ed5494` on Vultr). Its
+    population mixes OpenEMR demo patients with Synthea-named ones, such as
+    Tonja658 Grant908. That was checked live on 2026-09-17 by a separate
+    session (branch `fix/embed-vultr-config`, commit `45e6710`) and not
+    re-run for this entry. That the Vultr host holds only synthetic data,
+    per the case study brief's demo-data constraint, is `operator-reported`.
+    This session did not inspect the Vultr database.
 - **Remediation:** not done, and not needed while every record is synthetic.
   Before any real PHI, move to a substrate under an executed BAA, such as
   DigitalOcean's HIPAA-eligible products under a signed BAA (F-41), or
@@ -1424,8 +1430,9 @@ Pass-2 droplet database commands were run as
   covered product (`agent/docs/observability.md` §9, written for
   DigitalOcean).
 - **Verified:** `first-hand` (IP registrant; migration window from repository
-  records) · `operator-reported` (reason for the move; no executed BAA;
-  synthetic-only contents of the Vultr host) · not verified (whether Vultr
+  records) · `first-hand` in a separate session, not re-run here (fresh
+  install with new FHIR ids) · `operator-reported` (reason for the move; no
+  executed BAA; synthetic-only contents of the Vultr host) · not verified (whether Vultr
   offers a BAA — its pages were not retrievable, and search summaries
   suggest it does; Verification gaps item 25).
 - **Implication for the agent:** `ARCHITECTURE.md` §1's placement decisions

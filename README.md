@@ -48,8 +48,9 @@ How to see the agent:
   run every workflow is the [Postman collection](agent/api-collection/README.md).
 
 Audit, eval and load-test records name the host they were run against, which
-is the pre-migration host, a DigitalOcean droplet. The current host is on
-Vultr, and no BAA covers it. That is acceptable only because all data is
+is the pre-migration host, a DigitalOcean droplet. The current host is a
+fresh install on Vultr, so patient ids in those records do not exist on it.
+No BAA covers the Vultr host. That is acceptable only because all data is
 synthetic
 ([docs/ARCHITECTURE.md §1](docs/ARCHITECTURE.md#1-deployment-topology)).
 
