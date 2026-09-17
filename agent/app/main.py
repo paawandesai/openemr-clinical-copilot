@@ -5,8 +5,11 @@ Routes:
   GET  /health           liveness (app/health.py)
   GET  /ready            dependency readiness (app/health.py)
   POST /pre-visit-brief  the Pre-Visit Brief pipeline (app/api/pre_visit_brief.py)
+  POST /pre-visit-brief/follow-up
+                         one follow-up question on the brief's verified
+                         record set (app/api/follow_up.py)
 
-Contracts for all three live in app/models/api.py; /docs and /openapi.json
+Contracts for all of them live in app/models/api.py; /docs and /openapi.json
 publish them. Deployment: agent/docs/deployment.md.
 
 Correlation ID + structured logging are wired first because
@@ -20,6 +23,7 @@ from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 
+from app.api.follow_up import router as follow_up_router
 from app.api.pre_visit_brief import ApiError
 from app.api.pre_visit_brief import router as pre_visit_brief_router
 from app.health import router as health_router
@@ -71,3 +75,4 @@ async def _invalid_request(request: Request, exc: RequestValidationError) -> JSO
 
 app.include_router(health_router)
 app.include_router(pre_visit_brief_router)
+app.include_router(follow_up_router)
