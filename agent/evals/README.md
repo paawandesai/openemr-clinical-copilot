@@ -28,8 +28,8 @@ Environment variables, read from `agent/.env` if not exported:
 |---|---|---|
 | `FHIR_CLIENT_ID`, `FHIR_CLIENT_SECRET` | every live case (minting OpenEMR tokens) | none. Without them, live cases SKIP |
 | `ANTHROPIC_API_KEY` | in-process cases (A6, C, D2, D3, E3) | none. Without it, those cases SKIP |
-| `FHIR_BASE_URL` | the oracle and in-process runs | `https://201.79.25.22:9300/apis/default/fhir` |
-| `EVAL_AGENT_URL` | live endpoint cases | `https://201.79.25.22:8443` |
+| `FHIR_BASE_URL` | the oracle and in-process runs | `https://64.177.42.210:9300/apis/default/fhir` |
+| `EVAL_AGENT_URL` | live endpoint cases | `https://64.177.42.210:8443` |
 | `FHIR_TEST_USERNAME`, `FHIR_TEST_PASSWORD` | the clinician whose token is used | `physician` / `physician`, as the smoke tests (F-32 records this demo account as a live risk) |
 | `EVAL_EXPIRED_TOKEN_FILE` | D6 | none. D6 SKIPs without a token minted more than an hour earlier |
 | `EVAL_LATENCY_BUDGET_SECONDS` | F1 | `90` (USERS.md §1–2) |

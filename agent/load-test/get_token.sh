@@ -8,7 +8,7 @@
 # Required env: FHIR_CLIENT_ID, FHIR_CLIENT_SECRET
 # Optional env: FHIR_TEST_USERNAME (default: physician)
 #               FHIR_TEST_PASSWORD (default: physician)
-#               FHIR_TOKEN_URL     (default: https://201.79.25.22:9300/oauth2/default/token)
+#               FHIR_TOKEN_URL     (default: https://64.177.42.210:9300/oauth2/default/token)
 #
 # Token expires in 1 hour (OpenEMR default). Re-run this before a run that
 # might outlast a previously minted token.
@@ -18,7 +18,7 @@ set -euo pipefail
 : "${FHIR_CLIENT_SECRET:?set FHIR_CLIENT_SECRET}"
 USERNAME="${FHIR_TEST_USERNAME:-physician}"
 PASSWORD="${FHIR_TEST_PASSWORD:-physician}"
-TOKEN_URL="${FHIR_TOKEN_URL:-https://201.79.25.22:9300/oauth2/default/token}"
+TOKEN_URL="${FHIR_TOKEN_URL:-https://64.177.42.210:9300/oauth2/default/token}"
 
 RESPONSE=$(curl -sk "$TOKEN_URL" \
   --data-urlencode grant_type=password \

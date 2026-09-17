@@ -89,7 +89,7 @@ same decision made twice: it reads through the FHIR API and writes nothing
 to the EHR's own database (see §2).
 
 **Where the agent process lives — decided and deployed.** On the same
-droplet as OpenEMR (`201.79.25.22`), so agent compute stays on the covered
+droplet as OpenEMR (`64.177.42.210`), so agent compute stays on the covered
 product (F-41). Placing it outside the droplet would either require its own
 BAA-covered placement decision or risk PHI leaving covered infrastructure
 through request/response logging. Its shape (`agent/deploy/`, operated per

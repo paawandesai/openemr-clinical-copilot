@@ -59,7 +59,7 @@ patient's dashboard in the tabbed UI the way the patient finder does
 What still needs a person: a normal (non-headless) browser, the admin
 screens (no admin login was available), and a visual check in your theme.
 
-1. Open `https://201.79.25.22:9300/` and accept the self-signed certificate
+1. Open `https://64.177.42.210:9300/` and accept the self-signed certificate
    warning (F-36).
 2. Log in as a clinician with medical-record access, e.g. `physician`.
 3. Top menu **Finder** → search `Belford` → click **Phil Belford**. The

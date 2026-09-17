@@ -92,8 +92,8 @@ class EvalConfig:
     @classmethod
     def from_env(cls) -> EvalConfig:
         return cls(
-            agent_url=os.environ.get("EVAL_AGENT_URL", "https://201.79.25.22:8443").rstrip("/"),
-            fhir_base_url=os.environ.get("FHIR_BASE_URL", "https://201.79.25.22:9300/apis/default/fhir"),
+            agent_url=os.environ.get("EVAL_AGENT_URL", "https://64.177.42.210:8443").rstrip("/"),
+            fhir_base_url=os.environ.get("FHIR_BASE_URL", "https://64.177.42.210:9300/apis/default/fhir"),
             client_id=os.environ.get("FHIR_CLIENT_ID"),
             client_secret=os.environ.get("FHIR_CLIENT_SECRET"),
             # The smoke tests' defaults (scripts/smoke_test_fhir.py). F-32

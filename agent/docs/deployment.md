@@ -1,6 +1,6 @@
 # Deployment — agent service on the OpenEMR droplet
 
-The agent runs on the same DigitalOcean droplet as OpenEMR (`201.79.25.22`),
+The agent runs on the same DigitalOcean droplet as OpenEMR (`64.177.42.210`),
 as its own Compose project (`agent/deploy/docker-compose.agent.yml`). OpenEMR's
 `docker/development-easy` stack is not modified.
 
@@ -110,7 +110,7 @@ From the repository root on the operator's laptop — ship the committed
 `agent/` tree (tracked files only: no `.env`, logs or virtualenv):
 
 ```bash
-DROPLET=root@201.79.25.22
+DROPLET=root@64.177.42.210
 COMMIT=$(git rev-parse --short HEAD)
 ssh "$DROPLET" 'rm -rf /opt/clinical-copilot/agent && mkdir -p /opt/clinical-copilot'
 git archive "$COMMIT" agent | ssh "$DROPLET" 'tar -x -C /opt/clinical-copilot'
@@ -123,7 +123,7 @@ reaching shell history or the screen:
 ```bash
 install -d -m 700 /etc/clinical-copilot
 read -rsp 'ANTHROPIC_API_KEY: ' KEY; echo
-( umask 077; printf 'ANTHROPIC_API_KEY=%s\nAGENT_PUBLIC_HOST=201.79.25.22\n' "$KEY" > /etc/clinical-copilot/agent.env )
+( umask 077; printf 'ANTHROPIC_API_KEY=%s\nAGENT_PUBLIC_HOST=64.177.42.210\n' "$KEY" > /etc/clinical-copilot/agent.env )
 unset KEY
 ```
 
@@ -149,9 +149,9 @@ stay public. `18310`/`18320` stay `127.0.0.1`. No listener on 8000.
 Then, from a machine **outside** the droplet:
 
 ```bash
-for port in 8443 8000 18310 18320 3306 2019; do nc -z -w 3 201.79.25.22 $port && echo "$port open" || echo "$port closed"; done
-curl -k https://201.79.25.22:8443/health
-curl -k https://201.79.25.22:8443/ready
+for port in 8443 8000 18310 18320 3306 2019; do nc -z -w 3 64.177.42.210 $port && echo "$port open" || echo "$port closed"; done
+curl -k https://64.177.42.210:8443/health
+curl -k https://64.177.42.210:8443/ready
 ```
 
 Expected: only 8443 open among these. Then run the API collection
@@ -165,8 +165,8 @@ Stop: `docker compose --env-file /etc/clinical-copilot/agent.env -f docker-compo
 **Trusting the certificate instead of `-k`:**
 
 ```bash
-ssh root@201.79.25.22 'cd /opt/clinical-copilot/agent/deploy && docker compose --env-file /etc/clinical-copilot/agent.env -f docker-compose.agent.yml exec -T proxy cat /data/caddy/pki/authorities/local/root.crt' > agent-root.crt
-curl --cacert agent-root.crt https://201.79.25.22:8443/health
+ssh root@64.177.42.210 'cd /opt/clinical-copilot/agent/deploy && docker compose --env-file /etc/clinical-copilot/agent.env -f docker-compose.agent.yml exec -T proxy cat /data/caddy/pki/authorities/local/root.crt' > agent-root.crt
+curl --cacert agent-root.crt https://64.177.42.210:8443/health
 ```
 
 The root persists in the `caddy_data` volume, so it survives restarts.
@@ -177,7 +177,7 @@ which Docker keeps (10 MB × 5 files). The log lines carry
 operator's machine:
 
 ```bash
-ssh root@201.79.25.22 'docker logs clinical-copilot-agent-agent-1 2>&1' \
+ssh root@64.177.42.210 'docker logs clinical-copilot-agent-agent-1 2>&1' \
   | python agent/scripts/compute_metrics.py --log-file -
 ```
 

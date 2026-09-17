@@ -8,25 +8,21 @@ A Clinical Co-Pilot AI agent built into a fork of [OpenEMR](https://open-emr.org
 
 ## Deployed application
 
-> **OPERATOR — FILL IN BEFORE SUBMITTING:** the deployment is moving to a new
-> host, so the host is still a placeholder. After the migration, run the
-> command below from the repository root with the new host's public IP. It
-> fills in every placeholder and turns the two URLs in the table into links.
-> Then delete this note.
->
-> ```bash
-> IP=NEW.HOST.IP; sed -i '' -E "s#\`(https://)<DEPLOYED_URL>(:[0-9]+)\`#\1$IP\2#g; s#<DEPLOYED_URL>#$IP#g" README.md
-> ```
-
 | What | URL |
 |---|---|
-| **OpenEMR**, with the Clinical Co-Pilot card embedded in the patient chart | `https://<DEPLOYED_URL>:9300` |
-| **Agent API + standalone Pre-Visit Brief UI** | `https://<DEPLOYED_URL>:8443` |
+| **OpenEMR**, with the Clinical Co-Pilot card embedded in the patient chart | https://64.177.42.210:9300 |
+| **Agent API + standalone Pre-Visit Brief UI** | https://64.177.42.210:8443 |
 
 **The certificates are self-signed.** Neither port has a certificate from a
 public CA: OpenEMR's is self-signed, and the agent's comes from its proxy's
 local CA. Your browser will show a warning for each port. Accept it once and
 continue. With `curl`, pass `-k`.
+
+**Demo login:** `physician` / `physician` (username as password). This is a
+seeded demo-data account recorded as a security finding in
+[docs/AUDIT.md](docs/AUDIT.md) (F-32); a real deployment would not ship it. An
+`admin` account also exists, but its default password was rotated after the
+public exposure recorded as F-31, so it is not listed here.
 
 How to see the agent:
 
@@ -37,7 +33,7 @@ How to see the agent:
   the brief when the chart opens. Users without medical-record access, such
   as `receptionist`, do not see the card. Walkthrough:
   [module deployment §3](interface/modules/custom_modules/oe-module-clinical-copilot/docs/deployment.md).
-- **Standalone UI.** Open `https://<DEPLOYED_URL>:8443/`, then paste a
+- **Standalone UI.** Open `https://64.177.42.210:8443/`, then paste a
   patient's FHIR id and a clinician's OpenEMR access token. **Need a token?**
   on the page shows the command to get one.
 - **API.** `GET /health`, `GET /ready`, `POST /pre-visit-brief`, and

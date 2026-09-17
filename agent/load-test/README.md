@@ -105,14 +105,14 @@ docker exec clinical-copilot-agent-agent-1 python -c \
 ```bash
 brew install k6   # or see https://k6.io/docs/get-started/installation/
 
-AGENT_BASE_URL=https://201.79.25.22:8443 \
+AGENT_BASE_URL=https://64.177.42.210:8443 \
 AGENT_TOKEN="$AGENT_TOKEN" \
 PATIENT_ID=a2c0e096-23d5-4cf9-ad5b-4895597363a7 \
 VUS=10 DURATION=30s \
   k6 run --summary-export=results-10vu.json k6-infra.js
 
 AGENT_TOKEN="$(./get_token.sh)"   # fresh token before the second run
-AGENT_BASE_URL=https://201.79.25.22:8443 \
+AGENT_BASE_URL=https://64.177.42.210:8443 \
 AGENT_TOKEN="$AGENT_TOKEN" \
 PATIENT_ID=a2c0e096-23d5-4cf9-ad5b-4895597363a7 \
 VUS=50 DURATION=30s \
@@ -131,7 +131,7 @@ monitoring dashboard is an equally valid source — this repo has no droplet
 API token, so the local `docker stats` view is what was actually used):
 
 ```bash
-# On the droplet, or via: ssh root@201.79.25.22 '...'
+# On the droplet, or via: ssh root@64.177.42.210 '...'
 watch -n5 'docker stats --no-stream clinical-copilot-agent-agent-1 development-easy-openemr-1 development-easy-mysql-1'
 ```
 

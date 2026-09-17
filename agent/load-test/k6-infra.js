@@ -10,7 +10,7 @@
 // container — README.md) so the generator's own CPU never competes with
 // the system being measured.
 //
-//   AGENT_BASE_URL=https://201.79.25.22:8443 \
+//   AGENT_BASE_URL=https://64.177.42.210:8443 \
 //   AGENT_TOKEN=<clinician bearer token, ARCHITECTURE.md §2> \
 //   PATIENT_ID=a2c0e096-23d5-4cf9-ad5b-4895597363a7 \
 //   VUS=10 DURATION=60s \
@@ -23,7 +23,7 @@
 import http from "k6/http";
 import { check, sleep } from "k6";
 
-const BASE_URL = __ENV.AGENT_BASE_URL || "https://201.79.25.22:8443";
+const BASE_URL = __ENV.AGENT_BASE_URL || "https://64.177.42.210:8443";
 const TOKEN = __ENV.AGENT_TOKEN;
 const PATIENT_ID = __ENV.PATIENT_ID || "a2c0e096-23d5-4cf9-ad5b-4895597363a7";
 

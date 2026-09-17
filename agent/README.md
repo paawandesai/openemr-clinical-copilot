@@ -59,7 +59,7 @@ off unless `LANGFUSE_*` is set (`agent/docs/observability.md`).
 ```bash
 pip install -r requirements.txt
 export ANTHROPIC_API_KEY=...                                   # drafting + /ready
-export FHIR_BASE_URL=https://201.79.25.22:9300/apis/default/fhir
+export FHIR_BASE_URL=https://64.177.42.210:9300/apis/default/fhir
 export FHIR_VERIFY_TLS=false                                   # OpenEMR's self-signed cert (F-36)
 uvicorn app.main:app --host 127.0.0.1 --port 8000
 ```

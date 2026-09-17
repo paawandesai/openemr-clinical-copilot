@@ -47,7 +47,7 @@ from app.models.fhir_resources import (
 from app.models.metrics_events import RetrievalEvent, UseCase
 
 # Confirmed live: https://<droplet>/apis/default/fhir/<ResourceType>?patient=<id>
-DEFAULT_BASE_URL = "https://201.79.25.22:9300/apis/default/fhir"
+DEFAULT_BASE_URL = "https://64.177.42.210:9300/apis/default/fhir"
 FHIR_BASE_URL = os.environ.get("FHIR_BASE_URL", DEFAULT_BASE_URL)
 
 # findings.md F-36: the droplet serves a self-signed certificate.

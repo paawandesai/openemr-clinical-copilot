@@ -8,13 +8,13 @@
 # quota (already configured on the droplet, ARCHITECTURE.md §1).
 #
 # Required env: AGENT_TOKEN (a fresh clinician bearer token — see get_token.sh)
-# Optional env: AGENT_BASE_URL (default https://201.79.25.22:8443)
+# Optional env: AGENT_BASE_URL (default https://64.177.42.210:8443)
 #               PATIENT_ID     (default the seeded demo patient)
 #               N              (default 5 — keep this small; each call is billed)
 set -euo pipefail
 
 : "${AGENT_TOKEN:?set AGENT_TOKEN — see get_token.sh}"
-BASE_URL="${AGENT_BASE_URL:-https://201.79.25.22:8443}"
+BASE_URL="${AGENT_BASE_URL:-https://64.177.42.210:8443}"
 PATIENT_ID="${PATIENT_ID:-a2c0e096-23d5-4cf9-ad5b-4895597363a7}"
 N="${N:-5}"
 
@@ -47,4 +47,4 @@ done
 echo "" >&2
 echo "For token cost: pull the agent's stdout log and run scripts/compute_metrics.py Metric 6" >&2
 echo "  (agent/docs/deployment.md 'Metrics' section) — e.g.:" >&2
-echo "  ssh root@201.79.25.22 'docker logs clinical-copilot-agent-agent-1 --since 10m 2>&1' | python scripts/compute_metrics.py --log-file -" >&2
+echo "  ssh root@64.177.42.210 'docker logs clinical-copilot-agent-agent-1 --since 10m 2>&1' | python scripts/compute_metrics.py --log-file -" >&2

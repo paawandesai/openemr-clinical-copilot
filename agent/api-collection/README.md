@@ -47,7 +47,7 @@ by hand it is the same password grant the smoke tests use
 (`agent/scripts/smoke_test_fhir.py`):
 
 ```bash
-curl -k https://201.79.25.22:9300/oauth2/default/token \
+curl -k https://64.177.42.210:9300/oauth2/default/token \
   --data-urlencode grant_type=password \
   --data-urlencode client_id="$FHIR_CLIENT_ID" \
   --data-urlencode client_secret="$FHIR_CLIENT_SECRET" \
@@ -60,7 +60,7 @@ curl -k https://201.79.25.22:9300/oauth2/default/token \
 Then call the agent with the returned `access_token`:
 
 ```bash
-curl -k https://201.79.25.22:8443/pre-visit-brief \
+curl -k https://64.177.42.210:8443/pre-visit-brief \
   -H "Authorization: Bearer $ACCESS_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{"patient_id": "a2c0e096-23d5-4cf9-ad5b-4895597363a7"}'
