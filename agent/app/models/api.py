@@ -1,6 +1,7 @@
 """
 HTTP contracts for the agent service — the source of truth for what
-POST /pre-visit-brief and GET /ready accept and return.
+POST /pre-visit-brief, POST /pre-visit-brief/follow-up and GET /ready accept
+and return.
 
 Every model forbids unknown fields and coerces nothing (strict), so a
 request that does not match the contract is rejected with 422 rather than
@@ -14,9 +15,10 @@ from __future__ import annotations
 from enum import Enum
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from app.models.fhir_resources import FhirResourceType
+from app.models.follow_up import AnswerStatus, RecordGap
 
 # OpenEMR's FHIR ids are lowercase UUIDs (confirmed live). A canonical form
 # only: anything else is rejected at the boundary instead of being sent to
@@ -26,6 +28,9 @@ PATIENT_ID_PATTERN = r"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]
 # Letters, digits and hyphens only: the id becomes the third part of the
 # colon-separated patient_session_key, so it can never contain a colon.
 SESSION_ID_PATTERN = r"^[A-Za-z0-9-]{8,64}$"
+
+# One clarifying question (USERS.md §2), not a document.
+FOLLOW_UP_QUESTION_MAX_LENGTH = 500
 
 
 class _Contract(BaseModel):
@@ -95,6 +100,76 @@ class PreVisitBriefResponse(_Contract):
     timing: Timing
 
 
+class FollowUpRequest(_Contract):
+    """
+    One follow-up question about the brief just rendered. Deliberately no
+    field for records, claims or earlier questions: the records are
+    re-read from FHIR under the caller's token, so the set every claim is
+    verified against is never caller-supplied, and nothing carries over
+    between questions.
+    """
+
+    patient_id: str = Field(
+        pattern=PATIENT_ID_PATTERN,
+        description="FHIR Patient id (lowercase UUID) of the brief being followed up.",
+        examples=["a2c0e096-23d5-4cf9-ad5b-4895597363a7"],
+    )
+    session_id: str = Field(
+        pattern=SESSION_ID_PATTERN,
+        description=(
+            "The session_id the brief returned. Required: the follow-up's "
+            "events are attributed to the brief's patient_session_key."
+        ),
+    )
+    question: str = Field(
+        min_length=1,
+        max_length=FOLLOW_UP_QUESTION_MAX_LENGTH,
+        description="The physician's single follow-up question. Never logged.",
+        examples=["When was the lisinopril prescribed, and is it still active?"],
+    )
+
+    @field_validator("question")
+    @classmethod
+    def _question_has_text(cls, value: str) -> str:
+        if not value.strip():
+            raise ValueError("question must contain text")
+        return value
+
+
+class FollowUpResponse(_Contract):
+    answer: str = Field(
+        description=(
+            "Physician-facing answer text: verified claims stated plainly, "
+            "failed claims marked UNVERIFIED, and what the retrieved record "
+            "does not hold stated as such."
+        )
+    )
+    answer_status: AnswerStatus = Field(
+        description=(
+            "answered: every claim verified and the question fully covered. "
+            "partially_answered: some verified claims, but part of the question "
+            "is not in the retrieved record or a claim failed verification. "
+            "not_in_record: no claim verified."
+        )
+    )
+    gaps: list[RecordGap] = Field(
+        description="Kinds of information the question needed that the retrieved record does not hold."
+    )
+    question: str
+    patient_id: str
+    session_id: str
+    patient_session_key: str = Field(
+        description="(user, patient, session) as user:patient:session — ARCHITECTURE.md §4."
+    )
+    correlation_id: str
+    verification: VerificationSummary
+    claims: list[ClaimOutcome]
+    sections: list[SectionSummary] = Field(
+        description="The bounded record set the answer was drawn from and verified against."
+    )
+    timing: Timing
+
+
 class ErrorCode(str, Enum):
     MISSING_BEARER_TOKEN = "missing_bearer_token"
     MALFORMED_BEARER_TOKEN = "malformed_bearer_token"
@@ -103,6 +178,7 @@ class ErrorCode(str, Enum):
     PATIENT_NOT_FOUND = "patient_not_found"
     FHIR_UNAVAILABLE = "fhir_unavailable"
     BRIEF_GENERATION_FAILED = "brief_generation_failed"
+    FOLLOW_UP_GENERATION_FAILED = "follow_up_generation_failed"
     INTERNAL_ERROR = "internal_error"
 
 
