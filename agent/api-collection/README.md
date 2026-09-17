@@ -6,48 +6,115 @@ A Postman v2.1 collection that runs end to end without reading the source:
 |---|---|---|
 | 1. Liveness and readiness | `GET /health`, `GET /ready` | 200 `alive`; 200 `ready` with FHIR and LLM provider healthy |
 | 2. Get a clinician token | `POST {openemr_url}/oauth2/default/token` | OpenEMR issues a token; stored for folders 3–4 |
-| 3. Pre-Visit Brief | `POST /pre-visit-brief` for the seeded patient | 200; brief rendered; every claim verified or marked unverified; `user:patient:session` key; correlation id matches header; token never echoed |
+| 3. Pre-Visit Brief | `POST /pre-visit-brief` for the demo patient (`patient_id`) | 200; brief rendered; every claim verified or marked unverified; `user:patient:session` key; correlation id matches header; token never echoed |
 | 4. Failure paths | no token; malformed `patient_id`; unknown patient; token OpenEMR rejects | 401 `missing_bearer_token`; 422 `invalid_request`; 404 `patient_not_found`; 401 `fhir_token_rejected` |
 
 Files:
 
 - `clinical-copilot-agent.postman_collection.json` — the requests and tests.
-- `droplet.postman_environment.json` — the deployment host's URLs and a
-  seeded `patient_id`. Credentials are empty placeholders; never commit
+- `droplet.postman_environment.json` — the Vultr deployment host's URLs
+  (`https://64.177.42.210:8443` for the agent, `https://64.177.42.210:9300`
+  for OpenEMR) and the demo `patient_id`. The file name predates the move
+  from DigitalOcean. **All four credential values ship empty:**
+  `client_id`, `client_secret`, `openemr_username` and `openemr_password`.
+  Supply them at run time ([Credentials](#credentials)); never commit
   filled-in values.
 
-**Set `patient_id` before running against the current host.** The file
-name and its default `patient_id`, `a2c0e096-23d5-4cf9-ad5b-4895597363a7`
-(Phil Belford), predate the move from DigitalOcean to Vultr. The Vultr host
-is a fresh install with new FHIR ids, so that id does not exist there.
-Phil Belford on Vultr is `a2c36e54-af42-4c38-b86e-ade616ed5494`.
+**Demo patient.** `patient_id` defaults to Susan Underwood
+(`a2c36e54-af4c-4fde-a609-4fe1419590ac`, pid 2 on the Vultr host). Her brief
+was checked live on 2026-09-17 through the chart embed, as the `physician`
+account. It listed one active problem (diabetes) and three current
+medications (Lisinopril, Metformin, Lipitor), with no line repeated.
+Allergies showed as not recorded, which is correct: her chart has none.
+All 4 of 4 claims were verified.
 
-**Phil Belford is not a clean demo.** His penicillin allergy is stored
-without an allergen code. The brief shows it as `(unspecified allergen)`
-and counts it as verified. That is defect F-57 (`docs/audit/findings.md`),
-not correct output. The collection's checks still pass on him, because they
-test the contract, not the allergen name. To demo a brief whose allergies
-are named correctly, use a patient with coded allergies. On Vultr,
-Tonja658 Grant908 (`a2c37430-0a29-4c57-8195-2c924c2b654a`) has ten coded
-allergies, all returned verified. Her brief currently lists each current
-medication twice, because her chart holds each one both as a medication
-list entry and as a prescription.
+Do not use these as the demo patient:
+
+- **`a2c0e096-23d5-4cf9-ad5b-4895597363a7`**, the old default: Phil Belford
+  on the DigitalOcean host. The Vultr host is a fresh install with new FHIR
+  ids, so this id does not exist there (404 `patient_not_found`).
+- **`a2c36e54-af42-4c38-b86e-ade616ed5494`**, Phil Belford on Vultr: his
+  penicillin allergy has no allergen code, so the brief shows
+  `(unspecified allergen)` and counts it as verified. That is defect F-57
+  (`docs/audit/findings.md`), not a clean brief. The collection's checks
+  would still pass, because they test the contract, not the allergen name.
+- **Synthea patients whose charts hold each medication twice**, as a
+  medication-list entry and as a prescription. Every claim verifies, but
+  each current medication is listed twice. Examples: Abbie917 Ullrich385
+  (`a2c37342-f80b-4243-a201-5290c89a58da`), and Tonja658 Grant908
+  (`a2c37430-0a29-4c57-8195-2c924c2b654a`). Tonja's ten coded allergies do
+  render by name, so use her only to show allergies.
+
+## Credentials
+
+The collection needs two things the environment file does not carry.
+
+1. **`client_id` and `client_secret`** of an OAuth client that OpenEMR has
+   enabled for the password grant.
+2. **A clinician login** (`user_role=users`) for `openemr_username` and
+   `openemr_password`. Use the demo account `physician` / `physician`. It
+   is public in the repository README, and findings F-32 records that such
+   demo accounts are themselves a risk.
+
+**Getting a client id and secret.** Registering and enabling a client needs
+root SSH access to the host. A grader without that access asks the operator
+for a `client_id` and `client_secret`, passed on outside the repository. The
+operator creates one on the host:
+
+```bash
+ssh root@64.177.42.210
+
+# 1. Register a client. It prints a client id and a client secret, each in
+#    double quotes; drop the quotes. Record the secret now: it is stored
+#    encrypted and cannot be read back later (F-05).
+docker exec development-easy-openemr-1 /root/devtools register-oauth2-client
+
+# 2. Enable it and allow the password grant. A newly registered client is
+#    disabled and allows only authorization_code (F-02). Enter the database
+#    root password when prompted (F-34).
+docker exec -it development-easy-mysql-1 mariadb -uroot -p openemr -e \
+  "UPDATE oauth_clients SET is_enabled = 1, grant_types = 'authorization_code,password,refresh_token' WHERE client_id = '<client id from step 1>';"
+```
+
+The client is registered with OpenEMR's full API scope list, which includes
+the four reads the collection requests. These are the same one-time steps
+as in `agent/scripts/smoke_test_fhir.py`. They were checked against the
+Vultr host on 2026-09-17, read-only:
+- The `devtools` command and both container names exist.
+- The password grant is on (`oauth_password_grant` = 3).
+- The host's enabled password-grant clients have exactly the configuration
+  step 2 sets, and one of them passed the full collection (below).
+
+The steps were not re-run to create a new client.
 
 ## Run it
 
-With [Newman](https://www.npmjs.com/package/newman) (Node 18+):
+Verified passing on 2026-09-17 against the Vultr host, with the four
+credentials supplied: a password-grant client configured as above, and
+`physician` / `physician`. Newman ran 8 requests and 13 assertions with 0
+failures. With the environment file as committed (empty credentials), the
+token request in folder 2 fails, and so do the requests that need its token.
+
+With [Newman](https://www.npmjs.com/package/newman) (Node 18+), passing the
+credentials on the command line so no file holds them:
 
 ```bash
-cp agent/api-collection/droplet.postman_environment.json /tmp/copilot-env.json
-# fill in client_id, client_secret, openemr_username, openemr_password in /tmp/copilot-env.json
+export FHIR_CLIENT_ID='<client id>' FHIR_CLIENT_SECRET='<client secret>'
+export OPENEMR_USERNAME=physician OPENEMR_PASSWORD=physician
 
 npx newman run agent/api-collection/clinical-copilot-agent.postman_collection.json \
-  -e /tmp/copilot-env.json \
+  -e agent/api-collection/droplet.postman_environment.json \
+  --env-var client_id="$FHIR_CLIENT_ID" \
+  --env-var client_secret="$FHIR_CLIENT_SECRET" \
+  --env-var openemr_username="$OPENEMR_USERNAME" \
+  --env-var openemr_password="$OPENEMR_PASSWORD" \
   --insecure
 ```
 
-Or import both files into Postman, select the environment, turn off
-*Settings → General → SSL certificate verification*, and run the collection.
+Or import both files into Postman, select the environment, and fill in the
+four credential values there. Do not export the filled-in environment back
+into the repository. Turn off *Settings → General → SSL certificate
+verification*, and run the collection.
 
 `--insecure` is needed because both OpenEMR (port 9300) and the agent (port
 8443) use certificates that are not publicly trusted — OpenEMR's is
@@ -61,7 +128,8 @@ CA's root as shown in `agent/docs/deployment.md` and pass
 The agent never mints tokens: each request carries the clinician's own
 OpenEMR access token (`docs/ARCHITECTURE.md` §2). Folder 2 does this for you;
 by hand it is the same password grant the smoke tests use
-(`agent/scripts/smoke_test_fhir.py`):
+(`agent/scripts/smoke_test_fhir.py`), with the variables exported in
+[Run it](#run-it):
 
 ```bash
 curl -k https://64.177.42.210:9300/oauth2/default/token \
@@ -80,18 +148,11 @@ Then call the agent with the returned `access_token`:
 curl -k https://64.177.42.210:8443/pre-visit-brief \
   -H "Authorization: Bearer $ACCESS_TOKEN" \
   -H "Content-Type: application/json" \
-  -d '{"patient_id": "a2c37430-0a29-4c57-8195-2c924c2b654a"}'
+  -d '{"patient_id": "a2c36e54-af4c-4fde-a609-4fe1419590ac"}'
 ```
 
-What you need from the operator:
-
-- **client_id / client_secret** of an OAuth client OpenEMR has enabled for the
-  password grant. A newly registered client cannot mint tokens until an
-  administrator enables it (F-02; the one-time steps are in the
-  `agent/scripts/smoke_test_fhir.py` docstring).
-- **An OpenEMR clinician login** (`user_role=users`). The smoke tests default
-  to the seeded demo account; findings F-32 records that such demo accounts
-  are themselves a live risk.
+The client and login come from [Credentials](#credentials). The client used
+before the migration does not exist on the Vultr host.
 
 Tokens expire after one hour. An expired token, a revoked one and one missing
 a scope all come back as `401 fhir_token_rejected` — OpenEMR does not
