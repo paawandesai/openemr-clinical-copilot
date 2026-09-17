@@ -7,7 +7,7 @@ FastAPI service implementing the Clinical Co-Pilot agent described in
 ## Status: Pre-Visit Brief runs end to end over HTTP
 
 The Pre-Visit Brief (`docs/USERS.md` Use Case 1) is a runnable pipeline
-behind an HTTP endpoint, deployed next to OpenEMR on the droplet
+behind an HTTP endpoint, deployed next to OpenEMR on the deployment host
 (`agent/docs/deployment.md`). Change Detection and Follow-Up Drilling are not built.
 
 | Endpoint | Purpose |
@@ -72,9 +72,9 @@ docstring):
 
 ```bash
 pytest tests/                                   # no network, no credentials
-python scripts/smoke_test_pre_visit_brief.py    # live: droplet FHIR + Anthropic API
-python scripts/smoke_test_fhir.py               # live: droplet FHIR
-python scripts/smoke_test_claims.py             # live: droplet FHIR + Anthropic API
+python scripts/smoke_test_pre_visit_brief.py    # live: deployed FHIR + Anthropic API
+python scripts/smoke_test_fhir.py               # live: deployed FHIR
+python scripts/smoke_test_claims.py             # live: deployed FHIR + Anthropic API
 python scripts/compute_metrics.py --log-file logs/agent-stdout.jsonl
 ```
 

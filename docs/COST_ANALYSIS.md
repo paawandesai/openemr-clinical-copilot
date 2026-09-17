@@ -202,11 +202,13 @@ Not included:
 
 - **The AI coding assistant used to build the project.** It is not billed
   to the agent's API key, and nothing in the repository meters it.
-- **Infrastructure.** The project runs one droplet whose plan could not be
-  verified from inside the guest (F-44). DigitalOcean's list prices for
-  4-vCPU plans run from $48/mo (Basic, 4 vCPU / 8 GB, $0.071/h) to $126/mo
-  (General Purpose, 4 vCPU / 16 GB, $0.1875/h), prorated for the days it
-  has existed.
+- **Infrastructure.** Until late in the build the project ran on one
+  DigitalOcean droplet whose plan could not be verified from inside the
+  guest (F-44). DigitalOcean's list prices for 4-vCPU plans run from
+  $48/mo (Basic, 4 vCPU / 8 GB, $0.071/h) to $126/mo (General Purpose,
+  4 vCPU / 16 GB, $0.1875/h), prorated for the days it existed. The
+  deployment now runs on a Vultr host. Vultr's prices were not fetched, so
+  its cost is not included.
 - **Observability backend.** Self-hosted Langfuse ran locally only. The
   planned second droplet is not deployed (ARCHITECTURE.md §1).
 
@@ -541,6 +543,12 @@ numbers.
 
 ### 4.9 Inflection: where the single droplet breaks
 
+This path was planned and priced on DigitalOcean, the provider F-41's BAA
+analysis covers. The current Vultr host is under no BAA (findings.md F-61;
+ARCHITECTURE.md §1), which is acceptable only while all data is synthetic.
+At any of these scales, a real deployment starts by moving to a substrate
+under an executed BAA.
+
 ARCHITECTURE.md has no scale-out section. What it does fix are the
 constraints any scale-out has to respect:
 
@@ -557,7 +565,7 @@ DigitalOcean list prices and cover the agent tier only, not OpenEMR.
 
 | Scale | Topology | What forces the change | Agent-tier infra (estimated) |
 |---|---|---|---|
-| **100** | Today's layout: the agent as its own Compose project on the OpenEMR droplet (§1). | Nothing about capacity: about 1 model call in flight at peak. The blockers are pre-launch, not scale: the hardened release build (F-48), rate limiting (§4.4) and a publicly trusted certificate (F-36). | $0 incremental. The droplet costs $48–$126/mo depending on plan (F-44). |
+| **100** | Today's layout: the agent as its own Compose project on the OpenEMR host (§1). | Nothing about capacity: about 1 model call in flight at peak. The blockers are pre-launch, not scale: the hardened release build (F-48), rate limiting (§4.4), a publicly trusted certificate (F-36) and a host under an executed BAA (F-61). | $0 incremental. A DigitalOcean droplet of the audited size costs $48–$126/mo depending on plan (F-44). The current Vultr host's price was not fetched. |
 | **1K** (estimated) | Agent on 2 droplets in the VPC behind a DigitalOcean Load Balancer, plus the Langfuse droplet. | The agent shares 4 shared vCPUs and ~12 GB (F-44) with OpenEMR and MariaDB, which are also serving clinicians' own EHR traffic. Briefs add about 5.6 FHIR reads per second at peak, and the droplet is a single point of failure during clinic hours. Moving off-host removes the reason the agent-to-OpenEMR hop skips TLS verification ("the hop stays on the host", §1, F-36), so that hop needs a certificate the agent can verify. The load test should confirm this break point. | ~$300–$350/mo: 2 × CPU-Optimized 4 vCPU / 8 GB at $84, a Load Balancer from $12, and Langfuse on General Purpose 4 vCPU / 16 GB at $126 (Langfuse asks for at least 4 cores and 16 GiB). |
 | **10K** | Stateless agent replicas on DigitalOcean Kubernetes with a high-availability control plane, behind a Load Balancer. Self-hosted Redis for Follow-Up Drilling state and the queue. Logs shipped to Langfuse. | The Dockerfile runs one uvicorn process, and in-process state cannot span replicas. `compute_metrics.py` reads a single stdout log. About 121 model calls in flight at peak, from many tenants. | ~$1K/mo: $40 control plane, about 6 × $84 nodes, the Load Balancer, and Langfuse on General Purpose 8 vCPU / 32 GB at $252. |
 | **100K** | Kubernetes clusters in more than one region, contracted API capacity, and an optional second provider (§4.8). | About 1,208 model calls in flight, output tokens beyond the Scale tier, and a region as a failure domain. | ~$5K–$10K/mo (rough). |
@@ -616,7 +624,7 @@ against Anthropic's published feature-eligibility table.
 | 1,575 in / 326 out / 4,751 ms for one brief on Opus 5 | **Measured.** One run with 5 records. |
 | Verification costs zero tokens | **Measured.** It is code: `agent/app/verification/checker.py`, with no model call in the graph apart from drafting. |
 | Token prices, rate limits, spend caps, cache minimums and HIPAA eligibility | **Published**, fetched 2026-09-16. |
-| DigitalOcean infrastructure prices | **Published** list prices, fetched 2026-09-16. |
+| DigitalOcean infrastructure prices | **Published** list prices, fetched 2026-09-16. DigitalOcean is the pre-migration provider; the current Vultr host's prices were not fetched. |
 | Static prefix of ~750 tokens | **Estimated** from the prompt's size. Unmeasured. |
 | Tokens per record and the outlier brief cost | **Estimated** from one data point. |
 | Change Detection and Follow-Up Drilling tokens | **Estimated.** Neither is built. |

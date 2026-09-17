@@ -126,9 +126,10 @@ during each level.
 
 ### Baseline CPU / memory / throughput
 
-Sampled with `docker stats --no-stream` on the droplet (DO's own
-monitoring dashboard is an equally valid source — this repo has no droplet
-API token, so the local `docker stats` view is what was actually used):
+Sampled with `docker stats --no-stream` on the droplet (the hosting
+provider's own monitoring graphs are another source — this repo has no
+provider API token, so the local `docker stats` view is what was actually
+used):
 
 ```bash
 # On the droplet, or via: ssh root@64.177.42.210 '...'

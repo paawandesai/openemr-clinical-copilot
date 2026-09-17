@@ -5,8 +5,9 @@ cases in `docs/USERS.md`, and every specific number or finding cited traces
 to `docs/AUDIT.md` or `docs/audit/findings.md` — both re-read in full this
 session, not recalled from earlier in this conversation. One note on
 staleness: `AUDIT.md` was finalized at F-01–F-54; `findings.md` has since
-grown to F-55 (RxNorm coding coverage) and an amendment to F-15 (the
-silent-import finding). Where those two entries are cited below, the
+grown to F-55 (RxNorm coding coverage), later entries including F-61
+(hosting provider and BAA status), and an amendment to F-15 (the
+silent-import finding). Where those entries are cited below, the
 citation is to `findings.md` directly, not `AUDIT.md`, and is marked as such.
 
 ---
@@ -47,11 +48,14 @@ they constrain everything else.
    switch — the primary mitigation against cross-patient leakage within the
    agent's own state, not OpenEMR's own per-patient authorization gap
    (F-50; §4).
-6. **MySQL stays self-hosted inside the droplet, not on a managed database
-   product.** DigitalOcean's BAA covers Droplets, Kubernetes, Spaces, and
-   Volumes but explicitly excludes Managed Databases (F-41); ePHI-bearing
-   data must stay inside the covered Droplet. This is a compliance
-   constraint on infrastructure, not a convenience choice.
+6. **MySQL stays self-hosted on the application host, not on a managed
+   database product.** The rule was set on DigitalOcean, whose BAA covers
+   Droplets, Kubernetes, Spaces, and Volumes but explicitly excludes
+   Managed Databases (F-41); ePHI-bearing data must stay on a covered
+   product. This is a compliance constraint on infrastructure, not a
+   convenience choice. **The deployment has since moved to Vultr, and no
+   BAA covers the Vultr host** (§1; `findings.md` F-61). That is acceptable
+   for this exercise only because every record is synthetic.
 7. **The Docker/UFW port-exposure incident (F-54) sets the verification
    standard for every future service this project adds.** Docker's own
    NAT rules run ahead of UFW's filter chain, so a restrictive host firewall
@@ -73,26 +77,50 @@ they constrain everything else.
 
 ## 1. Deployment Topology
 
-A single DigitalOcean droplet running Docker Compose, hosting OpenEMR and
-its MySQL/MariaDB database as containers on the same host — mirroring the
+A single cloud host running Docker Compose, hosting OpenEMR and its
+MySQL/MariaDB database as containers on the same host — mirroring the
 audited deployment (`docker/development-easy`, F-48) — and, as a separate
-Compose project on that same droplet, the agent (below).
+Compose project on that same host, the agent (below). The host was a
+DigitalOcean droplet for the audit and most of the build; it is now a
+Vultr instance at `64.177.42.210` (see "Hosting provider and BAA status"
+below).
 
 **Why self-hosted MySQL, not a managed database:** this is a compliance
-constraint, not a convenience one. DigitalOcean's published HIPAA-eligible
-product list covers Droplets, Kubernetes, Spaces, and Volumes, and
-explicitly does not cover Managed Databases (F-41). Any ePHI-bearing data —
-the OpenEMR database included — has to stay inside a covered product, which
-rules out DO's managed MySQL offering regardless of its operational
-convenience. The agent introduces no new datastore that would need this
-same decision made twice: it reads through the FHIR API and writes nothing
-to the EHR's own database (see §2).
+constraint, not a convenience one, decided on DigitalOcean. DigitalOcean's
+published HIPAA-eligible product list covers Droplets, Kubernetes, Spaces,
+and Volumes, and explicitly does not cover Managed Databases (F-41). Any
+ePHI-bearing data — the OpenEMR database included — has to stay inside a
+covered product, which rules out DO's managed MySQL offering regardless of
+its operational convenience. The agent introduces no new datastore that
+would need this same decision made twice: it reads through the FHIR API and
+writes nothing to the EHR's own database (see §2).
+
+**Hosting provider and BAA status — a documented tradeoff.** Late in the
+build the deployment moved from the DigitalOcean droplet to Vultr (The
+Constant Company, LLC), because of a payment constraint. The compliance
+reasoning above, and F-41 in the audit, was written for DigitalOcean and
+does not carry over. (Even there, F-41 records that an executed BAA was
+never confirmed; the placement was on eligible products.) **No BAA covers
+the Vultr host:** none has been
+executed with Vultr, and this project has not established that Vultr would
+sign one for this account (`findings.md` F-61). So neither OpenEMR's
+database nor the agent currently runs on BAA-covered infrastructure. This
+is acceptable for this exercise only because every record is synthetic
+(OpenEMR demo data and Synthea-generated patients, per the case study's
+demo-data constraint), so no real PHI is exposed. A production deployment
+needs a substrate under an executed BAA first. Examples are DigitalOcean's
+HIPAA-eligible products under a signed BAA (F-41), or another provider's
+covered products under a signed agreement. The placement rules in this
+section (database, agent, observability backend) then have to be
+re-applied to that provider's covered-product list.
 
 **Where the agent process lives — decided and deployed.** On the same
-droplet as OpenEMR (`64.177.42.210`), so agent compute stays on the covered
-product (F-41). Placing it outside the droplet would either require its own
-BAA-covered placement decision or risk PHI leaving covered infrastructure
-through request/response logging. Its shape (`agent/deploy/`, operated per
+host as OpenEMR (`64.177.42.210`). On DigitalOcean this kept agent compute
+on the covered product (F-41). On Vultr no BAA covers the host (above), but
+co-location still avoids adding a second host that holds chart data. Placing it
+on another host would either require its own BAA-covered placement
+decision or risk PHI leaving the application host through request/response
+logging. Its shape (`agent/deploy/`, operated per
 `agent/docs/deployment.md`):
 
 - **A separate Compose project** (`clinical-copilot-agent`), not a service
@@ -121,16 +149,17 @@ through request/response logging. Its shape (`agent/deploy/`, operated per
   (F-48), so a file there could be web-served.
 
 The bindings were verified by the rule in the case study below, after
-deployment on 2026-09-16. On the droplet, `ss -tlnp` showed exactly one new
+deployment on 2026-09-16, on the DigitalOcean droplet before the move to
+Vultr. On the droplet, `ss -tlnp` showed exactly one new
 listener, `0.0.0.0:8443`, with MySQL and phpMyAdmin still on
 `127.0.0.1:18320` and `127.0.0.1:18310`. From outside the droplet, `nc`
 found 22, 8300, 9300 and 8443 open, and 8000, 18310, 18320, 3306 and 2019
-closed.
+closed. No equivalent record for the Vultr host is in this repository.
 
 **Stated limitations of this deployment:**
 
 - **The certificate is not publicly trusted.** It comes from Caddy's local
-  CA, because the droplet has no domain name (cf. F-36, R-6). Clients must
+  CA, because the host has no domain name (cf. F-36, R-6). Clients must
   trust the exported root or skip verification, and a client that skips it
   is not protected against interception.
 - **No rate limiting.** Anyone holding a valid clinician token can call the
@@ -147,7 +176,7 @@ closed.
 is `agent/scripts/compute_metrics.py`: a local script that reads the
 agent's own structured stdout log directly and computes all six
 `docs/KEY_METRICS.md` metrics, with no dashboard, no observability backend,
-no second droplet, and no deployment dependency. This is a deliberate
+no second host, and no deployment dependency. This is a deliberate
 choice, not a fallback: a general observability platform needs dashboards
 built before it yields six specific numbers; a small script goes directly
 at those six numbers with nothing in between. Self-hosted Langfuse
@@ -155,10 +184,12 @@ at those six numbers with nothing in between. Self-hosted Langfuse
 verified working locally, including the PHI-safe configuration that keeps
 auto-instrumentation from exporting prompt or completion content, and
 `agent/docs/observability.md` §9 holds a command-level checklist for
-standing it up on a second droplet reached only over DigitalOcean's private
-VPC network — still a BAA-covered product (F-41), never Langfuse Cloud. It
-is **not deployed**: that second droplet is an explicit v2, post-submission
-step.
+standing it up on a second DigitalOcean droplet reached only over the
+private VPC network — a BAA-covered product (F-41), never Langfuse Cloud.
+That checklist predates the move to Vultr: it assumes the application host
+is a DigitalOcean droplet in the same VPC. It has to be redone for whichever
+BAA-covered provider a production deployment uses. It is **not deployed**:
+the second host is an explicit v2, post-submission step.
 
 ### Case study: the Docker/UFW port-exposure incident (F-54)
 
@@ -472,10 +503,11 @@ silently assumed covered:**
 | Agent misreads a 401 as a transient/retryable auth failure | Yes | Agent holds its own decoded-JWT scope record and pre-checks before requesting, rather than inferring cause from HTTP status alone (§2). |
 | Real PHI is deployed onto the currently-audited stack as-is | **No — open** | The audited droplet runs the development Compose stack, not the hardened `docker/release` build (F-48): Xdebug loaded live, a writable git-checkout bind-mount, dependency builds against upstream registries on every boot. Stated as an explicit precondition to close, not something this plan resolves by naming it. |
 | Retrieval incompleteness (the right record never fetched) silently passes as "verified" | **No — open** | Outside what source-verification can catch by construction (§5). Requires separate retrieval-completeness evaluation this plan does not yet define. |
-| Observability backend creates new ePHI-handling surface outside covered infrastructure | Yes, for this submission | No observability backend is deployed. All six metrics are computed by `agent/scripts/compute_metrics.py` from the agent's own stdout log, with no second service or host (§1). Self-hosted Langfuse is built and verified locally but deferred to v2: a second droplet (a BAA-covered product, F-41) on the private VPC network, per the checklist in `agent/docs/observability.md` §9. |
-| Agent compute placement creates new ePHI-handling surface outside covered infrastructure | Yes — decided and deployed, with stated limitations | The agent runs on the same covered droplet (F-41) as its own Compose project on its own Docker network. From there it has no route to MySQL, which still accepts default `root`/`root` (F-34), and reaches OpenEMR only through the published FHIR port. One public port, `0.0.0.0:8443`, behind TLS; uvicorn's port 8000 is not published. Bindings were verified with `ss` on the host and external `nc` after deployment (§1). Its only credential is `ANTHROPIC_API_KEY`, in `/etc/clinical-copilot/agent.env` (mode 600) and never in the image or repository. Limitations (§1): the certificate is not publicly trusted (no domain), there is no rate limiting, and external checks came from the operator's egress only. |
-| Retrieved chart records leave the droplet for the LLM provider on every Pre-Visit Brief | Yes, for this exercise — covered by its stated BAA assumption, not an executed BAA | **Flow:** each brief sends the patient's active conditions, active medications and all allergy records to Anthropic's Messages API for claim drafting (`agent/app/reasoning/draft_claims.py`). The fields sent are FHIR record ids, names, statuses, RxNorm codes and dates; no demographics or patient id. That is PHI leaving the covered droplet, by design. **Coverage:** the case study brief directs treating every LLM provider as bound by a signed Business Associate Agreement under which no data is used for training ("act as if you have a signed Business Associate Agreement with all LLM providers" — as provided by the operator; the brief is not in this repository). That stated assumption is this submission's mitigation. No BAA with Anthropic has been executed or is recorded in this project. **Before real PHI:** an executed BAA with Anthropic (or a HIPAA-eligible endpoint / zero-data-retention arrangement). The current dataset is synthetic (F-41). |
+| Observability backend creates new ePHI-handling surface outside covered infrastructure | Yes, for this submission | No observability backend is deployed. All six metrics are computed by `agent/scripts/compute_metrics.py` from the agent's own stdout log, with no second service or host (§1). Self-hosted Langfuse is built and verified locally but deferred to v2: a second DigitalOcean droplet (a BAA-covered product, F-41) on the private VPC network, per the checklist in `agent/docs/observability.md` §9, written before the move to Vultr (§1). |
+| Agent compute placement creates new ePHI-handling surface outside covered infrastructure | Partly — co-located and deployed, but the host itself is not BAA-covered (next row) | The agent runs on the same host as OpenEMR (on DigitalOcean, a covered droplet, F-41; since the move to Vultr, a host no BAA covers, F-61) as its own Compose project on its own Docker network. From there it has no route to MySQL, which still accepts default `root`/`root` (F-34), and reaches OpenEMR only through the published FHIR port. One public port, `0.0.0.0:8443`, behind TLS; uvicorn's port 8000 is not published. Bindings were verified with `ss` on the host and external `nc` after deployment on the DigitalOcean droplet (§1). Its only credential is `ANTHROPIC_API_KEY`, in `/etc/clinical-copilot/agent.env` (mode 600) and never in the image or repository. Limitations (§1): the certificate is not publicly trusted (no domain), there is no rate limiting, and external checks came from the operator's egress only. |
+| The deployment host holds chart data without a BAA | **No — open; accepted for this exercise** | Since the move from DigitalOcean to Vultr (§1), neither OpenEMR's database nor the agent runs on a product under an executed BAA. None has been executed with Vultr (`findings.md` F-61; contrast F-41). This is acceptable only because every record is synthetic, per the case study's demo-data constraint. **Before real PHI:** move to a substrate under an executed BAA and re-apply §1's placement rules to that provider's covered products. |
+| Retrieved chart records leave the deployment host for the LLM provider on every Pre-Visit Brief | Yes, for this exercise — covered by its stated BAA assumption, not an executed BAA | **Flow:** each brief sends the patient's active conditions, active medications and all allergy records to Anthropic's Messages API for claim drafting (`agent/app/reasoning/draft_claims.py`). The fields sent are FHIR record ids, names, statuses, RxNorm codes and dates; no demographics or patient id. That is PHI leaving the application host, by design. **Coverage:** the case study brief directs treating every LLM provider as bound by a signed Business Associate Agreement under which no data is used for training ("act as if you have a signed Business Associate Agreement with all LLM providers" — as provided by the operator; the brief is not in this repository). That stated assumption is this submission's mitigation. No BAA with Anthropic has been executed or is recorded in this project. **Before real PHI:** an executed BAA with Anthropic (or a HIPAA-eligible endpoint / zero-data-retention arrangement). The current dataset is synthetic (F-41). |
 
-Two risks are stated here as genuinely open, not mitigated, because
+Three risks are stated here as genuinely open, not mitigated, because
 overstating this plan's coverage would itself be the kind of unverifiable
 claim §5 is designed to prevent everywhere else in this system.

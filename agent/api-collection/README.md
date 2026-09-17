@@ -12,9 +12,21 @@ A Postman v2.1 collection that runs end to end without reading the source:
 Files:
 
 - `clinical-copilot-agent.postman_collection.json` — the requests and tests.
-- `droplet.postman_environment.json` — the deployed droplet's URLs and the
-  seeded patient `a2c0e096-23d5-4cf9-ad5b-4895597363a7`. Credentials are
+- `droplet.postman_environment.json` — the deployment host's URLs and the
+  seeded patient `a2c0e096-23d5-4cf9-ad5b-4895597363a7`. The file name
+  predates the move from DigitalOcean to Vultr. Credentials are
   empty placeholders; never commit filled-in values.
+
+**The seeded patient is not a clean demo.** Phil Belford
+(`a2c0e096-23d5-…`) has a penicillin allergy stored without an allergen
+code. The brief shows it as `(unspecified allergen)` and counts it as
+verified. That is defect F-57 (`docs/audit/findings.md`), not correct
+output. The collection's checks still pass on this patient, because they
+test the contract, not the allergen name. To demo a brief whose allergies
+are named correctly, set `patient_id` to a patient with coded allergies,
+such as `a2c0e47b-ec57-40e5-be47-9844f7ae98a1`: 10 coded allergies, all
+named and verified in the 2026-09-16 eval run (case A4). Both ids were
+recorded on the DigitalOcean host before the migration.
 
 ## Run it
 

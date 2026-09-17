@@ -5,6 +5,14 @@ Production requires a second DigitalOcean droplet that has **not been
 provisioned**. The step-by-step checklist for that is in
 [§9](#9-production-deployment-gap--provisioning-checklist).
 
+**Provider note.** This plan and §9 were written while the application host
+was a DigitalOcean droplet, with F-41's BAA analysis behind it. The
+deployment has since moved to Vultr, and no BAA covers the Vultr host
+(`docs/audit/findings.md` F-61). §9's `doctl` and same-VPC steps therefore
+do not apply to the current deployment as written. A production deployment
+has to redo §9 on a BAA-covered substrate, with the same decisions:
+self-hosted, a separate host, private transit.
+
 This closes the observability-backend half of `docs/ARCHITECTURE.md` §6's
 open risk ("Agent compute / logging backend placement") at the design level.
 It does not close it in production until §9 is done. `docs/KEY_METRICS.md`
@@ -503,8 +511,9 @@ screenshotted; this describes those screenshots.
 
 ## 9. Production deployment gap — provisioning checklist
 
-**Not done. No droplet or cloud resource was created by this task.** Topology
-per the original plan:
+**Not done. No droplet or cloud resource was created by this task.** Written
+for DigitalOcean, before the application host moved to Vultr; see the
+provider note at the top. Topology per the original plan:
 
 - **Droplet 1:** OpenEMR + agent.
 - **Droplet 2:** Langfuse only.

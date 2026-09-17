@@ -33,6 +33,13 @@ How to see the agent:
   the brief when the chart opens. Users without medical-record access, such
   as `receptionist`, do not see the card. Walkthrough:
   [module deployment §3](interface/modules/custom_modules/oe-module-clinical-copilot/docs/deployment.md).
+  For a clean demo, do not use Phil Belford, the walkthrough's and API
+  collection's example patient. His penicillin allergy has no allergen code
+  and shows as "(unspecified allergen)", marked verified: defect F-57 in
+  [docs/audit/findings.md](docs/audit/findings.md). Use a patient whose
+  allergies are coded
+  ([agent/api-collection/README.md](agent/api-collection/README.md) names
+  one).
 - **Standalone UI.** Open `https://64.177.42.210:8443/`, then paste a
   patient's FHIR id and a clinician's OpenEMR access token. **Need a token?**
   on the page shows the command to get one.
@@ -41,7 +48,10 @@ How to see the agent:
   run every workflow is the [Postman collection](agent/api-collection/README.md).
 
 Audit, eval and load-test records name the host they were run against, which
-is the pre-migration host.
+is the pre-migration host, a DigitalOcean droplet. The current host is on
+Vultr, and no BAA covers it. That is acceptable only because all data is
+synthetic
+([docs/ARCHITECTURE.md §1](docs/ARCHITECTURE.md#1-deployment-topology)).
 
 ## What this project is
 
