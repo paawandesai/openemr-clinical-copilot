@@ -1,41 +1,76 @@
-# Deployment — Clinical Co-Pilot module on the droplet
+# Deployment — Clinical Co-Pilot module on the Vultr host
 
-What is deployed to the OpenEMR droplet (`201.79.25.22`), how it was done,
-what was verified, and the checks an operator still has to do in a browser.
-The generic setup is in [`../README.md`](../README.md).
+What is deployed to the OpenEMR host (`64.177.42.210`, Vultr), what was
+verified, and the checks an operator still has to do in a browser. The
+generic setup is in [`../README.md`](../README.md).
 
-## 1. State of the droplet (2026-09-16)
+The module was first deployed and verified on the earlier DigitalOcean
+droplet (§2.2). The migration to Vultr was a fresh OpenEMR install, so the
+OpenEMR-side configuration (API client, settings, agent CA) did not carry
+over and was recreated for this host.
+
+## 1. State of the host (2026-09-17)
 
 | What | State |
 |---|---|
-| Module files | Module directory copied into the bind-mounted checkout, owned `deploy:deploy`: `/home/deploy/openemr-clinical-copilot/interface/modules/custom_modules/oe-module-clinical-copilot/`. `git status` there shows only this directory, untracked, until this branch is pulled. |
-| Module registration | `modules` row `mod_id` 6, `oe-module-clinical-copilot`, `type` 0, `mod_active` 1. Registered, installed and enabled through Module Manager's own `InstModuleTable::register()` and `InstallerController::InstallModule()` / `EnableModule()`, called from a one-off PHP CLI script. |
-| API client | `client_id` `dWxJ-c5-CxNMkiw_NWNbHtLQUIqNDfDdRH_NqivwTp0`, "Clinical Co-Pilot (chart embed)". Registered through `POST /oauth2/default/registration` (confidential, `authorization_code` only, the four read scopes plus `openid`). Enabled, with *Skip EHR Launch Authorization Flow* on, by a direct `UPDATE oauth_clients`; the admin-UI equivalent is setup step 3, and no admin login was available. The two pre-existing "A Private App" clients were not touched. |
-| Skip-flow global | `oauth_ehr_launch_authorization_flow_skip` was already `1`; not changed. |
-| Module settings | The six `clinical_copilot_*` rows in `globals`. The client secret is stored `encryptForDatabase`-encrypted, the same as the Config screen stores it; a decrypt round-trip was checked. |
-| Agent CA | The proxy's root (`CN=Caddy Local Authority - 2026 ECC Root`, SHA-256 `AF:32:C5:AD:…:12:35`), in the OpenEMR container at `sites/default/documents/certificates/clinical-copilot-agent-ca.pem`. |
-| Ports and bindings | Unchanged. OpenEMR reaches the agent at `https://201.79.25.22:8443`, the proxy's existing public port, from inside its container. No new listener; F-54 loopback bindings untouched. |
-| Agent | Not touched: no code, configuration or container changes. |
+| Module files | In the bind-mounted checkout `/home/deploy/openemr-clinical-copilot` (at `951f839`), `interface/modules/custom_modules/oe-module-clinical-copilot/`. Every file outside `docs/` is byte-identical (SHA-256) to this branch. |
+| Module registration | `modules` row `mod_id` 17, `oe-module-clinical-copilot`, `type` 0, `mod_active` 1, `sql_run` 1, `date` `2026-09-17 00:27:05`. |
+| Immunization (`mod_id` 1) | Unharmed. Every column holds its seed value from `sql/database.sql`; `date` is `2026-09-16 23:48:31`, the install timestamp shared by rows 2–5. |
+| API client | `client_id` `AMPCwe6N_9ptx8SjfCgHlAG_U4rHwIjHlNnMiYIUpRc`, "Clinical Co-Pilot (chart embed)", registered `2026-09-17 00:34:57` through `POST /oauth2/default/registration`. Confidential, `client_role` `user`, `authorization_code` only, scopes `openid user/Patient.read user/Condition.read user/MedicationRequest.read user/AllergyIntolerance.read`. Redirect URI `https://64.177.42.210:9300/interface/modules/custom_modules/oe-module-clinical-copilot/public/oauth-callback.php`. `is_enabled` 1 and `skip_ehr_launch_authorization_flow` 1. The two "A Private App" clients belong to other work and are not used by the module. |
+| Skip-flow global | `oauth_ehr_launch_authorization_flow_skip` = `1`. |
+| Module settings | The six `clinical_copilot_*` rows in `globals`, below. The secret is stored `encryptForDatabase`-encrypted, as the Config screen stores it. |
+| Agent CA | The proxy's root (`CN=Caddy Local Authority - 2026 ECC Root`, not before `2026-09-17 00:33:59`, SHA-256 `C5:54:80:C1:…:81:89`), in the OpenEMR container at `sites/default/documents/certificates/clinical-copilot-agent-ca.pem`, owner `apache`, mode 644. Byte-identical to the proxy's `/data/caddy/pki/authorities/local/root.crt`. |
+| Old host | The droplet's address appears in no `globals` row and no `oauth_clients` row. |
+| Ports and bindings | Unchanged. Public: 22, 8300, 9300, 8443 (agent proxy). Loopback only: 18310 (phpMyAdmin), 18320 (MariaDB). OpenEMR reaches the agent at `https://64.177.42.210:8443` from inside its container. |
+| Agent | Not touched by the module configuration. |
 
-**Incident during deployment, repaired.** The first attempt to install and
-enable used `bin/console openemr:zfc-module`. Its
-`InstallerController::getModuleId()` returns `bool`, so it acted on
-`mod_id` 1 (Immunization) rather than this module. It rewrote only that
-row's `date`: every other column already held the seed values from
-`sql/database.sql`. `date` was restored to `2026-09-15 17:20:25`, the
-install timestamp still held by sibling rows 2–5. Row 1 now matches its
-siblings again, which also restores module load order
-(`ORDER BY mod_ui_order, date`).
+| Setting (`globals.gl_name`) | Value |
+|---|---|
+| `clinical_copilot_agent_url` | `https://64.177.42.210:8443` |
+| `clinical_copilot_agent_ca_file` | `/var/www/localhost/htdocs/openemr/sites/default/documents/certificates/clinical-copilot-agent-ca.pem` |
+| `clinical_copilot_oauth_client_id` | `AMPCwe6N_9ptx8SjfCgHlAG_U4rHwIjHlNnMiYIUpRc` |
+| `clinical_copilot_oauth_client_secret` | (encrypted) |
+| `clinical_copilot_oauth_redirect_uri` | as registered, above |
+| `clinical_copilot_oauth_loopback_url` | `http://localhost` |
 
-Temporary scripts, the spike's token and the client secret copies were
-removed from the container and the host afterwards.
+**The CA file is tied to the proxy's `caddy_data` volume.** If that volume is
+recreated, Caddy mints a new root and every brief fails TLS ("The co-pilot
+service is unavailable…") until the new root is exported into the file above
+again.
 
-## 2. Verified from the command line and headless Chrome
+## 2. Verified
 
-A real, headless Chrome on the operator's laptop, logged in through
-OpenEMR's login page as the demo `physician` account (F-32). It opened each
-patient's dashboard in the tabbed UI the way the patient finder does
+### 2.1 On the Vultr host, from the command line (2026-09-17)
+
+`curl` from the operator's laptop against `https://64.177.42.210:9300`,
+logged in through OpenEMR's login page as the demo `physician` account
+(F-32), opening each dashboard with `demographics.php?set_pid=N` and posting
+to `brief.php` with the card's own CSRF token. Database and log reads on the
+host. No browser, so the card's JavaScript rendering was not re-checked here
+(§2.2 covers it; the module code has not changed since).
+
+| Check | Result |
+|---|---|
+| OpenEMR container → agent `/health` with the configured CA | 200, `ssl_verify_result` 0. Leaf issued by `Caddy Local Authority - ECC Intermediate`, SAN `IP:64.177.42.210`. |
+| Same, system trust store only | Refused: curl exit 60, "unable to get local issuer certificate". The trust rests on the configured CA file. |
+| Agent `/ready` from the container | 200, `fhir` and `llm_provider` healthy |
+| pid 1 dashboard | 200; the Co-Pilot card is present, ahead of Demographics |
+| pid 1 (Phil Belford), `brief.php` | 200 in 7 s. Active problems: HTN, Chronic Renal Insuficiency. Medications: Norvasc, Lisinopril. Allergies: (unspecified allergen). 5 of 5 claims verified. |
+| pid 3 (Wanda Moore) | 200. All three sections not recorded; 0 claims. |
+| pid 5 (Agnus790 Reinger292) | 200. Active problems none active (14 on file), medications none active (4 on file), allergies not recorded. |
+| Server-side token flow | One `api_token` row per brief: `client_id` = the client above, user = `physician`, scope exactly `openid` plus the four reads, expiry 1 hour. (The token value was not read.) |
+| Agent log | Each run's `patient_session_key` starts with the physician's user UUID. |
+| Audit | One `patient-record` row in `log` per brief, `success` 1, with the patient id and correlation id. |
+| `receptionist` (no `patients`/`med`) | Dashboard 200 **without** the card; POST to `brief.php` with the dashboard's valid CSRF token → 403 `forbidden` |
+| OpenEMR afterwards | Login page, FHIR `metadata` and OIDC discovery 200; all containers healthy; no Co-Pilot errors in Apache's error log |
+
+### 2.2 On the earlier droplet, from the command line and headless Chrome (2026-09-16)
+
+Same module code. A real, headless Chrome on the operator's laptop, logged in
+through OpenEMR's login page as `physician`. It opened each patient's
+dashboard in the tabbed UI the way the patient finder does
 (`top.RTop.location = …demographics.php?set_pid=N`) and read the card's DOM.
+Patient ids differ between the two installs' demo data.
 
 | Check | Result |
 |---|---|
@@ -43,16 +78,23 @@ patient's dashboard in the tabbed UI the way the patient finder does
 | PHPStan level 10 with the repository config and custom rules, **scoped to the module** (not the full codebase) | no errors |
 | Chart before enabling vs after, same session, pid 1 | 200 both times. The same 20 cards render. The card is added at the top of the main column, above Demographics. No fatal errors. The same three pre-existing `safe_href()` warnings appear in the log both times. |
 | Server-side token flow (spike, then through `brief.php`) | Authorize hop 1 → 200 with an OAuth session cookie. Hop 2 → 302 with code and matching `state`. Token → 200. JWT `sub` = the physician's user UUID; scopes exactly `openid` plus the four reads; expires in 3600 s. FHIR `Patient` read with it → 200. |
-| OpenEMR container → agent | `https://201.79.25.22:8443/health` → 200, **certificate verified** against the exported root (`host.docker.internal:8443` is not reachable from that network) |
-| pid 1 (Phil Belford), live | Brief rendered about 6 s after opening the chart. Active problems: HTN, Chronic Renal Insuficiency. Medications: Norvasc, Lisinopril. Allergies: (unspecified allergen). "All 5 items verified against the chart". No JS errors. |
+| OpenEMR container → agent | `/health` → 200, **certificate verified** against the exported root (`host.docker.internal:8443` is not reachable from that network) |
+| pid 1 (Phil Belford), live | Brief rendered about 6 s after opening the chart, with the same content as in §2.1. "All 5 items verified against the chart". No JS errors. |
 | pid 3 (Wanda Moore), live | Active problems, Current medications and Allergies each show **Not recorded**; "No chart items to verify" |
-| pid 23 (Esteban536 Koch169), live | Active problems **None active** ("11 on file, none with active status"), Current medications **None active** ("6 on file…"), Allergies **Not recorded** |
+| A patient with problems and medications on file but none active, live | Active problems and Current medications **None active** ("N on file, none with active status"), Allergies **Not recorded** |
 | Unverified item plus the summary warning | **Rendering only**. The agent cannot be made to produce an unverified claim on demand. Verified by stubbing just `brief.php`'s response in the browser with text in `render_brief()`'s exact format: **Unverified** badge with reason, the warning, and "2 of 3 items verified…; 1 unverified". Also covered by a Node run of the card script's classifier. |
 | `receptionist` (no `patients`/`med`) | Dashboard 200 **without** the card; POST to `brief.php` with a valid CSRF token → 403 `forbidden` |
 | No session / GET / bad CSRF / pid ≠ session patient | OpenEMR's own empty 400 (the module never runs) / 400 / 400 / 409 `patient_context_changed` |
 | Response to the browser | Only `status`, `brief`, `verification`, `correlation_id`. No token, secret or session id. |
 | Audit | One `patient-record` row in `log` per request, `success` 1 or 0, with the patient id. The comment carries only outcome and correlation id. |
 | Agent failure path, live | During testing, the agent's Anthropic key briefly ran out of credit (`BadRequestError: credit balance is too low`). The card showed "The co-pilot could not generate a brief for this patient. No partial brief is shown." with the correlation id; the chart was unaffected. Credit was back by the final checks. |
+
+**Incident during the droplet deployment, repaired there.** The first
+attempt to install and enable used `bin/console openemr:zfc-module`. Its
+`InstallerController::getModuleId()` returns `bool`, so it acted on
+`mod_id` 1 (Immunization) rather than this module. It rewrote only that
+row's `date`, which was restored to the install timestamp held by sibling
+rows 2–5. Do not use that command; on the Vultr host row 1 is intact (§1).
 
 ## 3. Operator verification in a browser
 
@@ -79,9 +121,10 @@ screens (no admin login was available), and a visual check in your theme.
    time.
 6. Finder → **Wanda Moore**. All three sections show a dark **Not recorded**
    badge, and the summary reads "No chart items to verify".
-7. Finder → **Esteban536 Koch169**. **Active problems** and **Current
-   medications** show a blue **None active** badge with "N on file, none
-   with active status"; **Allergies** shows **Not recorded**.
+7. Finder → **Agnus790 Reinger292**. **Active problems** and **Current
+   medications** show a blue **None active** badge with "14 on file, none
+   with active status" and "4 on file, none with active status";
+   **Allergies** shows **Not recorded**.
 8. Click the card title to collapse the card, then reload the dashboard
    (the tab's reload icon). The card stays collapsed and no "Generating…"
    appears. Expand it, and the brief generates then.
@@ -98,7 +141,7 @@ screens (no admin login was available), and a visual check in your theme.
       settings, the secret masked.
     - *Administration → System → API Clients*: "Clinical Co-Pilot (chart
       embed)" is enabled, with *Skip EHR Launch Authorization Flow* on.
-12. Optional, what the agent sees: on the droplet, `docker logs
+12. Optional, what the agent sees: on the host, `docker logs
     clinical-copilot-agent-agent-1 2>&1 | grep pre_visit_brief` shows the
     run. Its `patient_session_key` starts with the logged-in user's UUID.
 

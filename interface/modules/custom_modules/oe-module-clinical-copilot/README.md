@@ -4,7 +4,7 @@ Puts the agent's Pre-Visit Brief (`docs/USERS.md` Use Case 1) on the patient
 chart: a **Clinical Co-Pilot: Pre-Visit Brief** card at the top of the
 patient dashboard's main column, for the patient whose chart is open.
 
-Droplet deployment record and operator verification steps:
+Deployment record for the live host and operator verification steps:
 [`docs/deployment.md`](docs/deployment.md).
 
 ## What the card shows
@@ -65,7 +65,7 @@ session, with no second login or consent screen
 
 The module runs that launch **server side**. The browser version posts its
 auto-submit form to `site_addr_oath`, which is `https://localhost:9300` on
-the droplet (F-49), so no remote browser could complete it. Running it on
+the deployed host (F-49), so no remote browser could complete it. Running it on
 the server also keeps the token, the code and the client secret out of the
 browser.
 
@@ -74,7 +74,7 @@ redirect URI registered. The launch token must decrypt with this server's
 key. The session must be live. The code is redeemed with the client secret
 and a PKCE verifier.
 
-The resulting token (verified live on the droplet):
+The resulting token (verified live on the deployed host):
 
 | Property | Value |
 |---|---|
