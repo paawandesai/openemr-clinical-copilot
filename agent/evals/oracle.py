@@ -64,6 +64,9 @@ class ChartRecord:
     labels: tuple[str, ...]
     # True when the record's code carries no real value (data-absent only).
     uncoded: bool
+    # True when the code itself names the record (text or a coding display),
+    # not only the narrative.
+    coded_name: bool = False
 
     @property
     def names(self) -> frozenset[str]:
@@ -178,6 +181,7 @@ def parse_record(resource_type: str, resource: dict[str, Any]) -> ChartRecord:
             active = True  # FHIR allows omitting it; do not count such a record as resolved
         else:
             active = _has_code(resource.get("clinicalStatus"), "active")
+    coded_name = bool(labels)
     narrative = _narrative(resource)
     if narrative and normalize(narrative) not in {normalize(label) for label in labels}:
         labels.append(narrative)
@@ -188,6 +192,7 @@ def parse_record(resource_type: str, resource: dict[str, Any]) -> ChartRecord:
         status=status,
         labels=tuple(labels),
         uncoded=uncoded,
+        coded_name=coded_name,
     )
 
 

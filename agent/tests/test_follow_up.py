@@ -187,6 +187,39 @@ def test_answer_contract_attribution_and_events() -> None:
     assert QUESTION not in json.dumps(logs, default=str)
 
 
+
+def test_record_with_no_name_is_labelled_as_such_and_its_null_name_never_verifies() -> None:
+    """F-57: the model is shown display null; a null display claim fails, other fields still verify."""
+    unnamed = AllergyIntolerance(
+        source_id="allergy-2", display=None, recorded_date=datetime(2020, 5, 1, tzinfo=timezone.utc)
+    )
+    pipeline = FakePipeline(
+        FollowUpDraft(
+            claims=[
+                _claim(R.ALLERGY_INTOLERANCE, "allergy-2", "display", None),
+                _claim(R.ALLERGY_INTOLERANCE, "allergy-2", "recorded_date", "2020-05-01"),
+            ],
+            coverage=Coverage.FULL,
+            gaps=[],
+        ),
+        retrieved=_retrieved(allergies=[ASPIRIN, unnamed]),
+    )
+
+    body = FollowUpResponse.model_validate_json(_ask(pipeline)[0].text)
+
+    assert body.answer_status is AnswerStatus.PARTIALLY_ANSWERED
+    assert [(c.field, c.verified, c.unverified_reason) for c in body.claims] == [
+        ("display", False, checker.FailureReason.NO_NAME_ON_SOURCE.value),
+        ("recorded_date", True, None),
+    ]
+    assert body.answer.splitlines()[2:5] == [
+        "Partly answered from the records retrieved for this visit:",
+        '  - UNVERIFIED: Allergy "(name not available)" (the chart record has no usable name; review it in the chart)',
+        "  - Allergy (name not available), date recorded: 2020-05-01",
+    ]
+    assert "None" not in body.answer
+
+
 # -- (b) refusal when the retrieved set does not hold the answer ---------------
 
 

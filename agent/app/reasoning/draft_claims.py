@@ -21,6 +21,11 @@ What the model is given:
   in code rather than being left to the model.
 - Each record as its `model_dump(mode="json")`, so a claim's `value` is a
   verbatim copy of that serialization.
+- Only records the chart names (drafted_records). A record with no name
+  (display None: no code text, coding display or usable narrative, F-57)
+  is withheld, so there is no placeholder for the model to copy. The
+  pipeline states such a record itself (unnamed_record_claims), and the
+  verifier never passes it, so it renders as UNVERIFIED.
 
 Empty sections are intentionally NOT this module's job. The model only
 drafts claims about records that exist and is never asked to say that a
@@ -113,6 +118,47 @@ def brief_records(
         return records
     field, active_value = _ACTIVE_STATUS[resource_type]
     return [record for record in records if getattr(record, field) == active_value]
+
+
+def drafted_records(
+    resource_type: FhirResourceType, records: list[Any]
+) -> list[Any]:
+    """
+    The brief records the model is given to draft claims for: every one
+    the chart names. A record with no name (display None, F-57) holds
+    nothing the model could copy, so it is withheld; unnamed_record_claims
+    states it instead.
+    """
+    return [
+        record
+        for record in brief_records(resource_type, records)
+        if record.display is not None
+    ]
+
+
+def unnamed_record_claims(
+    retrieved: dict[FhirResourceType, list[Any]],
+) -> list[Claim]:
+    """
+    One claim per brief record the chart names nothing for: field
+    "display", value None, which is exactly what the chart holds. Written
+    in code, not by the model, so the record is in the brief whether or not
+    the model sees it. The verifier never passes a display claim against a
+    record with no name (app/verification/checker.py), so each one renders
+    as UNVERIFIED and counts as unverified: an item the physician must
+    check in the chart, never a verified value (F-57).
+    """
+    return [
+        Claim(
+            source_id=record.source_id,
+            field="display",
+            value=None,
+            resource_type=resource_type,
+        )
+        for resource_type in _BRIEF_RESOURCE_MODELS
+        for record in brief_records(resource_type, retrieved.get(resource_type, []))
+        if record.display is None
+    ]
 
 
 @dataclass(frozen=True)
@@ -221,7 +267,7 @@ def _serialize_retrieved(retrieved: dict[FhirResourceType, list[Any]]) -> str:
         sections[resource_type.value] = {
             "records": [
                 record.model_dump(mode="json")
-                for record in brief_records(resource_type, records)
+                for record in drafted_records(resource_type, records)
             ]
         }
     return json.dumps(sections, indent=2)
@@ -253,10 +299,11 @@ def _stub_draft(
 ) -> PreVisitBriefDraft:
     """
     AGENT_STUB_LLM_DRAFTING=true path — load testing only (module
-    docstring). No Anthropic call: drafts one claim per brief record,
-    field "display", value copied verbatim from that record. That is
-    exactly the claim shape SYSTEM_PROMPT asks the real model for on the
-    golden path, so every claim verifies, but with no LLM latency or cost.
+    docstring). No Anthropic call: drafts one claim per record the model
+    would be given (drafted_records), field "display", value copied
+    verbatim from that record. That is exactly the claim shape
+    SYSTEM_PROMPT asks the real model for on the golden path, so every
+    claim verifies, but with no LLM latency or cost.
 
     Logs claims_drafted exactly as the real path does (section_counts is
     unaffected by stubbing), but logs llm_call_stubbed in place of
@@ -271,7 +318,7 @@ def _stub_draft(
             resource_type=resource_type,
         )
         for resource_type in _BRIEF_RESOURCE_MODELS
-        for record in brief_records(resource_type, retrieved[resource_type])
+        for record in drafted_records(resource_type, retrieved[resource_type])
     ]
     log_event(
         "llm_call_stubbed",

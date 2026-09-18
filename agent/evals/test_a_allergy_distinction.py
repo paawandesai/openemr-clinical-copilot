@@ -20,13 +20,17 @@ from typing import Any
 import pytest
 
 from evals.harness import case, patch_attr, prompt_faithful_drafter, require_brief
-from evals.invariants import HEADINGS, parse_brief
+from evals.invariants import HEADINGS, is_unnamed, parse_brief
 from evals.oracle import normalize, short
 
 ALLERGY = "AllergyIntolerance"
 
 # Wording that would turn "never captured" into a clinical negative (F-21).
 _FALSE_NEGATIVE = re.compile(r"\b(no known (drug )?allergies|nkda|nka|no allergies|none known)\b", re.IGNORECASE)
+
+# The stand-in names the FHIR client used to substitute for an uncoded
+# record (F-57): "(unspecified allergen)", "(unspecified problem)", ...
+_PLACEHOLDER = re.compile(r"\(unspecified [a-z]+\)", re.IGNORECASE)
 
 
 def _false_negatives(text: str) -> list[str]:
@@ -164,15 +168,34 @@ def test_a4_coded_allergies_are_each_named(agent: Any, panel: Any, observe: Any)
     level="live endpoint",
 )
 def test_a5_uncoded_allergy_is_named(agent: Any, panel: Any, observe: Any) -> None:
+    """
+    Passes only for the right reason: every uncoded allergy is named, verified,
+    by its narrative — for an uncoded record the narrative is the only name
+    the chart holds (oracle.py), so a verified value in `record.names` is the
+    narrative text itself. A placeholder, or the record shown as having no
+    name, fails.
+    """
     chart = panel.chart("uncoded_allergy")
     body = require_brief(agent.brief(chart.patient_id))
     uncoded = [r for r in chart.searches[ALLERGY].records if r.uncoded]
+    recovered = {
+        short(c["source_id"]): c["value"]
+        for c in body["claims"]
+        if c["resource_type"] == ALLERGY and c["verified"] and any(c["source_id"] == r.source_id for r in uncoded)
+    }
     observe("patient", chart.patient_id)
     observe("uncoded allergy records", [f"{short(r.source_id)}: narrative {list(r.labels)}" for r in uncoded])
+    observe("name the brief verified for each", recovered)
     observe("allergy section", json.dumps("\n".join(parse_brief(body["brief"]).section(ALLERGY).bullets)))
     observe("verification", body["verification"])
 
     violations = _allergy_named_violations(body, chart)
+    violations += [f"brief shows the placeholder {m.group(0)!r}" for m in _PLACEHOLDER.finditer(body["brief"])]
+    violations += [
+        f"allergy {short(c['source_id'])} is shown as having no name, but its narrative names it"
+        for c in body["claims"]
+        if is_unnamed(c) and any(c["source_id"] == r.source_id and r.labels for r in uncoded)
+    ]
     if violations:
         pytest.fail("\n".join(violations))
 

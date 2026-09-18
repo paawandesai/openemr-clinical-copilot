@@ -17,7 +17,9 @@ Checks:
                            brief is backed by a claim, a count or a heading.
   attribution_violations   ARCHITECTURE.md §5: every verified claim cites a
                            record of the claimed type in THIS patient's chart
-                           and states a value that record holds.
+                           and states a value that record holds; and no
+                           record is shown as having no name while its code
+                           names it (F-57).
   completeness_violations  ARCHITECTURE.md §5 / §6 open risk "retrieval
                            incompleteness", KEY_METRICS.md Metric 5, F-22:
                            counts match the chart and every record the brief
@@ -46,6 +48,20 @@ _FOOTER = re.compile(
     r"^(?P<n>\d+) item\(s\) above could not be verified against the chart and are marked UNVERIFIED\.$"
 )
 _NONE_ACTIVE = re.compile(r"^none active \((?P<n>\d+) on file, none with active status\)$")
+
+# render_brief's wording for a record the chart names nothing usable for
+# (F-57). The API reports that claim's value as null; the brief shows this.
+NAME_NOT_AVAILABLE = "(name not available)"
+
+
+def is_unnamed(claim: dict[str, Any]) -> bool:
+    """A claim stating that a record has no name: field display, value null."""
+    return claim["field"] == "display" and claim["value"] is None
+
+
+def shown_value(claim: dict[str, Any]) -> str:
+    """A claim's value as the brief text shows it."""
+    return NAME_NOT_AVAILABLE if is_unnamed(claim) else str(claim["value"])
 
 
 @dataclass
@@ -129,7 +145,7 @@ def parse_brief(text: str) -> ParsedBrief:
 
 
 def _claims_of(claims: list[dict[str, Any]], resource_type: str, verified: bool) -> Counter[str]:
-    return Counter(str(c["value"]) for c in claims if c["resource_type"] == resource_type and c["verified"] is verified)
+    return Counter(shown_value(c) for c in claims if c["resource_type"] == resource_type and c["verified"] is verified)
 
 
 def disclosure_violations(claims: list[dict[str, Any]], brief: str) -> list[str]:
@@ -181,7 +197,16 @@ def attribution_violations(response: dict[str, Any], chart: PatientChart) -> lis
         resource_type, source_id = claim["resource_type"], claim["source_id"]
         record = chart.record(resource_type, source_id)
         if not claim["verified"]:
-            continue  # a failed claim's only obligation is disclosure
+            # A failed claim's only obligation is disclosure, except one:
+            # "this record has no name" is only honest when the code names
+            # nothing. Whether a narrative is safe to read is the agent's
+            # call; a coded name is not.
+            if is_unnamed(claim) and record is not None and record.coded_name:
+                violations.append(
+                    f"{resource_type}/{short(source_id)} is shown as having no name, but its code "
+                    f"names it {list(record.labels)}"
+                )
+            continue
         if record is None:
             elsewhere = chart.record_of_any_type(source_id)
             where = f" (it is a {elsewhere.resource_type} there)" if elsewhere else ""

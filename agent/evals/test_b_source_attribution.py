@@ -67,6 +67,23 @@ def test_b1_claims_resolve_to_real_chart_records(agent: Any, panel: Any, observe
         if not attribution_violations(doctored, chart):
             pytest.fail("eval control failed: a verified claim citing a random source_id was not flagged")
 
+    # Control (F-57): a record whose code names it, shown as having no name.
+    named = next(
+        (
+            (c, b, i)
+            for c, b in briefs
+            for i, x in enumerate(b["claims"])
+            if x["verified"] and (rec := c.record(x["resource_type"], x["source_id"])) and rec.coded_name
+        ),
+        None,
+    )
+    if named is not None:
+        chart, body, index = named
+        doctored = copy.deepcopy(body)
+        doctored["claims"][index].update(value=None, verified=False)
+        if not attribution_violations(doctored, chart):
+            pytest.fail("eval control failed: a coded record shown as having no name was not flagged")
+
     if violations:
         pytest.fail("\n".join(violations))
 

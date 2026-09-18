@@ -29,6 +29,8 @@ RETRIEVED = {
     ],
     FhirResourceType.ALLERGY_INTOLERANCE: [
         AllergyIntolerance(source_id="allergy-1", display="Penicillin"),
+        # No name in the chart (F-57): withheld from drafting, stub included.
+        AllergyIntolerance(source_id="allergy-2", display=None),
     ],
 }
 
@@ -41,8 +43,9 @@ def test_stub_drafts_claims_without_calling_anthropic() -> None:
                 draft_claims.draft_pre_visit_brief(RETRIEVED, patient_session_key="user:pt:sess")
             )
 
-    # One claim per brief record: the resolved condition is excluded
-    # (brief_records), exactly as the real path would exclude it.
+    # One claim per brief record the chart names: the resolved condition
+    # is excluded (brief_records) and so is the unnamed allergy
+    # (drafted_records), exactly as the real path would exclude them.
     assert [(c.resource_type, c.source_id, c.field, c.value) for c in draft.claims] == [
         (FhirResourceType.CONDITION, "cond-1", "display", "Type 2 diabetes mellitus"),
         (FhirResourceType.MEDICATION_REQUEST, "med-1", "display", "Metformin 500 MG Oral Tablet"),

@@ -23,7 +23,9 @@ see /agent/scripts/smoke_test_fhir.py for the reproducible proof.
 from __future__ import annotations
 
 import os
+import unicodedata
 from datetime import datetime
+from html.parser import HTMLParser
 from typing import Any
 from urllib.parse import quote
 
@@ -135,27 +137,166 @@ def _first_coding(
 # skips it rather than surfacing "Unknown" as if it were real data.
 _DATA_ABSENT_REASON_SYSTEM = "http://terminology.hl7.org/CodeSystem/data-absent-reason"
 
+# Characters that never belong in a name shown to a physician: control
+# characters (other than whitespace, which is collapsed instead), format
+# characters (zero-width and bidirectional overrides, which can make one
+# name display as another) and lone surrogates.
+_INVISIBLE_CATEGORIES = frozenset({"Cc", "Cf", "Cs"})
 
-def _display_text(codeable_concept: dict[str, Any] | None, fallback: str) -> str:
+# The elements a FHIR narrative may contain: basic HTML formatting, links
+# and images only (FHIR R4 Narrative, constraint txt-1). Any other element
+# — script, style, iframe, object, form, svg, a misspelled or unknown tag —
+# means the narrative is not plain formatted text, and no name is taken
+# from it.
+_NARRATIVE_ELEMENTS = frozenset({
+    "a", "abbr", "acronym", "address", "area", "b", "bdo", "big", "blockquote",
+    "br", "caption", "cite", "code", "col", "colgroup", "dd", "dfn", "div", "dl",
+    "dt", "em", "h1", "h2", "h3", "h4", "h5", "h6", "hr", "i", "img", "kbd", "li",
+    "map", "ol", "p", "pre", "q", "samp", "small", "span", "strong", "sub", "sup",
+    "table", "tbody", "td", "tfoot", "th", "thead", "tr", "tt", "ul", "var",
+})
+
+# Elements whose boundary separates words when rendered. Inline formatting
+# (<b>, <span>) does not: "<b>peni</b>cillin" reads "penicillin".
+_NARRATIVE_WORD_BREAKS = frozenset({
+    "address", "blockquote", "br", "caption", "dd", "div", "dl", "dt", "h1",
+    "h2", "h3", "h4", "h5", "h6", "hr", "li", "ol", "p", "pre", "table", "tbody",
+    "td", "tfoot", "th", "thead", "tr", "ul",
+})
+
+# OpenEMR's narrative is `<div xmlns=…>` + the record's title
+# (UtilsService::createNarrative), and `lists.title` is varchar(255)
+# (sql/database.sql). A longer text is not a record title, and a much
+# longer div is not worth parsing to find out.
+_NARRATIVE_NAME_MAX_CHARS = 255
+_NARRATIVE_DIV_MAX_CHARS = 4096
+
+
+def _plain_text(value: str) -> str:
+    """One line of visible text: invisible characters dropped, whitespace
+    (including newlines and Unicode line separators) collapsed to single
+    spaces, so a name can never start a new line of the rendered brief."""
+    visible = "".join(
+        char
+        for char in value
+        if char.isspace() or unicodedata.category(char) not in _INVISIBLE_CATEGORIES
+    )
+    return " ".join(visible.split())
+
+
+def _display_text(codeable_concept: dict[str, Any] | None) -> str | None:
     """
-    CodeableConcept -> a human-readable display string. Tries, in order:
-    `.text`, then the first non-placeholder coding's `.display`. Falls
-    back to `fallback` rather than raising — a claim's source_id already
-    identifies the resource precisely (ARCHITECTURE.md §5); this is only
-    the narrated label, and a narrow FHIR client should degrade instead of
-    dropping a resource on a display-string gap alone.
+    CodeableConcept -> a human-readable display string, or None. Tries, in
+    order: `.text`, then the first non-placeholder coding's `.display`.
+    None means the concept names nothing; the caller decides what else to
+    try (_record_name). Never a placeholder string (F-57).
     """
     if not codeable_concept:
-        return fallback
+        return None
     text = codeable_concept.get("text")
-    if text:
-        return text
+    if isinstance(text, str) and (name := _plain_text(text)):
+        return name
     for coding in codeable_concept.get("coding", []):
         if coding.get("system") == _DATA_ABSENT_REASON_SYSTEM:
             continue
-        if coding.get("display"):
-            return coding["display"]
-    return fallback
+        display = coding.get("display")
+        if isinstance(display, str) and (name := _plain_text(display)):
+            return name
+    return None
+
+
+class _NarrativeText(HTMLParser):
+    """
+    The text nodes of a FHIR narrative `div`, via the standard library's
+    HTML tokenizer. Only character data is collected. Tag names are checked
+    against _NARRATIVE_ELEMENTS, and attributes are never read, so no
+    attribute value (event handler, URL, style) can reach the output.
+    Comments are dropped. Anything the tokenizer does not report as an
+    element or text — CDATA sections, processing instructions, doctype
+    declarations — marks the narrative unusable rather than being guessed
+    around.
+    """
+
+    def __init__(self) -> None:
+        # convert_charrefs: entity and character references in text arrive
+        # decoded, so "&amp;" is "&", and "&lt;b&gt;" is the text "<b>" —
+        # which _narrative_name then refuses.
+        super().__init__(convert_charrefs=True)
+        self.parts: list[str] = []
+        self.usable = True
+
+    def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
+        self._element(tag)
+
+    def handle_endtag(self, tag: str) -> None:
+        self._element(tag)
+
+    def _element(self, tag: str) -> None:
+        if tag not in _NARRATIVE_ELEMENTS:
+            self.usable = False
+        elif tag in _NARRATIVE_WORD_BREAKS:
+            self.parts.append(" ")
+
+    def handle_data(self, data: str) -> None:
+        self.parts.append(data)
+
+    def handle_decl(self, decl: str) -> None:
+        self.usable = False
+
+    def unknown_decl(self, data: str) -> None:
+        self.usable = False
+
+    def handle_pi(self, data: str) -> None:
+        self.usable = False
+
+
+def _narrative_name(resource: dict[str, Any]) -> str | None:
+    """
+    The resource narrative (`text.div`) as a name, or None when it cannot
+    safely serve as one. OpenEMR puts an uncoded allergy's title only here
+    (FhirAllergyIntoleranceService.php:217-221, F-57), and puts it there
+    unescaped (UtilsService::createNarrative concatenates the title into
+    the div), so the div is untrusted HTML from the chart.
+
+    It is parsed, never pattern-matched: _NarrativeText tokenizes it and
+    keeps text nodes only. The result is then refused, not repaired, if:
+      - the narrative holds any element outside FHIR's formatting set, a
+        CDATA section, a processing instruction or a doctype;
+      - the extracted text contains "<" or ">". Text can only carry them
+        from escaped markup ("&lt;script&gt;") or a stray bracket the
+        tokenizer passed through as text; either way it is not a clean
+        name, and refusing it means the returned string cannot form a tag
+        in any HTML context downstream, however it is inserted there;
+      - it is empty after _plain_text, or longer than a record title.
+    Refused narratives yield None: the record renders as visibly unnamed
+    rather than under a name this function had to guess at.
+    """
+    narrative = resource.get("text")
+    if not isinstance(narrative, dict) or narrative.get("status") == "empty":
+        return None
+    div = narrative.get("div")
+    if not isinstance(div, str) or len(div) > _NARRATIVE_DIV_MAX_CHARS:
+        return None
+    parser = _NarrativeText()
+    parser.feed(div)
+    parser.close()
+    if not parser.usable:
+        return None
+    name = _plain_text("".join(parser.parts))
+    if not name or "<" in name or ">" in name or len(name) > _NARRATIVE_NAME_MAX_CHARS:
+        return None
+    return name
+
+
+def _record_name(resource: dict[str, Any], codeable_concept: dict[str, Any] | None) -> str | None:
+    """
+    A record's name for the brief: its coded display if it has one, else
+    its narrative (F-57), else None. None is the record's honest state —
+    the chart names nothing usable — and is never replaced with a
+    placeholder string, because a placeholder is a value the model copies
+    and the verifier then confirms against this same parse.
+    """
+    return _display_text(codeable_concept) or _narrative_name(resource)
 
 
 def _emit_retrieval_event(
@@ -277,7 +418,7 @@ async def get_conditions(
         conditions.append(
             Condition(
                 source_id=r["id"],
-                display=_display_text(r.get("code"), fallback="(unspecified problem)"),
+                display=_record_name(r, r.get("code")),
                 clinical_status=(clinical_status or {}).get("code", "unknown"),
                 onset_date=_parse_datetime(
                     r.get("onsetDateTime") or r.get("recordedDate")
@@ -308,7 +449,7 @@ async def get_medication_requests(
         requests.append(
             MedicationRequest(
                 source_id=r["id"],
-                display=_display_text(med, fallback="(unspecified medication)"),
+                display=_record_name(r, med),
                 status=r.get("status", "unknown"),
                 rxnorm_code=(rxnorm_coding or {}).get("code"),
                 authored_date=_parse_datetime(r.get("authoredOn"))
@@ -345,7 +486,7 @@ async def get_allergy_intolerances(
         allergies.append(
             AllergyIntolerance(
                 source_id=r["id"],
-                display=_display_text(r.get("code"), fallback="(unspecified allergen)"),
+                display=_record_name(r, r.get("code")),
                 recorded_date=_parse_datetime(r.get("recordedDate")),
             )
         )

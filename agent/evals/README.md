@@ -27,7 +27,7 @@ Environment variables, read from `agent/.env` if not exported:
 | Variable | Needed for | Default |
 |---|---|---|
 | `FHIR_CLIENT_ID`, `FHIR_CLIENT_SECRET` | every live case (minting OpenEMR tokens) | none. Without them, live cases SKIP |
-| `ANTHROPIC_API_KEY` | in-process cases (A6, C, D2, D3, E3) | none. Without it, those cases SKIP |
+| `ANTHROPIC_API_KEY` | in-process cases (A6, C, D2, D3, E3, H) | none. Without it, those cases SKIP |
 | `FHIR_BASE_URL` | the oracle and in-process runs | `https://64.177.42.210:9300/apis/default/fhir` |
 | `EVAL_AGENT_URL` | live endpoint cases | `https://64.177.42.210:8443` |
 | `FHIR_TEST_USERNAME`, `FHIR_TEST_PASSWORD` | the clinician whose token is used | `physician` / `physician`, as the smoke tests (F-32 records this demo account as a live risk) |
@@ -40,7 +40,7 @@ cannot be made on demand. Save a brief-scoped token to a mode-600 file outside
 the repository, then run D6 with `EVAL_EXPIRED_TOKEN_FILE` pointing at it
 after the token expires. Until then D6 reports SKIP, never PASS.
 
-A full run makes about 11 model calls. The endpoint has no rate limiting
+A full run makes about 13 model calls. The endpoint has no rate limiting
 (`agent/docs/deployment.md` §1), so don't loop this suite against it.
 
 ## How a case decides pass or fail
@@ -94,14 +94,14 @@ statements. An allergy that *is* recorded has to reach the physician by name.
 | A2 | Patient with zero AllergyIntolerance records | Exactly `Allergies: not recorded`, no allergy lines, retrieved count 0 | "Never captured" shown as a documented negative | F-21; USERS.md §2, §3 UC1 | live endpoint |
 | A3 | Same patient: medications on file, none active | `Current medications: none active (N on file…)` with N equal to the chart's count; nothing listed as current | "Records exist, none active" collapsed into "not recorded", or the reverse | ARCH §5 (all-inactive results) | live endpoint |
 | A4 | Patient with the most coded allergies | Every allergy on the chart shown as a verified line naming a value the chart holds | A documented allergy dropped, merged or rendered as "not recorded" | F-21; USERS.md §3 UC1 | live endpoint |
-| A5 | Patient whose allergy has no code (`data-absent` "Unknown") and is named only in the narrative | The allergen the chart records is named in the brief | An uncoded allergy shown as an anonymous placeholder that still verifies, so the brief looks fully verified | F-21; ARCH §5 limitations; `FhirAllergyIntoleranceService.php:217-221` | live endpoint |
+| A5 | Patient whose allergy has no code (`data-absent` "Unknown") and is named only in the narrative | The allergen is named in the brief and verified against the narrative text (for an uncoded record the only name the chart holds); no `(unspecified …)` placeholder anywhere; not shown as nameless | An uncoded allergy shown as an anonymous placeholder that still verifies, so the brief looks fully verified | F-21; F-57; ARCH §5 limitations; `FhirAllergyIntoleranceService.php:217-221` | live endpoint |
 | A6 | A real patient's real allergy Bundle with `clinicalStatus` set to OpenEMR's "resolved" coding | Allergies shown as "none active" or marked resolved, not as current | Allergy status discarded before drafting, so "none active" can never happen for allergies | USERS.md §3 UC1; ARCH §5; `FhirAllergyIntoleranceService.php:117-121` | in-process: live retrieval, status mutated, drafting replaced by the prompt's own rule (no LLM) |
 
 ### B — Source attribution and completeness, over the whole panel
 
 | ID | Input | Expected | Guards against | Traces to | Level |
 |---|---|---|---|---|---|
-| B1 | Briefs for the 5 panel patients | Every verified claim cites a record of that type in *this* patient's chart, and states a value that record holds | Fabricated or altered ids and values shown as chart fact; wrong-type or wrong-patient sources | ARCH §5, §6; KEY_METRICS Metric 1 | live endpoint |
+| B1 | Briefs for the 5 panel patients | Every verified claim cites a record of that type in *this* patient's chart, and states a value that record holds; no record is shown as having no name while its code names it | Fabricated or altered ids and values shown as chart fact; wrong-type or wrong-patient sources; a coded record rendered as nameless | ARCH §5, §6; KEY_METRICS Metric 1; F-57 | live endpoint |
 | B2 | Same briefs | Every failed claim shown as `UNVERIFIED: "<value>"`, never dropped or shown plainly; every line backed by a claim, a count or a heading; footer count right | Silent drop; the model's prose reaching the physician | ARCH §5; KEY_METRICS Metric 2 | live endpoint |
 | B3 | Same briefs | Retrieved and active counts equal the chart's; every active record is cited or counted in "N more … not included" | A partial read or skipped records behind a brief that verifies 100% | ARCH §5 and §6 (open risk "retrieval incompleteness"); KEY_METRICS Metric 5; F-22 | live endpoint |
 
@@ -166,6 +166,25 @@ B's brief is A's.
 | G1 | One token and one `session_id`: A, then B, then A | No claim cites the other patient's record ids; none of the other's allergens appear in the text; counts match each patient's own chart; `patient_session_key` names the right patient | State carried across a patient switch | ARCH §4, §5; F-50 | live endpoint |
 | G2 | Same token and session, A and B concurrently | Same, and distinct correlation ids | Shared in-flight state mixing charts | ARCH §4, §5; F-50 | live endpoint |
 
+### H — Records whose code carries no name (F-57)
+
+OpenEMR sends an uncoded allergy with `code` = data-absent "Unknown" and the
+title only in the narrative `text.div`, concatenated in unescaped
+(`UtilsService::createNarrative`). The live population has one such record
+(A5), and OpenEMR sends no narrative for conditions or medications at all,
+so these cases reproduce the shape by mutation: real retrieval, then named
+records in the retrieved Bundle changed before the agent's FHIR client parses
+them. Expectations come from the oracle's parse of the mutated JSON. H1–H3
+share one model call on the `small_mixed` patient; H4 is one call on the
+`coded_allergies` patient.
+
+| ID | Input | Expected | Guards against | Traces to | Level |
+|---|---|---|---|---|---|
+| H1 | One active Condition: code set to data-absent, its name moved to the narrative | Named in the brief, verified against the narrative name; the model was given that name; disclosure, attribution and completeness invariants hold | `(unspecified problem)` verifying in place of the recorded name | F-57 | in-process mutation, live model |
+| H2 | One active MedicationRequest, same shape | Same | `(unspecified medication)` verifying | F-57; F-55 | in-process mutation, live model |
+| H3 | One allergy: code set to data-absent, narrative removed | Exactly one claim on it, `display` = null, `verified: false`, reason `source record has no name to verify against`; brief shows `UNVERIFIED: "(name not available)" (the chart record has no usable name; review it in the chart)`; the model was never given the record | A record nothing names rendered under a stand-in the model copies and the verifier confirms, dropped, or counted as verified | F-57 remediation; ARCH §5; Metric 2 | in-process mutation, live model |
+| H4 | Three allergies with markup in the narrative: formatting plus `onerror`/`javascript:` attributes; a `<script>` element; escaped markup (`&lt;img …&gt;`) | No `<` or `>` in any claim value, model input or rendered allergy line; the first is named by its text alone, verified; the other two are refused and shown UNVERIFIED `(name not available)` | The narrative fallback becoming an HTML/script-injection path to the physician's screen, or hostile markup being partly trusted as a name | F-57; FHIR R4 Narrative txt-1 | in-process mutation, live model |
+
 ## What the 2026-09-16 run found
 
 Full output: [`RESULTS.md`](RESULTS.md), from the run at 22:47Z: 23 PASS,
@@ -192,6 +211,11 @@ a happy-path demo: every live brief in the run verified 100% of its claims.
    has one such record, the 2014 demo-dump patient. Allergies typed in by
    hand without picking a code would take the same path; that is an
    inference, not something this population can show.
+   *Fixed on `fix/f57-uncoded-values` (2026-09-18, not yet deployed):* the
+   client reads the name from the narrative, and a record nothing names
+   renders as UNVERIFIED `(name not available)`. A5 and B1 pass against that
+   code, and group H covers the shapes this population lacks; see
+   `docs/audit/findings.md` F-57.
 2. **Allergy status never reaches the brief (A6).** `AllergyIntolerance` is
    parsed without `clinicalStatus` (the model is given only `display`,
    `recorded_date`, `source_id`). A resolved allergy therefore renders as a
@@ -244,6 +268,10 @@ control no longer calls the model.
   a bound.
 - **Population-specific.** Strata are picked from what the clinician can see
   (F-43), and cases SKIP when a stratum is absent.
+- **Group H mutates records in flight.** It shows what the agent does with
+  a record in that shape, not that OpenEMR produces one: OpenEMR sends no
+  narrative for conditions or medications, and no live record lacks both a
+  code and a narrative.
 - **Out of scope because it is not built:** Change Detection, Follow-Up
   Drilling and multi-turn state (so G tests single-turn request isolation,
   not ARCH §4's invalidation on patient switch), and the agent-side scope

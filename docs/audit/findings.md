@@ -1904,10 +1904,79 @@ Pass-2 droplet database commands were run as
     the agent's parsed records would have passed.
   - Extent (`first-hand`, same population): the only uncoded record among the
     50 AllergyIntolerance records visible to the test clinician.
-- **Remediation:** not done. When `code` holds only data-absent-reason
-  codings, the FHIR client should take the display from the narrative text
-  (tags stripped) and keep the record marked as uncoded, not substitute a
-  fixed placeholder.
+- **Remediation:** done 2026-09-18 on `fix/f57-uncoded-values`, **not
+  deployed**. Built and tested locally against the live Vultr FHIR API.
+  - *Name recovery* (`agent/app/fhir/client.py` `_record_name`): a record's
+    name is its code text, else its first non-data-absent coding display,
+    else its narrative, else `None`. This applies to all three brief types
+    (Condition, MedicationRequest, AllergyIntolerance). The three fixed
+    placeholders (`(unspecified allergen|problem|medication)`) are gone.
+  - *The narrative is untrusted HTML.* `UtilsService::createNarrative`
+    (`src/Services/FHIR/UtilsService.php:374-383`) concatenates the chart
+    title into the `div` unescaped, so anything typed as a title arrives as
+    markup. `_narrative_name` never pattern-matches it. It tokenizes it with
+    the standard library's `html.parser.HTMLParser` and keeps text nodes
+    only; attributes are never read. It refuses the whole narrative (`None`,
+    no repair) if the narrative has status `empty`, or contains any element
+    outside FHIR's narrative formatting set (constraint txt-1: so `script`,
+    `style`, `iframe`, `object`, `svg`, `form`, unknown tags), or a CDATA
+    section, processing instruction or doctype. It also refuses if the
+    extracted text still contains `<` or `>` (escaped markup such as
+    `&lt;script&gt;`, or a stray bracket), or is longer than 255 characters
+    (`lists.title` is `varchar(255)`). Every name the client returns, coded or
+    narrative, is reduced to one line: control, format (zero-width,
+    bidirectional override) and surrogate characters are dropped, and
+    whitespace, including line breaks, is collapsed. A name can therefore
+    neither form a tag in any downstream HTML context nor start a new line
+    of the plain-text brief.
+  - *A record nothing names is visibly uncertain, never verified.* `display`
+    is `str | None` on all three models. A record with no name is withheld
+    from the model (`draft_claims.drafted_records`), so there is no
+    placeholder to copy. The pipeline states it itself as a `display` claim
+    with value `None` (`unnamed_record_claims`). The verifier gained one
+    rule that is stricter, never looser: a `display` claim never verifies
+    against a record whose `display` is `None`
+    (`FailureReason.NO_NAME_ON_SOURCE`), even though other absent fields
+    accept a `None` claim. The brief shows
+    `UNVERIFIED: "(name not available)" (the chart record has no usable name;
+    review it in the chart)`, the footer and API `verification` count it
+    as unverified, and both front-ends already flag that line shape. The
+    follow-up renderer uses the same wording. The verifier otherwise still
+    checks only that a claim matches the parsed record.
+  - *Live result* (Vultr, 2026-09-18, the same patient re-seeded as Phil
+    Belford `a2c36e54-af42-4c38-b86e-ade616ed5494`, allergy
+    `a2c36e54-abdd-4e69-911c-11516235801e`, same raw shape as above; local
+    agent, real model): before, `Allergies: - (unspecified allergen)`,
+    5/5 verified; after, `Allergies: - penicillin`, claim value
+    `penicillin` verified against the narrative, 5/5 verified.
+  - *Tests:* `agent/tests/test_uncoded_names.py` (47 cases: the live
+    record's exact shape, all three types, an injection matrix and 5,000
+    seeded fuzz narratives, and the API end to end with FHIR transport
+    faked), plus additions to `test_verifier.py`,
+    `test_pre_visit_brief_render.py`, `test_draft_claims_stub.py` and
+    `test_follow_up.py`. Evals: A5 and B1 now pass, and A5 requires the name
+    to be the narrative's and no placeholder anywhere. B1 also flags a coded
+    record shown as nameless, with a control. New group H mutates live
+    records in flight: an uncoded condition (H1) and an uncoded medication
+    (H2) named from the narrative; placeholder code with no narrative shown
+    UNVERIFIED (H3); markup-bearing narratives (H4). Full eval runs
+    (`first-hand`, 2026-09-18), same setup both times (local agent, live
+    Vultr FHIR, real model): at `f6f85a6`, before the fix, 22 PASS, 4 FAIL
+    (A5, A6, B1, C5), 1 SKIP (D6). With the fix: 28 PASS, 2 FAIL (A6, which
+    is F-58, and C5), 1 SKIP (D6), of 31 cases. H1–H4 run against
+    `f6f85a6` all fail, each with a verified `(unspecified …)` placeholder.
+  - *Extent on Vultr* (`first-hand`, 2026-09-18): 1 of 36 AllergyIntolerance,
+    0 of 1,816 Condition and 0 of 592 MedicationRequest records lack a coded
+    name. OpenEMR sends no narrative at all for Condition or
+    MedicationRequest. Its mappers put an uncoded problem's title in
+    `code.text` (`FhirConditionTrait.php:153-156`) and an uncoded drug's name
+    in `medicationCodeableConcept.text` (`FhirMedicationRequestService.php:463-466`),
+    which the client already read. The narrative fallback for those two
+    types is therefore proven by mutation (H1, H2), not by a live record.
+  - *Residual, not changed:* when a problem's `title` is null, OpenEMR
+    itself sets `code.text` to the literal `"Problem"`
+    (`FhirConditionTrait.php:155`). That placeholder cannot be told apart
+    from a real title and still renders as a name. No live record has it.
 - **Verified:** `first-hand` (mapping, raw resource, parsing path, live brief,
   eval failures) · `operator-reported` (that this is the patient-safety failure
   the case study brief opens with; the brief is not in the repository) ·
