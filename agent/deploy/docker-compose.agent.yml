@@ -7,8 +7,8 @@
 #   docker compose --env-file /etc/clinical-copilot/agent.env \
 #     -f docker-compose.agent.yml up -d --build --wait
 #
-# The env file holds the API key; its format is .env.example. On the droplet
-# it lives outside the code tree (deployment.md explains why).
+# The env file holds the API key; its format is .env.example. On the
+# deployment host it lives outside the code tree (deployment.md explains why).
 #
 # Exactly one host port is published: 8443 on IPv4, by the TLS proxy. The
 # agent's own port 8000 is never published (F-54: check actual bindings with

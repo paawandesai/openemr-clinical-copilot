@@ -7,9 +7,12 @@ FastAPI service implementing the Clinical Co-Pilot agent described in
 ## Status: Pre-Visit Brief runs end to end over HTTP
 
 The Pre-Visit Brief (`docs/USERS.md` Use Case 1) is a runnable pipeline
-behind an HTTP endpoint, deployed next to OpenEMR on the droplet
-(`agent/docs/deployment.md`). A constrained, single-turn form of Follow-Up
-Drilling (Use Case 3) is built alongside it; Change Detection is not built.
+behind an HTTP endpoint, deployed next to OpenEMR on the Vultr host
+`64.177.42.210` (`agent/docs/deployment.md`). The eval and load-test
+results were recorded on the earlier DigitalOcean droplet and have not been
+re-run on Vultr (`docs/ARCHITECTURE.md` §1). A constrained, single-turn
+form of Follow-Up Drilling (Use Case 3) is built alongside it; Change
+Detection is not built.
 
 | Endpoint | Purpose |
 |---|---|
@@ -73,7 +76,9 @@ Every event is one JSON line on stdout (`app/middleware/logging.py`), carrying
 log — the observability path for this submission. The pipeline emits the
 events for Metrics 1, 2, 4, 5 and 6. Nothing emits Metric 3's
 authorization-check event yet. Self-hosted Langfuse export is built but
-off unless `LANGFUSE_*` is set (`agent/docs/observability.md`).
+off unless `LANGFUSE_*` is set. It was verified locally only, and the
+deployed compose file does not pass those variables to the agent
+(`agent/docs/observability.md`).
 
 ## Running locally
 
@@ -93,11 +98,8 @@ docstring):
 
 ```bash
 pytest tests/                                   # no network, no credentials
-python scripts/smoke_test_pre_visit_brief.py    # live: droplet FHIR + Anthropic API
-python scripts/smoke_test_follow_up.py          # live: follow-up answer / refusal / injected claims
-python scripts/smoke_test_fhir.py               # live: droplet FHIR
-python scripts/smoke_test_claims.py             # live: droplet FHIR + Anthropic API
 python scripts/smoke_test_pre_visit_brief.py    # live: deployed FHIR + Anthropic API
+python scripts/smoke_test_follow_up.py          # live: follow-up answer / refusal / injected claims
 python scripts/smoke_test_fhir.py               # live: deployed FHIR
 python scripts/smoke_test_claims.py             # live: deployed FHIR + Anthropic API
 python scripts/compute_metrics.py --log-file logs/agent-stdout.jsonl
@@ -110,6 +112,9 @@ python scripts/compute_metrics.py --log-file logs/agent-stdout.jsonl
   re-querying `Encounter` / `Observation`, and multi-record synthesis — so
   also the brief's "changed since last visit" line.
 - The agent-side scope record and pre-check (`ARCHITECTURE.md` §2) and the
-  authorization-check events Metric 3 is computed from.
+  authorization-check events Metric 3 is computed from. The agent forwards
+  the token and maps OpenEMR's 401 to `fhir_token_rejected`.
+- Domain-constraint rules such as dosage thresholds and interaction flags
+  (`ARCHITECTURE.md` §5). The verifier checks source, field and value only.
 - Rate limiting on the public endpoint, and a publicly trusted certificate
   (`agent/docs/deployment.md` §1).

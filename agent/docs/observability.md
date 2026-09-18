@@ -1,7 +1,11 @@
 # Observability — self-hosted Langfuse
 
-**Status (2026-09-16): verified working locally. Not deployed anywhere.**
-Production requires a second DigitalOcean droplet that has **not been
+**Status (2026-09-16): verified working locally only. Not deployed
+anywhere.** It has never run against the deployed agent on either host. The
+deployed compose file (`agent/deploy/docker-compose.agent.yml`) passes no
+`LANGFUSE_*` variables to the agent container, so export is off in
+production. Production requires a second host, planned as a second
+DigitalOcean droplet (see the provider note), that has **not been
 provisioned**. The step-by-step checklist for that is in
 [§9](#9-production-deployment-gap--provisioning-checklist).
 
@@ -15,16 +19,18 @@ self-hosted, a separate host, private transit.
 
 This closes the observability-backend half of `docs/ARCHITECTURE.md` §6's
 open risk ("Agent compute / logging backend placement") at the design level.
-It does not close it in production until §9 is done. `docs/KEY_METRICS.md`
-depends on this track: none of its six metrics can be computed from stdout
-alone.
+It does not close it in production until §9 is done. Langfuse is not the
+metrics path for this submission. `scripts/compute_metrics.py` computes
+`docs/KEY_METRICS.md`'s metrics from the agent's stdout log alone (§6,
+"Without Langfuse"; `docs/ARCHITECTURE.md` §1). That is where production
+metrics come from.
 
 ---
 
 ## 1. Decision
 
-**Self-hosted Langfuse** (OSS, server 4.37.0), on its **own droplet**
-separate from the OpenEMR + agent droplet.
+**Self-hosted Langfuse** (OSS, server 4.37.0), on its **own host**
+separate from the OpenEMR + agent host.
 
 - **Self-hosted, never Langfuse Cloud.** Every event carries
   `patient_session_key` (a `(user, patient, session)` triple — ARCHITECTURE.md
@@ -38,10 +44,9 @@ separate from the OpenEMR + agent droplet.
     ~12 GB RAM, 48 G disk (F-44), before OpenEMR runs at all.
   - Co-locating ClickHouse, Postgres, Redis and MinIO would also contaminate
     the load-test baseline measured on droplet 1 later.
-  - **Doc drift, flagged, not fixed here:** ARCHITECTURE.md §1 and §6 still
-    say the observability backend is "planned to stay on the same covered
-    droplet". That file is outside `/agent`, so it was not edited in this
-    task.
+  - ARCHITECTURE.md §1 and §6 once said the observability backend would
+    stay on the same droplet. They now match this plan: a separate host,
+    deferred to v2, with `compute_metrics.py` over stdout as the live path.
 
 ## 2. Which compose file, and why
 
@@ -317,6 +322,10 @@ is visible in Tracing, not silent.
   `correlation_id`, requested scope and held scopes.
 - **Verified locally:** min **1**, n = 3. Observations view grouped by Level
   for `authorization_check_event` → only `DEFAULT`.
+- **Nothing in the agent emits this event.** The n = 3 above are the
+  synthetic test events from `send_langfuse_test_event.py`. The agent-side
+  scope record the event depends on is not built (`docs/ARCHITECTURE.md`
+  §2), so with real traffic this widget stays empty.
 
 ### Metric 4 — Response Latency p50 / p95 vs the 90-second budget
 
@@ -494,14 +503,12 @@ screenshotted; this describes those screenshots.
 ## 8. Known gaps (local)
 
 - **No `LlmUsageEvent` model** in `metrics_events.py` yet (§6, Metric 6).
-- **Metric 6 event-name mismatch at merge.** The claim-drafting branch's
-  committed call site logs `llm_call` (`served_model` / `requested_model`),
-  not `llm_usage_event` (`model`).
-  - `compute_metrics.py` reads both.
-  - The Langfuse exporter maps only `llm_usage_event` to a priced
-    GENERATION, so `llm_call` would land as a plain EVENT with no cost.
-  - Fix at merge: either rename the call site, or alias `llm_call` in
-    `langfuse_export.py`.
+- **~~Metric 6 event-name mismatch at merge~~ — resolved.** The
+  claim-drafting branch once logged `llm_call` (`served_model` /
+  `requested_model`) instead of `llm_usage_event` (`model`). Both drafting
+  call sites (`app/reasoning/draft_claims.py`, `draft_follow_up.py`) now log
+  `llm_usage_event` with `model`, which the exporter prices.
+  `compute_metrics.py` still reads both names.
 - **Metric 5's mean fractional coverage** needs API arithmetic (§6).
 - **Dashboards are recipes, not provisioned objects.** Widgets live in each
   Langfuse instance's Postgres, so they must be created (or exported and

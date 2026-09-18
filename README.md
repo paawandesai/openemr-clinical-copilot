@@ -43,13 +43,17 @@ How to see the agent:
 - **Standalone UI.** Open `https://64.177.42.210:8443/`, then paste a
   patient's FHIR id and a clinician's OpenEMR access token. **Need a token?**
   on the page shows the command to get one.
-- **API.** `GET /health`, `GET /ready`, `POST /pre-visit-brief`, and
-  `GET /docs` (the OpenAPI contract), all on port 8443. The easiest way to
-  run every workflow is the [Postman collection](agent/api-collection/README.md).
+- **API.** `GET /health`, `GET /ready`, `POST /pre-visit-brief`,
+  `POST /pre-visit-brief/follow-up` (one constrained, single-turn question
+  on a brief), and `GET /docs` (the OpenAPI contract), all on port 8443.
+  The easiest way to run every workflow is the
+  [Postman collection](agent/api-collection/README.md).
 
 Audit, eval and load-test records name the host they were run against, which
 is the pre-migration host, a DigitalOcean droplet. The current host is a
 fresh install on Vultr, so patient ids in those records do not exist on it.
+The eval and load-test numbers describe the droplet, not the Vultr host.
+Re-running both on Vultr is pending.
 No BAA covers the Vultr host. That is acceptable only because all data is
 synthetic
 ([docs/ARCHITECTURE.md §1](docs/ARCHITECTURE.md#1-deployment-topology)).
@@ -64,8 +68,11 @@ FHIR R4 API, using the clinician's own OAuth token. Its one LLM call drafts
 claims, each tied to a source record. Before anything is shown, a
 deterministic checker compares each claim to that record. Claims that fail
 are marked UNVERIFIED, never silently dropped. Every request carries a
-correlation id through structured JSON logs. An eval suite and load tests run
-against the deployed agent.
+correlation id through structured JSON logs. An eval suite and load tests
+were run against the deployed agent on the pre-migration DigitalOcean host
+(above). A constrained, single-turn follow-up question is also built.
+Change Detection and multi-turn conversation are not
+([agent/README.md](agent/README.md), "Not built yet").
 
 ## Deliverables
 

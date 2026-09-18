@@ -1,14 +1,27 @@
 # Key Success Metrics — Clinical Co-Pilot
 
 Every metric below traces to a specific promise made in `docs/USERS.md` or
-`docs/ARCHITECTURE.md`, cited by section. One correction: `ARCHITECTURE.md`
-does not establish a correlation-ID scheme — §6 lists the observability
-backend's placement as an explicitly *open, undecided* risk, not a settled
-decision. Computation below is grounded in what the document actually
-establishes: the `(user, patient, session)` key §4 defines for conversation
-state, and the per-claim `source_id` + pass/fail determination §5's
-verification step already computes. No new logging framework or infra
-decision is proposed here.
+`docs/ARCHITECTURE.md`, cited by section. When this document was written,
+`ARCHITECTURE.md` established no correlation-ID scheme and left the
+observability backend's placement open. Both are settled now: every logged
+event carries a `correlation_id` (`agent/app/middleware/correlation.py`),
+and `agent/scripts/compute_metrics.py` computes these metrics from the
+agent's stdout log (`ARCHITECTURE.md` §1). Computation below is grounded in
+what the code actually records. That is the `(user, patient, session)` key
+attached to every logged event, and the per-claim `source_id` + pass/fail
+determination §5's verification step computes. The key is a per-request
+attribution label that groups events; no conversation state exists behind
+it (`ARCHITECTURE.md` §4). No new logging framework or infra decision is
+proposed here.
+
+**Status, stated per metric below:** Metrics 1, 4, 5 and 6 are computed
+from events the running agent emits. Metric 2 is computed, but from a field
+set before rendering, so it cannot yet see the render defect it exists to
+catch (F-59). Metric 3 cannot be computed from the agent's logs yet: its
+event is never emitted, because the agent-side scope record it depends on
+is not built (`ARCHITECTURE.md` §2). Use-case segmentation covers the
+Pre-Visit Brief and the constrained single-turn follow-up. Change Detection
+is not built.
 
 If these six numbers are true, the system does what `USERS.md` and
 `ARCHITECTURE.md` claim it does. If any one is false, it names a specific
@@ -32,9 +45,10 @@ hallucination reaching a physician — is exactly what this number bounds.
 
 **How it's computed.** §5's verification step already produces a pass/fail
 determination per claim as part of deciding what to render. Counting
-pass vs. total drafted, rolled up per interaction (the same `(user, patient,
-session)` unit §4 defines), requires no new instrumentation — only
-persisting a result the system already computes internally.
+pass vs. total drafted, rolled up per interaction (grouped by the
+`(user, patient, session)` attribution key every event carries, §4),
+requires no new instrumentation — only persisting a result the system
+already computes internally.
 
 **What a bad number means.** A low rate means the model is drafting claims
 it cannot source — a retrieval or prompting problem, not a verification
@@ -64,6 +78,14 @@ it reproduces exactly the ambiguity USERS.md was written to eliminate.
 claim already has a disposition (rendered-as-unverified vs. not) decided by
 the render step. Log that disposition per failed claim, per interaction.
 
+**As built, it is not logged from the render step.** The logged field
+(`disclosed_as_unverified`) is set to `True` by the verifier for every
+failed claim before rendering runs. So the logged metric reads 100% whatever
+the renderer does, including when the renderer hides failures (F-59; eval
+case C5). Until disclosure is recorded after rendering, the evidence that
+failed claims reach the physician is the eval suite (B2, C1–C4), not this
+metric.
+
 **What a bad number means.** Anything under 100% here is a defect in the
 render step, not a tuning target — §5 states this as an absolute, not a
 target to approach. It requires a code fix to the render path, not a
@@ -80,21 +102,30 @@ model is delegation to OpenEMR's own scope enforcement, not an agent-side
 ACL — and this was empirically tested, not assumed: a token scoped only to
 `user/Patient.read` was used to attempt `MedicationRequest` and
 `Observation` reads, both correctly refused (§2, F-07). This metric is
-monitored continuously because a single silent regression here — a scope check that
-stops firing, an OpenEMR upgrade that changes enforcement behavior — is a
-PHI exposure event, not a degraded user experience. Same posture
-ARCHITECTURE.md applies to the Docker/UFW incident (§1, F-54): a boundary
-that looked solid failing silently, not a slow drift, is the failure mode
-to watch for.
+meant to be monitored continuously because a single silent regression
+here — a scope check that stops firing, an OpenEMR upgrade that changes
+enforcement behavior — is a PHI exposure event, not a degraded user
+experience. Same posture ARCHITECTURE.md applies to the Docker/UFW incident
+(§1, F-54): a boundary that looked solid failing silently, not a slow
+drift, is the failure mode to watch for.
 
-**How it's computed.** §2 already requires the agent to hold its own
+**How it's computed — as designed.** §2 plans for the agent to hold its own
 decoded-JWT record of which scopes the current token holds, to distinguish
 a 401 caused by insufficient scope from one caused by an expired token.
-Cross-referencing that existing record against the actual FHIR response for
-every request — flagging any accepted (2xx) response for a request the
-agent's own record predicted should be out-of-scope — computes this metric
-as a byproduct of logic §2 already requires the agent to have, not new
-infrastructure.
+Cross-referencing that record against the actual FHIR response for every
+request — flagging any accepted (2xx) response for a request the agent's
+own record predicted should be out-of-scope — would compute this metric as
+a byproduct of that logic, not new infrastructure.
+
+**As built, it is not computed from the agent's logs.** The scope record is
+not built (§2). The event schema exists (`AuthorizationCheckEvent`), and
+`agent/scripts/compute_metrics.py` implements the cross-reference, but
+nothing in the pipeline emits the event. The script therefore reports this
+metric as insufficient data. It is not monitored in production today. What
+is measured is OpenEMR's side of the boundary, directly and on demand: eval
+case D1 sends a `user/Patient.read`-only token's reads to FHIR and got 5 of
+5 out-of-scope reads refused in the 2026-09-16 run on the DigitalOcean
+droplet (`agent/evals/README.md`).
 
 **What a bad number means.** Not "needs tuning" — page someone the same day.
 A drop below 100% is a live authorization regression, evaluated with the
@@ -120,8 +151,8 @@ deterministic verification step *before* render, gating every response —
 it is inside the budget, not layered on after the clock has stopped.
 
 **How it's computed.** Trigger and render timestamps per interaction,
-segmented by use case using the same `(user, patient, session)` record §4
-already keys conversation state on.
+segmented by use case and grouped by the same `(user, patient, session)`
+attribution key every event carries (§4: a label, not conversation state).
 
 **What a bad number means.** A p95 that exceeds a physician's actual
 available window means the tool works against the exact moment it was
@@ -168,9 +199,12 @@ interaction) per interaction, broken out by use case.
 **Why this metric, for this system.** The three use cases carry
 meaningfully different profiles: Pre-Visit Brief and Change Detection are
 each single-turn (USERS.md §3; ARCHITECTURE.md §4), while Follow-Up
-Drilling is the only one carrying conversation state across turns
+Drilling is the only one designed to carry conversation state across turns
 (ARCHITECTURE.md §4) — a materially different token footprint that a
-single blended average would obscure. Worth noting: because §5's
+single blended average would obscure. As built, the follow-up is a
+single-turn question with no conversation state, and Change Detection does
+not exist, so today's per-use-case figures cover the brief and that
+single-turn follow-up only. Worth noting: because §5's
 verification step is a deterministic code check, not a second model call,
 it contributes effectively zero token cost — this metric tracks the
 reasoning step almost exclusively, not a diluted average across two
@@ -178,7 +212,7 @@ inference calls.
 
 **How it's computed.** Standard token accounting (input + output across
 every model call in the interaction) rolled up per the same `(user,
-patient, session)` record, grouped by use case.
+patient, session)` attribution key, grouped by use case.
 
 **What this establishes.** The seed number for the separately required AI
 Cost Analysis deliverable (100 / 1K / 10K / 100K user projections) — not

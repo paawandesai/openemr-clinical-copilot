@@ -12,12 +12,19 @@ numbers.
 | Cost | $0 — no Anthropic calls | Real, billed |
 | Answers | "How does *this agent* — connection handling, FHIR round-trips, queue depth — behave under concurrency?" | "What does a physician actually wait, end to end, for one real brief, and what does it cost?" |
 
+**Where the recorded numbers come from.** `RESULTS.md` holds one run of
+(a), measured on 2026-09-16 against the DigitalOcean droplet
+(`201.79.25.22`) before the deployment moved to Vultr. Its latencies, error
+rates and CPU and memory baseline describe that droplet's hardware (F-44).
+(b) has no recorded run (operator-pending). **Neither test has been run on
+the current Vultr host (`64.177.42.210`),** which the commands below target.
+
 ## Why they're separated
 
 Running 50 concurrent *real* requests means 50 real Anthropic API calls in
 one wave: expensive, and the resulting p50/p95/p99 would be dominated by
 Anthropic's own latency and rate limits, not by anything this agent's code
-or the droplet's FHIR round-trips are doing. That confound is the whole
+or the host's FHIR round-trips are doing. That confound is the whole
 reason (a) exists — `AGENT_STUB_LLM_DRAFTING=true`
 (`app/reasoning/draft_claims.py`) skips the one Anthropic call in the
 Pre-Visit Brief pipeline and replaces it with a claim built directly from
@@ -36,9 +43,9 @@ a model's output. It does not touch F-54's port bindings or the
 authorization model (§2): every stubbed request still needs the same real
 clinician bearer token and does the same real FHIR reads.
 
-## Running the generator away from the droplet under test
+## Running the generator away from the host under test
 
-Both scripts are meant to run from somewhere that is *not* the droplet
+Both scripts are meant to run from somewhere that is *not* the host
 being measured, so the generator's own CPU never competes with the system
 it's measuring. Any of:
 
@@ -51,7 +58,7 @@ it's measuring. Any of:
 - **Railway** (or any small cloud VM): `railway run k6 run k6-infra.js` (or
   just start a shell in a Railway service and run k6 directly). No special
   wiring needed beyond network egress to `AGENT_BASE_URL`; nothing in these
-  scripts assumes it's running on the droplet.
+  scripts assumes it's running on the deployment host.
 
 ## (a) Infra load test
 
@@ -64,7 +71,7 @@ export FHIR_CLIENT_SECRET=...
 AGENT_TOKEN=$(./get_token.sh)   # mints a token; expires in 1h — re-run if a run outlasts it
 ```
 
-### Enabling the stub flag on the droplet (operator step — reversible)
+### Enabling the stub flag on the deployment host (operator step — reversible)
 
 The flag is read once at process start (`os.environ.get(...)` at import
 time in `app/reasoning/draft_claims.py`), so it needs the container
@@ -76,7 +83,7 @@ rebuild is needed if the code deployed already contains the
 predates this change and needs `deployment.md §4`'s deploy steps first).
 
 ```bash
-# On the droplet:
+# On the deployment host (ssh root@64.177.42.210):
 cd /opt/clinical-copilot/agent/deploy
 AGENT_STUB_LLM_DRAFTING=true docker compose --env-file /etc/clinical-copilot/agent.env \
   -f docker-compose.agent.yml up -d --no-deps --wait agent
@@ -100,7 +107,7 @@ docker exec clinical-copilot-agent-agent-1 python -c \
 # → False
 ```
 
-### Running the generator (from off-droplet)
+### Running the generator (from off-host)
 
 The `PATIENT_ID` below is Phil Belford on the current Vultr host. The
 recorded run (`RESULTS.md`) used his DigitalOcean id,
@@ -132,13 +139,13 @@ during each level.
 
 ### Baseline CPU / memory / throughput
 
-Sampled with `docker stats --no-stream` on the droplet (the hosting
+Sampled with `docker stats --no-stream` on the host (the hosting
 provider's own monitoring graphs are another source — this repo has no
 provider API token, so the local `docker stats` view is what was actually
 used):
 
 ```bash
-# On the droplet, or via: ssh root@64.177.42.210 '...'
+# On the host, or via: ssh root@64.177.42.210 '...'
 watch -n5 'docker stats --no-stream clinical-copilot-agent-agent-1 development-easy-openemr-1 development-easy-mysql-1'
 ```
 

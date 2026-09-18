@@ -8,9 +8,13 @@ traces to a finding in `docs/audit/findings.md`, an invariant in
 is an invented edge case.
 
 This suite is not the unit tests. `tests/` needs no network and fakes FHIR
-and the model. `evals/` calls the deployed agent, the droplet's OpenEMR
-FHIR API and the Anthropic API, so a run costs real model calls and takes a
-few minutes. The latest run's output is in [`RESULTS.md`](RESULTS.md).
+and the model. `evals/` calls the deployed agent, the deployment host's
+OpenEMR FHIR API and the Anthropic API, so a run costs real model calls and
+takes a few minutes. The latest run's output is in [`RESULTS.md`](RESULTS.md).
+That run was against the DigitalOcean droplet (`201.79.25.22`), before the
+move to the Vultr host (`64.177.42.210`) that the defaults below now point
+at. The suite has not been re-run on Vultr, so every recorded result
+describes the droplet.
 
 ## Running it
 
@@ -76,7 +80,7 @@ or the in-process model or FHIR call failed). The latter is reported as
   `RESULTS.md` records who was picked. A stratum with no match SKIPs.
 - **Levels, stated per case.** *Live endpoint* is the deployed agent over
   HTTPS. *In-process* is `run_pre_visit_brief` in this checkout against the
-  real droplet FHIR API and the real model. *Injection* and *mutation* are
+  real deployed FHIR API and the real model. *Injection* and *mutation* are
   in-process runs where one step is wrapped for the run: a bad claim
   appended to the model's real output, a record status changed, or the
   renderer replaced. Each one says which step. Nothing in `app/` is modified.
@@ -188,11 +192,14 @@ share one model call on the `small_mixed` patient; H4 is one call on the
 ## What the 2026-09-16 run found
 
 Full output: [`RESULTS.md`](RESULTS.md), from the run at 22:47Z: 23 PASS,
-4 FAIL, 0 SKIP, 0 ERROR. For that run, `app/` was at `82ea759` and `evals/`
-was this suite, not yet committed. The live agent was `2d46f0f`
-(`feat/standalone-ui`), with `AGENT_STUB_LLM_DRAFTING=false`. Both were read
-on the droplet over SSH before and after the run, because the endpoint does
-not expose them, and several branches deploy to the same droplet.
+4 FAIL, 0 SKIP, 0 ERROR. The run was against the DigitalOcean droplet
+(`201.79.25.22`), and its patient ids and timings belong to that host. It
+has not been repeated on the Vultr host. For that run, `app/` was at
+`82ea759` and `evals/` was this suite, not yet committed. The live agent was
+`2d46f0f` (`feat/standalone-ui`), with `AGENT_STUB_LLM_DRAFTING=false`.
+Both were read on the droplet over SSH before and after the run, because
+the endpoint does not expose them, and several branches deploy to the same
+droplet.
 
 The four failures come from three separate defects. None of them shows up in
 a happy-path demo: every live brief in the run verified 100% of its claims.
@@ -262,20 +269,22 @@ control no longer calls the model.
   (F-36; deployment.md §1), as in the API collection.
 - **The deployed commit is not observable from outside.** Live cases record
   the API version only. In-process cases test this checkout, which may differ
-  from what runs on the droplet (it did for the recorded run; see above).
+  from what runs on the deployment host (it did for the recorded run; see
+  above).
 - **One model run per patient.** A pass shows the model behaved on that run,
   not that it always will. F1's full citation of 40 records is a sample, not
   a bound.
 - **Population-specific.** Strata are picked from what the clinician can see
   (F-43), and cases SKIP when a stratum is absent.
-- **Group H mutates records in flight.** It shows what the agent does with
-  a record in that shape, not that OpenEMR produces one: OpenEMR sends no
-  narrative for conditions or medications, and no live record lacks both a
-  code and a narrative.
-- **Out of scope because it is not built:** Change Detection, Follow-Up
-  Drilling and multi-turn state (so G tests single-turn request isolation,
-  not ARCH §4's invalidation on patient switch), and the agent-side scope
-  record behind Metric 3 (ARCH §2). D1 measures OpenEMR's side of Metric 3
-  directly.
+- **Out of scope because it is not built:** Change Detection, multi-turn
+  Follow-Up Drilling and any conversation state, and the agent-side scope
+  record behind Metric 3 (ARCH §2). G therefore tests single-turn request
+  isolation. ARCH §4's invalidation on patient switch is a plan for
+  multi-turn state, and there is nothing yet to invalidate. D1 measures
+  OpenEMR's side of Metric 3 directly.
+- **The constrained single-turn follow-up is not covered.**
+  `POST /pre-visit-brief/follow-up` (commit `73dd933`) was added after the
+  recorded run. `tests/test_follow_up.py` and
+  `scripts/smoke_test_follow_up.py` exercise it; this suite does not.
 - **RESULTS.md names synthetic patients** (F-41) and a few of their record
   names. Do not commit results from a run against real PHI.
