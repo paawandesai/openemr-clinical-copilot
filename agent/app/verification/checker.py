@@ -25,6 +25,11 @@ failure at all: results are built only by _passed() and _failed(), and
 _failed() has no parameter through which the field could be set to
 anything but True.
 
+One rule is stricter than plain comparison: a `display` claim never
+verifies against a record whose name is absent (display None), even a
+claim of None. A nameless item is shown as UNVERIFIED, never counted as a
+verified one (docs/audit/findings.md F-57; _verify_claim).
+
 What this module deliberately does NOT do (§5 known limitations):
 retrieval completeness, source-data accuracy, multi-record synthesis
 claims, and lab interpretation. It also has no patient field to compare
@@ -78,6 +83,11 @@ class FailureReason(str, Enum):
     SOURCE_NOT_FOUND = "source_id not found in retrieved resources"
     FIELD_NOT_ON_SOURCE = "field is not a claimable field on the source resource"
     VALUE_MISMATCH = "value does not match source record"
+    NO_NAME_ON_SOURCE = "source record has no name to verify against"
+
+
+# The field a brief line states as what a record *is*. See _verify_claim.
+_NAME_FIELD = "display"
 
 
 def verify_claims(
@@ -136,6 +146,17 @@ def _verify_claim(
 
     if any(claim.field not in _claimable_fields(copy) for copy in copies):
         return _failed(claim, FailureReason.FIELD_NOT_ON_SOURCE)
+
+    # F-57. A record the chart names nothing usable for has display None
+    # (app/fhir/client.py _record_name). Every other absent field accepts
+    # a None claim ("not recorded" is a checkable statement), but a name
+    # is what the physician reads as the item itself: "this allergy has no
+    # name" must never count as a verified item. Stricter than the general
+    # rule, never looser: whatever the claimed value, it fails.
+    if claim.field == _NAME_FIELD and any(
+        getattr(copy, _NAME_FIELD) is None for copy in copies
+    ):
+        return _failed(claim, FailureReason.NO_NAME_ON_SOURCE)
 
     if not all(_values_match(claim.value, getattr(copy, claim.field)) for copy in copies):
         return _failed(claim, FailureReason.VALUE_MISMATCH)

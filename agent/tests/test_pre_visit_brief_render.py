@@ -21,7 +21,7 @@ from app.models.fhir_resources import (
     MedicationRequest,
 )
 from app.models.metrics_events import UseCase
-from app.reasoning.draft_claims import SectionCount, brief_records
+from app.reasoning.draft_claims import SectionCount, brief_records, unnamed_record_claims
 from app.verification.checker import verify_claims
 
 R = FhirResourceType
@@ -122,3 +122,37 @@ def test_record_with_no_claim_is_counted_not_silently_missing() -> None:
     assert "  - 1 more active medication(s) on file, not included in this brief" in text
     assert "  - 1 more allergy record(s) on file, not included in this brief" in text
     assert "UNVERIFIED" not in text
+
+
+def test_record_with_no_name_is_unverified_not_a_placeholder() -> None:
+    """F-57: the pipeline states it (unnamed_record_claims) and the verifier fails it."""
+    unnamed_allergy = AllergyIntolerance(source_id="allergy-2", display=None)
+    unnamed_resolved = Condition(source_id="cond-3", display=None, clinical_status="resolved")
+    retrieved: dict[FhirResourceType, list[Any]] = {
+        R.CONDITION: [HTN, unnamed_resolved],
+        R.MEDICATION_REQUEST: [],
+        R.ALLERGY_INTOLERANCE: [PENICILLIN, unnamed_allergy],
+    }
+    text = render(
+        retrieved,
+        [
+            display_claim(R.CONDITION, "cond-1", "HTN"),
+            display_claim(R.ALLERGY_INTOLERANCE, "allergy-1", "Penicillin"),
+            *unnamed_record_claims(retrieved),
+        ],
+    )
+
+    assert text == (
+        "Pre-Visit Brief\n"
+        "\n"
+        "Active problems:\n"
+        "  - HTN\n"
+        "\n"
+        "Current medications: not recorded\n"
+        "\n"
+        "Allergies:\n"
+        "  - Penicillin\n"
+        '  - UNVERIFIED: "(name not available)" (the chart record has no usable name; review it in the chart)\n'
+        "\n"
+        "1 item(s) above could not be verified against the chart and are marked UNVERIFIED."
+    )

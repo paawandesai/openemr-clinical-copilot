@@ -13,7 +13,9 @@ Pre-Visit Brief pipeline — USERS.md §3 Use Case 1, end to end.
   draft     app/reasoning/draft_claims.py: structured claims plus
             section_counts. The only LLM call in the graph.
   verify    app/verification/checker.py: one VerificationResult per claim
-            (§5). Plain code.
+            (§5). Plain code. Checks the model's claims plus one claim the
+            pipeline writes for each record the chart names nothing for
+            (unnamed_record_claims, F-57); those never pass.
   render    Physician-facing text, in plain code (render_brief below).
             Verified claims are stated plainly; failed claims are stated as
             UNVERIFIED, never dropped (§5); empty and none-active sections
@@ -81,6 +83,7 @@ from app.reasoning.draft_claims import (
     SectionCount,
     brief_records,
     draft_pre_visit_brief,
+    unnamed_record_claims,
 )
 from app.verification.checker import FailureReason, verify_claims
 
@@ -99,7 +102,13 @@ _UNVERIFIED_WHY: dict[FailureReason, str] = {
     FailureReason.SOURCE_NOT_FOUND: "no matching record in the chart",
     FailureReason.FIELD_NOT_ON_SOURCE: "not a field the chart record has",
     FailureReason.VALUE_MISMATCH: "does not match the chart record",
+    FailureReason.NO_NAME_ON_SOURCE: "the chart record has no usable name; review it in the chart",
 }
+
+# Shown in place of a name the chart does not hold (F-57). Fixed text,
+# added only at render time: no record holds it, so it is never a value
+# the model is given to copy or the verifier checks a claim against.
+NAME_NOT_AVAILABLE = "(name not available)"
 
 
 @dataclass(frozen=True)
@@ -268,8 +277,12 @@ async def _draft(
 async def _verify(
     state: PreVisitBriefState, runtime: Runtime[PreVisitBriefContext]
 ) -> dict[str, Any]:
+    # The model is never given a record with no name (drafted_records), so
+    # the pipeline states each one itself; the verifier fails every such
+    # claim, and it renders as UNVERIFIED (F-57).
+    claims = [*state["draft"].claims, *unnamed_record_claims(state["retrieved"])]
     results = verify_claims(
-        state["draft"].claims,
+        claims,
         state["retrieved"],
         use_case=_USE_CASE,
         patient_session_key=runtime.context.patient_session_key,
@@ -315,7 +328,9 @@ def render_brief(
     - Every claim for the section is rendered, in drafted order: verified
       ones plainly, failed ones as UNVERIFIED with the reason. A failed
       claim is never dropped (§5), including one filed under a section
-      that has no records.
+      that has no records. A record the chart names nothing for renders as
+      UNVERIFIED "(name not available)", never under a stand-in name
+      (F-57).
     - Records the brief covers that no claim cites at all are counted, so
       a record the model skipped is not silently missing either.
     """
@@ -342,6 +357,8 @@ def render_brief(
 
         for result in section:
             value = result.claim.value
+            if value is None and result.claim.field == "display":
+                value = NAME_NOT_AVAILABLE
             if not result.passed:
                 unverified += 1
                 why = _UNVERIFIED_WHY[FailureReason(result.reason)]

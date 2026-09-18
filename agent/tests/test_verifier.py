@@ -463,3 +463,61 @@ def test_null_claim_against_present_source_value_fails() -> None:
     [result] = verify([c])
 
     assert_failed(result, FailureReason.VALUE_MISMATCH)
+
+
+# --- F-57: a record with no name --------------------------------------------
+
+UNNAMED_ALLERGY = AllergyIntolerance(source_id="allergy-unnamed", display=None)
+UNNAMED_CONDITION = Condition(source_id="cond-unnamed", display=None, clinical_status="active")
+UNNAMED_MEDICATION = MedicationRequest(
+    source_id="med-unnamed", display=None, status="active", authored_date=datetime(2024, 3, 15)
+)
+UNNAMED_RETRIEVED: dict[FhirResourceType, list] = {
+    FhirResourceType.CONDITION: [UNNAMED_CONDITION],
+    FhirResourceType.MEDICATION_REQUEST: [UNNAMED_MEDICATION],
+    FhirResourceType.ALLERGY_INTOLERANCE: [UNNAMED_ALLERGY],
+}
+
+
+@pytest.mark.parametrize(
+    ("resource_type", "source_id"),
+    [
+        (FhirResourceType.CONDITION, "cond-unnamed"),
+        (FhirResourceType.MEDICATION_REQUEST, "med-unnamed"),
+        (FhirResourceType.ALLERGY_INTOLERANCE, "allergy-unnamed"),
+    ],
+)
+@pytest.mark.parametrize(
+    "claimed",
+    [None, "(unspecified allergen)", "Unknown", "", "Penicillin"],
+)
+def test_display_claim_never_verifies_against_a_record_with_no_name(
+    resource_type: FhirResourceType, source_id: str, claimed: str | None
+) -> None:
+    """None matches None for every other absent field; never for a name."""
+    [result] = verify([claim(resource_type, source_id, "display", claimed)], UNNAMED_RETRIEVED)
+
+    assert_failed(result, FailureReason.NO_NAME_ON_SOURCE)
+
+
+def test_other_fields_of_a_record_with_no_name_still_verify() -> None:
+    results = verify(
+        [
+            claim(FhirResourceType.CONDITION, "cond-unnamed", "clinical_status", "active"),
+            claim(FhirResourceType.MEDICATION_REQUEST, "med-unnamed", "authored_date", "2024-03-15"),
+            claim(FhirResourceType.ALLERGY_INTOLERANCE, "allergy-unnamed", "recorded_date", None),
+        ],
+        UNNAMED_RETRIEVED,
+    )
+
+    for result in results:
+        assert_passed(result)
+
+
+def test_a_named_copy_does_not_rescue_an_unnamed_copy_of_the_same_record() -> None:
+    named = AllergyIntolerance(source_id="allergy-unnamed", display="Penicillin")
+    retrieved = {FhirResourceType.ALLERGY_INTOLERANCE: [named, UNNAMED_ALLERGY]}
+
+    [result] = verify([claim(FhirResourceType.ALLERGY_INTOLERANCE, "allergy-unnamed", "display", "Penicillin")], retrieved)
+
+    assert_failed(result, FailureReason.NO_NAME_ON_SOURCE)

@@ -22,6 +22,17 @@ from enum import Enum
 from pydantic import BaseModel, Field
 
 
+# The three models a brief line names share one rule for `display`.
+_NO_NAME = (
+    " None when the chart record names nothing usable: no code text, no "
+    "non-placeholder coding display, and no narrative the FHIR client can "
+    "safely read (app/fhir/client.py _record_name). Never a placeholder "
+    "string: a record with no name renders as visibly unnamed and "
+    "UNVERIFIED, not under a stand-in value the verifier would confirm "
+    "(docs/audit/findings.md F-57)."
+)
+
+
 class FhirResourceType(str, Enum):
     """
     The five, and only five, FHIR resource types in tool scope
@@ -47,12 +58,13 @@ class Condition(BaseModel):
 
     source_id: str = Field(..., description="Stable id a Claim can cite.")
 
-    display: str = Field(
+    display: str | None = Field(
         ...,
         description=(
             "Human-readable problem name/description. Use Case 1 needs to "
             "state what the active problem *is* (ARCHITECTURE.md §3)."
-        ),
+        )
+        + _NO_NAME,
     )
 
     clinical_status: str = Field(
@@ -84,12 +96,13 @@ class MedicationRequest(BaseModel):
 
     source_id: str = Field(..., description="Stable id a Claim can cite.")
 
-    display: str = Field(
+    display: str | None = Field(
         ...,
         description=(
             "Medication name/text. Use Case 1 needs to state what the "
             "patient is currently taking (ARCHITECTURE.md §3)."
-        ),
+        )
+        + _NO_NAME,
     )
 
     status: str = Field(
@@ -133,12 +146,13 @@ class AllergyIntolerance(BaseModel):
 
     source_id: str = Field(..., description="Stable id a Claim can cite.")
 
-    display: str = Field(
+    display: str | None = Field(
         ...,
         description=(
             "The allergen/substance name. Use Case 1 needs to state what "
             "the patient is allergic to (ARCHITECTURE.md §3)."
-        ),
+        )
+        + _NO_NAME,
     )
 
     recorded_date: datetime | None = Field(

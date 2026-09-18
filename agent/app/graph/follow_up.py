@@ -56,6 +56,7 @@ from dataclasses import dataclass
 from typing import Any
 
 from app.fhir import client as fhir_client
+from app.graph.pre_visit_brief import NAME_NOT_AVAILABLE
 from app.middleware.correlation import correlation_scope, get_correlation_id
 from app.middleware.langfuse_export import LATENCY_EVENT
 from app.middleware.logging import log_event
@@ -78,6 +79,7 @@ _UNVERIFIED_WHY: dict[FailureReason, str] = {
     FailureReason.SOURCE_NOT_FOUND: "no matching record in the chart",
     FailureReason.FIELD_NOT_ON_SOURCE: "not a field the chart record has",
     FailureReason.VALUE_MISMATCH: "does not match the chart record",
+    FailureReason.NO_NAME_ON_SOURCE: "the chart record has no usable name; review it in the chart",
 }
 
 GAP_WORDING: dict[RecordGap, str] = {
@@ -211,7 +213,10 @@ def _claim_line(
     if not result.passed:
         why = _UNVERIFIED_WHY[FailureReason(result.reason)]
         if claim.field == "display":
-            return f'  - UNVERIFIED: {record_label} "{_display_value(claim.value)}" ({why})'
+            # A null display claim is about a record with no name (F-57);
+            # it always fails, and says so the way the brief does.
+            name = NAME_NOT_AVAILABLE if claim.value is None else claim.value
+            return f'  - UNVERIFIED: {record_label} "{name}" ({why})'
         field_label = _FIELD_LABEL.get(claim.field, claim.field)
         return (
             f'  - UNVERIFIED: {record_label} {field_label} '
@@ -226,7 +231,8 @@ def _claim_line(
         r for r in retrieved[claim.resource_type] if r.source_id == claim.source_id
     )
     field_label = _FIELD_LABEL.get(claim.field, claim.field)
-    return f'  - {record_label} "{record.display}", {field_label}: {_display_value(claim.value)}'
+    name = NAME_NOT_AVAILABLE if record.display is None else f'"{record.display}"'
+    return f"  - {record_label} {name}, {field_label}: {_display_value(claim.value)}"
 
 
 def _retrieved_summary(section_counts: dict[FhirResourceType, SectionCount]) -> str:
