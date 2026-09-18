@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Pre-Visit Brief</title>
+<link rel="icon" href="data:,">
 <style>
   :root {
     --bg: #f4f6f8;
@@ -299,18 +300,48 @@
     border-radius: 6px; font-family: var(--mono); font-size: 12px; white-space: pre-wrap; color: var(--text);
   }
 
-  /* follow-up */
+  /* follow-up conversation */
   .followup-head { font-size: 15px; font-weight: 700; margin: 0 0 4px; display: flex; align-items: center; gap: 9px; }
   .followup-head .icon { color: var(--brand); flex: none; }
-  .followup-row { display: flex; gap: 8px; margin-top: 12px; }
+  .followup-head .spacer { flex: 1; }
+  .followup-head .ghost-btn { padding: 6px 10px; font-size: 12px; font-weight: 600; }
+  .convo-meta { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+  .chip {
+    display: inline-flex; align-items: center; gap: 5px; font-size: 11.5px; font-weight: 600;
+    padding: 3px 9px; border-radius: 999px; white-space: nowrap;
+    background: var(--neutral-bg); color: var(--neutral); border: 1px solid var(--neutral-border);
+  }
+  .chip.rule-question_rule, .chip.rule-context_carry { background: var(--brand-tint); color: var(--brand-dark); border-color: transparent; }
+  .chat-thread { margin-top: 14px; }
+  .turn { padding: 14px 0 16px; border-top: 1px solid var(--panel-border); }
+  .turn:first-child { border-top: none; padding-top: 4px; }
+  .turn-q { display: flex; justify-content: flex-end; margin-bottom: 10px; }
+  .turn-q .bubble {
+    max-width: 88%; background: var(--brand); color: #fff; font-size: 14px;
+    padding: 9px 13px; border-radius: 14px 14px 4px 14px; overflow-wrap: anywhere;
+  }
+  .turn-label { font-size: 11px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; color: var(--text-faint); margin-bottom: 6px; }
+  .turn-a .verify-banner { margin: 0 0 12px; }
+  .verify-refused { background: var(--bad-bg); color: var(--bad); border: 1px solid var(--bad-border); }
+  .turn-note {
+    display: flex; gap: 8px; align-items: flex-start; font-size: 12.5px; color: var(--text-muted);
+    background: var(--neutral-bg); border: 1px solid var(--neutral-border); border-radius: 8px;
+    padding: 8px 11px; margin-bottom: 10px;
+  }
+  .turn-note.reset { background: var(--warn-bg); border-color: var(--warn-border); color: var(--warn); font-weight: 600; }
+  .turn-note .icon { flex: none; margin-top: 1px; }
+  .retrieval-row { display: flex; flex-wrap: wrap; gap: 6px; margin: 10px 0 2px; }
+  .followup-row { display: flex; gap: 8px; margin-top: 14px; }
   .followup-row input { flex: 1; min-width: 0; font-family: var(--sans); }
   .followup-row .primary-btn { width: auto; margin-top: 0; white-space: nowrap; }
-  .followup-status { display: flex; align-items: center; gap: 10px; margin-top: 14px; font-size: 13px; color: var(--text-muted); }
+  .followup-status { display: flex; align-items: center; gap: 10px; margin-top: 12px; font-size: 13px; color: var(--text-muted); }
   .followup-status .spinner { width: 16px; height: 16px; }
-  .followup-answer { margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--panel-border); }
-  .followup-question { font-size: 13.5px; color: var(--text-muted); margin: 0 0 4px; }
-  .followup-question strong { color: var(--text); font-weight: 600; }
-  .followup-answer .verify-banner { margin: 10px 0 12px; }
+  .suggest-row { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+  .suggest-row button {
+    font: inherit; font-size: 12px; color: var(--brand-dark); background: var(--brand-tint);
+    border: 1px solid transparent; border-radius: 999px; padding: 4px 10px; cursor: pointer;
+  }
+  .suggest-row button:hover { border-color: var(--brand); }
   ul.item-list li .source-line { display: block; font-family: var(--mono); font-size: 11px; color: var(--text-faint); margin-top: 2px; word-break: break-all; }
   ul.gap-list { margin: 8px 0 0; padding-left: 18px; font-size: 13px; color: var(--text-muted); }
   ul.gap-list li { margin: 3px 0; }
@@ -368,7 +399,8 @@
             <button type="button" id="copyCurl" class="ghost-btn">Copy command</button>
             <p style="margin-top:10px;">Paste the <code>access_token</code> from the
             response above. Tokens expire after one hour; request a fresh one if
-            the brief comes back "session expired."</p>
+            the brief comes back "session expired." The last two scopes are only
+            needed for follow-up questions about lab results and visits.</p>
           </div>
         </details>
       </div>
@@ -389,7 +421,7 @@
 
   <section id="resultArea" hidden></section>
 
-  <p class="footer-note">Calls <code>POST /pre-visit-brief</code> and <code>POST /pre-visit-brief/follow-up</code> on this same host, over the same TLS connection that served this page.</p>
+  <p class="footer-note">Calls <code>POST /pre-visit-brief</code> and <code>POST /pre-visit-brief/conversation</code> on this same host, over the same TLS connection that served this page.</p>
 </div>
 
 <script>
@@ -423,6 +455,8 @@
     warn: '<svg class="icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>',
     error: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>',
     ask: '<svg class="icon" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>',
+    refuse: '<svg class="icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="5.6" y1="5.6" x2="18.4" y2="18.4"/></svg>',
+    link: '<svg class="icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.07 0l3-3a5 5 0 0 0-7.07-7.07l-1.5 1.5"/><path d="M14 11a5 5 0 0 0-7.07 0l-3 3a5 5 0 0 0 7.07 7.07l1.5-1.5"/></svg>',
     clock: '<svg class="icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>',
   };
 
@@ -430,6 +464,9 @@
     Condition: { label: "Active problems", icon: ICONS.problems },
     MedicationRequest: { label: "Current medications", icon: ICONS.meds },
     AllergyIntolerance: { label: "Allergies", icon: ICONS.allergy },
+    // Retrieved only by follow-up questions, never by the brief itself.
+    Observation: { label: "Lab results", icon: "" },
+    Encounter: { label: "Visits", icon: "" },
   };
   var SECTION_ORDER = ["Condition", "MedicationRequest", "AllergyIntolerance"];
 
@@ -463,7 +500,7 @@
       "  --data-urlencode username=\"$OPENEMR_USERNAME\" \\\n" +
       "  --data-urlencode password=\"$OPENEMR_PASSWORD\" \\\n" +
       "  --data-urlencode user_role=users \\\n" +
-      "  --data-urlencode scope=\"openid user/Patient.read user/Condition.read user/MedicationRequest.read user/AllergyIntolerance.read\"";
+      "  --data-urlencode scope=\"openid user/Patient.read user/Condition.read user/MedicationRequest.read user/AllergyIntolerance.read user/Observation.read user/Encounter.read\"";
     els.curlHelp.textContent = cmd;
   }
   renderCurlHelp();
@@ -615,9 +652,9 @@
     );
   }
 
-  function renderClaimsTable(claims) {
+  function renderClaimsTable(claims, labels) {
     if (!claims.length) return "<p class=\"hint\">No claims were drafted for this brief.</p>";
-    var order = { Condition: 0, MedicationRequest: 1, AllergyIntolerance: 2 };
+    var order = { Condition: 0, MedicationRequest: 1, AllergyIntolerance: 2, Observation: 3, Encounter: 4 };
     var sorted = claims.slice().sort(function (a, b) {
       var oa = order.hasOwnProperty(a.resource_type) ? order[a.resource_type] : 9;
       var ob = order.hasOwnProperty(b.resource_type) ? order[b.resource_type] : 9;
@@ -629,7 +666,7 @@
         : '<span class="status-chip no">' + ICONS.warn + " Unverified</span>";
       return (
         "<tr>" +
-          "<td>" + escapeHtml((SECTION_META[c.resource_type] || {}).label || c.resource_type) + "</td>" +
+          "<td>" + escapeHtml((labels && labels[c.resource_type]) || (SECTION_META[c.resource_type] || {}).label || c.resource_type) + "</td>" +
           "<td>" + escapeHtml(c.field) + "</td>" +
           "<td>" + escapeHtml(c.value === null ? "—" : c.value) + "</td>" +
           "<td>" + statusHtml + (c.unverified_reason ? '<div class="hint" style="margin-top:2px;">' + escapeHtml(c.unverified_reason) + "</div>" : "") + "</td>" +
@@ -696,100 +733,177 @@
     wireFollowUp(data);
   }
 
-  // ---- constrained single-turn follow-up ----
-  // One question at a time about the brief above. The agent re-reads the
-  // same records the brief used, under the same token, and verifies every
-  // claim against them; nothing from earlier questions is sent or kept.
+  // ---- multi-turn follow-up conversation ----
+  // Every turn is POST /pre-visit-brief/conversation with the question and
+  // nothing else: no history, no earlier answers. What the conversation
+  // remembers is held by the agent, as the claims earlier turns verified,
+  // and every turn re-reads the chart under the same token. This page only
+  // displays what each turn returns.
   var FOLLOW_UP_MAX_LENGTH = 500;
 
-  var ANSWER_BANNERS = {
-    answered: { cls: "verify-all", icon: ICONS.check, text: "Answered from the records retrieved for this visit" },
-    partially_answered: { cls: "verify-partial", icon: ICONS.warn, text: "Partly answered from the records retrieved for this visit" },
-    not_in_record: { cls: "verify-none", icon: ICONS.warn, text: "That information isn't in the retrieved record for this visit." },
+  var TURN_BANNERS = {
+    answered: { cls: "verify-all", icon: ICONS.check, text: "Answered from the records retrieved for this turn" },
+    partially_answered: { cls: "verify-partial", icon: ICONS.warn, text: "Partly answered from the records retrieved for this turn" },
+    not_in_record: { cls: "verify-none", icon: ICONS.warn, text: "That information isn't in the retrieved record for this visit" },
+    refused_out_of_scope: { cls: "verify-refused", icon: ICONS.refuse, text: "Refused: not in the record the co-pilot can retrieve" },
+    refused_unverifiable: { cls: "verify-refused", icon: ICONS.refuse, text: "Refused: a judgment, comparison or trend can't be verified against the chart" },
   };
 
-  // Same sentences the agent renders (agent/app/graph/follow_up.py:GAP_WORDING).
-  var GAP_WORDING = {
-    lab_results: "Lab results were not retrieved for this visit.",
-    visit_history: "Visit history was not retrieved for this visit.",
-    other_chart_data: "That part of the chart (vitals, notes, procedures, immunizations, history) was not retrieved for this visit.",
-    not_stated_in_record: "The retrieved records do not state it (for example, why a medication was started or stopped).",
-    interpretation: "The co-pilot reports what the chart states; it does not interpret, compare or trend it.",
+  // What a turn retrieved is every record of a type, active or not, so
+  // these are not the brief's section names ("Active problems").
+  var RECORD_LABELS = {
+    Condition: "Problem records",
+    MedicationRequest: "Medication records",
+    AllergyIntolerance: "Allergy records",
+    Observation: "Lab results",
+    Encounter: "Visits",
   };
+
+  var RULE_LABELS = { base_set: "every turn", question_rule: "question rule", context_carry: "carried from earlier turn" };
+
+  var RESET_NOTES = {
+    reset_patient_changed: "Earlier context was discarded before this turn: this session held a conversation about a different patient.",
+    reset_expired: "Earlier context had expired and was discarded. This turn started a new conversation.",
+  };
+
+  var SUGGESTIONS = [
+    "Which of her medications are active?",
+    "When was that prescribed?",
+    "What was her most recent creatinine?",
+    "When was she last seen?",
+  ];
+
+  function newSessionId() {
+    if (window.crypto && crypto.randomUUID) return crypto.randomUUID();
+    return "ui-" + Date.now().toString(36) + "-" + Math.random().toString(36).slice(2, 12);
+  }
 
   function renderFollowUpPanel() {
     return (
       '<section class="panel" id="followUpPanel">' +
-        '<div class="followup-head">' + ICONS.ask + "<span>Ask one follow-up</span></div>" +
-        '<p class="hint">Answered only from the problems, medications and allergies retrieved for this brief, and checked against them. ' +
-          "Each question is answered on its own &mdash; earlier questions aren't remembered.</p>" +
+        '<div class="followup-head">' + ICONS.ask + "<span>Follow-up conversation</span><span class=\"spacer\"></span>" +
+          '<button type="button" class="ghost-btn" id="newConversationBtn">New conversation</button></div>' +
+        '<p class="hint">Ask follow-ups about this patient. Every answer is drawn from chart records retrieved for that turn and checked against them, ' +
+          'exactly like the brief. You can refer back (&ldquo;that medication&rdquo;): the co-pilot remembers only the facts it verified in earlier turns, never the wording. ' +
+          "Questions about vitals, notes or other parts of the chart, and requests to judge, compare or trend values, are refused rather than answered unverified.</p>" +
+        '<div class="convo-meta" id="convoMeta"></div>' +
+        '<div class="chat-thread" id="chatThread"></div>' +
+        '<div class="followup-status" id="followUpStatus" hidden><div class="spinner"></div><span>Retrieving and verifying&hellip; <span id="followUpElapsed">0.0</span>s</span></div>' +
+        '<div id="followUpResult"></div>' +
         '<form id="followUpForm" class="followup-row">' +
           '<input id="followUpQuestion" type="text" maxlength="' + FOLLOW_UP_MAX_LENGTH + '" autocomplete="off" ' +
-            'placeholder="e.g. When was the lisinopril prescribed, and is it still active?" aria-label="Follow-up question">' +
+            'placeholder="e.g. Which of her medications are active?" aria-label="Follow-up question">' +
           '<button type="submit" class="primary-btn" id="followUpBtn">Ask</button>' +
         "</form>" +
-        '<div class="followup-status" id="followUpStatus" hidden><div class="spinner"></div><span>Checking the retrieved record&hellip; <span id="followUpElapsed">0.0</span>s</span></div>' +
-        '<div id="followUpResult"></div>' +
+        '<div class="suggest-row" id="suggestRow">' +
+          SUGGESTIONS.map(function (q) { return '<button type="button">' + escapeHtml(q) + "</button>"; }).join("") +
+        "</div>" +
       "</section>"
     );
   }
 
-  // The agent renders exactly one "  - " line per claim, in claim order,
-  // right after the status line. Use that wording when the counts line up
-  // (it names the chart record a date or status belongs to); otherwise
-  // fall back to the structured claim.
-  function followUpItemTexts(data) {
-    var lines = data.answer.split("\n");
-    var items = lines.slice(3, 3 + data.claims.length);
-    var aligned = items.length === data.claims.length && items.every(function (l) { return l.indexOf("  - ") === 0; });
-    return data.claims.map(function (c, i) {
-      if (aligned) return items[i].replace(/^\s*-\s*/, "").replace(/^UNVERIFIED:\s*/, "");
-      return c.field + ": " + (c.value === null ? "not recorded" : c.value);
-    });
+  // The answer text is: title, blank, headline, one "  - " line per claim
+  // (in claim order), then any gap or refusal sentences as further "  - "
+  // lines, and a closing line. Claims come structured in data.claims, so
+  // only the sentences after them are read from the text.
+  function extraSentences(data) {
+    return data.answer.split("\n")
+      .filter(function (l) { return l.indexOf("  - ") === 0; })
+      .slice(data.claims.length)
+      .map(function (l) { return l.replace(/^\s*-\s*/, ""); });
   }
 
-  function renderFollowUpAnswer(data) {
-    var banner = ANSWER_BANNERS[data.answer_status] || ANSWER_BANNERS.not_in_record;
-    var v = data.verification;
-    var bannerText = banner.text + (v.claims ? " &mdash; " + v.verified + " of " + v.claims + " claim" + (v.claims === 1 ? "" : "s") + " verified" : "");
-    var texts = followUpItemTexts(data);
-    var items = data.claims.map(function (c, i) {
+  function renderTurnItems(claims) {
+    return claims.map(function (c) {
       var source = '<span class="source-line">' + escapeHtml(c.resource_type) + " &middot; " + escapeHtml(c.field) + " &middot; source " + escapeHtml(c.source_id) + "</span>";
       if (!c.verified) {
-        // Agent wording is '<claim> (<why>)'; show the why once, as the brief does.
-        var m = /^([\s\S]*)\s\(([^)]*)\)$/.exec(texts[i]);
+        // Agent wording is 'UNVERIFIED: <claim> (<why>)'; show the why once.
+        var text = c.text.replace(/^UNVERIFIED:\s*/, "");
+        var m = /^([\s\S]*)\s\(([^)]*)\)$/.exec(text);
         return (
           '<li class="unverified"><span class="icon">' + ICONS.warn + "</span>" +
-            '<span class="item-text"><span class="unverified-flag">UNVERIFIED</span>' + escapeHtml(m ? m[1] : texts[i]) +
+            '<span class="item-text"><span class="unverified-flag">UNVERIFIED</span>' + escapeHtml(m ? m[1] : text) +
               '<span class="unverified-reason">Not verifiable against the chart: ' + escapeHtml(m ? m[2] : (c.unverified_reason || "")) + "</span>" +
               source +
             "</span></li>"
         );
       }
-      return '<li class="verified"><span class="icon">' + ICONS.check + '</span><span class="item-text">' + escapeHtml(texts[i]) + source + "</span></li>";
+      return '<li class="verified"><span class="icon">' + ICONS.check + '</span><span class="item-text">' + escapeHtml(c.text) + source + "</span></li>";
     }).join("");
-    var gaps = data.answer_status === "answered" ? [] : data.gaps;
+  }
+
+  function renderRetrieval(retrieval) {
+    if (!retrieval.length) return "";
+    return '<div class="retrieval-row">' + retrieval.map(function (r) {
+      var label = RECORD_LABELS[r.resource_type] || r.resource_type;
+      var count = r.considered === r.retrieved ? String(r.retrieved) : (r.considered + " of " + r.retrieved);
+      return '<span class="chip rule-' + escapeHtml(r.rule) + '" title="Retrieved by: ' + escapeHtml(RULE_LABELS[r.rule] || r.rule) + '">' +
+        escapeHtml(label) + ": " + escapeHtml(count) + (r.rule === "base_set" ? "" : " &middot; " + escapeHtml(RULE_LABELS[r.rule] || r.rule)) + "</span>";
+    }).join("") + "</div>";
+  }
+
+  function renderTurn(data) {
+    var banner = TURN_BANNERS[data.turn_status] || TURN_BANNERS.not_in_record;
+    var refused = data.turn_status.indexOf("refused_") === 0;
+    var v = data.verification;
+    var bannerText = escapeHtml(banner.text) + (v.claims ? " &mdash; " + v.verified + " of " + v.claims + " claim" + (v.claims === 1 ? "" : "s") + " verified" : "");
+    var info = data.conversation;
     var lines = data.answer.split("\n");
-    var scopeLine = lines[lines.length - 1];
+    var closing = lines[lines.length - 1];
+    var sentences = extraSentences(data);
+    var hint = refused && data.turn_status === "refused_unverifiable" ? lines[lines.length - 3] : "";
+
+    var notes = "";
+    if (RESET_NOTES[info.transition]) {
+      notes += '<div class="turn-note reset">' + ICONS.warn + "<span>" + escapeHtml(RESET_NOTES[info.transition]) + "</span></div>";
+    }
+    if (info.context_turns > 0 && !refused) {
+      notes += '<div class="turn-note">' + ICONS.link + "<span>Context given to this turn: " + info.context_claims + " fact" + (info.context_claims === 1 ? "" : "s") +
+        " verified in " + info.context_turns + " earlier turn" + (info.context_turns === 1 ? "" : "s") +
+        ", used only to work out references such as &ldquo;that medication&rdquo;. The answer itself was drawn from, and checked against, records retrieved again for this turn.</span></div>";
+    }
+    if (!info.state_saved) {
+      notes += '<div class="turn-note reset">' + ICONS.warn + "<span>This turn was not added to the conversation: its context was reset while the turn was running.</span></div>";
+    }
 
     return (
-      '<div class="followup-answer">' +
-        '<p class="followup-question">Q: <strong>' + escapeHtml(data.question) + "</strong></p>" +
-        '<div class="verify-banner ' + banner.cls + '">' + banner.icon + "<span>" + bannerText + "</span></div>" +
-        (items ? '<ul class="item-list">' + items + "</ul>" : "") +
-        (gaps.length
-          ? (data.answer_status === "partially_answered" ? '<p class="note-line">The rest of that information isn\'t in the retrieved record for this visit.</p>' : "") +
-            '<ul class="gap-list">' + gaps.map(function (g) { return "<li>" + escapeHtml(GAP_WORDING[g] || g) + "</li>"; }).join("") + "</ul>"
-          : "") +
-        (v.unverified ? '<p class="note-line">' + v.unverified + " item(s) above could not be verified against the chart and are marked UNVERIFIED.</p>" : "") +
-        '<p class="note-line">' + escapeHtml(scopeLine) + "</p>" +
-        "<details class=\"claims-detail\" style=\"margin-top:8px;\"><summary>Verification detail &mdash; per-claim source attribution (" + v.claims + ")</summary>" +
-          renderClaimsTable(data.claims) +
-        "</details>" +
-        "<details class=\"raw-detail\"><summary>View raw answer text</summary><pre class=\"raw-text\">" + escapeHtml(data.answer) + "</pre></details>" +
-        '<p class="error-meta" style="margin-top:10px;color:var(--text-faint);">' + data.timing.total_seconds.toFixed(2) + "s &middot; correlation " + escapeHtml(data.correlation_id) + "</p>" +
+      '<div class="turn">' +
+        '<div class="turn-q"><div class="bubble">' + escapeHtml(data.question) + "</div></div>" +
+        '<div class="turn-a">' +
+          '<div class="turn-label">Turn ' + info.turn + "</div>" +
+          notes +
+          '<div class="verify-banner ' + banner.cls + '">' + banner.icon + "<span>" + bannerText + "</span></div>" +
+          (data.claims.length ? '<ul class="item-list">' + renderTurnItems(data.claims) + "</ul>" : "") +
+          (sentences.length
+            ? (data.turn_status === "partially_answered" ? '<p class="note-line">The rest of that isn\'t something the retrieved record can answer:</p>' : "") +
+              '<ul class="gap-list">' + sentences.map(function (t) { return "<li>" + escapeHtml(t) + "</li>"; }).join("") + "</ul>"
+            : "") +
+          (hint ? '<p class="note-line">' + escapeHtml(hint) + "</p>" : "") +
+          (v.unverified ? '<p class="note-line">' + v.unverified + " item(s) above could not be verified against the chart and are marked UNVERIFIED.</p>" : "") +
+          renderRetrieval(data.retrieval) +
+          '<p class="note-line">' + escapeHtml(closing) + "</p>" +
+          (data.claims.length
+            ? "<details class=\"claims-detail\" style=\"margin-top:8px;\"><summary>Verification detail &mdash; per-claim source attribution (" + v.claims + ")</summary>" +
+                renderClaimsTable(data.claims, RECORD_LABELS) + "</details>"
+            : "") +
+          "<details class=\"raw-detail\"><summary>View raw answer text</summary><pre class=\"raw-text\">" + escapeHtml(data.answer) + "</pre></details>" +
+          '<p class="error-meta" style="margin-top:10px;color:var(--text-faint);">' + data.timing.total_seconds.toFixed(2) + "s &middot; correlation " + escapeHtml(data.correlation_id) + "</p>" +
+        "</div>" +
       "</div>"
     );
+  }
+
+  function renderConvoMeta(sessionId, info) {
+    var chips = ['<span class="chip" title="' + escapeHtml(sessionId) + '">session ' + escapeHtml(sessionId.slice(0, 8)) + "</span>"];
+    if (info) {
+      chips.push('<span class="chip">' + info.turn + " turn" + (info.turn === 1 ? "" : "s") + "</span>");
+      chips.push('<span class="chip" title="Only claims that passed verification are remembered, never question or answer text">' +
+        "remembers verified facts only</span>");
+      chips.push('<span class="chip">' + ICONS.clock + " context kept " + Math.max(1, Math.round(info.expires_in_seconds / 60)) + " min if idle</span>");
+    } else {
+      chips.push('<span class="chip">no turns yet</span>');
+    }
+    return chips.join("");
   }
 
   function renderFollowUpError(status, body) {
@@ -805,6 +919,19 @@
     );
   }
 
+  // The conversation on screen. A new brief replaces it; the agent is told
+  // to discard the old one's state rather than leave it to expire.
+  var activeConversation = null;
+
+  function endConversation(conversation) {
+    if (!conversation || !conversation.turns) return;
+    fetch("/pre-visit-brief/conversation/end", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "Authorization": "Bearer " + conversation.token },
+      body: JSON.stringify({ patient_id: conversation.patientId, session_id: conversation.sessionId }),
+    }).catch(function () { /* best effort: the agent's TTL discards it anyway */ });
+  }
+
   function wireFollowUp(brief) {
     var form = document.getElementById("followUpForm");
     var input = document.getElementById("followUpQuestion");
@@ -812,14 +939,41 @@
     var status = document.getElementById("followUpStatus");
     var elapsed = document.getElementById("followUpElapsed");
     var result = document.getElementById("followUpResult");
+    var thread = document.getElementById("chatThread");
+    var meta = document.getElementById("convoMeta");
+    var suggestions = document.getElementById("suggestRow");
     var timer = null;
+
+    endConversation(activeConversation);
+    // patient_id comes from the brief rendered above, not the form, so the
+    // conversation is about that chart. It starts on the brief's session.
+    var conversation = { patientId: brief.patient_id, sessionId: brief.session_id, token: "", turns: 0 };
+    activeConversation = conversation;
+    meta.innerHTML = renderConvoMeta(conversation.sessionId, null);
 
     function done() {
       if (timer) { clearInterval(timer); timer = null; }
       status.hidden = true;
       button.disabled = false;
       input.disabled = false;
+      input.focus();
     }
+
+    document.getElementById("newConversationBtn").addEventListener("click", function () {
+      endConversation(conversation);
+      conversation.sessionId = newSessionId();
+      conversation.turns = 0;
+      thread.innerHTML = "";
+      result.innerHTML = "";
+      meta.innerHTML = renderConvoMeta(conversation.sessionId, null);
+      input.focus();
+    });
+
+    suggestions.addEventListener("click", function (evt) {
+      if (evt.target.tagName !== "BUTTON" || button.disabled) return;
+      input.value = evt.target.textContent;
+      input.focus();
+    });
 
     form.addEventListener("submit", function (evt) {
       evt.preventDefault();
@@ -831,6 +985,7 @@
         return;
       }
 
+      conversation.token = token;
       button.disabled = true;
       input.disabled = true;
       result.innerHTML = "";
@@ -839,12 +994,11 @@
       elapsed.textContent = "0.0";
       timer = setInterval(function () { elapsed.textContent = ((performance.now() - start) / 1000).toFixed(1); }, 100);
 
-      // patient_id and session_id come from the brief response rendered
-      // above, not the form, so the question is tied to that brief.
-      fetch("/pre-visit-brief/follow-up", {
+      // The question only. Nothing from earlier turns is sent.
+      fetch("/pre-visit-brief/conversation", {
         method: "POST",
         headers: { "Content-Type": "application/json", "Authorization": "Bearer " + token },
-        body: JSON.stringify({ patient_id: brief.patient_id, session_id: brief.session_id, question: question }),
+        body: JSON.stringify({ patient_id: conversation.patientId, session_id: conversation.sessionId, question: question }),
       })
         .then(function (resp) {
           return resp.json().catch(function () { return null; }).then(function (body) {
@@ -852,15 +1006,20 @@
           });
         })
         .then(function (r) {
+          if (activeConversation !== conversation) return;
           done();
           if (r.ok && r.body) {
             input.value = "";
-            result.innerHTML = renderFollowUpAnswer(r.body);
+            conversation.turns += 1;
+            thread.insertAdjacentHTML("beforeend", renderTurn(r.body));
+            meta.innerHTML = renderConvoMeta(conversation.sessionId, r.body.conversation);
+            thread.lastElementChild.scrollIntoView({ behavior: "smooth", block: "nearest" });
           } else {
             result.innerHTML = renderFollowUpError(r.status, r.body);
           }
         })
         .catch(function () {
+          if (activeConversation !== conversation) return;
           done();
           result.innerHTML = renderFollowUpError(0, { message: "The request to this host failed before a response came back. Check the network connection and try again." });
         });
