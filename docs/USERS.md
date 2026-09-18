@@ -81,6 +81,15 @@ reading.
 
 ## 3. The three use cases
 
+**Build status.** This section specifies all three use cases; not all are
+built. **Use Case 1 (Pre-Visit Brief) is built**, except its "changed since
+last visit" line. **Use Case 2 (Change Detection) is not built**, so that
+line is not built either. **Use Case 3 (Follow-Up Drilling) is built only in
+a constrained single-turn form**: one question on the brief's own records,
+with no conversation memory and no `Encounter` or `Observation` queries. What
+is built is described in `agent/README.md`; the architecture's built/planned
+split is in `docs/ARCHITECTURE.md` §3–§4.
+
 ### Use case 1 — Pre-Visit Brief
 
 **Trigger.** The physician opens the patient's chart. This is a proactive
@@ -98,7 +107,9 @@ locally (373 droplet) plus 309 `medication` list rows (377 droplet), and 43
 (droplet) distinct patients (F-21, census). This brief also surfaces a
 one-line pointer to whether anything changed since the last encounter — that
 signal is *computed*, not looked up, and is the dedicated job of Use Case 2
-below; the brief consumes it rather than re-deriving it.
+below; the brief consumes it rather than re-deriving it. (Planned, not
+built: because Use Case 2 does not exist yet, the brief as implemented has
+no "changed since last visit" line — `agent/app/graph/pre_visit_brief.py`.)
 
 **Why a conversational agent, not a dashboard.** The list lengths this brief
 draws from are not predictable per patient — one patient might have 2 active
@@ -117,6 +128,9 @@ missing.
 current chart state at the moment it opens.
 
 ### Use case 2 — Change Detection
+
+**Status: not built.** Everything below is the specification for a planned
+capability. No code computes a change between encounters.
 
 **Trigger.** An explicit question: *"What's different since their last
 visit?"* — either asked directly by the physician or invoked as the deeper,
@@ -148,6 +162,15 @@ with fidelity, not retrieval, is the job here.
 specific, already-identified encounters.
 
 ### Use case 3 — Follow-Up Drilling
+
+**Status: built only in a constrained single-turn form.** Below is the full
+specification. What exists (`POST /pre-visit-brief/follow-up`,
+`agent/app/graph/follow_up.py`) answers one question at a time from the
+brief's own records (conditions, medications, allergies). It re-reads those
+records under the clinician's token and verifies every claim against them.
+It keeps no memory of earlier turns and never queries `Encounter` or
+`Observation`, so it cannot resolve "that" or "last time" against a prior
+turn. The multi-turn behavior below is planned.
 
 **Trigger.** A reactive question that only makes sense in reference to
 something just surfaced: *"Why is that flagged?"* / *"What did we try last

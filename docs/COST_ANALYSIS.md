@@ -24,9 +24,11 @@ Every number carries one of four labels:
 - **Assumed.** An input this project has no data for. The results scale
   with it, and §3 lists how.
 
-Only one use case is measured: Pre-Visit Brief. Change Detection and
-Follow-Up Drilling are not built yet (USERS.md §3), so their numbers are
-estimates and are always shown apart from the measured baseline.
+Only one use case is measured: Pre-Visit Brief. Change Detection is not
+built. Follow-Up Drilling is built only as a constrained single-turn
+follow-up, which has not been measured (USERS.md §3; `agent/README.md`).
+Their numbers are therefore estimates, and are always shown apart from the
+measured baseline.
 
 ---
 
@@ -370,11 +372,13 @@ workspace (§4.3) splits this cache. The cost of that is small at volume
 but real. The code sets no `cache_control` today, which is consistent
 with the logged 0/0 cache usage.
 
-**(b) Patient-context block: when Follow-Up Drilling ships.** Follow-Up
-Drilling is the only use case with conversation state (ARCHITECTURE.md
-§4). Every turn re-sends the patient's retrieved records and whatever
-came before. A cache breakpoint after that block lets turns 2 and later
-read it at 0.1× the input price. The estimated per-turn cost falls from
+**(b) Patient-context block: when multi-turn Follow-Up Drilling ships.**
+Follow-Up Drilling is the only use case designed to carry conversation
+state (ARCHITECTURE.md §4). The single-turn follow-up built today has none,
+so this lever does not apply to it yet. Once multi-turn exists, every turn
+re-sends the patient's retrieved records and whatever came before. A cache
+breakpoint after that block lets turns 2 and later read it at 0.1× the
+input price. The estimated per-turn cost falls from
 $0.0275 to $0.0175, which is 36%. Three design rules follow:
 
 - **Use the 5-minute TTL, never the 1-hour one.** The use case happens in
@@ -627,7 +631,7 @@ against Anthropic's published feature-eligibility table.
 | DigitalOcean infrastructure prices | **Published** list prices, fetched 2026-09-16. DigitalOcean is the pre-migration provider; the current Vultr host's prices were not fetched. |
 | Static prefix of ~750 tokens | **Estimated** from the prompt's size. Unmeasured. |
 | Tokens per record and the outlier brief cost | **Estimated** from one data point. |
-| Change Detection and Follow-Up Drilling tokens | **Estimated.** Neither is built. |
+| Change Detection and Follow-Up Drilling tokens | **Estimated.** Change Detection is not built; the constrained single-turn follow-up is built but not measured. |
 | 20 encounters/day, 21 days/month, peak factor 2, follow-up rates | **Assumed.** |
 | Development spend of $0.36 | **Measured.** Anthropic Console Usage page, last 30 days, all workspaces and keys, read 2026-09-16. |
 | The droplet breaking at about 1K users | **Estimated.** OpenEMR FHIR throughput is unmeasured (F-24, F-47). |
