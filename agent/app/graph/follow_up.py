@@ -104,6 +104,9 @@ _RECORD_LABEL: dict[FhirResourceType, str] = {
     FhirResourceType.CONDITION: "Problem",
     FhirResourceType.MEDICATION_REQUEST: "Medication",
     FhirResourceType.ALLERGY_INTOLERANCE: "Allergy",
+    # Retrieved only by the multi-turn conversation (app/graph/conversation.py).
+    FhirResourceType.OBSERVATION: "Lab result",
+    FhirResourceType.ENCOUNTER: "Visit",
 }
 _FIELD_LABEL: dict[str, str] = {
     "clinical_status": "clinical status",
@@ -112,6 +115,9 @@ _FIELD_LABEL: dict[str, str] = {
     "rxnorm_code": "RxNorm code",
     "authored_date": "date prescribed",
     "recorded_date": "date recorded",
+    "loinc_code": "LOINC code",
+    "effective_date": "date",
+    "date": "date",
 }
 
 # Closing-line wording per section: (name when nothing was retrieved,
@@ -155,6 +161,17 @@ async def retrieve_bounded_set(
     # Raises PatientNotFoundError before any search runs (§5): FHIR search
     # answers an unknown patient id with empty results.
     await fhir_client.ensure_patient_exists(token, patient_id)
+    return await fetch_bounded_set(token, patient_id, patient_session_key)
+
+
+async def fetch_bounded_set(
+    token: str, patient_id: str, patient_session_key: str
+) -> dict[FhirResourceType, list[Any]]:
+    """
+    The three searches alone, for a caller that has already made the
+    Patient read this turn (app/graph/conversation.py). Never call it
+    without one: see retrieve_bounded_set.
+    """
     conditions, medications, allergies = await asyncio.gather(
         fhir_client.get_conditions(
             token, patient_id, use_case=_USE_CASE, patient_session_key=patient_session_key
@@ -235,7 +252,8 @@ def _claim_line(
     return f"  - {record_label} {name}, {field_label}: {_display_value(claim.value)}"
 
 
-def _retrieved_summary(section_counts: dict[FhirResourceType, SectionCount]) -> str:
+def section_parts(section_counts: dict[FhirResourceType, SectionCount]) -> list[str]:
+    """One phrase per bounded section, from retrieval counts alone (F-21)."""
     parts = []
     for resource_type, (name, noun, in_brief_word) in _SECTION_NOUNS.items():
         counts = section_counts[resource_type]
@@ -247,9 +265,13 @@ def _retrieved_summary(section_counts: dict[FhirResourceType, SectionCount]) -> 
             parts.append(f"{counts.retrieved} {noun} ({counts.in_brief} {in_brief_word})")
         else:
             parts.append(f"{counts.retrieved} {noun}")
+    return parts
+
+
+def _retrieved_summary(section_counts: dict[FhirResourceType, SectionCount]) -> str:
     return (
         "Answered only from what was retrieved for this visit: "
-        + ", ".join(parts)
+        + ", ".join(section_parts(section_counts))
         + ". Nothing else from the chart was retrieved."
     )
 

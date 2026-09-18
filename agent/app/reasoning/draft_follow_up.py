@@ -232,32 +232,23 @@ def _parse_draft(text: str) -> FollowUpDraft:
     return FollowUpDraft(claims=claims, coverage=coverage, gaps=gaps)
 
 
-async def draft_follow_up(
-    retrieved: dict[FhirResourceType, list[Any]],
-    question: str,
+async def stream_structured(
     *,
+    system: str,
+    user_content: str,
+    schema: dict[str, Any],
     patient_session_key: str,
-) -> FollowUpDraft:
+) -> Any:
     """
-    Drafts claims answering `question` from the bounded retrieved set.
-    Claims come back unverified; one citing a source_id that wasn't
-    provided is returned too, so the verifier can report it (§5).
+    One schema-constrained model call for Follow-Up Drilling: the single-turn
+    follow-up below and a conversation turn
+    (app/reasoning/draft_conversation_turn.py) make exactly this call, with
+    the same model, effort and refusal fallback. Returns the final message.
 
-    Logs llm_usage_event (or llm_call_failed) and claims_drafted, each
-    tagged follow_up_drilling and `patient_session_key`. The question text
-    is never logged.
+    Logs llm_usage_event, or llm_call_failed and re-raises. Raises
+    ClaimDraftingError on a refusal or a truncated output. Neither the
+    prompt nor the output is logged.
     """
-    if not question.strip():
-        raise ValueError("question must be a non-empty string")
-    user_content = (
-        "<retrieved_records>\n"
-        f"{_serialize_retrieved(retrieved)}\n"
-        "</retrieved_records>\n\n"
-        "<physician_question>\n"
-        f"{question}\n"
-        "</physician_question>\n\n"
-        "Draft the claims that answer the physician's question from these records."
-    )
     correlation_id = get_correlation_id() or "no-request-context"
 
     started = time.perf_counter()
@@ -265,12 +256,12 @@ async def draft_follow_up(
         async with _client().beta.messages.stream(
             model=MODEL,
             max_tokens=_MAX_TOKENS,
-            system=SYSTEM_PROMPT,
+            system=system,
             messages=[{"role": "user", "content": user_content}],
             thinking={"type": "adaptive"},
             output_config={
                 "effort": EFFORT,
-                "format": {"type": "json_schema", "schema": _OUTPUT_SCHEMA},
+                "format": {"type": "json_schema", "schema": schema},
             },
             betas=[_FALLBACK_BETA],
             fallbacks="default",
@@ -325,6 +316,43 @@ async def draft_follow_up(
         )
     if message.stop_reason == "max_tokens":
         raise ClaimDraftingError(f"Claim output truncated at max_tokens={_MAX_TOKENS}")
+
+    return message
+
+
+async def draft_follow_up(
+    retrieved: dict[FhirResourceType, list[Any]],
+    question: str,
+    *,
+    patient_session_key: str,
+) -> FollowUpDraft:
+    """
+    Drafts claims answering `question` from the bounded retrieved set.
+    Claims come back unverified; one citing a source_id that wasn't
+    provided is returned too, so the verifier can report it (§5).
+
+    Logs llm_usage_event (or llm_call_failed) and claims_drafted, each
+    tagged follow_up_drilling and `patient_session_key`. The question text
+    is never logged.
+    """
+    if not question.strip():
+        raise ValueError("question must be a non-empty string")
+    user_content = (
+        "<retrieved_records>\n"
+        f"{_serialize_retrieved(retrieved)}\n"
+        "</retrieved_records>\n\n"
+        "<physician_question>\n"
+        f"{question}\n"
+        "</physician_question>\n\n"
+        "Draft the claims that answer the physician's question from these records."
+    )
+    message = await stream_structured(
+        system=SYSTEM_PROMPT,
+        user_content=user_content,
+        schema=_OUTPUT_SCHEMA,
+        patient_session_key=patient_session_key,
+    )
+    correlation_id = get_correlation_id() or "no-request-context"
 
     draft = _parse_draft(_final_text(message))
 

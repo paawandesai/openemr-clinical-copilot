@@ -8,6 +8,11 @@ Routes:
   POST /pre-visit-brief/follow-up
                          one follow-up question on the brief's verified
                          record set (app/api/follow_up.py)
+  POST /pre-visit-brief/conversation
+                         one turn of the multi-turn follow-up conversation,
+                         verified per turn (app/api/conversation.py)
+  POST /pre-visit-brief/conversation/end
+                         discard that conversation's stored state
 
 Contracts for all of them live in app/models/api.py; /docs and /openapi.json
 publish them. Deployment: agent/docs/deployment.md.
@@ -23,6 +28,7 @@ from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 
+from app.api.conversation import router as conversation_router
 from app.api.follow_up import router as follow_up_router
 from app.api.pre_visit_brief import ApiError
 from app.api.pre_visit_brief import router as pre_visit_brief_router
@@ -36,11 +42,12 @@ configure_logging()
 app = FastAPI(
     title="Clinical Co-Pilot Agent",
     description=(
-        "Pre-Visit Brief (docs/USERS.md Use Case 1) over OpenEMR's FHIR API, "
-        "with every drafted claim verified against the retrieved records "
-        "before it renders. Design: docs/ARCHITECTURE.md at the repository root."
+        "Pre-Visit Brief (docs/USERS.md Use Case 1) and the multi-turn follow-up "
+        "conversation (Use Case 3) over OpenEMR's FHIR API, with every drafted "
+        "claim verified against the retrieved records before it renders, on "
+        "every turn. Design: docs/ARCHITECTURE.md at the repository root."
     ),
-    version="0.2.0",
+    version="0.3.0",
 )
 
 # Load-bearing, not optional: every downstream metric in
@@ -76,3 +83,4 @@ async def _invalid_request(request: Request, exc: RequestValidationError) -> JSO
 app.include_router(health_router)
 app.include_router(pre_visit_brief_router)
 app.include_router(follow_up_router)
+app.include_router(conversation_router)

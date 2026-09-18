@@ -1,7 +1,8 @@
 """
 HTTP contracts for the agent service — the source of truth for what
-POST /pre-visit-brief, POST /pre-visit-brief/follow-up and GET /ready accept
-and return.
+POST /pre-visit-brief, POST /pre-visit-brief/follow-up,
+POST /pre-visit-brief/conversation (and /conversation/end) and GET /ready
+accept and return.
 
 Every model forbids unknown fields and coerces nothing (strict), so a
 request that does not match the contract is rejected with 422 rather than
@@ -17,6 +18,13 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
+from app.models.conversation import (
+    ConversationGap,
+    ConversationTransition,
+    RefusalCategory,
+    RetrievalRule,
+    TurnStatus,
+)
 from app.models.fhir_resources import FhirResourceType
 from app.models.follow_up import AnswerStatus, RecordGap
 
@@ -168,6 +176,133 @@ class FollowUpResponse(_Contract):
         description="The bounded record set the answer was drawn from and verified against."
     )
     timing: Timing
+
+
+class ConversationTurnRequest(_Contract):
+    """
+    One turn of the multi-turn follow-up conversation. Exactly the
+    single-turn request: the caller cannot send history, context, records
+    or claims. What the conversation remembers is held server-side, as the
+    claims earlier turns verified (app/conversation/state.py), and every
+    turn re-reads the chart under the caller's token.
+    """
+
+    patient_id: str = Field(
+        pattern=PATIENT_ID_PATTERN,
+        description=(
+            "FHIR Patient id (lowercase UUID) of the open chart. A session is bound to one "
+            "patient: a turn naming a different patient discards the session's conversation "
+            "before it runs."
+        ),
+        examples=["a2c0e096-23d5-4cf9-ad5b-4895597363a7"],
+    )
+    session_id: str = Field(
+        pattern=SESSION_ID_PATTERN,
+        description="The conversation's session: the brief's session_id, or any id the caller keeps.",
+    )
+    question: str = Field(
+        min_length=1,
+        max_length=FOLLOW_UP_QUESTION_MAX_LENGTH,
+        description="The physician's question for this turn. Never logged, never stored.",
+        examples=["When was that medication prescribed?"],
+    )
+
+    @field_validator("question")
+    @classmethod
+    def _question_has_text(cls, value: str) -> str:
+        if not value.strip():
+            raise ValueError("question must contain text")
+        return value
+
+
+class TurnClaim(ClaimOutcome):
+    text: str = Field(
+        description=(
+            "The physician-facing line rendered for this claim, as it appears in `answer`: "
+            "plain when verified, prefixed UNVERIFIED with the reason when not."
+        )
+    )
+
+
+class RetrievalOutcome(_Contract):
+    resource_type: FhirResourceType
+    rule: RetrievalRule = Field(
+        description=(
+            "Why this type was read: base_set (every turn), question_rule (the question's "
+            "wording matched a defined retrieval), context_carry (an earlier turn verified "
+            "claims on it). Never chosen by the model."
+        )
+    )
+    retrieved: int = Field(description="Records FHIR returned.")
+    considered: int = Field(
+        description="Records in the turn's bounded set, which claims were drafted from and verified against."
+    )
+
+
+class ConversationInfo(_Contract):
+    turn: int = Field(description="1-based turn number within this conversation.")
+    transition: ConversationTransition = Field(
+        description=(
+            "started / continued, or why earlier context was discarded before this turn: "
+            "reset_patient_changed (the session held another patient's conversation), "
+            "reset_expired."
+        )
+    )
+    context_turns: int = Field(description="Earlier turns whose verified claims this turn was given.")
+    context_claims: int = Field(description="Verified claims in that context.")
+    state_saved: bool = Field(
+        description=(
+            "Whether this turn's verified claims were stored. False when the conversation "
+            "was invalidated while the turn was in flight."
+        )
+    )
+    expires_in_seconds: int = Field(description="Until this conversation's state is discarded if idle.")
+
+
+class ConversationTurnResponse(_Contract):
+    answer: str = Field(
+        description=(
+            "Physician-facing answer text: verified claims stated plainly, failed claims "
+            "marked UNVERIFIED, gaps and refusals in fixed wording."
+        )
+    )
+    turn_status: TurnStatus = Field(
+        description=(
+            "answered / partially_answered / not_in_record as for the single-turn follow-up. "
+            "refused_out_of_scope: the question asks for a part of the chart the co-pilot "
+            "does not retrieve. refused_unverifiable: it asks for a judgment, comparison or "
+            "trend the verifier cannot check. Both refusals are decided by rule; nothing is "
+            "retrieved and no model is called."
+        )
+    )
+    refusals: list[RefusalCategory]
+    gaps: list[ConversationGap]
+    question: str
+    patient_id: str
+    session_id: str
+    patient_session_key: str = Field(
+        description="(user, patient, session) as user:patient:session — ARCHITECTURE.md §4."
+    )
+    correlation_id: str
+    conversation: ConversationInfo
+    retrieval: list[RetrievalOutcome] = Field(
+        description="What this turn read from the chart, and by which rule. Empty for a refusal."
+    )
+    verification: VerificationSummary
+    claims: list[TurnClaim]
+    sections: list[SectionSummary]
+    timing: Timing
+
+
+class EndConversationRequest(_Contract):
+    patient_id: str = Field(pattern=PATIENT_ID_PATTERN)
+    session_id: str = Field(pattern=SESSION_ID_PATTERN)
+
+
+class EndConversationResponse(_Contract):
+    ended: bool = Field(description="Whether a stored conversation existed and was discarded.")
+    session_id: str
+    correlation_id: str
 
 
 class ErrorCode(str, Enum):
