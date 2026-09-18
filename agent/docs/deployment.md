@@ -189,3 +189,39 @@ ssh root@64.177.42.210 'docker logs clinical-copilot-agent-agent-1 2>&1' \
 ```
 
 Uvicorn's access-log lines are not JSON and are skipped by the script.
+
+## 6. The multi-turn conversation: built, not deployed
+
+`POST /pre-visit-brief/conversation` and the chat UI in `deploy/ui/` are on
+the `feat/multiturn-chat` branch and are **not deployed**; the running host
+serves the single-turn follow-up only. Nothing in this file's deploy steps
+changes when it is deployed, and nothing should be assumed about it until it
+is. What deploying it involves:
+
+- **No proxy or port change.** Both routes are under `/pre-visit-brief*`,
+  which the Caddyfile already sends to the agent, and the UI is the same
+  static directory, so it stays same-origin with no new public port (F-54).
+- **One worker, or Redis first.** Conversation state is held in process
+  memory (`app/conversation/state.py`). That is correct for the single
+  uvicorn worker the Dockerfile runs. With more than one worker or replica,
+  turns of one conversation would land on processes that do not share it;
+  that fails safe (a reference is reported unresolved, never resolved
+  against another patient) but it does not work. Move the store to Redis,
+  keeping the key, the patient binding checked on every read and the TTLs,
+  before scaling out. A restart or redeploy ends every conversation.
+- **Settings.** `AGENT_CONVERSATION_TTL_SECONDS` (idle, default 1800) and
+  `AGENT_CONVERSATION_MAX_AGE_SECONDS` (default 3600, the life of an OpenEMR
+  access token). The compose file does not pass them; the defaults apply.
+- **Token scopes.** A turn that asks about lab results or visits reads
+  `Observation` or `Encounter`, so the clinician's token needs
+  `user/Observation.read` and `user/Encounter.read` in addition to the
+  brief's scopes, and the OAuth client must be registered for them. Without
+  them those turns answer 401 `fhir_token_rejected`; turns that stay within
+  the brief's three record types are unaffected.
+- **Memory holds chart text.** Stored claims carry record names and values
+  (PHI) in process memory until the TTL, a patient switch or
+  `POST /pre-visit-brief/conversation/end`. They are never logged or written
+  to disk.
+- **Re-run before relying on it:** `pytest tests/` and
+  `pytest evals/test_i_conversation.py` against the host's FHIR API
+  (`evals/README.md`, section I).
