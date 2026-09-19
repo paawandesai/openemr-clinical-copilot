@@ -9,14 +9,14 @@ droplet (§2.2). The migration to Vultr was a fresh OpenEMR install, so the
 OpenEMR-side configuration (API client, settings, agent CA) did not carry
 over and was recreated for this host.
 
-## 1. State of the host (2026-09-17)
+## 1. State of the host (2026-09-17; module files and API client scopes as of 2026-09-19, §5)
 
 | What | State |
 |---|---|
-| Module files | In the bind-mounted checkout `/home/deploy/openemr-clinical-copilot` (at `951f839`), `interface/modules/custom_modules/oe-module-clinical-copilot/`. Every file outside `docs/` is byte-identical (SHA-256) to this branch. |
+| Module files | In the bind-mounted checkout `/home/deploy/openemr-clinical-copilot` (at `951f839`), `interface/modules/custom_modules/oe-module-clinical-copilot/`. Since 2026-09-19 the module directory holds `main@60db26c` (the follow-up conversation, §5): all 34 tracked files byte-identical (SHA-256), owner `deploy`. The rest of the checkout is unchanged. |
 | Module registration | `modules` row `mod_id` 17, `oe-module-clinical-copilot`, `type` 0, `mod_active` 1, `sql_run` 1, `date` `2026-09-17 00:27:05`. |
 | Immunization (`mod_id` 1) | Unharmed. Every column holds its seed value from `sql/database.sql`; `date` is `2026-09-16 23:48:31`, the install timestamp shared by rows 2–5. |
-| API client | `client_id` `AMPCwe6N_9ptx8SjfCgHlAG_U4rHwIjHlNnMiYIUpRc`, "Clinical Co-Pilot (chart embed)", registered `2026-09-17 00:34:57` through `POST /oauth2/default/registration`. Confidential, `client_role` `user`, `authorization_code` only, scopes `openid user/Patient.read user/Condition.read user/MedicationRequest.read user/AllergyIntolerance.read`. Redirect URI `https://64.177.42.210:9300/interface/modules/custom_modules/oe-module-clinical-copilot/public/oauth-callback.php`. `is_enabled` 1 and `skip_ehr_launch_authorization_flow` 1. The two "A Private App" clients belong to other work and are not used by the module. |
+| API client | `client_id` `AMPCwe6N_9ptx8SjfCgHlAG_U4rHwIjHlNnMiYIUpRc`, "Clinical Co-Pilot (chart embed)", registered `2026-09-17 00:34:57` through `POST /oauth2/default/registration`. Confidential, `client_role` `user`, `authorization_code` only, scopes `openid user/Patient.read user/Condition.read user/MedicationRequest.read user/AllergyIntolerance.read`, plus `user/Observation.read user/Encounter.read` since 2026-09-19 (§5.1). Redirect URI `https://64.177.42.210:9300/interface/modules/custom_modules/oe-module-clinical-copilot/public/oauth-callback.php`. `is_enabled` 1 and `skip_ehr_launch_authorization_flow` 1. The two "A Private App" clients belong to other work and are not used by the module. |
 | Skip-flow global | `oauth_ehr_launch_authorization_flow_skip` = `1`. |
 | Module settings | The six `clinical_copilot_*` rows in `globals`, below. The secret is stored `encryptForDatabase`-encrypted, as the Config screen stores it. |
 | Agent CA | The proxy's root (`CN=Caddy Local Authority - 2026 ECC Root`, not before `2026-09-17 00:33:59`, SHA-256 `C5:54:80:C1:…:81:89`), in the OpenEMR container at `sites/default/documents/certificates/clinical-copilot-agent-ca.pem`, owner `apache`, mode 644. Byte-identical to the proxy's `/data/caddy/pki/authorities/local/root.crt`. |
@@ -168,15 +168,16 @@ exactly as it did before the module.
   checkout, and delete the six `clinical_copilot_*` rows from `globals` and
   the certificate file.
 
-## 5. Follow-up conversation (branch `feat/embed-chat`): built, not deployed (2026-09-18)
+## 5. Follow-up conversation: deployed 2026-09-19
 
-The card's follow-up conversation (README, "Follow-up questions") is
-committed on `feat/embed-chat`. **Nothing on the host was changed for it:**
-the live module directory still holds the brief-only files (no
-`public/conversation.php`), and no database row was written. The agent
-already serves `POST /pre-visit-brief/conversation` and was not touched.
+The card's follow-up conversation (README, "Follow-up questions") was built
+on `feat/embed-chat`, verified without deploying on 2026-09-18 (§5.2), merged
+to `main` (`60db26c`) and deployed on 2026-09-19 by the two steps in §5.1;
+§5.4 is what was verified on the deployed code. The agent already served
+`POST /pre-visit-brief/conversation` and was not touched. What remains is
+the operator's browser walkthrough, §5.3.
 
-### 5.1 To deploy
+### 5.1 How it was deployed
 
 1. **Give the API client the lab and visit scopes.** The client in §1 is
    registered with the four brief scopes, and OpenEMR grants only registered
@@ -191,8 +192,9 @@ already serves `POST /pre-visit-brief/conversation` and was not touched.
     WHERE client_id = 'AMPCwe6N_9ptx8SjfCgHlAG_U4rHwIjHlNnMiYIUpRc';
    ```
 
-   Not yet verified on this host: that a token minted after the update
-   carries all six scopes. Step 6 of §5.3 is that check.
+   Done 2026-09-19 (`ROW_COUNT()` 1; no other client touched). The previous
+   value is the four-scope string in §2.2, also saved on the host with the
+   previous module files in `/root/cc-embed-chat-backup-20260919/`.
 2. **Put the branch's module files in the checkout**
    (`/home/deploy/openemr-clinical-copilot`, bind-mounted): the module
    directory only. New: `public/conversation.php`, `src/ChartRequest.php`,
@@ -209,7 +211,7 @@ already serves `POST /pre-visit-brief/conversation` and was not touched.
 4. Roll back by restoring the previous module files (§1's commit) and, if
    wanted, the four-scope `scope` value.
 
-### 5.2 Verified without deploying (2026-09-18)
+### 5.2 Verified before deploying (2026-09-18)
 
 The branch's module was copied to `/tmp` inside the OpenEMR container
 (outside the web root, removed afterwards) for the PHP toolchain and for a
@@ -285,3 +287,33 @@ Log in at `https://64.177.42.210:9300/` as `physician`.
     | grep conversation_turn` shows each turn's `patient_session_key` as
     `<physician's user UUID>:<patient UUID>:<32 hex characters>`, and the
     last part differs between Tonja and Phil.
+
+### 5.4 Verified on the deployed code (2026-09-19)
+
+`python3` on the operator's laptop against `https://64.177.42.210:9300`:
+logged in through OpenEMR's login page as `physician`, opened each dashboard
+with `demographics.php?set_pid=N`, and posted to the deployed `brief.php` and
+`conversation.php` with the card's own CSRF token. Database and log reads on
+the host. No browser: the card's rendering was checked in §5.2 and its live
+behaviour is §5.3.
+
+| Check | Result |
+|---|---|
+| Module files | 34 of 34 byte-identical (SHA-256) to `main@60db26c`. `php -l` clean in the container. No Co-Pilot or fatal errors in Apache's error log after the run. |
+| `POST conversation.php`, no session | 404 before the deploy; OpenEMR's own 400 after (the module never runs). `brief.php` 400 both times. |
+| Dashboards of pid 49, 1, 22 | 200. The card is present with its follow-up panel and `data-conversation-endpoint`. |
+| **The brief, unchanged:** pid 49, `brief.php` | 200 `ok`, 16 of 16 claims verified, the same four payload keys as §2.1. |
+| Tonja658 Grant908, "Which of her medications are active?" | 200 `answered`, turn 1 `started`, 8 of 8 verified (Fexofenadine and the epinephrine auto-injector, `status: active`, each with its `MedicationRequest` source id), 7.3 s |
+| …"When was she diagnosed with atopic dermatitis?" | `answered`, turn 2 `continued`, context 1 turn / 8 claims, 3 of 3 verified |
+| …"Is her kidney function worsening?" | `refused_unverifiable`, no claims, nothing retrieved, 0.3 s |
+| **Lab question, the scope fix:** Dirk334 Crist667, "What was her most recent creatinine?" | 200 `answered` (it was 401 `fhir_token_rejected` in §5.2): LOINC 38483-4 of 2025-09-19, 1.17 mg/dL, "most recent of 5 results", 4 of 4 verified; Observation 5 of 79 considered |
+| Visit question, Dirk, "When was she last seen?" | `answered`, 1 of 1 verified; Encounter 10 retrieved |
+| **Tokens actually minted** (`api_token`, this client, user `physician`) | A question's token: `openid` plus all six reads (Patient, Condition, MedicationRequest, AllergyIntolerance, Observation, Encounter). The brief's token and an end-of-conversation token: still `openid` plus the four brief reads, because that is all they request. The client allows only the `authorization_code` grant, so these were minted by the module's own server-side flow, not a password grant. |
+| Patient switch over HTTP: Phil Belford's chart, **the same nonce** Tonja's conversation used, "Is she still taking those?" | turn 1 `started`, context 0 turns / 0 claims, `not_in_record` ("nothing verified in an earlier turn identifies it"), only Phil's counts (2, 2, 1); none of Tonja's medications in the answer |
+| Guards | `pid` 1 sent while chart 49 is open → 409 `patient_context_changed`. Tonja's stale card (`pid` 49) while Phil is open → 409. Wrong CSRF token → 400 `invalid_request`. Malformed nonce → 400. Blank question → 400 `invalid_question`. GET → 400. |
+| Response to the browser | Only `status`, `answer`, `turn_status`, `conversation`, `verification`, `claims`, `retrieval`, `total_seconds`, `correlation_id`. |
+| Audit | One `patient-record` row per question, with the patient id, `success` 1 and a comment of the form "Clinical Co-Pilot follow-up question: answered (correlation_id …)". No question or answer text. |
+| Conversations | All three ended through `action=end` → `{"status": "ended"}`; the session was logged out. |
+| `modules` table | Immunization (`mod_id` 1) unharmed: `mod_active` 1, `sql_run` 1, `type` 1, `date` `2026-09-16 23:48:31`, as rows 2–5. Row 17 unchanged. No install step ran; `bin/console openemr:zfc-module` was not used. |
+| Ports and bindings | Unchanged from §1. The agent stack was not touched. |
+
