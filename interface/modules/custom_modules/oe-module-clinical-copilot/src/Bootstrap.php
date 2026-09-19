@@ -2,8 +2,8 @@
 
 /**
  * Wires the Clinical Co-Pilot into OpenEMR: its settings section, its Twig
- * templates, and the Pre-Visit Brief card at the top of the patient
- * dashboard's main column.
+ * templates, and the Pre-Visit Brief card, with its follow-up conversation,
+ * at the top of the patient dashboard's main column.
  *
  * @package   OpenEMR
  * @link      https://www.open-emr.org
@@ -144,6 +144,8 @@ final readonly class Bootstrap
                 'auth' => false,
                 'pid' => $pid,
                 'endpoint' => $moduleUrl . '/public/brief.php',
+                'conversationEndpoint' => $moduleUrl . '/public/conversation.php',
+                'questionMaxLength' => FollowUpQuestion::MAX_LENGTH,
                 'scriptUrl' => $moduleUrl . '/public/assets/pre-visit-brief-card.js?v=' . $this->assetVersion(),
                 'csrfToken' => CsrfUtils::collectCsrfToken($session),
             ],

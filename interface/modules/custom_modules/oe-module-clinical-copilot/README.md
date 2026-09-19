@@ -2,7 +2,11 @@
 
 Puts the agent's Pre-Visit Brief (`docs/USERS.md` Use Case 1) on the patient
 chart: a **Clinical Co-Pilot: Pre-Visit Brief** card at the top of the
-patient dashboard's main column, for the patient whose chart is open.
+patient dashboard's main column, for the patient whose chart is open. Below
+the brief, the same card holds the **follow-up conversation** (Use Case 3):
+the physician asks questions about the open patient and each answer is
+retrieved and verified per turn by the agent's
+`POST /pre-visit-brief/conversation`.
 
 Deployment record for the live host and operator verification steps:
 [`docs/deployment.md`](docs/deployment.md).
@@ -29,17 +33,59 @@ Deployment record for the live host and operator verification steps:
   current. The rest of the chart is unaffected.
 
 Only users with the `patients`/`med` ACL (medical records) see the card. The
-endpoint checks the same ACL again.
+endpoints check the same ACL again.
+
+### Follow-up questions
+
+Shown under the brief once a brief has rendered. Treatment matches the
+standalone UI (`agent/deploy/ui/index.html`):
+
+- The question, then **Turn N** and a banner by `turn_status`: answered,
+  partly answered, not in the retrieved record, or one of the two refusals
+  (outside what the co-pilot retrieves; a judgment, comparison or trend).
+  With claims, the banner adds "V of N items verified".
+- One line per claim from the agent's structured `claims`: a green check for
+  verified, an **Unverified** badge with the agent's reason otherwise. Under
+  each, its attribution: resource type · field · source record id.
+- Every other line of the agent's answer (gap and refusal sentences, the
+  "could not be verified" warning, the closing statement of what was
+  retrieved) is shown as the agent wrote it, in order. Nothing is re-derived.
+- What the turn read, as chips ("Lab results: 5 of 79 · asked for by the
+  question"), the raw answer text, the time taken and the correlation id.
+- Notes when the agent discarded earlier context (expired, or a different
+  patient) and when a turn used verified facts from earlier turns.
+- **New conversation** clears the thread and starts a new one; the old one is
+  ended on the agent (best effort; it expires after 30 idle minutes anyway).
+- Reloading the chart starts a new conversation. Turns live in the page only:
+  nothing clinical is written to browser storage.
+
+### The conversation's session, and switching patients
+
+The browser never holds or sends the agent's `session_id`. It names its
+conversation with a random nonce, made when the card loads and again on **New
+conversation**. `conversation.php` derives the agent's session id on every
+request as `HMAC-SHA256(key: login session id, "…" + patient UUID + nonce)`
+(`src/ConversationSessionId.php`), and takes the patient from the session's
+open chart, never from the browser beyond the `pid` it must match. So:
+
+- patient A's conversation cannot be presented with patient B's chart open,
+  whatever the browser sends: the same nonce under B is a different session,
+  which the agent has never seen. The agent's own reset-on-patient-change
+  (F-50) is a second line, not the one relied on;
+- a card left open for patient A while the session moves to patient B gets
+  `patient_context_changed` (409) on its next question and locks its form;
+- a conversation cannot be resumed from another login.
 
 ## How it works
 
 ```
 browser: patient dashboard card
-  │ POST public/brief.php   (session cookie, CSRF token, pid the card was rendered for)
+  │ POST public/brief.php          (session cookie, CSRF token, pid the card was rendered for)
+  │ POST public/conversation.php   (the same, plus the conversation nonce and the question)
   ▼
-OpenEMR (Apache/PHP): brief.php
+OpenEMR (Apache/PHP): brief.php / conversation.php
   │ globals.php authenticates the session and refuses the script if the module is disabled
-  │ CSRF check · patients/med ACL · pid must equal the session's current patient
+  │ ChartRequest: POST · CSRF check · patients/med ACL · pid must equal the session's current patient
   │
   │ ClinicianTokenBroker ── loopback http://localhost/oauth2/<site> ──▶ OpenEMR authorization server
   │   GET  /authorize (EHR launch, core session cookie)       → auto-submit page + OAuth session cookie
@@ -47,9 +93,11 @@ OpenEMR (Apache/PHP): brief.php
   │   POST /token (code, client secret, PKCE verifier)        → access token for this clinician
   │
   │ AgentClient ── HTTPS, certificate verified against the agent's CA ──▶ agent POST /pre-visit-brief
+  │                                                                        or  POST /pre-visit-brief/conversation
   │                                                                        Authorization: Bearer <token>
   ▼
-JSON to the card: brief text, verification counts, correlation id (never the token)
+JSON to the card: brief text or the turn (answer, claims, retrieval), verification counts,
+correlation id (never the token, the agent session id or patient_session_key)
 ```
 
 ### Where the clinician's token comes from
@@ -79,8 +127,8 @@ The resulting token (verified live on the deployed host):
 | Property | Value |
 |---|---|
 | `sub` | The logged-in clinician's user UUID. The agent's `patient_session_key` is attributed to that user. |
-| Scopes | Exactly the client's registered scopes: `openid user/Patient.read user/Condition.read user/MedicationRequest.read user/AllergyIntolerance.read`. In this flow OpenEMR grants the registered scopes, not the requested ones, so **the registration is the ceiling**. |
-| Lifetime | 1 hour. One token is minted per brief request and never reused. |
+| Scopes | The brief asks for `openid user/Patient.read user/Condition.read user/MedicationRequest.read user/AllergyIntolerance.read`; a follow-up question asks for those plus `user/Observation.read user/Encounter.read` (labs and visits). OpenEMR grants only what the client was registered with (`ScopeRepository::finalizeScopes()`), so **the registration is the ceiling**: against a client registered with the four brief scopes, problem, medication and allergy questions answer, and lab or visit questions fail with "The co-pilot could not read this chart with your access…". |
+| Lifetime | 1 hour. One token is minted per brief or question and never reused. |
 | Where it goes | Held in PHP memory for one request and sent only to the agent. It is not stored, logged or returned to the browser. |
 
 ## Security properties and limits
@@ -139,9 +187,13 @@ All steps use OpenEMR's own admin screens, except exporting the agent's CA.
      "token_endpoint_auth_method": "client_secret_post",
      "grant_types": ["authorization_code"],
      "response_types": ["code"],
-     "scope": "openid user/Patient.read user/Condition.read user/MedicationRequest.read user/AllergyIntolerance.read"
+     "scope": "openid user/Patient.read user/Condition.read user/MedicationRequest.read user/AllergyIntolerance.read user/Observation.read user/Encounter.read"
    }
    ```
+
+   The last two scopes are what lets follow-up questions read lab results
+   and visits. A client registered before the conversation existed has only
+   the first four: see `docs/deployment.md` §5.
 
    Keep the returned `client_id` and `client_secret`; the secret cannot be
    retrieved again (F-05). Nothing serves the redirect URI: the broker reads
@@ -178,7 +230,9 @@ the API client.
 | No card at all | The user lacks `patients`/`med`; or the module is not enabled; or it is not configured. The log then says `Clinical Co-Pilot is enabled but not configured; card not shown` with the setting name. |
 | "OpenEMR did not issue an access token…" | The log line `Clinical Co-Pilot did not obtain an access token` gives `stage` and `http_status`. `authorize_session` or `authorize_code`: the client is disabled, its skip flag is off, the skip global is off, the redirect URI does not match, or the session expired. `token`: the secret is wrong. |
 | "The co-pilot service is unavailable…" | Agent unreachable, a TLS failure (wrong CA file), or the agent reports FHIR down. Check `GET /ready` on the agent. |
-| "The co-pilot could not generate a brief…" | The agent's LLM call failed. Look up the reference id in the agent's log. |
+| "The co-pilot could not generate a brief…" / "…could not answer that question…" | The agent's LLM call failed. Look up the reference id in the agent's log. |
+| Lab or visit questions fail with "The co-pilot could not read this chart with your access…" while other questions answer | The API client is registered without `user/Observation.read user/Encounter.read` (`docs/deployment.md` §5). |
+| Every question fails with "The co-pilot service is unavailable…" but the brief works | The deployed agent predates `POST /pre-visit-brief/conversation` (it answers a bare 404). |
 
 ## Tests
 
@@ -192,5 +246,11 @@ They cover:
 
 - the broker's two-hop exchange: cookies, `state`, PKCE, the secret never
   sent to authorize, and every way the exchange can break;
-- the agent client's contract and its error mapping;
+- the agent client's contract and its error mapping, for the brief and for
+  a conversation turn, and that a turn's payload to the browser carries no
+  session id, `patient_session_key` or patient id;
+- the request guard both endpoints share (`ChartRequest`): method, CSRF,
+  pid, ACL, and rejection when the session's open patient is not the card's;
+- the conversation session derivation: stable across turns, different for
+  another patient under the same nonce, another nonce, or another login;
 - configuration parsing, including the loopback restriction.

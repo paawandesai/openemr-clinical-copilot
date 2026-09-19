@@ -45,8 +45,18 @@ use Symfony\Contracts\HttpClient\ResponseInterface;
 
 final readonly class ClinicianTokenBroker
 {
-    /** What the agent reads (agent/api-collection/README.md), and nothing else. */
+    /** What the agent reads for a brief (agent/api-collection/README.md), and nothing else. */
     public const SCOPES = 'openid user/Patient.read user/Condition.read user/MedicationRequest.read user/AllergyIntolerance.read';
+
+    /**
+     * A follow-up turn may also read lab results and visits, when the question
+     * asks for them (agent/app/conversation/routing.py). OpenEMR grants only
+     * the scopes the API client was registered with
+     * (ScopeRepository::finalizeScopes()), so against a client registered for
+     * the brief alone this still yields a working token: lab and visit
+     * questions then fail as AgentRejectedToken, everything else answers.
+     */
+    public const CONVERSATION_SCOPES = self::SCOPES . ' user/Observation.read user/Encounter.read';
 
     /** Each of three loopback requests; they normally take well under a second. */
     private const REQUEST_SECONDS = 5.0;
@@ -69,9 +79,10 @@ final readonly class ClinicianTokenBroker
     }
 
     /**
+     * @param string $scopes self::SCOPES or self::CONVERSATION_SCOPES.
      * @throws BriefUnavailable TokenUnavailable, whatever the cause.
      */
-    public function issueFor(#[\SensitiveParameter] CoreSessionId $session, PatientUuid $patient): AccessToken
+    public function issueFor(#[\SensitiveParameter] CoreSessionId $session, PatientUuid $patient, string $scopes = self::SCOPES): AccessToken
     {
         $verifier = self::base64Url(random_bytes(48));
         $state = bin2hex(random_bytes(16));
@@ -80,7 +91,7 @@ final readonly class ClinicianTokenBroker
             'response_type' => 'code',
             'client_id' => $this->clientId,
             'redirect_uri' => $this->redirectUri,
-            'scope' => self::SCOPES,
+            'scope' => $scopes,
             'state' => $state,
             'aud' => $this->audience,
             'launch' => ($this->launchToken)($patient),
