@@ -9,10 +9,12 @@ and `agent/scripts/compute_metrics.py` computes these metrics from the
 agent's stdout log (`ARCHITECTURE.md` §1). Computation below is grounded in
 what the code actually records. That is the `(user, patient, session)` key
 attached to every logged event, and the per-claim `source_id` + pass/fail
-determination §5's verification step computes. The key is a per-request
-attribution label that groups events; no conversation state exists behind
-it (`ARCHITECTURE.md` §4). No new logging framework or infra decision is
-proposed here.
+determination §5's verification step computes. For everything deployed the
+key is a per-request attribution label that groups events, with no
+conversation state behind it. The multi-turn conversation (built, not
+deployed) tags its events with the same key and also keeps verified claims
+under it (`ARCHITECTURE.md` §4). No new logging framework or infra decision
+is proposed here.
 
 **Status, stated per metric below:** Metrics 1, 4, 5 and 6 are computed
 from events the running agent emits. Metric 2 is computed, but from a field
@@ -20,8 +22,9 @@ set before rendering, so it cannot yet see the render defect it exists to
 catch (F-59). Metric 3 cannot be computed from the agent's logs yet: its
 event is never emitted, because the agent-side scope record it depends on
 is not built (`ARCHITECTURE.md` §2). Use-case segmentation covers the
-Pre-Visit Brief and the constrained single-turn follow-up. Change Detection
-is not built.
+Pre-Visit Brief and the follow-up, single-turn or multi-turn: both emit the
+same events under `use_case=follow_up_drilling`, one interaction per turn.
+Change Detection is not built.
 
 If these six numbers are true, the system does what `USERS.md` and
 `ARCHITECTURE.md` claim it does. If any one is false, it names a specific
@@ -201,10 +204,12 @@ meaningfully different profiles: Pre-Visit Brief and Change Detection are
 each single-turn (USERS.md §3; ARCHITECTURE.md §4), while Follow-Up
 Drilling is the only one designed to carry conversation state across turns
 (ARCHITECTURE.md §4) — a materially different token footprint that a
-single blended average would obscure. As built, the follow-up is a
+single blended average would obscure. As deployed, the follow-up is a
 single-turn question with no conversation state, and Change Detection does
 not exist, so today's per-use-case figures cover the brief and that
-single-turn follow-up only. Worth noting: because §5's
+single-turn follow-up only. The multi-turn conversation (built, not
+deployed) emits the same `llm_usage_event` per turn; its token footprint has
+not been measured. Worth noting: because §5's
 verification step is a deterministic code check, not a second model call,
 it contributes effectively zero token cost — this metric tracks the
 reasoning step almost exclusively, not a diluted average across two

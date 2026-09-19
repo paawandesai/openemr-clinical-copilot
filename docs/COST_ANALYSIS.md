@@ -25,8 +25,9 @@ Every number carries one of four labels:
   with it, and §3 lists how.
 
 Only one use case is measured: Pre-Visit Brief. Change Detection is not
-built. Follow-Up Drilling is built only as a constrained single-turn
-follow-up, which has not been measured (USERS.md §3; `agent/README.md`).
+built. Follow-Up Drilling is deployed only as a constrained single-turn
+follow-up; the multi-turn conversation is built and not deployed. Neither
+has been measured (USERS.md §3; `agent/README.md`).
 Their numbers are therefore estimates, and are always shown apart from the
 measured baseline.
 

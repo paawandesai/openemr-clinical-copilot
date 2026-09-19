@@ -47,6 +47,10 @@ SCOPE_SETS: dict[str, tuple[str, ...]] = {
     "no_allergy_read": tuple(s for s in BRIEF_SCOPES if s != "user/AllergyIntolerance.read"),
     # The suite's own chart reads; never sent to the agent.
     "oracle": (*BRIEF_SCOPES, "user/Encounter.read"),
+    # The multi-turn conversation: the brief's scopes plus the two types its
+    # routing rules can add (app/conversation/routing.py). Also used for the
+    # I cases' own raw lab and visit reads.
+    "conversation": (*BRIEF_SCOPES, "user/Encounter.read", "user/Observation.read"),
 }
 
 
@@ -297,6 +301,103 @@ class InProcessPipeline:
                     error = exc
         events = [e for e in logs if e.get("event") == "agent_event"]
         return PipelineRun(result, error, events, key)
+
+
+@dataclass
+class TurnRun:
+    """One conversation turn: the HTTP reply, its events, and what the model was sent."""
+
+    status: int
+    body: dict[str, Any] | None
+    text: str
+    events: list[dict[str, Any]]
+    # The user message of every model call this turn made (none for a
+    # refusal). Held in memory for the case's assertions; never logged.
+    model_inputs: list[str]
+    log_text: str
+
+    def __repr__(self) -> str:  # never dump bodies into assertion output
+        return f"TurnRun(status={self.status}, turn_status={(self.body or {}).get('turn_status')!r})"
+
+    def events_of(self, event_type: str) -> list[dict[str, Any]]:
+        return [e for e in self.events if e.get("event_type") == event_type]
+
+    def require_ok(self, label: str = "") -> dict[str, Any]:
+        """The turn body, or stop: Inconclusive on an upstream failure, a case failure otherwise."""
+        prefix = f"{label}: " if label else ""
+        if self.status == 200 and self.body is not None:
+            return self.body
+        error = (self.body or {}).get("error")
+        if self.status >= 500 and error in {"follow_up_generation_failed", "fhir_unavailable", None}:
+            raise Inconclusive(f"{prefix}the turn failed upstream (HTTP {self.status} {error})")
+        pytest.fail(f"{prefix}expected a conversation turn, got HTTP {self.status} {error}")
+
+
+@dataclass
+class InProcessConversation:
+    """
+    POST /pre-visit-brief/conversation on this checkout's FastAPI app, in
+    this process, against the real deployment-host FHIR API and the real
+    model. The multi-turn endpoint is not deployed, so there is no live
+    endpoint to call; everything behind the HTTP layer is nonetheless real,
+    including the process-wide conversation store.
+    """
+
+    aio: Runner
+
+    def turn(
+        self,
+        token: str | None,
+        patient_id: str,
+        session_id: str,
+        question: str,
+        *,
+        patches: Callable[[], Iterator[Any]] | None = None,
+    ) -> TurnRun:
+        from structlog.testing import capture_logs
+
+        from app.main import app
+        from app.reasoning import draft_follow_up
+
+        model_inputs: list[str] = []
+        real_call = draft_follow_up.stream_structured
+
+        async def recording_call(**kwargs: Any) -> Any:
+            model_inputs.append(kwargs["user_content"])
+            return await real_call(**kwargs)
+
+        async def post() -> httpx.Response:
+            transport = httpx.ASGITransport(app=app)
+            async with httpx.AsyncClient(transport=transport, base_url="http://agent.local", timeout=300.0) as http:
+                return await http.post(
+                    "/pre-visit-brief/conversation",
+                    json={"patient_id": patient_id, "session_id": session_id, "question": question},
+                    headers={"Authorization": f"Bearer {token}"} if token else {},
+                )
+
+        with contextlib.ExitStack() as stack:
+            stack.enter_context(mock.patch.object(draft_follow_up, "stream_structured", recording_call))
+            for patch in patches() if patches else ():
+                stack.enter_context(patch)
+            with capture_logs() as logs:
+                response = self.aio.run(post())
+        try:
+            parsed = response.json()
+        except ValueError:
+            parsed = None
+        return TurnRun(
+            status=response.status_code,
+            body=parsed if isinstance(parsed, dict) else None,
+            text=response.text,
+            events=[e for e in logs if e.get("event") == "agent_event"],
+            model_inputs=model_inputs,
+            log_text=json.dumps(logs, default=str),
+        )
+
+    def stored_conversations(self) -> int:
+        from app.graph import conversation
+
+        return len(conversation.STORE)
 
 
 def patch_attr(target: Any, name: str, value: Any) -> Any:

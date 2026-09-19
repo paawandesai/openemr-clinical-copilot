@@ -41,17 +41,21 @@ they constrain everything else.
    attribution. Lab claims bind to `source_id` and a LOINC code but the
    dataset carries zero reference ranges or abnormal flags (F-19): the agent
    can verifiably cite a lab value, never verifiably characterize it.
-5. **Multi-turn conversation state is planned for exactly one of the three
-   use cases, and is not built.** Only Follow-Up Drilling needs it
-   (USERS.md); Pre-Visit Brief and Change Detection are each single-turn by
-   the use case's own definition. Today the agent keeps no conversation
-   state at all: the follow-up that exists is a constrained single-turn
-   endpoint that stores nothing between requests, and the
+5. **Multi-turn conversation state exists for exactly one of the three
+   use cases, and is built but not deployed.** Only Follow-Up Drilling needs
+   it (USERS.md); Pre-Visit Brief and Change Detection are each single-turn
+   by the use case's own definition. What is deployed keeps no conversation
+   state at all: the deployed follow-up is a constrained single-turn
+   endpoint that stores nothing between requests, and there the
    `(user, patient, session)` key is a per-request attribution label on
-   log events. The plan for multi-turn is to key state to user + patient +
-   session and invalidate it on patient switch, as the mitigation against
-   cross-patient leakage within the agent's own state. It would not fix
-   OpenEMR's own per-patient authorization gap (F-50; §4).
+   log events. The multi-turn conversation (branch `feat/multiturn-chat`)
+   stores only the claims earlier turns verified, never question or answer
+   text; keys them to user + session, bound to one patient; and deletes them
+   the moment a turn names a different patient, as the mitigation against
+   cross-patient leakage within the agent's own state. Every turn re-reads
+   the chart and verifies every claim against that turn's records, exactly
+   as the brief does. It does not fix OpenEMR's own per-patient
+   authorization gap (F-50; §4).
 6. **MySQL stays self-hosted on the application host, not on a managed
    database product.** The rule was set on DigitalOcean, whose BAA covers
    Droplets, Kubernetes, Spaces, and Volumes but explicitly excludes
@@ -378,18 +382,20 @@ cases — not a fresh judgment about what resources "seem needed." Five FHIR
 resource types cover all three use cases combined, and no resource outside
 this set is in scope for v1.
 
-**What is built versus planned.** The table is the design scope. The code
-built so far reads only `Patient`, `Condition`, `MedicationRequest` and
-`AllergyIntolerance`, for the brief and for the constrained follow-up.
-`Encounter` and `Observation` readers exist in `agent/app/fhir/client.py`,
-but only a smoke test calls them. No pipeline does, because the use cases
-that need them are not built.
+**What is built versus planned.** The table is the design scope. The brief
+and the constrained single-turn follow-up read only `Patient`, `Condition`,
+`MedicationRequest` and `AllergyIntolerance`. The multi-turn conversation
+(`agent/app/graph/conversation.py`; built and tested on
+`feat/multiturn-chat`, **not deployed**) also reads `Observation` and
+`Encounter` through the readers in `agent/app/fhir/client.py`, when a rule
+on the question's wording or on the conversation's verified context calls
+for them (§4). Change Detection is not built.
 
 | Use case (USERS.md §3) | FHIR resources required | Notes |
 |---|---|---|
 | **1 — Pre-Visit Brief** (built) | `Condition`, `MedicationRequest`, `AllergyIntolerance` | Current-state snapshot only. The planned "what changed since last visit" line would be *consumed* from Use Case 2's output, not independently computed, so the brief does not need `Encounter` directly. **That line is not built**, because Use Case 2 is not. The brief today has no change line. |
 | **2 — Change Detection** (**not built**; planned) | `Encounter` (two — current visit and most recent prior), `Condition`, `MedicationRequest`, `Observation` | `Observation` here is scoped to new lab results in the interval only; vitals are excluded because they are recorded once per patient, never per encounter (F-20), so there is no second timepoint to diff. |
-| **3 — Follow-Up Drilling** (planned; built only in a constrained single-turn form) | `Condition`, `MedicationRequest`, `Encounter`, or `Observation` — whichever grounds the specific fact being drilled into | As designed: no fixed resource set; this use case re-queries whatever resource type the immediately preceding turn already surfaced, determined at conversation time, not by a fixed tool definition. As built (`agent/app/graph/follow_up.py`): one question per request, answered only from the brief's own three resource types, re-read under the caller's token. It never queries `Encounter` or `Observation`, and keeps no memory of earlier turns (§4). A question those records cannot answer gets "not in the retrieved record". |
+| **3 — Follow-Up Drilling** (deployed in a constrained single-turn form; multi-turn built, not deployed) | `Condition`, `MedicationRequest`, `Encounter`, or `Observation` — whichever grounds the specific fact being drilled into | As designed: no fixed resource set; this use case re-queries whatever resource type the immediately preceding turn already surfaced, determined at conversation time, not by a fixed tool definition. As built, deployed (`agent/app/graph/follow_up.py`): one question per request, answered only from the brief's own three resource types, re-read under the caller's token, with no memory of earlier turns. As built, not deployed (`agent/app/graph/conversation.py`): a multi-turn conversation. Which types a turn reads is decided by rule, never by the model: the brief's three on every turn; `Observation` when the question has lab wording; `Encounter` when it has visit wording ("last visit", "since", "last time"); and a type an earlier turn verified claims on is carried forward, which is the rule-driven form of "re-queries whatever the preceding turn surfaced". Questions about anything outside the five types are refused (§4, §5). |
 
 **One implicit read not named by any use case:** `Patient`, to resolve
 which chart is open. This is not a fourth tool-scope decision — every use
@@ -422,43 +428,67 @@ Detection are each fully answerable from a single exchange grounded in
 current chart state (USERS.md §3); giving them conversation state they do
 not need would be scope the use cases themselves do not justify.
 
-**What exists today: no conversation state.** Nothing is stored between
-requests: no memory, no session store, no checkpointer. The brief is
-single-turn. The follow-up that is built (`POST /pre-visit-brief/follow-up`,
-`agent/app/graph/follow_up.py`) is a constrained, single-turn question on
-the brief. Each question stands alone, and the request cannot carry
-earlier answers, records or claims. Every request re-reads the chart under
-the caller's token for the `patient_id` it names. The only form the
-`(user, patient, session)` triple takes in the code is `patient_session_key`
-(`<token sub>:<patient_id>:<session_id>`). That key is a per-request
-attribution label, attached to every logged event so the metrics can be
-grouped (`docs/KEY_METRICS.md`). It is not a key into any store. Nothing is
-kept under it, so there is nothing to invalidate on a patient switch. Eval
-cases G1 and G2 check that single-turn requests stay isolated (A, then B,
-then A on one token and session, and A and B concurrently). They do not
-test invalidation, because none exists.
+**What is deployed today: no conversation state.** The brief is
+single-turn, and so is the deployed follow-up
+(`POST /pre-visit-brief/follow-up`, `agent/app/graph/follow_up.py`): each
+question stands alone, the request cannot carry earlier answers, records or
+claims, and every request re-reads the chart under the caller's token. For
+those two endpoints `patient_session_key`
+(`<token sub>:<patient_id>:<session_id>`) is a per-request attribution label
+on every logged event (`docs/KEY_METRICS.md`), not a key into any store.
+Eval cases G1 and G2 check that those single-turn requests stay isolated.
 
-**Planned design for multi-turn (not built):** conversation state is keyed
-to `(user, patient, session)`, and is invalidated the moment the patient
-context switches — a new chart opening ends the prior conversation's state
-rather than carrying it forward. This is a deliberate mitigation, not an
-afterthought: a multi-turn system that keeps state across a patient switch
-is exactly the shape of system that could answer a follow-up question about
-patient B using context actually surfaced while patient A's chart was open.
-Scoping state to the same triple that authorization is already scoped to
-(§2) means a patient switch — which already changes what the clinician's
-token can see in a patient-context flow — also structurally ends the
-window in which stale cross-patient context could be referenced. When
-multi-turn state is built, invalidation needs its own test. G1 and G2 do
-not cover it.
+**What is built, and not deployed: multi-turn state**
+(`POST /pre-visit-brief/conversation`, `agent/app/graph/conversation.py`,
+`agent/app/conversation/state.py`; branch `feat/multiturn-chat`).
 
-**Known limitation of that design:** the scoping would prevent
-cross-patient leakage *within* the agent's own state; it would not, and
-cannot, retroactively fix OpenEMR's own lack of per-patient authorization
-scoping (F-50, §2) if the same underlying token is reused for a subsequent
-patient before the conversation state itself is invalidated. The
-mitigation addresses the agent's own added surface, not the platform's
-existing one.
+- *What is stored.* Per conversation, the claims that **passed**
+  verification in earlier turns (resource type, source id, field, value),
+  grouped by turn. Not the question, not the answer text, not a failed
+  claim, not a retrieved record. A later turn's model call is given those
+  claims as structured context for resolving "that medication"; it is never
+  given prose from an earlier turn. The context is not a source: every
+  claim a turn makes cites a record retrieved *that turn* and is verified
+  against it (§5), so a stale context value can at worst surface as an
+  UNVERIFIED line.
+- *How it is keyed.* Looked up by `(user, session)` and bound to exactly one
+  patient for its whole life; it is reachable only when all three match.
+  `user` is the token's `sub`, read without checking the signature, so no
+  state is read, created or discarded until OpenEMR has accepted the same
+  token for a read of the named patient that turn.
+- *When it is invalidated.* The moment a turn arrives on the session for a
+  different patient: the stored conversation is deleted, all of it, before
+  routing, retrieval or drafting run, and an empty one starts. It is never
+  rebound or merged, and returning to the first patient starts over too. A
+  turn that was in flight when its conversation was invalidated cannot write
+  into the one that replaced it. It also ends at an idle TTL (30 minutes),
+  at a maximum age (one hour, the life of an OpenEMR access token), on
+  `POST /pre-visit-brief/conversation/end`, and when the request names a
+  patient OpenEMR does not have.
+- *Where it lives.* In process memory. That is correct for the one uvicorn
+  worker the agent's Dockerfile runs and wrong for more than one; the
+  production answer is Redis (or equivalent) with the same key, the same
+  patient binding checked on every read, and server-side TTLs.
+
+This is a deliberate mitigation, not an afterthought: a multi-turn system
+that keeps state across a patient switch is exactly the shape of system that
+could answer a follow-up question about patient B using context actually
+surfaced while patient A's chart was open. Invalidation has its own tests,
+which G1 and G2 never were: `agent/tests/test_conversation.py` (fakes) and
+eval case I1 (live FHIR, real model; `agent/evals/test_i_conversation.py`),
+which switches patient mid-conversation on one token and session and checks
+that none of patient A's record ids or names reaches patient B's model input
+or answer, that the state was discarded, and that going back does not bring
+it back.
+
+**Known limitation of that design:** the scoping prevents cross-patient
+leakage *within* the agent's own state; it does not, and cannot, fix
+OpenEMR's own lack of per-patient authorization scoping (F-50, §2): the same
+token still reads any chart. The mitigation addresses the agent's own added
+surface, not the platform's existing one. It also learns of a patient switch
+only when a conversation turn names the new patient — opening another chart
+in OpenEMR, or running a brief for another patient, does not by itself end
+a conversation; its TTL does.
 
 ## 5. Verification System
 
@@ -546,7 +576,16 @@ silently assumed covered:**
 - **Multi-record synthesis claims.** A claim like "trending down" across
   several `Observation` rows is not reducible to a single-claim,
   single-source verification check. This is deferred, not silently assumed
-  to be covered by the same mechanism that checks single-value claims.
+  to be covered by the same mechanism that checks single-value claims. The
+  multi-turn conversation scopes around it rather than attempting it:
+  questions asking for a trend, a comparison, a change between visits or a
+  clinical judgment are refused by rule before any retrieval or model call
+  (`agent/app/conversation/routing.py`); a question the wording rules miss
+  reaches a model whose output schema has no free-text field, so the most
+  it can do is cite single recorded values and report the `interpretation`
+  gap, which renders as fixed wording (eval cases I5, I6). The one relation
+  across records the conversation does state, "most recent of N", is
+  computed in code from everything retrieved, not taken from the model.
 - **Lab interpretation.** As stated above, zero reference ranges exist in
   the current dataset (F-19). v1 reports value, unit, and date only, and
   never characterizes a result as normal or abnormal. A separately-cited,
@@ -557,11 +596,13 @@ silently assumed covered:**
   `source_id` is among what was retrieved this turn; it does not
   independently confirm that the retrieved records belong to the patient
   in the current conversation — the resource models it compares against
-  carry no patient field at all. There is no conversation-state layer to
-  lean on either (§4). What keeps sources to one patient today is
-  retrieval: every request runs patient-scoped FHIR searches
-  (`?patient=<patient_id>`) under the caller's token, and nothing is
-  carried between requests. Verification does not re-check that. If
+  carry no patient field at all. What keeps sources to one patient is
+  retrieval: every request, and every conversation turn, runs
+  patient-scoped FHIR searches (`?patient=<patient_id>`) under the caller's
+  token, and no retrieved record is carried between requests. The
+  conversation carries verified claims between turns, but only as context
+  bound to one patient (§4), and never as something a claim can verify
+  against. Verification does not re-check that. If
   retrieval scoping has a bug, a claim sourced from the wrong patient's
   record passes verification cleanly. This is an open gap, not a resolved
   one.
@@ -581,10 +622,14 @@ silently assumed covered:**
   types on every run, with no partial or selective retrieval path, and
   `draft_claims.py` refuses input missing any of the three. The constrained
   follow-up (`agent/app/graph/follow_up.py`) does the same full retrieval.
-  If selective or partial retrieval is ever introduced (e.g. for Change
-  Detection or multi-turn Follow-Up Drilling, both planned, or as a future
-  optimization), this assumption must be
-  revisited: a resource type that was never queried must not be silently
+  The multi-turn conversation does retrieve selectively — `Observation` and
+  `Encounter` only when a rule calls for them — and keeps the distinction
+  explicit: every answer's closing line says "lab results not retrieved" or
+  "visit dates not retrieved" for a type that was not queried, and "no lab
+  results … on file" for one that was queried and came back empty; the three
+  brief types are still queried on every turn. If selective retrieval is
+  introduced anywhere else (e.g. Change Detection), the same rule applies:
+  a resource type that was never queried must not be silently
   rendered identically to one that was queried and returned zero results.
   It also assumes the patient exists. OpenEMR's FHIR search answers an
   unknown or malformed patient id with HTTP 200 and an empty Bundle, exactly
@@ -597,7 +642,7 @@ silently assumed covered:**
 | Risk | Mitigated? | How |
 |---|---|---|
 | Fabricated or hallucinated clinical claims reach the physician | Yes | Source-verification layer (§5) — every claim bound to a real, this-turn `source_id`; unverified claims render as explicitly unverified, never dropped or softened. |
-| Cross-patient context leakage in a multi-turn exchange | Not yet applicable: no multi-turn state exists | No conversation state is kept (§4). Every request, brief or follow-up, re-reads the chart for its own `patient_id` and stores nothing. Eval cases G1 and G2 check that single-turn requests stay isolated; both passed in the 2026-09-16 run on the DigitalOcean droplet. The mitigation for when multi-turn state is built is planned, not built: key it to `(user, patient, session)`, invalidate it on patient switch, and test the invalidation then. It would not fix OpenEMR's own per-patient authorization gap (F-50; §4). |
+| Cross-patient context leakage in a multi-turn exchange | Mitigated within the agent's own state, in the multi-turn build (not deployed). Not applicable to what is deployed, which keeps no state | Deployed: every request, brief or follow-up, re-reads the chart for its own `patient_id` and stores nothing; eval cases G1 and G2 check that those single-turn requests stay isolated (both passed in the 2026-09-16 run on the DigitalOcean droplet). Multi-turn build (§4): state holds verified claims only, is reachable only on a `(user, patient, session)` match, and is deleted in full before anything else runs when a turn names a different patient; every turn retrieves patient-scoped records afresh and verifies against those alone, so another patient's claim cannot verify even if asserted. Tested by `agent/tests/test_conversation.py` and eval case I1 (live FHIR, real model; passed 2026-09-18 in-process against the Vultr host's FHIR API). It does not fix OpenEMR's own per-patient authorization gap (F-50; §4), and a conversation ends on a switch only when a turn names the new patient, or at its TTL. |
 | A future service (agent process, observability backend) repeats the Docker/UFW exposure pattern | Yes, by process | Binding verification via `ss`/`docker compose ps`/resolved `docker compose config` from an external vantage point is now a standing requirement for any new service in this Compose stack (§1). |
 | Trusting a misleading "success" signal from upstream tooling (OpenEMR's own or otherwise) | Yes, by design principle | Verification checks actual retrieved data, never an upstream success claim — directly motivated by F-15's observed intermittent silent-failure pattern (§5). |
 | The chart integration mints clinician tokens outside OpenEMR's authorization decisions | Yes | Tokens come only from OpenEMR's own authorize and token endpoints, via its EHR-launch skip flow, for a live session's user. Client enablement, the redirect URI, launch-token decryption and scopes (capped by the client registration) stay OpenEMR's decisions. The session cookie and client secret are only ever sent to a loopback address, enforced in configuration. The token never reaches the browser. Each brief writes a `patient-record` audit event (§2; module README). Not closed: one token plus one LLM call per chart open, with no caching or rate limiting; tokens are not revoked after use (1 h expiry). |

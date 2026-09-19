@@ -84,11 +84,12 @@ reading.
 **Build status.** This section specifies all three use cases; not all are
 built. **Use Case 1 (Pre-Visit Brief) is built**, except its "changed since
 last visit" line. **Use Case 2 (Change Detection) is not built**, so that
-line is not built either. **Use Case 3 (Follow-Up Drilling) is built only in
-a constrained single-turn form**: one question on the brief's own records,
-with no conversation memory and no `Encounter` or `Observation` queries. What
-is built is described in `agent/README.md`; the architecture's built/planned
-split is in `docs/ARCHITECTURE.md` §3–§4.
+line is not built either. **Use Case 3 (Follow-Up Drilling) is deployed only
+in a constrained single-turn form**: one question on the brief's own records,
+with no conversation memory and no `Encounter` or `Observation` queries. The
+multi-turn conversation is built and tested on `feat/multiturn-chat` and not
+deployed. What is built is described in `agent/README.md`; the architecture's
+built/planned split is in `docs/ARCHITECTURE.md` §3–§4.
 
 ### Use case 1 — Pre-Visit Brief
 
@@ -163,14 +164,22 @@ specific, already-identified encounters.
 
 ### Use case 3 — Follow-Up Drilling
 
-**Status: built only in a constrained single-turn form.** Below is the full
-specification. What exists (`POST /pre-visit-brief/follow-up`,
+**Status: deployed in a constrained single-turn form; the multi-turn
+conversation is built and tested, not deployed.** Below is the full
+specification. What is deployed (`POST /pre-visit-brief/follow-up`,
 `agent/app/graph/follow_up.py`) answers one question at a time from the
-brief's own records (conditions, medications, allergies). It re-reads those
-records under the clinician's token and verifies every claim against them.
-It keeps no memory of earlier turns and never queries `Encounter` or
-`Observation`, so it cannot resolve "that" or "last time" against a prior
-turn. The multi-turn behavior below is planned.
+brief's own records (conditions, medications, allergies), keeps no memory of
+earlier turns and never queries `Encounter` or `Observation`. What is built
+on `feat/multiturn-chat` (`POST /pre-visit-brief/conversation`,
+`agent/app/graph/conversation.py`, and the standalone chat UI in
+`agent/deploy/ui/`) resolves "that" and "last time" against the claims
+earlier turns *verified* — never against earlier wording — re-reads the chart
+every turn, adds `Observation` or `Encounter` by rule, and verifies every
+claim of every turn exactly as the brief does. It deliberately does not
+answer what the record cannot verify: *"Why is that flagged?"* gets "the
+records do not state it", and *"is it getting worse?"* is refused
+(`docs/ARCHITECTURE.md` §4–§5). The OpenEMR chart embed keeps its
+single-turn brief card; a conversation view inside the chart is a next step.
 
 **Trigger.** A reactive question that only makes sense in reference to
 something just surfaced: *"Why is that flagged?"* / *"What did we try last
