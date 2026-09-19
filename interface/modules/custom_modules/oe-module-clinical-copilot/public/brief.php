@@ -36,6 +36,7 @@ use OpenEMR\Modules\ClinicalCopilot\AgentClient;
 use OpenEMR\Modules\ClinicalCopilot\Bootstrap;
 use OpenEMR\Modules\ClinicalCopilot\BriefFailure;
 use OpenEMR\Modules\ClinicalCopilot\BriefUnavailable;
+use OpenEMR\Modules\ClinicalCopilot\ChartRequest;
 use OpenEMR\Modules\ClinicalCopilot\ClinicianTokenBroker;
 use OpenEMR\Modules\ClinicalCopilot\CoreSessionId;
 use OpenEMR\Modules\ClinicalCopilot\ModuleConfig;
@@ -70,26 +71,17 @@ $fail = static function (BriefFailure $failure, ?string $correlationId = null) u
     ]);
 };
 
-if (!$request->isMethod('POST')) {
-    $fail(BriefFailure::InvalidRequest);
+try {
+    $chart = ChartRequest::fromRequest(
+        $request,
+        $session->get('pid'),
+        static fn (string $token): bool => CsrfUtils::verifyCsrfToken($token, $session),
+        static fn (): bool => AclMain::aclCheckCore(Bootstrap::ACL[0], Bootstrap::ACL[1]),
+    );
+} catch (BriefUnavailable $e) {
+    $fail($e->failure);
 }
-if (!CsrfUtils::verifyCsrfToken($request->request->getString('csrf_token_form'), $session)) {
-    $fail(BriefFailure::InvalidRequest);
-}
-$requestedPid = filter_var($request->request->getString('pid'), FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
-if ($requestedPid === false) {
-    $fail(BriefFailure::InvalidRequest);
-}
-if (!AclMain::aclCheckCore(Bootstrap::ACL[0], Bootstrap::ACL[1])) {
-    $fail(BriefFailure::Forbidden);
-}
-// The card was rendered for one patient; the session may since have moved on
-// to another (OpenEMR keeps one active patient per session). Never answer
-// for a patient other than the one the card shows.
-$sessionPid = filter_var($session->get('pid'), FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
-if ($sessionPid !== $requestedPid) {
-    $fail(BriefFailure::PatientContextChanged);
-}
+$requestedPid = $chart->pid;
 
 try {
     $config = ModuleConfig::fromGlobals($globals, ServiceContainer::getCrypto());

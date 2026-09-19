@@ -78,6 +78,20 @@ final class ClinicianTokenBrokerTest extends TestCase
         );
     }
 
+    public function testAConversationTurnAsksForLabAndVisitScopesToo(): void
+    {
+        $broker = $this->broker([
+            self::firstHop(),
+            self::redirectTo(self::REDIRECT . '?code=c&state={state}'),
+            static fn (): MockResponse => new MockResponse('{"access_token":"t"}', ['http_code' => 200]),
+        ]);
+        $broker->issueFor(new CoreSessionId(self::SESSION), new PatientUuid(self::PATIENT), ClinicianTokenBroker::CONVERSATION_SCOPES);
+
+        $expected = ClinicianTokenBroker::SCOPES . ' user/Observation.read user/Encounter.read';
+        $this->assertSame($expected, $this->requests[0]->query()['scope'] ?? null);
+        $this->assertSame($expected, $this->requests[1]->query()['scope'] ?? null);
+    }
+
     public function testSecretIsNeverSentToAuthorize(): void
     {
         $broker = $this->broker([

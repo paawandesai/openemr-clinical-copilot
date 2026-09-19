@@ -13,6 +13,7 @@
 {% block content %}
     <div class="clinical-copilot-brief px-1" id="{{ (id ~ '_root')|attr }}"
          data-endpoint="{{ endpoint|attr }}"
+         data-conversation-endpoint="{{ conversationEndpoint|attr }}"
          data-pid="{{ pid|attr }}"
          data-csrf-token="{{ csrfToken|attr }}"
          data-collapse-id="{{ id|attr }}">
@@ -22,6 +23,28 @@
         <div class="d-flex flex-wrap justify-content-between align-items-center mt-1">
             <span class="cc-verification small mr-2"></span>
             <button type="button" class="btn btn-secondary btn-sm cc-regenerate" disabled>{{ "Regenerate"|xlt }}</button>
+        </div>
+        <div class="cc-conversation border-top mt-3 pt-2 d-none">
+            <div class="d-flex flex-wrap justify-content-between align-items-baseline">
+                <span class="font-weight-bold">{{ "Follow-up questions"|xlt }}</span>
+                <button type="button" class="btn btn-link btn-sm p-0 cc-new-conversation">{{ "New conversation"|xlt }}</button>
+            </div>
+            <p class="small text-muted mb-1">{{ "Ask about this patient. Each answer is drawn from chart records retrieved for that question and checked against them, like the brief. You can refer back (that medication): the co-pilot remembers only the facts it verified earlier in this conversation, never the wording. Questions about vitals, notes or other parts of the chart, and requests to judge, compare or trend values, are refused rather than answered unverified."|xlt }}</p>
+            <div class="cc-conversation-meta mb-2"></div>
+            <div class="cc-thread" aria-live="polite"></div>
+            <form class="cc-ask input-group input-group-sm" autocomplete="off">
+                <input type="text" class="form-control cc-question" maxlength="{{ questionMaxLength|attr }}"
+                       placeholder="{{ "e.g. Which medications are active?"|xla }}" aria-label="{{ "Follow-up question"|xla }}">
+                <div class="input-group-append">
+                    <button type="submit" class="btn btn-primary cc-ask-button">{{ "Ask"|xlt }}</button>
+                </div>
+            </form>
+            <div class="cc-suggestions mt-1">
+                <button type="button" class="btn btn-outline-secondary btn-sm mr-1 mt-1">{{ "Which medications are active?"|xlt }}</button>
+                <button type="button" class="btn btn-outline-secondary btn-sm mr-1 mt-1">{{ "When was that prescribed?"|xlt }}</button>
+                <button type="button" class="btn btn-outline-secondary btn-sm mr-1 mt-1">{{ "What was the most recent creatinine?"|xlt }}</button>
+                <button type="button" class="btn btn-outline-secondary btn-sm mr-1 mt-1">{{ "When was the patient last seen?"|xlt }}</button>
+            </div>
         </div>
         <p class="small text-muted mt-2 mb-0">{{ "Drafted by the Clinical Co-Pilot from the problem list, medications and allergies in this chart. Each item is checked against the chart record it cites; items that fail that check are marked Unverified. Confirm in the chart before acting on it."|xlt }}</p>
     </div>
@@ -39,7 +62,34 @@
                     noneActive: {{ "None active"|xlj }},
                     unverified: {{ "Unverified"|xlj }},
                     reference: {{ "Reference"|xlj }},
-                    unreachable: {{ "The brief could not be loaded. If your OpenEMR session has expired, log in again and reopen this chart."|xlj }}
+                    source: {{ "source"|xlj }},
+                    notVerifiable: {{ "Not verifiable against the chart:"|xlj }},
+                    answering: {{ "Retrieving and verifying..."|xlj }},
+                    turnLabel: {{ "Turn %turn%"|xlj }},
+                    turnAnswered: {{ "Answered from the records retrieved for this question"|xlj }},
+                    turnPartly: {{ "Partly answered from the records retrieved for this question"|xlj }},
+                    turnNotInRecord: {{ "That information is not in the retrieved record"|xlj }},
+                    turnRefusedScope: {{ "Refused: not in the part of the record the co-pilot can retrieve"|xlj }},
+                    turnRefusedUnverifiable: {{ "Refused: a judgment, comparison or trend cannot be verified against the chart"|xlj }},
+                    claimsVerified: {{ "%verified% of %claims% items verified"|xlj }},
+                    resetPatientChanged: {{ "Earlier context was discarded before this question: this conversation held a different patient."|xlj }},
+                    resetExpired: {{ "Earlier context had expired and was discarded. This question started a new conversation."|xlj }},
+                    contextGiven: {{ "Context given to this question: %context_claims% verified fact(s) from %context_turns% earlier turn(s), used only to work out references such as that medication. The answer itself was drawn from, and checked against, records retrieved again for this question."|xlj }},
+                    stateNotSaved: {{ "This turn was not added to the conversation: its context was reset while the question was running."|xlj }},
+                    recordsProblems: {{ "Problem records"|xlj }},
+                    recordsMedications: {{ "Medication records"|xlj }},
+                    recordsAllergies: {{ "Allergy records"|xlj }},
+                    recordsLabs: {{ "Lab results"|xlj }},
+                    recordsVisits: {{ "Visits"|xlj }},
+                    consideredOf: {{ "%considered% of %retrieved%"|xlj }},
+                    ruleQuestion: {{ "asked for by the question"|xlj }},
+                    ruleContext: {{ "carried from an earlier turn"|xlj }},
+                    rawAnswer: {{ "View raw answer text"|xlj }},
+                    noTurns: {{ "No questions yet"|xlj }},
+                    turnCount: {{ "%turn% turn(s)"|xlj }},
+                    remembersVerified: {{ "Remembers verified facts only"|xlj }},
+                    keptIfIdle: {{ "Context kept %minutes% min if idle"|xlj }},
+                    unreachable: {{ "The co-pilot could not be reached. If your OpenEMR session has expired, log in again and reopen this chart."|xlj }}
                 });
             }
         })(window.oeClinicalCopilot);

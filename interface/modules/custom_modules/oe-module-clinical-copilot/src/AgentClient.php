@@ -1,8 +1,9 @@
 <?php
 
 /**
- * Calls the Clinical Co-Pilot agent's POST /pre-visit-brief with the
- * clinician's own token (docs/ARCHITECTURE.md §2).
+ * Calls the Clinical Co-Pilot agent with the clinician's own token
+ * (docs/ARCHITECTURE.md §2): POST /pre-visit-brief, and the follow-up
+ * conversation's POST /pre-visit-brief/conversation and .../conversation/end.
  *
  * @package   OpenEMR
  * @link      https://www.open-emr.org
@@ -22,9 +23,10 @@ use Symfony\Contracts\HttpClient\HttpClientInterface;
 final readonly class AgentClient
 {
     /**
-     * Retrieval, one LLM call and verification: about 4 s in practice. Sized
-     * so that, with the token broker's requests, the whole brief request
-     * finishes inside PHP's 60 s max_execution_time.
+     * Retrieval, one LLM call and verification: about 4 s for a brief, and up
+     * to about 15 s for a conversation turn that cites many records. Sized so
+     * that, with the token broker's requests, the whole request finishes
+     * inside PHP's 60 s max_execution_time.
      */
     private const REQUEST_SECONDS = 40.0;
 
@@ -44,47 +46,125 @@ final readonly class AgentClient
      */
     public function preVisitBrief(#[\SensitiveParameter] AccessToken $token, PatientUuid $patient): PreVisitBrief
     {
+        [$status, $body] = $this->post('/pre-visit-brief', $token, ['patient_id' => $patient->value]);
+        if ($status !== 200) {
+            throw $this->failed($status, $body, BriefFailure::BriefGenerationFailed);
+        }
         try {
-            $response = $this->http->request('POST', $this->agentUrl . '/pre-visit-brief', [
+            return PreVisitBrief::fromAgentResponse($body);
+        } catch (\UnexpectedValueException $e) {
+            throw $this->brokeContract($body, BriefFailure::BriefGenerationFailed, $e);
+        }
+    }
+
+    /**
+     * One turn of the follow-up conversation (agent/app/api/conversation.py).
+     * A refusal is a 200 and comes back as a ConversationTurn, not a failure.
+     *
+     * @throws BriefUnavailable
+     */
+    public function conversationTurn(
+        #[\SensitiveParameter] AccessToken $token,
+        PatientUuid $patient,
+        ConversationSessionId $session,
+        #[\SensitiveParameter] FollowUpQuestion $question,
+    ): ConversationTurn {
+        [$status, $body] = $this->post('/pre-visit-brief/conversation', $token, [
+            'patient_id' => $patient->value,
+            'session_id' => $session->value,
+            'question' => $question->value,
+        ]);
+        if ($status !== 200) {
+            throw $this->failed($status, $body, BriefFailure::AnswerGenerationFailed);
+        }
+        try {
+            return ConversationTurn::fromAgentResponse($body);
+        } catch (\UnexpectedValueException $e) {
+            throw $this->brokeContract($body, BriefFailure::AnswerGenerationFailed, $e);
+        }
+    }
+
+    /**
+     * Discards the conversation's verified facts on the agent now, rather
+     * than at their idle expiry.
+     *
+     * @throws BriefUnavailable
+     */
+    public function endConversation(#[\SensitiveParameter] AccessToken $token, PatientUuid $patient, ConversationSessionId $session): void
+    {
+        [$status, $body] = $this->post('/pre-visit-brief/conversation/end', $token, [
+            'patient_id' => $patient->value,
+            'session_id' => $session->value,
+        ]);
+        if ($status !== 200) {
+            throw $this->failed($status, $body, BriefFailure::AgentUnavailable);
+        }
+    }
+
+    /**
+     * @param array<string, string> $json
+     * @return array{int, array<mixed>}
+     * @throws BriefUnavailable
+     */
+    private function post(string $path, #[\SensitiveParameter] AccessToken $token, #[\SensitiveParameter] array $json): array
+    {
+        try {
+            $response = $this->http->request('POST', $this->agentUrl . $path, [
                 'auth_bearer' => $token->value,
-                'json' => ['patient_id' => $patient->value],
+                'json' => $json,
                 'max_redirects' => 0,
                 'max_duration' => self::REQUEST_SECONDS,
             ]);
-            $status = $response->getStatusCode();
-            $body = $response->toArray(false);
+            return [$response->getStatusCode(), $response->toArray(false)];
         } catch (HttpClientException $e) {
-            $this->logger->error('Clinical Co-Pilot agent request failed', ['exception' => $e]);
+            $this->logger->error('Clinical Co-Pilot agent request failed', ['path' => $path, 'exception' => $e]);
             throw new BriefUnavailable(BriefFailure::AgentUnavailable, null, $e);
         }
+    }
 
-        $correlationId = is_string($body['correlation_id'] ?? null) ? $body['correlation_id'] : null;
-        if ($status === 200) {
-            try {
-                return PreVisitBrief::fromAgentResponse($body);
-            } catch (\UnexpectedValueException $e) {
-                $this->logger->error('Clinical Co-Pilot agent response did not match its contract', [
-                    'correlation_id' => $correlationId,
-                    'exception' => $e,
-                ]);
-                throw new BriefUnavailable(BriefFailure::BriefGenerationFailed, $correlationId, $e);
-            }
-        }
-
-        // ErrorResponse.error from agent/app/models/api.py.
+    /**
+     * @param array<mixed> $body ErrorResponse from agent/app/models/api.py, when the agent itself answered.
+     * @param BriefFailure $generationFailed What a failure inside the agent's own pipeline means for this call.
+     */
+    private function failed(int $status, array $body, BriefFailure $generationFailed): BriefUnavailable
+    {
+        $correlationId = self::correlationId($body);
         $error = is_string($body['error'] ?? null) ? $body['error'] : null;
         $failure = match (true) {
             $status === 401 => BriefFailure::AgentRejectedToken,
-            $status === 404 => BriefFailure::PatientNotFound,
+            // A bare 404 is a route the deployed agent does not have, not a missing patient.
+            $status === 404 && $error === 'patient_not_found' => BriefFailure::PatientNotFound,
+            $status === 422 && $error === 'invalid_request' => BriefFailure::InvalidQuestion,
             $status === 502 && $error === 'fhir_unavailable' => BriefFailure::AgentUnavailable,
-            $status >= 500 && $error !== null => BriefFailure::BriefGenerationFailed,
+            $status >= 500 && $error !== null => $generationFailed,
             default => BriefFailure::AgentUnavailable,
         };
-        $this->logger->error('Clinical Co-Pilot agent did not return a brief', [
+        $this->logger->error('Clinical Co-Pilot agent answered with an error', [
             'http_status' => $status,
             'agent_error' => $error,
             'correlation_id' => $correlationId,
         ]);
-        throw new BriefUnavailable($failure, $correlationId);
+        return new BriefUnavailable($failure, $correlationId);
+    }
+
+    /**
+     * @param array<mixed> $body
+     */
+    private function brokeContract(array $body, BriefFailure $failure, \UnexpectedValueException $e): BriefUnavailable
+    {
+        $correlationId = self::correlationId($body);
+        $this->logger->error('Clinical Co-Pilot agent response did not match its contract', [
+            'correlation_id' => $correlationId,
+            'exception' => $e,
+        ]);
+        return new BriefUnavailable($failure, $correlationId, $e);
+    }
+
+    /**
+     * @param array<mixed> $body
+     */
+    private static function correlationId(array $body): ?string
+    {
+        return is_string($body['correlation_id'] ?? null) ? $body['correlation_id'] : null;
     }
 }
