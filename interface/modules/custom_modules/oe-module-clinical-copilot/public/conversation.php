@@ -15,7 +15,7 @@
  *
  * Request (form-encoded): pid, csrf_token_form, conversation, action
  *   ("ask", the default, with question; or "end").
- * Response: ConversationTurn::toCardPayload(), or {"status": "ended"}, or
+ * Response: ConversationTurn::toCardPayload(), which names the open patient, or {"status": "ended"}, or
  *   {"status": "error", "error": BriefFailure value, "message": ..., "correlation_id": ...|null}
  *   with BriefFailure::httpStatus().
  *
@@ -36,7 +36,6 @@ use OpenEMR\Common\Acl\AclMain;
 use OpenEMR\Common\Csrf\CsrfUtils;
 use OpenEMR\Common\Logging\EventAuditLogger;
 use OpenEMR\Common\Session\SessionWrapperFactory;
-use OpenEMR\Common\Uuid\UuidRegistry;
 use OpenEMR\Core\OEGlobalsBag;
 use OpenEMR\FHIR\Config\ServerConfig;
 use OpenEMR\Modules\ClinicalCopilot\AgentClient;
@@ -51,7 +50,7 @@ use OpenEMR\Modules\ClinicalCopilot\CoreSessionId;
 use OpenEMR\Modules\ClinicalCopilot\FollowUpQuestion;
 use OpenEMR\Modules\ClinicalCopilot\ModuleConfig;
 use OpenEMR\Modules\ClinicalCopilot\ModuleNotConfigured;
-use OpenEMR\Modules\ClinicalCopilot\PatientUuid;
+use OpenEMR\Modules\ClinicalCopilot\OpenPatient;
 use OpenEMR\Services\PatientService;
 use Symfony\Component\HttpClient\HttpClient;
 use Symfony\Component\HttpFoundation\Request;
@@ -117,11 +116,12 @@ try {
     $fail(BriefFailure::NotConfigured);
 }
 
-// The patient sent to the agent is looked up from the pid ChartRequest has
-// just matched to the session: the open chart's patient, on every turn.
-$uuidBytes = (new PatientService())->getUuid((string) $chart->pid);
+// The patient sent to the agent, and the name the card puts above the answer,
+// both come from the pid ChartRequest has just matched to the session: the
+// open chart's patient, on every turn.
 try {
-    $patient = new PatientUuid(is_string($uuidBytes) && $uuidBytes !== '' ? UuidRegistry::uuidToString($uuidBytes) : '');
+    $openPatient = OpenPatient::fromPatientData((new PatientService())->findByPid($chart->pid));
+    $patient = $openPatient->uuid;
     $coreSession = new CoreSessionId($session->getId());
 } catch (\DomainException $e) {
     $logger->error('Clinical Co-Pilot could not identify the patient or session for a follow-up', ['exception' => $e]);
@@ -182,4 +182,4 @@ try {
 }
 
 $audit(true, $turn->turnStatus, $turn->correlationId);
-$respond(200, $turn->toCardPayload());
+$respond(200, $turn->toCardPayload($openPatient));

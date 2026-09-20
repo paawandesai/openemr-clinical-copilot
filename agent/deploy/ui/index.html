@@ -320,6 +320,13 @@
     max-width: 88%; background: var(--brand); color: #fff; font-size: 14px;
     padding: 9px 13px; border-radius: 14px 14px 4px 14px; overflow-wrap: anywhere;
   }
+  /* findings.md F-62: whom the answer is about, before anything else in it. */
+  .answer-patient {
+    display: flex; align-items: baseline; flex-wrap: wrap; gap: 6px;
+    margin: 0 0 8px; padding: 7px 10px; border-radius: 6px;
+    background: var(--text); color: var(--bg); font-size: 13.5px; font-weight: 700;
+  }
+  .answer-patient code { font-family: var(--mono); font-size: 12.5px; font-weight: 600; word-break: break-all; }
   .turn-label { font-size: 11px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; color: var(--text-faint); margin-bottom: 6px; }
   .turn-a .verify-banner { margin: 0 0 12px; }
   .verify-refused { background: var(--bad-bg); color: var(--bad); border: 1px solid var(--bad-border); }
@@ -870,6 +877,10 @@
       '<div class="turn">' +
         '<div class="turn-q"><div class="bubble">' + escapeHtml(data.question) + "</div></div>" +
         '<div class="turn-a">' +
+          // The patient the agent says it answered for (the response's own
+          // patient_id), never the form field and never the question. This
+          // page has ids, not names: the agent discards demographics unread.
+          '<div class="answer-patient"><span>Answer for patient</span><code>' + escapeHtml(data.patient_id) + "</code></div>" +
           '<div class="turn-label">Turn ' + info.turn + "</div>" +
           notes +
           '<div class="verify-banner ' + banner.cls + '">' + banner.icon + "<span>" + bannerText + "</span></div>" +

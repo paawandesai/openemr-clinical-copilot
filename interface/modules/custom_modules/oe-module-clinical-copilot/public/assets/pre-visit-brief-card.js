@@ -15,6 +15,12 @@
  * sees the agent's session id (src/ConversationSessionId.php). Turns are kept
  * in this page's DOM only: nothing clinical goes into browser storage.
  *
+ * Every brief and every answer opens with a bar naming the patient it is
+ * about (docs/audit/findings.md F-62). The name is the one in the response,
+ * which the server took from the chart open in the session for that request;
+ * it is never taken from this page or from the question. A response without
+ * it is treated as a failure rather than shown unnamed.
+ *
  * @package   OpenEMR
  * @link      https://www.open-emr.org
  * @author    Paawan Desai <paawankdesai@gmail.com>
@@ -48,6 +54,21 @@
         return template.replace(/%(\w+)%/g, function (match, key) {
             return Object.prototype.hasOwnProperty.call(values, key) ? String(values[key]) : match;
         });
+    }
+
+    function hasPatient(payload) {
+        return Boolean(payload.patient) && typeof payload.patient.name === 'string' && payload.patient.name !== '';
+    }
+
+    // Dark bar, full width: "asked about X, sees Answer for Y" has to be obvious at a glance.
+    function renderPatientBar(template, patient, strings) {
+        const bar = node('div', 'cc-patient-bar bg-dark text-white rounded px-2 py-1 mb-1');
+        bar.appendChild(node('i', 'fa fa-user mr-2'));
+        bar.appendChild(node('span', 'font-weight-bold', fill(template, patient)));
+        if (typeof patient.date_of_birth === 'string' && patient.date_of_birth !== '') {
+            bar.appendChild(node('span', 'small ml-2', fill(strings.dateOfBirth, patient)));
+        }
+        return bar;
     }
 
     function renderHeading(title, state, strings) {
@@ -213,7 +234,10 @@
         const info = payload.conversation;
         const counts = payload.verification;
         const refused = payload.turn_status.indexOf('refused_') === 0;
-        container.replaceChildren(node('div', 'small text-muted text-uppercase', fill(strings.turnLabel, info)));
+        container.replaceChildren(
+            renderPatientBar(strings.answerFor, payload.patient, strings),
+            node('div', 'small text-muted text-uppercase', fill(strings.turnLabel, info))
+        );
 
         if (RESET_NOTES[info.transition]) {
             container.appendChild(node('div', 'alert alert-warning py-1 px-2 mb-1 small', strings[RESET_NOTES[info.transition]]));
@@ -374,7 +398,7 @@
                 })
                 .then(function (result) {
                     const payload = result.payload;
-                    if (result.ok && payload && payload.status === 'ok' && typeof payload.answer === 'string') {
+                    if (result.ok && payload && payload.status === 'ok' && typeof payload.answer === 'string' && hasPatient(payload)) {
                         renderTurnAnswer(answer, payload, strings);
                         turns += 1;
                         showMeta(payload.conversation);
@@ -489,8 +513,9 @@
                 .then(function (result) {
                     const payload = result.payload;
                     status.replaceChildren();
-                    if (result.ok && payload && payload.status === 'ok' && typeof payload.brief === 'string') {
+                    if (result.ok && payload && payload.status === 'ok' && typeof payload.brief === 'string' && hasPatient(payload)) {
                         renderBrief(brief, payload.brief, strings);
+                        brief.prepend(renderPatientBar(strings.briefFor, payload.patient, strings));
                         brief.classList.remove('d-none');
                         renderVerification(verification, payload.verification, strings);
                         conversation.show();

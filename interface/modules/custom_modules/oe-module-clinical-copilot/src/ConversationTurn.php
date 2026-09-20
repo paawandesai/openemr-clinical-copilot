@@ -116,12 +116,14 @@ final readonly class ConversationTurn
     }
 
     /**
-     * @return array{status: 'ok', answer: string, turn_status: string, conversation: TurnConversation, verification: TurnVerification, claims: list<TurnClaim>, retrieval: list<TurnRetrieval>, total_seconds: float, correlation_id: string}
+     * @param OpenPatient $patient Whom the answer is about: required, so no answer reaches the card unnamed (F-62).
+     * @return array{status: 'ok', patient: array{name: string, date_of_birth: ?string}, answer: string, turn_status: string, conversation: TurnConversation, verification: TurnVerification, claims: list<TurnClaim>, retrieval: list<TurnRetrieval>, total_seconds: float, correlation_id: string}
      */
-    public function toCardPayload(): array
+    public function toCardPayload(OpenPatient $patient): array
     {
         return [
             'status' => 'ok',
+            'patient' => $patient->toCardPayload(),
             'answer' => $this->answer,
             'turn_status' => $this->turnStatus,
             'conversation' => $this->conversation,
