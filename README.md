@@ -53,13 +53,15 @@ How to see the agent:
   [Postman collection](agent/api-collection/README.md).
 
 Audit, eval and load-test records each name the host they were run against.
-The **evals are current**: both suites were re-run on the Vultr host on
-2026-09-20 (cases A–H, 29 PASS / 2 FAIL of 31; the conversation cases,
-8 PASS of 8), and the two failures are known, documented defects — F-58 and
-F-59 — not regressions. The **load test and the audit are pre-migration**,
-measured against the DigitalOcean droplet; re-running the load test on Vultr
-is pending. The current host is a fresh install, so patient ids in the
-pre-migration records do not exist on it.
+The **evals and the load test are current**, both measured on the Vultr host
+on 2026-09-20: the eval suites (cases A–H, 29 PASS / 2 FAIL of 31, the two
+failures being known documented defects F-58 and F-59, not regressions; the
+conversation cases, 8 PASS of 8), and the load and baseline performance test
+([agent/load-test/RESULTS.md](agent/load-test/RESULTS.md)), which found
+OpenEMR's PHP tier — not the agent — to be what caps throughput. The
+**audit is pre-migration**, measured against the DigitalOcean droplet; that
+host was a different install, so patient ids in the audit's records do not
+exist on the current one.
 No BAA covers the Vultr host. That is acceptable only because all data is
 synthetic
 ([docs/ARCHITECTURE.md §1](docs/ARCHITECTURE.md#1-deployment-topology)).

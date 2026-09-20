@@ -8,10 +8,9 @@ FastAPI service implementing the Clinical Co-Pilot agent described in
 
 The Pre-Visit Brief (`docs/USERS.md` Use Case 1) is a runnable pipeline
 behind an HTTP endpoint, deployed next to OpenEMR on the Vultr host
-`64.177.42.210` (`agent/docs/deployment.md`). The eval results were
-re-recorded on Vultr on 2026-09-20 (`evals/README.md`); the load-test
-results were recorded on the earlier DigitalOcean droplet and have not been
-re-run on Vultr (`docs/ARCHITECTURE.md` §1). Follow-Up Drilling (Use Case
+`64.177.42.210` (`agent/docs/deployment.md`). The eval results
+(`evals/README.md`) and the load-test results (`load-test/RESULTS.md`) were
+both re-recorded on Vultr on 2026-09-20. Follow-Up Drilling (Use Case
 3) is built in two forms, both deployed: a constrained single-turn
 follow-up, and the multi-turn conversation (deployed 2026-09-19 with the
 chart embed). Change Detection is not built.

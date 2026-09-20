@@ -12,12 +12,16 @@ numbers.
 | Cost | $0 — no Anthropic calls | Real, billed |
 | Answers | "How does *this agent* — connection handling, FHIR round-trips, queue depth — behave under concurrency?" | "What does a physician actually wait, end to end, for one real brief, and what does it cost?" |
 
-**Where the recorded numbers come from.** `RESULTS.md` holds one run of
-(a), measured on 2026-09-16 against the DigitalOcean droplet
-(`201.79.25.22`) before the deployment moved to Vultr. Its latencies, error
-rates and CPU and memory baseline describe that droplet's hardware (F-44).
-(b) has no recorded run (operator-pending). **Neither test has been run on
-the current Vultr host (`64.177.42.210`),** which the commands below target.
+**Where the recorded numbers come from.** `RESULTS.md` holds runs of both
+(a) and (b), measured on 2026-09-20 against the current Vultr host
+(`64.177.42.210`, 4 vCPU / 7.24 GiB), which the commands below target. It
+also carries the earlier 2026-09-16 run of (a) against the DigitalOcean
+droplet (`201.79.25.22`, 4 vCPU / 11.7 GiB) side by side, for comparison
+only — that hardware (F-44) is no longer the deployment.
+
+**Before re-running (a) at 50 VUs on this host:** OpenEMR peaked at 4.94 GiB
+of the host's 7.24 GiB, leaving about 1 GiB free. It did not OOM, but watch
+`free -m` live and do not raise the concurrency without headroom to spare.
 
 ## Why they're separated
 
