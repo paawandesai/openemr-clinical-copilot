@@ -1,8 +1,8 @@
 # Eval suite — Pre-Visit Brief agent
 
 Cases A–H measure the Pre-Visit Brief; section I covers the multi-turn
-follow-up conversation, which is built and not deployed, and runs
-in-process.
+follow-up conversation, which is deployed and whose cases run in-process by
+design (they inspect what the model was sent and inject claims).
 
 Runnable evals that measure whether the Pre-Visit Brief (`docs/USERS.md` Use
 Case 1) does what `docs/ARCHITECTURE.md` and `docs/KEY_METRICS.md` promise.
@@ -15,10 +15,12 @@ This suite is not the unit tests. `tests/` needs no network and fakes FHIR
 and the model. `evals/` calls the deployed agent, the deployment host's
 OpenEMR FHIR API and the Anthropic API, so a run costs real model calls and
 takes a few minutes. The latest run's output is in [`RESULTS.md`](RESULTS.md).
-That run was against the DigitalOcean droplet (`201.79.25.22`), before the
-move to the Vultr host (`64.177.42.210`) that the defaults below now point
-at. The suite has not been re-run on Vultr, so every recorded result
-describes the droplet.
+Both recorded runs, A–H in `RESULTS.md` and I in `RESULTS_CONVERSATION.md`,
+are from 2026-09-20 against the Vultr host (`64.177.42.210`) that the
+defaults below point at, so every recorded result describes one host and one
+population. The earlier run on the DigitalOcean droplet (`201.79.25.22`,
+2026-09-16) is described below for what it found; its results file has been
+replaced.
 
 ## Running it
 
@@ -193,7 +195,7 @@ share one model call on the `small_mixed` patient; H4 is one call on the
 | H3 | One allergy: code set to data-absent, narrative removed | Exactly one claim on it, `display` = null, `verified: false`, reason `source record has no name to verify against`; brief shows `UNVERIFIED: "(name not available)" (the chart record has no usable name; review it in the chart)`; the model was never given the record | A record nothing names rendered under a stand-in the model copies and the verifier confirms, dropped, or counted as verified | F-57 remediation; ARCH §5; Metric 2 | in-process mutation, live model |
 | H4 | Three allergies with markup in the narrative: formatting plus `onerror`/`javascript:` attributes; a `<script>` element; escaped markup (`&lt;img …&gt;`) | No `<` or `>` in any claim value, model input or rendered allergy line; the first is named by its text alone, verified; the other two are refused and shown UNVERIFIED `(name not available)` | The narrative fallback becoming an HTML/script-injection path to the physician's screen, or hostile markup being partly trusted as a name | F-57; FHIR R4 Narrative txt-1 | in-process mutation, live model |
 
-### I — The multi-turn follow-up conversation (built, not deployed)
+### I — The multi-turn follow-up conversation
 
 `POST /pre-visit-brief/conversation` (`app/graph/conversation.py`; USERS.md
 §3 Use Case 3). The rule these cases hold it to: every turn's answer is made
@@ -201,7 +203,9 @@ of claims that passed the brief's own verifier against a bounded set of
 records retrieved that turn — never the model's own knowledge, an earlier
 turn's text, or another patient's chart.
 
-The endpoint is not deployed, so these cases run it on this checkout's app
+The endpoint is deployed (since 2026-09-19), but these cases need to see
+what the model was sent and to inject claims into a draft, which the deployed
+endpoint does not allow. They therefore run this checkout's app
 in-process (`harness.py:InProcessConversation`), against the real
 deployment-host FHIR API with a real clinician token, the real model, the
 real verifier and the real process-wide conversation store. They also record
@@ -240,12 +244,62 @@ first failure was the case's own over-broad assertion (it flagged a real
 record id that legitimately appears in context) and was corrected to compare
 exact claims and values.
 
-## What the 2026-09-16 run found
+## What the 2026-09-20 run found (Vultr, current)
 
-Full output: [`RESULTS.md`](RESULTS.md), from the run at 22:47Z: 23 PASS,
+Full output: [`RESULTS.md`](RESULTS.md) (A–H, 05:30–05:32Z) and
+[`RESULTS_CONVERSATION.md`](RESULTS_CONVERSATION.md) (I, 05:32–05:36Z), both
+against the Vultr host (`64.177.42.210`): its FHIR API, its 52-patient
+population and, for the live-endpoint cases, its deployed agent (API version
+0.3.0). The running container's `app/` was byte-identical to `main` at
+`aded032` (checked by file hash; the host's `DEPLOYED_COMMIT` marker is stale
+and still reads `e81fdfc`). In-process cases ran this checkout at `38ff3c6`,
+whose `app/` differs from `main` in two docstrings only.
+
+| Group | Cases | PASS | FAIL |
+|---|---|---|---|
+| A allergy distinction | 6 | 5 | 1 (A6) |
+| B source attribution | 3 | 3 | 0 |
+| C verifier disclosure | 5 | 4 | 1 (C5) |
+| D authorization | 7 | 7 | 0 |
+| E nonexistent patient | 3 | 3 | 0 |
+| F scale outlier | 1 | 1 | 0 |
+| G cross-patient | 2 | 2 | 0 |
+| H uncoded names (F-57) | 4 | 4 | 0 |
+| I conversation | 8 | 8 | 0 |
+| **Total** | **39** | **37** | **2** |
+
+0 SKIP, 0 ERROR. D6, which SKIPs without an aged token, ran and passed (a
+real token 150 s past its `exp`).
+
+**Both FAILs are known, documented defects, not regressions.** Each failed
+in the 2026-09-16 run for the same reason, has its own finding, and has not
+been fixed, so a FAIL is the expected result until it is:
+
+- **A6 is F-58.** Allergy `clinicalStatus` is discarded before drafting, so
+  a resolved allergy renders as current (item 2 below). Latent: no live
+  record is resolved.
+- **C5 is F-59.** Logged Metric 2 reads 100% while a mutated renderer hides
+  4 failed claims (item 3 below). A monitoring gap: the real renderer
+  discloses failures (B2, C1–C4 pass).
+
+**No new regression.** Against the 2026-09-16 run, A5 and B1 moved from FAIL
+to PASS: the F-57 fix is now deployed, and the uncoded penicillin allergy is
+named and verified against the chart's narrative. H1–H4 pass against the
+live population's records. F1's outlier brief took 14.8 s (152 problems,
+234 encounters, 24 claims, nothing truncated); the droplet's 28.8 s was a
+different patient on different hardware, so the two are not comparable.
+
+Every in-process model call's token counts and latency are recorded at the
+end of each results file ("Model usage in this run"); they feed
+`docs/COST_ANALYSIS.md` §1.4.
+
+## What the 2026-09-16 run found (DigitalOcean, superseded)
+
+That run's output was the previous `RESULTS.md` (in git history), from the
+run at 22:47Z: 23 PASS,
 4 FAIL, 0 SKIP, 0 ERROR. The run was against the DigitalOcean droplet
 (`201.79.25.22`), and its patient ids and timings belong to that host. It
-has not been repeated on the Vultr host. For that run, `app/` was at
+was repeated on the Vultr host on 2026-09-20 (above). For that run, `app/` was at
 `82ea759` and `evals/` was this suite, not yet committed. The live agent was
 `2d46f0f` (`feat/standalone-ui`), with `AGENT_STUB_LLM_DRAFTING=false`.
 Both were read on the droplet over SSH before and after the run, because

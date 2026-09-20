@@ -155,7 +155,8 @@ def conversation(aio: Runner, tokens: TokenMint, request: pytest.FixtureRequest)
     if not os.environ.get("ANTHROPIC_API_KEY"):
         pytest.skip("ANTHROPIC_API_KEY not set: conversation cases draft with the real model")
     request.config.stash[_ENVIRONMENT].setdefault(
-        "conversation", "POST /pre-visit-brief/conversation in-process on this checkout (not deployed)"
+        "conversation",
+        "POST /pre-visit-brief/conversation in-process on this checkout, against the live FHIR API and the real model"
     )
     return InProcessConversation(aio)
 
@@ -304,4 +305,39 @@ def _write_results(
         if entry["message"]:
             lines += ["", "```", entry["message"].rstrip(), "```"]
         lines.append("")
+    lines += _model_usage_section()
     path.write_text("\n".join(lines))
+
+
+def _model_usage_section() -> list[str]:
+    """Token counts and latencies of this run's in-process model calls (docs/COST_ANALYSIS.md reads these)."""
+    from .harness import MODEL_USAGE
+
+    if not MODEL_USAGE:
+        return []
+    lines = [
+        "## Model usage in this run",
+        "",
+        "Every model call the in-process cases made, from the agent's own `llm_usage_event`",
+        "(token counts and latency only, never content). Calls the deployed agent made for the",
+        "live-endpoint cases are in that host's log, not here. Cases that inject or replay a draft",
+        "still make the real model call first, unless their level says otherwise.",
+        "",
+        "| Case | Kind | Model | Input tokens | Output tokens | Cache read / write | Model latency | Detail |",
+        "|---|---|---|---|---|---|---|---|",
+    ]
+    for call in MODEL_USAGE:
+        detail = ""
+        if call["kind"] == "conversation_turn":
+            retrieved = ", ".join(f"{name} {c}/{r}" for name, (c, r) in (call.get("retrieved") or {}).items())
+            detail = (
+                f"turn {call.get('turn')}, {call.get('turn_status')}, {call.get('claims')} claims, "
+                f"context {call.get('context_claims')} claims; considered/retrieved: {retrieved}; "
+                f"turn total {(call.get('turn_seconds') or 0):.1f} s"
+            )
+        lines.append(
+            f"| {call['case']} | {call['kind']} | {call['model']} | {call['input_tokens']} | {call['output_tokens']} | "
+            f"{call['cache_read_input_tokens']} / {call['cache_creation_input_tokens']} | {call['latency_ms']} ms | {_cell(detail)} |"
+        )
+    lines.append("")
+    return lines

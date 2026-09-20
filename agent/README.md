@@ -8,19 +8,19 @@ FastAPI service implementing the Clinical Co-Pilot agent described in
 
 The Pre-Visit Brief (`docs/USERS.md` Use Case 1) is a runnable pipeline
 behind an HTTP endpoint, deployed next to OpenEMR on the Vultr host
-`64.177.42.210` (`agent/docs/deployment.md`). The eval and load-test
+`64.177.42.210` (`agent/docs/deployment.md`). The eval results were
+re-recorded on Vultr on 2026-09-20 (`evals/README.md`); the load-test
 results were recorded on the earlier DigitalOcean droplet and have not been
 re-run on Vultr (`docs/ARCHITECTURE.md` §1). Follow-Up Drilling (Use Case
-3) is built in two forms: a constrained single-turn follow-up, which is
-deployed, and the multi-turn conversation, which is built and tested on the
-`feat/multiturn-chat` branch and **not deployed**. Change Detection is not
-built.
+3) is built in two forms, both deployed: a constrained single-turn
+follow-up, and the multi-turn conversation (deployed 2026-09-19 with the
+chart embed). Change Detection is not built.
 
 | Endpoint | Purpose |
 |---|---|
 | `POST /pre-visit-brief` | Runs the brief for one patient. `Authorization: Bearer <clinician's OpenEMR token>`; body `{"patient_id": "<uuid>", "session_id": "<optional>"}`. Returns the rendered brief, every claim's verification outcome, section counts, per-node timing and the correlation id. |
 | `POST /pre-visit-brief/follow-up` | One follow-up question on a brief. Same bearer token; body `{"patient_id": "<uuid>", "session_id": "<the brief's>", "question": "<≤500 chars>"}`. Answers only from the records the brief retrieves, re-read under the same token, with every claim verified against them. Returns the answer, `answer_status` (`answered` / `partially_answered` / `not_in_record`), `gaps`, and the brief's claims / sections / timing shape. |
-| `POST /pre-visit-brief/conversation` | One turn of the multi-turn follow-up conversation (not deployed). Same bearer token and the same body as the single-turn follow-up: the caller sends the question and nothing about earlier turns. The agent keeps, per `(user, session)` and bound to one patient, only the claims earlier turns verified. Returns the answer, `turn_status` (`answered` / `partially_answered` / `not_in_record` / `refused_out_of_scope` / `refused_unverifiable`), `refusals`, `gaps`, `conversation` (turn number, what happened to the state, context size), `retrieval` (which record types were read and by which rule) and per-claim outcomes with the rendered line. A lab or visit question needs `user/Observation.read` / `user/Encounter.read` on the token. |
+| `POST /pre-visit-brief/conversation` | One turn of the multi-turn follow-up conversation. Same bearer token and the same body as the single-turn follow-up: the caller sends the question and nothing about earlier turns. The agent keeps, per `(user, session)` and bound to one patient, only the claims earlier turns verified. Returns the answer, `turn_status` (`answered` / `partially_answered` / `not_in_record` / `refused_out_of_scope` / `refused_unverifiable`), `refusals`, `gaps`, `conversation` (turn number, what happened to the state, context size), `retrieval` (which record types were read and by which rule) and per-claim outcomes with the rendered line. A lab or visit question needs `user/Observation.read` / `user/Encounter.read` on the token. |
 | `POST /pre-visit-brief/conversation/end` | Discards a conversation's stored state now instead of at its TTL. Body `{"patient_id", "session_id"}`. |
 | `GET /ready` | 200 only when OpenEMR's FHIR API and the LLM provider are both reachable; otherwise 503 naming which. |
 | `GET /health` | Liveness, always 200. |

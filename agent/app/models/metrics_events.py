@@ -2,12 +2,13 @@
 Log event schemas — the shapes docs/KEY_METRICS.md's six metrics are
 computed from.
 
-These are schemas ONLY. Nothing in this codebase emits any of them yet —
-that happens once retrieval, the reasoning model, and verification are
-actually wired up, which is explicitly out of scope for this task.
-KEY_METRICS.md states plainly that none of its six metrics can be computed
-without this shape existing first; this module is that shape, not the
-computation itself. No aggregation/rollup logic is implemented here.
+These are schemas ONLY; this module emits nothing and aggregates nothing.
+Three of the four are emitted elsewhere: ClaimVerifiedEvent by
+app/verification/checker.py, RetrievalEvent by app/fhir/client.py, and
+LatencyEvent by the graphs in app/graph/. AuthorizationCheckEvent is NOT
+emitted by the agent, because the scope pre-check it records is not
+implemented (see its docstring). Rollup lives in
+scripts/compute_metrics.py, not here.
 """
 
 from __future__ import annotations
@@ -34,8 +35,8 @@ class UseCase(str, Enum):
 
 class ClaimVerifiedEvent(BaseModel):
     """
-    Emitted once per claim, after the (not-yet-implemented) verification
-    step runs (ARCHITECTURE.md §5).
+    Emitted once per claim, after the verification step runs
+    (ARCHITECTURE.md §5; app/verification/checker.py).
 
     Feeds KEY_METRICS.md:
       - Metric 1, Verification Pass Rate: count(passed) / count(all).
@@ -75,13 +76,23 @@ class RetrievalEvent(BaseModel):
 
 class AuthorizationCheckEvent(BaseModel):
     """
-    Emitted once per FHIR request, comparing the scope that request needed
-    against what the agent's own decoded-JWT record says the current token
-    holds (ARCHITECTURE.md §2 — the agent maintains this record to
-    distinguish a 401 caused by insufficient scope from one caused by an
-    expired token, per the platform's 401/403 ambiguity, F-08).
+    NOT emitted by the agent. Schema only.
 
-    Feeds KEY_METRICS.md Metric 3, Authorization Boundary Integrity: a
+    The design (ARCHITECTURE.md §2) is one event per FHIR request,
+    comparing the scope that request needed against the agent's own
+    decoded-JWT record of the scopes the current token holds, which would
+    also tell a 401 caused by insufficient scope from one caused by an
+    expired token (the platform's 401/403 ambiguity, F-08). That
+    agent-side scope pre-check is not implemented. The agent forwards the
+    caller's token unchanged, reads only its `sub` claim, and maps
+    OpenEMR's 401 to FHIR_TOKEN_REJECTED without saying which cause it was
+    (app/fhir/exceptions.py). Nothing in app/ constructs this event; the
+    only producers are tests and scripts/send_langfuse_test_event.py. The
+    consumers exist (app/middleware/langfuse_export.py,
+    scripts/compute_metrics.py), so Metric 3 reports insufficient data
+    rather than a result.
+
+    Would feed KEY_METRICS.md Metric 3, Authorization Boundary Integrity: a
     request this event shows as out-of-scope (per held_scopes) that
     nonetheless comes back outcome="accepted" is exactly the silent
     authorization regression Metric 3 exists to catch — treated as a PHI

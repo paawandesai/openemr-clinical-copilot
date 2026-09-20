@@ -5,9 +5,16 @@ Typed FHIR client exceptions — ARCHITECTURE.md §2.
 identically for "this token is expired/invalid" and "this token lacks the
 required scope," never the RFC 6750-correct 403 for insufficient scope.
 This client's job is only to surface that a 401 happened; it does not
-guess which cause it was. The caller — built in a later task — is
-responsible for the scope-vs-expiry disambiguation, using its own
-decoded-JWT record of which scopes the current token actually holds (§2).
+guess which cause it was.
+
+Neither does anything above it. The agent forwards the caller's bearer
+token to OpenEMR unchanged, and the API handlers (app/api/) map
+FhirAuthError to a 401 FHIR_TOKEN_REJECTED response that says the token
+may be expired, revoked or missing a scope, and that which one applies
+cannot be determined here. The agent-side scope pre-check §2 describes (a
+decoded-JWT record of the scopes the token holds, used to tell the two
+causes apart) is NOT implemented: the only claim the agent reads from the
+token is `sub`, for the session key.
 """
 
 from __future__ import annotations

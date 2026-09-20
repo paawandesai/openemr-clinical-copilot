@@ -1977,6 +1977,8 @@ Pass-2 droplet database commands were run as
     itself sets `code.text` to the literal `"Problem"`
     (`FhirConditionTrait.php:155`). That placeholder cannot be told apart
     from a real title and still renders as a name. No live record has it.
+    Tracked as F-64. A second residual, a line break in the model's own
+    claim value rather than in a chart name, is F-63.
 - **Verified:** `first-hand` (mapping, raw resource, parsing path, live brief,
   eval failures) · `operator-reported` (that this is the patient-safety failure
   the case study brief opens with; the brief is not in the repository) ·
@@ -2147,6 +2149,99 @@ Pass-2 droplet database commands were run as
   not look at it is where they were before. The agent's plain-text `answer`
   (and any other client of the API) still does not name the patient; only
   `patient_id` in the response does.
+
+### F-63 — A line break in a model-written claim value splits its UNVERIFIED line; the remainder renders as an ordinary bullet
+- **Category:** Verification / Presentation
+- **Severity:** Low
+- **Claim:** The renderers put a failed claim's value into the UNVERIFIED line
+  as the model wrote it. If that value contains a line break, the line is
+  split in two: the first part keeps the `UNVERIFIED:` prefix, and the rest
+  starts a new line that reads as an ordinary item. F-57 closed this for names
+  that come from the chart (`_plain_text` reduces every name the FHIR client
+  returns to one line). It did not close it for the model's own output, which
+  passes through no such step.
+- **Evidence:**
+  - Found (`operator-reported`): observed during the F-57 work, 2026-09-18.
+  - Reproduced (`first-hand`, 2026-09-20T04:29Z, `aded032`, in memory: the real
+    verifier and both real renderers, no model call, no chart access). One
+    allergy record named `Penicillin`; one `display` claim for it with value
+    `"Penicillin\n  - No known drug allergies"`. The claim fails
+    (`value does not match source record`) and renders as:
+    ```
+    Allergies:
+      - UNVERIFIED: "Penicillin
+      - No known drug allergies" (does not match the chart record)
+
+    1 item(s) above could not be verified against the chart and are marked UNVERIFIED.
+    ```
+    `follow_up._claim_line`, which the multi-turn conversation also renders
+    through (`conversation._turn_claim_line`), splits the same way:
+    ```
+      - UNVERIFIED: Allergy "Penicillin
+      - No known drug allergies" (does not match the chart record)
+    ```
+  - Why (`first-hand`, source): `agent/app/graph/pre_visit_brief.py:365`
+    (`lines.append(f'  - UNVERIFIED: "{value}" ({why})')`) and
+    `agent/app/graph/follow_up.py:236-241` interpolate `claim.value` unchanged.
+    Only a failed claim can carry a line break: a verified `display` value
+    equals the chart's name, which is already one line.
+  - Front-ends (inferred from source, not rendered in a browser): both split
+    the text on `\n` and match each line on its own
+    (`pre-visit-brief-card.js:36,119`; `agent/deploy/ui/index.html:564,583`).
+    Neither half of a split line matches the UNVERIFIED pattern, which needs
+    the opening `UNVERIFIED: "` and the closing `" (reason)` on one line, so
+    both halves would be shown as plain items with no warning styling. The
+    footer count and the API's `verification.unverified` are unaffected and
+    still report the failed claim.
+- **Remediation:** not done. Reduce a claim value to one line at render time,
+  the way `_plain_text` does for chart names, in both renderers. It was left
+  out of this documentation-only change because it alters render code.
+- **Verified:** `first-hand` (reproduction, source) · original observation
+  `operator-reported` · front-end effect inferred from source.
+- **Implication for the agent:** `ARCHITECTURE.md` §5's promise is that a
+  failed claim is shown as UNVERIFIED, never dropped or softened. That holds
+  per claim and per count, but not per rendered line: text the model wrote
+  can sit under a section heading looking like a verified item. It needs a
+  claim that both fails verification and contains a line break, which has not
+  been seen from the real model; the severity reflects that, not the effect
+  if it happens.
+
+### F-64 — A problem with no code and no title is named "Problem" by OpenEMR, and the agent cannot tell that from a real title
+- **Category:** Data Quality
+- **Severity:** Low (latent — no live record has it; known limit)
+- **Claim:** When a problem-list entry has no diagnosis code and a null
+  `title`, OpenEMR's FHIR mapper sets `Condition.code.text` to the literal
+  string `"Problem"`. The agent reads `code.text` as the record's name, so the
+  brief would list `Problem` under "Active problems", verified. F-57's rule
+  that a record with no usable name is shown UNVERIFIED as
+  "(name not available)" never applies, because to the agent this record has
+  a name. First recorded as a residual under F-57; tracked here on its own.
+- **Evidence:**
+  - OpenEMR mapping (`first-hand`, source):
+    `src/Services/FHIR/Condition/Trait/FhirConditionTrait.php:153-156`
+    ```php
+    // Fallback to title if no structured diagnosis
+    $diagnosisCode = new FHIRCodeableConcept();
+    $diagnosisCode->setText($dataRecord['title'] ?? 'Problem');
+    ```
+  - Agent (`first-hand`, source): `agent/app/fhir/client.py` `_display_text`
+    returns `code.text` when it is a non-empty string. It skips only codings
+    from the data-absent-reason system; `"Problem"` is plain text with no
+    system to check.
+  - Live state (`first-hand`, Vultr, 2026-09-18, from F-57's census): 0 of
+    1,816 Condition records lack a coded name, so none takes this branch.
+    Not re-run for this entry.
+- **Remediation:** not done, and not safely doable in the agent. Treating the
+  text `Problem` as a placeholder would also hide a record a clinician really
+  titled "Problem". The distinction exists only in OpenEMR, where `title` is
+  null; the fix belongs in the mapper (emit no `code.text`, or a
+  data-absent-reason coding, which the agent already handles).
+- **Verified:** `first-hand` (mapping, parsing path) · live census carried
+  over from F-57, not repeated · not observed on a real record (none exists).
+- **Implication for the agent:** the same limit as F-57's: verification
+  confirms that a claim matches the record as parsed, not that the record
+  says anything. Here the placeholder is written by OpenEMR rather than the
+  agent, so the agent has nothing to detect it with.
 
 ---
 
