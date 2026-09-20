@@ -24,12 +24,13 @@ Every number carries one of four labels:
 - **Assumed.** An input this project has no data for. The results scale
   with it, and §3 lists how.
 
-Only one use case is measured: Pre-Visit Brief. Change Detection is not
-built. Follow-Up Drilling is deployed only as a constrained single-turn
-follow-up; the multi-turn conversation is built and not deployed. Neither
-has been measured (USERS.md §3; `agent/README.md`).
-Their numbers are therefore estimates, and are always shown apart from the
-measured baseline.
+Two use cases are measured: the Pre-Visit Brief, and, since 2026-09-20, the
+multi-turn follow-up conversation (Follow-Up Drilling), which is deployed on
+the Vultr host and in the chart embed. §1.4 holds the conversation's measured
+tokens, §4.10 folds them into the projections, and everything added on that
+date says so. Change Detection is not built; its numbers remain estimates and
+are always shown apart from the measured baseline (USERS.md §3;
+`agent/README.md`).
 
 ---
 
@@ -51,6 +52,31 @@ use cases, the estimate is 29 model calls per clinician per day (§3).
 | 1K | $6,731/mo | $5,313/mo | $9,403/mo | **The shared droplet** (estimated). The agent is contending with OpenEMR for 4 shared vCPUs. |
 | 10K | $67,305/mo | $53,130/mo (Opus 5) · $26,922/mo (Sonnet 5, if it passes eval) | $94,028/mo (Opus 5) · $66,953/mo (tiered) | **Cost.** Caching is worth $14K–$25K a month and tiering $26K–$43K. The agent needs multiple replicas and serves many tenants. |
 | 100K | $673,050/mo | $531,300/mo (Opus 5) · $269,220/mo (Sonnet 5) | $940,275/mo (Opus 5) · $669,532/mo (tiered) | **Anthropic output-token rate limit.** Peak output is 2.72M tokens/min against the Scale tier's 2M, with briefs alone. This requires a Custom tier. |
+
+**The conversation, measured 2026-09-20 (§1.4, §4.10).** One follow-up turn
+costs **$0.0246 on the 5-record chart the brief figure above comes from,
+$0.0493 on the population's median chart (39 records) and $0.1245 on its
+largest (184 records)**: measured, one model call per turn, no caching. A
+turn costs more than a brief because it sends every problem, medication and
+allergy record, active or not, plus about 4,400 tokens of prompt, schema and
+lab-code reference: 3,970 to 22,690 input tokens against the brief's 1,243
+to 4,378. A session of a brief and four follow-ups costs $0.114, $0.226 and
+$0.576 on those three charts. Weighted over the 52 patients on the host, a
+turn is an estimated $0.057 and a brief $0.031, about twice the 5-record
+seed the table above uses. The table's "all three use cases" column was
+built on an estimated $0.0275 per follow-up turn. On the same 5-record
+basis the measured figure is $0.0246, so that column stands (it moves by
+−2%). §4.10 shows what changes it: how often physicians ask, and chart size.
+
+| Users | Brief only, 5-record seed (as above) | Brief + 4 follow-ups a day, 5-record basis (**measured** unit costs) | Brief + 4 a day, population-weighted (**estimated** from the measured fit) | Brief + 15 a day, population-weighted |
+|---|---|---|---|---|
+| 100 | $673/mo | $880/mo | $1,790/mo | $3,109/mo |
+| 1K | $6,731/mo | $8,797/mo | $17,900/mo | $31,090/mo |
+| 10K | $67,305/mo | $87,969/mo | $179,004/mo | $310,905/mo |
+| 100K | $673,050/mo | $879,690/mo | $1,790,040/mo | $3,109,050/mo |
+
+Naive linear, Opus 5, no caching, brief and conversation only (Change
+Detection excluded, since it is not built).
 
 "As architected" means each tier's cost after the changes that tier
 requires. All projections use the measured 5-record brief. **The largest
@@ -163,6 +189,90 @@ USERS.md's own case for an agent over a dashboard is prioritizing and
 compressing long lists (§3, Use Case 1). That is also the cost control for
 large charts.
 
+### 1.4 The measured conversation turn and session (2026-09-20, Vultr)
+
+Every figure in this section is **measured** unless it says otherwise:
+token counts from the agent's own `llm_usage_event` records, priced at
+§1.2's published rates (re-checked 2026-09-20, unchanged).
+
+**What was run.** On the deployed agent (`https://64.177.42.210:8443`; the
+running container's `app/` is byte-identical to `main` at `aded032`, checked
+by file hash on 2026-09-20; `claude-opus-5`, `effort: "medium"`, no
+`cache_control`), for seven patients chosen by chart size across the
+host's 52 (the smallest non-empty chart, then the 12th, 25th, 50th, 75th,
+90th and 100th percentiles by record count): one `POST /pre-visit-brief`,
+then four turns of `POST /pre-visit-brief/conversation` in one session,
+one of each kind the routing rules distinguish. 35 model calls, read from
+the host's log by correlation id. Reproduce with
+`agent/scripts/measure_session_cost.py`. "Records" is the chart's problem,
+medication and allergy records, active or not, which is what every turn
+sends.
+
+| Turn | Question | What it adds to the prompt |
+|---|---|---|
+| 1 base set | "Which of her medications are active?" | Problems, medications, allergies (every turn has these) |
+| 2 reference back | "When was that prescribed?" | Turn 1's verified claims, as context |
+| 3 lab expansion | "What was her most recent hemoglobin?" | The narrowed lab results for that test, plus lab-code names |
+| 4 visit expansion | "When was she last seen?" | Visit dates; the lab results are carried from turn 3 |
+
+| Chart (records) | Brief in / out | Brief | Turn 1 in / out | Turn 2 | Turn 3 | Turn 4 | Mean turn in / out | **Mean turn** | Mean turn time | **Session: brief + 4 turns** (in / out) |
+|---|---|---|---|---|---|---|---|---|---|---|
+| 5 (smallest; §1.1's patient) | 1,574 / 325 | $0.0160 | 3,385 / 277 | 3,727 / 363 | 4,375 / 29 | 4,395 / 94 | 3,970 / 191 | **$0.0246** | 4.5 s | **$0.1145** (17,456 / 1,088) |
+| 18 | 1,623 / 330 | $0.0164 | 4,736 / 304 | 5,105 / 334 | 6,016 / 254 | 7,187 / 94 | 5,761 / 246 | **$0.0350** | 4.8 s | **$0.1562** (24,667 / 1,316) |
+| 24 | 1,243 / 70 | $0.0080 | 5,444 / 1,478 | 7,157 / 228 | 7,569 / 274 | 8,761 / 95 | 7,233 / 519 | **$0.0491** | 6.7 s | **$0.2045** (30,174 / 2,145) |
+| 39 (median) | 2,183 / 724 | $0.0290 | 7,077 / 490 | 7,662 / 405 | 8,615 / 270 | 9,777 / 91 | 8,283 / 314 | **$0.0493** | 5.0 s | **$0.2261** (35,314 / 1,980) |
+| 55 | 2,882 / 1,267 | $0.0461 | 8,817 / 1,142 | 10,204 / 1,439 | 12,236 / 286 | 13,422 / 95 | 11,170 / 740 | **$0.0744** | 9.4 s | **$0.3435** (47,561 / 4,229) |
+| 106 | 3,802 / 1,857 | $0.0654 | 13,769 / 1,160 | 15,174 / 1,418 | 17,226 / 274 | 18,411 / 95 | 16,145 / 737 | **$0.0991** | 10.5 s | **$0.4620** (68,382 / 4,804) |
+| 184 (largest) | 4,378 / 2,253 | $0.0782 | 21,080 / 1,160 | 22,485 / 244 | 23,003 / 282 | 24,194 / 89 | 22,690 / 444 | **$0.1245** | 9.0 s | **$0.5764** (95,140 / 4,028) |
+
+Over the 28 turns: input 3,385 to 24,194 tokens (mean 10,750, median
+8,688); output 29 to 1,478 (mean 456, median 276); cost $0.0226 to $0.1344
+a turn (mean $0.0651, median $0.0505); end-to-end 3.3 to 15.3 s (mean 7.1 s,
+95th percentile 13.7 s), of which the model call averaged 5.8 s. Cache read
+and write were 0 on every call. Three of the 28 turns made a model call and
+answered "not in the retrieved record"; they cost the same as an answer. A
+refusal (out of scope, or a judgment or trend) is decided by rule and makes
+**no model call**: it costs nothing.
+
+The eval run of the same day (`agent/evals/RESULTS_CONVERSATION.md`, "Model
+usage in this run") recorded the conversation cases' calls the same way,
+in-process: the small chart's turns at about 3,400 input tokens and the
+largest chart's lab turn at about 21,600, inside the ranges above.
+
+**What the measurement shows.**
+
+- **A turn costs more than a brief, and it is input that does it.** Input is
+  83% of the mean turn's cost ($0.0538 of $0.0651), against 49% of the
+  brief's (§1.2). The brief is sent active records and drafts one claim per
+  record; a turn is sent every problem, medication and allergy record,
+  active or not, and usually drafts a few claims.
+- **Input grows linearly with chart size:** mean turn input ≈ 4,375 +
+  103.5 × records (least squares over the seven charts, R² 0.99). The
+  intercept is the fixed part: system prompt, output schema, lab-code names
+  and the question. Mean turn cost ≈ $0.0311 + $0.00055 × records (R² 0.94);
+  brief cost ≈ $0.0124 + $0.00040 × records (R² 0.88; looser, because the
+  brief follows *active* records, not all of them: the 24-record chart has
+  one active record and an $0.008 brief).
+- **Later turns cost more than earlier ones:** each turn re-sends the chart
+  and adds what the conversation has accumulated (verified context, carried
+  lab results). Turn 4's input is 15% to 60% above turn 1's.
+- **Lab expansion is cheap, by design.** The 106-record patient has 976 lab
+  results; the turn was sent 2 of them. The routing rule narrows labs to the
+  test asked about before the model sees them, so lab-heavy charts do not
+  cost more per turn than their problem list already makes them.
+- **§1.3's single-point fit over-estimated large briefs.** It predicted
+  about $0.25 and 96 s for a roughly 100-record chart. Measured: $0.065 and
+  16 s at 106 records, $0.078 and 19 s at 184. The brief is sent active
+  records only, and most of a long Synthea problem list is resolved.
+
+**Population-weighted unit costs (estimated).** Applying the two cost fits
+to the record count of each of the host's 52 patients (mean 47 records,
+median 37.5): a follow-up turn averages **$0.057** and a brief **$0.031**.
+A session of a brief and N follow-ups averages $0.145 (N = 2), $0.260
+(N = 4) and $0.374 (N = 6). These rest on seven measured charts and one
+synthetic population (F-41); a real panel's chart sizes will differ, and
+the fits say by how much.
+
 ---
 
 ## 2. Actual development spend
@@ -244,12 +354,12 @@ below is this document's assumption.
 | Encounters per clinician per clinic day | **20** | **Assumed.** A full primary-care clinic day. |
 | Pre-Visit Briefs per encounter | **1** | **Assumed.** Triggered on chart open (USERS.md §3). Re-opens are not counted. |
 | Change Detection per clinician per day | 5 (25% of encounters) | **Assumed.** Not built. |
-| Follow-Up Drilling turns per clinician per day | 4 | **Assumed.** Not built. |
+| Follow-Up Drilling turns per clinician per day | 4 | **Assumed.** Built and deployed since 2026-09-19; no usage data yet. §4.10 also shows 15 and 40. |
 | Clinic days per month | 21 | **Assumed.** |
 | Share of users active on a clinic day | 100% | **Assumed**, as an upper bound. |
 | Peak minute vs. clinic-day average | 2× over an 8-hour day | **Assumed.** Affects rate limits only, not cost. |
 | Change Detection tokens | ~3,000 in / ~500 out → $0.0275 | **Estimated.** Two encounters plus conditions, medications and interval labs. |
-| Follow-Up Drilling tokens per turn | ~3,500 in / ~400 out → $0.0275 | **Estimated.** About 2,500 tokens re-sent (patient context and prior turns) plus about 1,000 new. |
+| Follow-Up Drilling tokens per turn | 3,970 in / 191 out → $0.0246 on the 5-record chart; 8,283 / 314 → $0.0493 on the median chart; population-weighted $0.057 | **Measured** 2026-09-20 (§1.4); the population-weighted figure is **estimated** from the measured fit. Replaces the earlier estimate of ~3,500 in / ~400 out → $0.0275, which the tables in §4.1 to §4.9 still use: on the 5-record basis those tables share, the measured figure is 11% lower. |
 
 **Who counts as a user.** A user is a clinician seat that uses the
 co-pilot. At 100 and 1K users, one OpenEMR deployment is plausible: a
@@ -380,7 +490,10 @@ so this lever does not apply to it yet. Once multi-turn exists, every turn
 re-sends the patient's retrieved records and whatever came before. A cache
 breakpoint after that block lets turns 2 and later read it at 0.1× the
 input price. The estimated per-turn cost falls from
-$0.0275 to $0.0175, which is 36%. Three design rules follow:
+$0.0275 to $0.0175, which is 36%. (The conversation is now built and
+measured: §4.10 redoes this estimate on measured tokens and arrives at
+−37% for a four-turn session on the median chart.) Three design rules
+follow:
 
 - **Use the 5-minute TTL, never the 1-hour one.** The use case happens in
   the ~90 seconds between encounters (USERS.md §1–2). A 1-hour write costs
@@ -581,6 +694,111 @@ roughly $330 against $9.4K at 1K, $1K against $94K at 10K, and
 $7.5K against $940K at 100K. At 100 users the fixed costs weigh more,
 including costs not priced here: executing the BAAs and on-call time.
 
+### 4.10 The conversation in the projections (added 2026-09-20)
+
+§4.1 to §4.9 were written with an estimated follow-up turn ($0.0275) and
+the 5-record brief. This section redoes the linear projection with §1.4's
+measured conversation, on two bases, so the effect of each change can be
+seen apart:
+
+- **5-record basis.** The same small chart as every table above: brief
+  $0.0160, turn $0.0246. Both **measured**.
+- **Population-weighted basis.** Brief $0.031, turn $0.057: **estimated**
+  by applying §1.4's measured fits to the 52 charts on the host.
+
+How often a physician asks is **assumed** in every row; no usage data
+exists yet. Four turns a day is §3's original assumption. Fifteen is a
+follow-up conversation of three turns on a quarter of encounters; forty is
+four turns on half of them.
+
+```
+per clinician per month = 21 days × (20 briefs × brief + T turns × turn)
+```
+
+| Follow-up turns per clinician per day | Basis | Per clinician per month | Conversation's share | 100 users | 1K | 10K | 100K |
+|---|---|---|---|---|---|---|---|
+| 0 (brief only, §4.1) | 5-record | $6.73 | 0% | $673 | $6,731 | $67,305 | $673,050 |
+| 4 | 5-record | $8.80 | 23% | $880 | $8,797 | $87,969 | $879,690 |
+| 15 | 5-record | $14.48 | 54% | $1,448 | $14,480 | $144,795 | $1,447,950 |
+| 40 | 5-record | $27.39 | 75% | $2,739 | $27,394 | $273,945 | $2,739,450 |
+| 0 (brief only) | population-weighted | $13.10 | 0% | $1,310 | $13,104 | $131,040 | $1,310,400 |
+| 4 | population-weighted | $17.90 | 27% | $1,790 | $17,900 | $179,004 | $1,790,040 |
+| 15 | population-weighted | $31.09 | 58% | $3,109 | $31,090 | $310,905 | $3,109,050 |
+| 40 | population-weighted | $61.07 | 79% | $6,107 | $61,068 | $610,680 | $6,106,800 |
+
+Monthly, Opus 5, no caching, brief and conversation only. Adding the
+estimated Change Detection (5 a day at $0.0275, §3) adds $2.89 per
+clinician per month to any row: on the 5-record basis with 4 turns a day
+that is $11.68, against §4.1's $11.93.
+
+**What this changes in the sections above.**
+
+- **The "all three use cases" figures stand on their own basis.** They
+  assumed $0.0275 a turn; measured on the same 5-record chart it is
+  $0.0246. At 4 turns a day the difference is −2% of the all-three total.
+- **Chart size is now a measured multiplier, and it is about 2×.** On this
+  population the weighted brief costs 1.9× the 5-record brief and the
+  weighted turn 2.3× the 5-record turn. §1.3 called chart size the largest
+  uncertainty; for this population it is no longer uncertain. Every dollar
+  figure in §4.1 to §4.9 should be read as the 5-record case, roughly half
+  of what this population would cost.
+- **Once physicians use it, the conversation is the bill.** At 15 turns a
+  day it is more than half of spend on either basis; at 40, three quarters.
+  The brief is a fixed 20 calls a day. The conversation has no ceiling: §4.4's
+  per-clinician rate limit is what bounds it, and it should count turns.
+- **Spend caps bind sooner (§4.3).** On the population-weighted basis, 100
+  users at 4 turns a day is $1,790 a month: over the Start tier's $500 and
+  the Build tier's $1,000. The Scale tier is needed from the first hundred
+  users, not from about 75 users on Start as §4.3 has it for briefs alone.
+- **Input-token rate limits bind sooner (§4.2).** A turn carries about
+  10,750 input tokens (the measured mean), seven times the 5-record brief's
+  1,575. At peak (§4.2's formula), turns alone add:
+
+  | Users | Turns/day each | Turn RPM | Turn input TPM | Turn output TPM |
+  |---|---|---|---|---|
+  | 1K | 4 / 15 | 17 / 63 | 0.18M / 0.67M | 8K / 29K |
+  | 10K | 4 / 15 | 167 / 625 | 1.8M / 6.7M | 76K / 285K |
+  | 100K | 4 / 15 | 1,667 / 6,250 | **17.9M / 67.2M** | 0.76M / **2.85M** |
+
+  At 10K users and 15 turns a day, turns (6.7M) plus briefs (1.3M) take
+  most of the Scale tier's 10M input TPM; §4.2 found all three use cases
+  using a quarter of it. At 100K users the conversation alone is past the
+  Scale tier on input at 4 turns a day. Output is not the constraint for
+  turns: they average 456 output tokens.
+- **Latency is inside the budget.** A turn took 7.1 s on average and 15.3 s
+  at worst, against the 90-second window (KEY_METRICS.md Metric 4).
+
+**Levers, in the order §4.5 to §4.7 give them, with what the measurement
+says about each. None is built.**
+
+1. **Cache the patient block within a session (§4.5b).** Now worth
+   quantifying, because every turn of a session re-sends the same chart. On
+   the median chart the four turns sent 33,131 input tokens, $0.166. If 85%
+   of turn 1's input (**assumed**: the prompt, schema and chart records,
+   placed ahead of the question and the context) is written to the 5-minute
+   cache on turn 1 and read on turns 2 to 4, input falls to about $0.092
+   (−45%) and the four turns from $0.197 to about $0.123 (**estimated**,
+   −37%; §4.5b estimated −36% before there was anything to measure). Turn 1
+   pays 21% more for the write, so this pays only for conversations that
+   reach a second turn within five minutes; a single-turn conversation
+   loses. The lab and visit records arrive mid-session, so they should sit
+   after the breakpoint. The prompt's actual layout decides the real share;
+   `usage.cache_read_input_tokens` will show it.
+2. **Cache the static prefix across all turns.** The fit's intercept is
+   about 4,400 tokens a turn, which includes the question and the lab-code
+   names. How much of it is byte-identical across patients is unmeasured;
+   `count_tokens` on the system prompt and schema answers it for free (§7).
+3. **Model tiering (§4.7).** Sonnet 5 lists at 40% of Opus 5's price
+   (**published**): the population-weighted turn would be about $0.023.
+   Whether it holds the conversation's guarantees is **unknown** until the
+   I cases of the eval suite pass on it; §4.7 recommended keeping this use
+   case on Opus 5, and nothing measured here argues otherwise.
+4. **Send less chart per turn.** Input is 83% of a turn's cost and grows by
+   about 104 tokens for every record on the chart, active or not. Which
+   records a turn needs is a retrieval-design question with safety
+   consequences (a question about a resolved problem needs the resolved
+   record), so this is noted as the largest lever, not recommended.
+
 ---
 
 ## 5. Compliance constraints on the cost levers
@@ -632,18 +850,24 @@ against Anthropic's published feature-eligibility table.
 | DigitalOcean infrastructure prices | **Published** list prices, fetched 2026-09-16. DigitalOcean is the pre-migration provider; the current Vultr host's prices were not fetched. |
 | Static prefix of ~750 tokens | **Estimated** from the prompt's size. Unmeasured. |
 | Tokens per record and the outlier brief cost | **Estimated** from one data point. |
-| Change Detection and Follow-Up Drilling tokens | **Estimated.** Change Detection is not built; the constrained single-turn follow-up is built but not measured. |
-| 20 encounters/day, 21 days/month, peak factor 2, follow-up rates | **Assumed.** |
+| Change Detection tokens | **Estimated.** Not built. |
+| Conversation turn and session tokens, cost and latency, on seven charts from 5 to 184 records (§1.4) | **Measured** 2026-09-20 on the deployed Vultr agent: 35 model calls, from the agent's `llm_usage_event` log. One run per chart and question; model output varies run to run. |
+| Brief tokens and cost on the same seven charts (§1.4) | **Measured** 2026-09-20. Replaces §1.3's single-point fit for charts of this population's kind. |
+| Token and cost fits against chart size; population-weighted $0.057 a turn and $0.031 a brief (§1.4) | **Estimated** from the seven measured charts and the record counts of the host's 52 synthetic patients (F-41). |
+| Cached-session saving of −37% (§4.10) | **Estimated** from measured tokens and published cache prices, with an **assumed** 85% cacheable share. No caching is built. |
+| A refusal costs no model call | **Measured.** Decided by rule before retrieval or drafting (`agent/app/conversation/routing.py`); eval case I5. |
+| 20 encounters/day, 21 days/month, peak factor 2, follow-up rates (4, 15 or 40 turns a day) | **Assumed.** The conversation is deployed; nobody has used it in a clinic. |
 | Development spend of $0.36 | **Measured.** Anthropic Console Usage page, last 30 days, all workspaces and keys, read 2026-09-16. |
 | The droplet breaking at about 1K users | **Estimated.** OpenEMR FHIR throughput is unmeasured (F-24, F-47). |
 | Sonnet 5 and Haiku 4.5 quality on the brief | **Unknown** until an eval runs. |
 
 ## 7. Replacing estimates with measurements, most valuable first
 
-1. **Run the brief over all 65 local patients once.** That is 65 calls,
-   about $1–$4, and replaces §1.3's single-point fit with a real
-   distribution of tokens per brief. Chart size is the largest multiplier
-   on every projection.
+1. **Partly done 2026-09-20:** the brief and a four-turn conversation were
+   measured on seven charts spanning the host's population (§1.4). Running
+   the brief over every patient once (52 calls, about $1.60 at the
+   population-weighted $0.031) would replace §1.4's fit with the full
+   distribution. Chart size is the largest multiplier on every projection.
 2. **Call `count_tokens` on the system prompt and schema.** It is free and
    confirms whether the static prefix clears Opus 5's 512-token cache
    minimum and Sonnet 5's 1,024.
@@ -651,9 +875,10 @@ against Anthropic's published feature-eligibility table.
    Usage page on 2026-09-16 ($0.36, §2.2).
 4. **Load-test with a stubbed model call** at 83 and 833 briefs per minute,
    to find where OpenEMR's FHIR endpoint on the droplet saturates (§4.9).
-5. **When Change Detection and Follow-Up Drilling ship,** record their
-   tokens per interaction (Metric 6 by use case) and the rate of
-   follow-ups within 5 minutes, which is the 28% threshold in §4.5b.
+5. **Done for the conversation's tokens (§1.4).** Still open: how often
+   physicians ask, and the rate of follow-ups within 5 minutes, which is
+   the 28% threshold in §4.5b. Both need real use; Metric 6 by use case
+   provides them. Change Detection is not built.
 6. **Evaluate effort and model for the brief:** Opus 5 at `low`, Sonnet 5
    and Haiku 4.5, scored on Metric 1 and skipped-record counts (§4.7).
 7. **In the HIPAA organization, confirm** that prompt caching is covered

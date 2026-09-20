@@ -213,19 +213,23 @@ has to be redone for whichever BAA-covered provider a production deployment
 uses. It is **not deployed**: the second host is an explicit v2,
 post-submission step.
 
-**Where the recorded numbers were measured.** Every eval and load-test
-number in this repository was measured against the DigitalOcean droplet
-(`201.79.25.22`) on 2026-09-16, before the move to Vultr. That covers
-`agent/evals/RESULTS.md` (23 PASS, 4 FAIL, including F1's 28.8 s outlier
-brief) and `agent/load-test/RESULTS.md` (the 10 and 50 virtual-user runs
-and their CPU and memory baseline). **Neither has been re-run on the
-Vultr host.** Those records stay as they were measured. They describe the
-droplet: its hardware (F-44) and its patient population, whose FHIR ids do
-not exist on the Vultr host's fresh install (F-61). They are not a
-measurement of the current deployment. On Vultr, the repository records
-only functional checks from 2026-09-17: the chart embed (module
-`docs/deployment.md` §2.1) and the Postman collection
-(`agent/api-collection/README.md`).
+**Where the recorded numbers were measured.** The eval results are from the
+Vultr host: `agent/evals/RESULTS.md` (A–H: 29 PASS, 2 FAIL, both known
+defects, F-58 and F-59) and `agent/evals/RESULTS_CONVERSATION.md` (I: 8
+PASS) were re-recorded there on 2026-09-20, replacing the 2026-09-16 run on
+the DigitalOcean droplet (23 PASS, 4 FAIL; `agent/evals/README.md` keeps
+what it found). The measured conversation costs in `docs/COST_ANALYSIS.md`
+§1.4 are from the same host and day. The load test is not:
+`agent/load-test/RESULTS.md` (the 10 and 50 virtual-user runs and their CPU
+and memory baseline) was measured against the DigitalOcean droplet
+(`201.79.25.22`) on 2026-09-16 and **has not been re-run on the Vultr
+host.** That record stays as it was measured. It describes the droplet: its
+hardware (F-44) and its patient population, whose FHIR ids do not exist on
+the Vultr host's fresh install (F-61). It is not a measurement of the
+current deployment. Other statements in this document that quote the
+2026-09-16 eval run say so where they do. The functional checks on Vultr
+from 2026-09-17 are the chart embed (module `docs/deployment.md` §2.1) and
+the Postman collection (`agent/api-collection/README.md`).
 
 ### Case study: the Docker/UFW port-exposure incident (F-54)
 
