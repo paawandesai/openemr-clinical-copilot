@@ -858,7 +858,7 @@ against Anthropic's published feature-eligibility table.
 | A refusal costs no model call | **Measured.** Decided by rule before retrieval or drafting (`agent/app/conversation/routing.py`); eval case I5. |
 | 20 encounters/day, 21 days/month, peak factor 2, follow-up rates (4, 15 or 40 turns a day) | **Assumed.** The conversation is deployed; nobody has used it in a clinic. |
 | Development spend of $0.36 | **Measured.** Anthropic Console Usage page, last 30 days, all workspaces and keys, read 2026-09-16. |
-| The droplet breaking at about 1K users | **Estimated.** OpenEMR FHIR throughput is unmeasured (F-24, F-47). |
+| The droplet breaking at about 1K users | **Estimated**, but no longer unmeasured at the low end. The 2026-09-20 load test on the Vultr host (`agent/load-test/RESULTS.md`) sustained 2.39 briefs/s (143/min) at 0% errors with 10 concurrent users, and broke at 50 concurrent: 56% errors, OpenEMR's PHP tier pinning ~4 cores and 4.94 GiB. The agent stayed under 20% of one core. So the ceiling is OpenEMR's, and on this hardware it sits between those two levels (F-24, F-47 remain open for the shape in between). |
 | Sonnet 5 and Haiku 4.5 quality on the brief | **Unknown** until an eval runs. |
 
 ## 7. Replacing estimates with measurements, most valuable first
@@ -873,8 +873,13 @@ against Anthropic's published feature-eligibility table.
    minimum and Sonnet 5's 1,024.
 3. **Done:** the development spend was read from the Anthropic Console's
    Usage page on 2026-09-16 ($0.36, §2.2).
-4. **Load-test with a stubbed model call** at 83 and 833 briefs per minute,
-   to find where OpenEMR's FHIR endpoint on the droplet saturates (§4.9).
+4. **Partly done 2026-09-20** (`agent/load-test/RESULTS.md`): a stubbed load
+   test on the Vultr host sustained 143 briefs/minute at 0% errors and
+   failed 56% of requests at 50 concurrent users, with OpenEMR's PHP tier —
+   not the agent — as the constraint. That brackets §4.9's 83 briefs/minute
+   (reachable) but not its 833 (roughly six times past where this host
+   broke). Still open: the levels in between, and the same test on whatever
+   BAA-covered substrate a real deployment uses.
 5. **Done for the conversation's tokens (§1.4).** Still open: how often
    physicians ask, and the rate of follow-ups within 5 minutes, which is
    the 28% threshold in §4.5b. Both need real use; Metric 6 by use case
