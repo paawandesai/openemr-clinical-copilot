@@ -317,3 +317,34 @@ behaviour is §5.3.
 | `modules` table | Immunization (`mod_id` 1) unharmed: `mod_active` 1, `sql_run` 1, `type` 1, `date` `2026-09-16 23:48:31`, as rows 2–5. Row 17 unchanged. No install step ran; `bin/console openemr:zfc-module` was not used. |
 | Ports and bindings | Unchanged from §1. The agent stack was not touched. |
 
+## 6. Patient header on the brief and every answer (F-62): built, not deployed (2026-09-20)
+
+Branch `feat/answer-patient-header`. The card's responses gain a `patient`
+object (name, date of birth) and the card renders it as a bar above the brief
+and above each follow-up answer (README, "Whose brief, whose answer"). The
+host still runs §5's files: there, answers carry no patient bar.
+
+- **To deploy:** copy the module directory as in §5.1 step 2 (`git archive`
+  skips `tests/`; send those separately). New: `src/OpenPatient.php`,
+  `tests/OpenPatientTest.php`. Changed: `public/brief.php`,
+  `public/conversation.php`, `public/assets/pre-visit-brief-card.js`,
+  `templates/pre_visit_brief_card.html.twig`, `src/AgentClient.php`,
+  `src/ConversationTurn.php`, `src/PreVisitBrief.php`,
+  `tests/AgentClientTest.php`. No database change, no agent change. The card
+  script and both endpoints must go together: the new script treats a
+  response without `patient.name` as a failure.
+- **Verified without deploying:** `php -l`, PHPCS, PHPStan level 10 (scoped to
+  the module) clean; module PHPUnit 89 tests, 167 assertions. `OpenPatient`
+  run read-only against the host's `patient_data`: pid 1 → "Phil Belford",
+  1972-02-09; pid 22 → "Dirk334 Crist667"; pid 49 → "Tonja658 Grant908"; each
+  UUID equal to the patient's FHIR id. The real template and script in
+  headless Chrome (800 px and 420 px, endpoints stubbed): the bar is the first
+  element of the brief and of every turn, including refusals; a response
+  without a patient renders as an error, not an answer; no JS errors, no
+  overflow.
+- **Operator check after deploying:** open Phil Belford, ask "which of
+  Tonja's medications are active?". Expect your question, then directly under
+  it a dark bar "Answer for Phil Belford  DOB 1972-02-09", then Turn 1 with
+  Norvasc and Lisinopril. The brief opens with "Pre-Visit Brief for Phil
+  Belford". Switch to Tonja658 Grant908: both bars name her.
+

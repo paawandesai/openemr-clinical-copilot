@@ -2032,6 +2032,122 @@ Pass-2 droplet database commands were run as
   end date; that no live record has one is a property of this seed (F-43),
   not of the code.
 
+### F-62 — A question that names another patient is answered for the open chart without saying so
+- **Category:** Verification / Presentation (comprehension; **not** data exposure)
+- **Severity:** Medium
+- **Claim:** A follow-up question that names a person other than the patient
+  whose chart is open is answered as if it had named the open patient. With
+  Phil Belford's chart open, "which of Tonja's medications are active?"
+  returned Phil's medications, verified against Phil's chart, with nothing
+  saying that the name in the question is not the open patient. Every
+  statement in the answer is true of the chart it cites, and the answer
+  counts Phil's records. What it never says is *whose* they are, so a
+  physician who asks about patient X with patient Y's chart open gets a
+  confident, fully verified answer about Y. That is a wrong-patient
+  comprehension risk. In kind it is F-21's and F-57's: the system is honest
+  about the data it used, and a rushed reader can still take the wrong thing
+  from it. Here the wrong thing is which patient the answer is about.
+- **What this is not:** a cross-patient leak. Isolation held. Only the open
+  patient's records were retrieved, drafted from, verified and shown; none of
+  Tonja658 Grant908's data was read or appeared. The defence against
+  conversation state following the clinician to another chart (F-50;
+  `agent/app/conversation/state.py`; eval I1; the embed's
+  `ConversationSessionId`) is a different mechanism, was not involved, and is
+  intact. Nobody saw data they should not have; somebody could misread whose
+  data they saw.
+- **Evidence:**
+  - Found (`operator-reported`, 2026-09-19): live browser test of the
+    deployed chart embed, operator-driven. Phil Belford's chart (pid 1,
+    `a2c36e54-af42-4c38-b86e-ade616ed5494`) open; question "which of Tonja's
+    medications are active?"; answer Norvasc and Lisinopril, verified.
+  - Reproduced (`first-hand`, deployed agent `POST /pre-visit-brief/conversation`,
+    2026-09-20T04:10Z, correlation `ff10bdf3-e7f5-4b02-945b-489f389e17f1`),
+    same question, `patient_id` Phil's:
+    ```
+    turn_status: answered   verification: {"claims": 4, "verified": 4, "unverified": 0}
+    refusals: []   gaps: []   patient_id: a2c36e54-af42-4c38-b86e-ade616ed5494
+      - Medication: Norvasc
+      - Medication "Norvasc", status: active
+      - Medication: Lisinopril
+      - Medication "Lisinopril", status: active
+    Answered only from what was retrieved for this turn: 2 problem records (2 active),
+    2 medication records (2 active), 1 allergy records, ...
+    claims cite MedicationRequest a2c36e54-abe0-41e5-993f-775c51e0b2ad (Norvasc)
+                and             a2c36e54-abe3-4cd7-8db9-8b4bf50931f0 (Lisinopril)
+    retrieval: Condition 2, MedicationRequest 2, AllergyIntolerance 1
+    ```
+    Both source ids are Phil's records (the same ids his brief cites). The
+    answer contains neither "Tonja" nor either of her medications
+    (Fexofenadine, the epinephrine auto-injector).
+  - Why (`first-hand`, source). Every layer binds the turn to the open chart,
+    and none reads the question for whom it is about:
+    - the embed sends the patient from the session, never from the browser
+      beyond a `pid` that must match it (`ChartRequest`, module
+      `public/conversation.php`). That guard compares the *request's* pid
+      with the open chart. It does not, and cannot, look at the question;
+    - the agent retrieves only for the request's `patient_id`
+      (`agent/app/graph/conversation.py` `_retrieve`);
+    - routing refuses questions about other patients only for generic
+      wording: `agent/app/conversation/routing.py:81-85`, category
+      `other_patients`, matches "another patient", "someone else", "patient
+      list" and the like. A proper name matches nothing: `route("Which of
+      Tonja's medications are active?", frozenset())` returns no refusal and no expansion;
+    - the drafting prompt (`agent/app/reasoning/draft_conversation_turn.py`)
+      gives the model one chart's records and a question. The model is never
+      told the patient's name (the agent discards demographics unread,
+      `agent/app/fhir/client.py` `ensure_patient_exists`), so it has nothing
+      to compare "Tonja" with, and it answers from the records it holds.
+- **Remediation:** mitigated 2026-09-20 on `feat/answer-patient-header`,
+  **not deployed**. A display change, not detection.
+  - *Every answer names its patient, first.* In the chart embed each
+    follow-up turn, and the brief itself, now opens with a full-width bar:
+    "Answer for Phil Belford · DOB …" / "Pre-Visit Brief for …". The
+    asked-about-X, answered-for-Y mismatch is then in front of the physician
+    on every turn, for them to catch.
+  - *The name is the server's.* `brief.php` and `conversation.php` build it
+    (`OpenPatient`) from the `patient_data` row of the pid `ChartRequest` has
+    just matched to the session, in the same request, from the same row that
+    supplies the UUID sent to the agent. It is never taken from the browser
+    or the question. `PreVisitBrief::toCardPayload()` and
+    `ConversationTurn::toCardPayload()` now *require* an `OpenPatient`, so a
+    payload cannot be built unnamed; a patient row with no name fails the
+    request; and the card treats a response without `patient.name` as a
+    failure rather than rendering it. `AgentClient` additionally rejects an
+    agent response whose `patient_id` is not the UUID it sent, so the name
+    shown is the patient the answer was computed against.
+  - *Standalone UI:* each turn opens with "Answer for patient `<uuid>`",
+    from the response's own `patient_id`, not the form. That page identifies
+    patients by id throughout and has no name to show: the agent never reads
+    demographics, and this change keeps it that way. An id is a weaker
+    at-a-glance cue than a name; the embed, where charts are switched, is
+    the surface that matters.
+  - *Why not detect the name.* Deciding whether a question refers to someone
+    other than the open patient is a fuzzy language problem: first names,
+    nicknames, misspellings, "my last patient", pronouns, a relative named in
+    a family-history question, a drug or condition that is also a name. It
+    would also mean giving the patient's name to the agent, which today
+    never holds it. A detector that catches "Tonja" and misses the next
+    phrasing buys false confidence: the physician learns that the co-pilot
+    objects when the patient is wrong, and trusts its silence. The header
+    makes no such promise. It is deterministic, costs no model call, cannot
+    be wrong about who the answer is for, and leaves the judgment with the
+    person who knows whom they meant.
+  - No retrieval, routing, drafting, verification or conversation-state code
+    changed. Tests: agent 351 passed (344 before), including "a question
+    naming someone else is answered for the open chart and says whose" and
+    "every turn states the patient it was answered for", and a source check
+    that the standalone page's turn opens with the response's `patient_id`;
+    module PHPUnit 89 tests, 167 assertions (76 before), PHPStan level 10 and
+    PHPCS clean. Both surfaces were rendered in headless Chrome with this
+    finding's question: the embed with stubbed endpoints, the standalone page
+    served locally against the live FHIR API.
+- **Verified:** `first-hand` (reproduction, source) · original observation
+  `operator-reported`.
+- **Residual risk:** the header depends on being read. A physician who does
+  not look at it is where they were before. The agent's plain-text `answer`
+  (and any other client of the API) still does not name the patient; only
+  `patient_id` in the response does.
+
 ---
 
 ## PERFORMANCE
