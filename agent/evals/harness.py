@@ -244,6 +244,33 @@ class LiveAgent:
         return self._briefs[patient_id]
 
 
+# Every model call an in-process run made, as the agent's own llm_usage_event
+# reported it: token counts and latency, never content. conftest.py writes
+# this to the results file; docs/COST_ANALYSIS.md is computed from it. Calls
+# the deployed agent makes for live-endpoint cases are in that host's log,
+# not here.
+MODEL_USAGE: list[dict[str, Any]] = []
+
+
+def record_model_usage(events: list[dict[str, Any]], kind: str, **context: Any) -> None:
+    case = os.environ.get("PYTEST_CURRENT_TEST", "").split("::")[-1].split(" ")[0]
+    for event in events:
+        if event.get("event_type") != "llm_usage_event":
+            continue
+        data = event.get("event_data") or {}
+        MODEL_USAGE.append({
+            "case": case,
+            "kind": kind,
+            "model": data.get("served_model") or data.get("model"),
+            "input_tokens": data.get("input_tokens"),
+            "output_tokens": data.get("output_tokens"),
+            "cache_read_input_tokens": data.get("cache_read_input_tokens"),
+            "cache_creation_input_tokens": data.get("cache_creation_input_tokens"),
+            "latency_ms": data.get("latency_ms"),
+            **context,
+        })
+
+
 @dataclass
 class PipelineRun:
     result: Any  # app.graph.pre_visit_brief.PreVisitBriefResult | None
@@ -300,6 +327,7 @@ class InProcessPipeline:
                 except Exception as exc:  # the case decides whether this is the expected outcome
                     error = exc
         events = [e for e in logs if e.get("event") == "agent_event"]
+        record_model_usage(events, "brief", patient_id=patient_id)
         return PipelineRun(result, error, events, key)
 
 
@@ -338,9 +366,10 @@ class InProcessConversation:
     """
     POST /pre-visit-brief/conversation on this checkout's FastAPI app, in
     this process, against the real deployment-host FHIR API and the real
-    model. The multi-turn endpoint is not deployed, so there is no live
-    endpoint to call; everything behind the HTTP layer is nonetheless real,
-    including the process-wide conversation store.
+    model. The endpoint is deployed too (since 2026-09-19), but these cases
+    inspect what the model was sent, inject claims and read the conversation
+    store, which only an in-process run allows; everything behind the HTTP
+    layer is nonetheless real, including the process-wide conversation store.
     """
 
     aio: Runner
@@ -385,11 +414,24 @@ class InProcessConversation:
             parsed = response.json()
         except ValueError:
             parsed = None
+        events = [e for e in logs if e.get("event") == "agent_event"]
+        body = parsed if isinstance(parsed, dict) else {}
+        record_model_usage(
+            events,
+            "conversation_turn",
+            patient_id=patient_id,
+            turn=(body.get("conversation") or {}).get("turn"),
+            context_claims=(body.get("conversation") or {}).get("context_claims"),
+            turn_status=body.get("turn_status"),
+            claims=len(body.get("claims") or []),
+            retrieved={r["resource_type"]: [r["considered"], r["retrieved"]] for r in body.get("retrieval") or []},
+            turn_seconds=(body.get("timing") or {}).get("total_seconds"),
+        )
         return TurnRun(
             status=response.status_code,
             body=parsed if isinstance(parsed, dict) else None,
             text=response.text,
-            events=[e for e in logs if e.get("event") == "agent_event"],
+            events=events,
             model_inputs=model_inputs,
             log_text=json.dumps(logs, default=str),
         )
