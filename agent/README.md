@@ -166,10 +166,6 @@ python scripts/compute_metrics.py --log-file logs/agent-stdout.jsonl
 ## Not built yet
 
 - Change Detection, so also the brief's "changed since last visit" line.
-- Deployment of the multi-turn conversation, and a conversation view inside
-  the OpenEMR chart: the embed module keeps its single-turn brief card, and
-  the conversation's only surface is the standalone UI (`deploy/ui/`).
-  Embedding it natively in the chart is the documented next step.
 - Verification of multi-record synthesis ("is it worsening?"). The
   conversation refuses those questions instead (`ARCHITECTURE.md` §5).
 - A shared store for conversation state (Redis). It is in-memory, which is
