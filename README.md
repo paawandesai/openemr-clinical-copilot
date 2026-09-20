@@ -31,29 +31,35 @@ How to see the agent:
   patient. The patient's **Dashboard** opens, and its first card is
   **Clinical Co-Pilot: Pre-Visit Brief**, above Demographics. It generates
   the brief when the chart opens. Users without medical-record access, such
-  as `receptionist`, do not see the card. Walkthrough:
+  as `receptionist`, do not see the card. Below the brief, **Ask about this
+  patient** opens the multi-turn conversation in the same card. Walkthrough:
   [module deployment §3](interface/modules/custom_modules/oe-module-clinical-copilot/docs/deployment.md).
-  For a clean demo, do not use Phil Belford, the walkthrough's and API
-  collection's example patient. His penicillin allergy has no allergen code
-  and shows as "(unspecified allergen)", marked verified: defect F-57 in
-  [docs/audit/findings.md](docs/audit/findings.md). Use a patient whose
-  allergies are coded
-  ([agent/api-collection/README.md](agent/api-collection/README.md) names
-  one).
+  Phil Belford, the walkthrough's and API collection's example patient, is
+  worth a look: his penicillin allergy carries no allergen code, and the
+  brief used to render it as "(unspecified allergen)" marked verified —
+  defect F-57 in [docs/audit/findings.md](docs/audit/findings.md). Since the
+  fix deployed, it reads "penicillin", verified against the record's
+  narrative.
 - **Standalone UI.** Open `https://64.177.42.210:8443/`, then paste a
   patient's FHIR id and a clinician's OpenEMR access token. **Need a token?**
   on the page shows the command to get one.
 - **API.** `GET /health`, `GET /ready`, `POST /pre-visit-brief`,
   `POST /pre-visit-brief/follow-up` (one constrained, single-turn question
-  on a brief), and `GET /docs` (the OpenAPI contract), all on port 8443.
+  on a brief), `POST /pre-visit-brief/conversation` and
+  `POST /pre-visit-brief/conversation/end` (the multi-turn conversation,
+  one turn per request), and `GET /docs` (the OpenAPI contract), all on
+  port 8443.
   The easiest way to run every workflow is the
   [Postman collection](agent/api-collection/README.md).
 
-Audit, eval and load-test records name the host they were run against, which
-is the pre-migration host, a DigitalOcean droplet. The current host is a
-fresh install on Vultr, so patient ids in those records do not exist on it.
-The eval and load-test numbers describe the droplet, not the Vultr host.
-Re-running both on Vultr is pending.
+Audit, eval and load-test records each name the host they were run against.
+The **evals are current**: both suites were re-run on the Vultr host on
+2026-09-20 (cases A–H, 29 PASS / 2 FAIL of 31; the conversation cases,
+8 PASS of 8), and the two failures are known, documented defects — F-58 and
+F-59 — not regressions. The **load test and the audit are pre-migration**,
+measured against the DigitalOcean droplet; re-running the load test on Vultr
+is pending. The current host is a fresh install, so patient ids in the
+pre-migration records do not exist on it.
 No BAA covers the Vultr host. That is acceptable only because all data is
 synthetic
 ([docs/ARCHITECTURE.md §1](docs/ARCHITECTURE.md#1-deployment-topology)).
@@ -68,10 +74,12 @@ FHIR R4 API, using the clinician's own OAuth token. Its one LLM call drafts
 claims, each tied to a source record. Before anything is shown, a
 deterministic checker compares each claim to that record. Claims that fail
 are marked UNVERIFIED, never silently dropped. Every request carries a
-correlation id through structured JSON logs. An eval suite and load tests
-were run against the deployed agent on the pre-migration DigitalOcean host
-(above). A constrained, single-turn follow-up question is also built.
-Change Detection and multi-turn conversation are not
+correlation id through structured JSON logs. The eval suite was run against
+the deployed agent on Vultr; the load tests date from the pre-migration
+DigitalOcean host (above). Follow-Up Drilling is also deployed, in two
+forms: a constrained, single-turn follow-up question, and a multi-turn
+conversation that resolves "that" and "last time" against the claims earlier
+turns verified. Change Detection is not built
 ([agent/README.md](agent/README.md), "Not built yet").
 
 ## Deliverables

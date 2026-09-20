@@ -28,16 +28,22 @@ medications (Lisinopril, Metformin, Lipitor), with no line repeated.
 Allergies showed as not recorded, which is correct: her chart has none.
 All 4 of 4 claims were verified.
 
+**To show the F-57 fix,** use Phil Belford on Vultr
+(`a2c36e54-af42-4c38-b86e-ade616ed5494`). OpenEMR sends his penicillin
+allergy with no allergen code, carrying the name only in the record's
+narrative (`FhirAllergyIntoleranceService.php:217-221`). The brief used to
+render that as `(unspecified allergen)` and count it verified — defect F-57
+in `docs/audit/findings.md`. Since the fix deployed, his brief names
+`penicillin`, verified against the narrative. Checked live on 2026-09-20:
+two active problems, two current medications, `Allergies: - penicillin`,
+5 of 5 claims verified. Eval cases A5 and B1 hold this behaviour, and group
+H covers the shapes this population lacks.
+
 Do not use these as the demo patient:
 
 - **`a2c0e096-23d5-4cf9-ad5b-4895597363a7`**, the old default: Phil Belford
   on the DigitalOcean host. The Vultr host is a fresh install with new FHIR
   ids, so this id does not exist there (404 `patient_not_found`).
-- **`a2c36e54-af42-4c38-b86e-ade616ed5494`**, Phil Belford on Vultr: his
-  penicillin allergy has no allergen code, so the brief shows
-  `(unspecified allergen)` and counts it as verified. That is defect F-57
-  (`docs/audit/findings.md`), not a clean brief. The collection's checks
-  would still pass, because they test the contract, not the allergen name.
 - **Synthea patients whose charts hold each medication twice**, as a
   medication-list entry and as a prescription. Every claim verifies, but
   each current medication is listed twice. Examples: Abbie917 Ullrich385

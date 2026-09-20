@@ -9,10 +9,10 @@ and `agent/scripts/compute_metrics.py` computes these metrics from the
 agent's stdout log (`ARCHITECTURE.md` §1). Computation below is grounded in
 what the code actually records. That is the `(user, patient, session)` key
 attached to every logged event, and the per-claim `source_id` + pass/fail
-determination §5's verification step computes. For everything deployed the
-key is a per-request attribution label that groups events, with no
-conversation state behind it. The multi-turn conversation (built, not
-deployed) tags its events with the same key and also keeps verified claims
+determination §5's verification step computes. For the brief and the
+single-turn follow-up the key is a per-request attribution label that groups
+events, with no conversation state behind it. The multi-turn conversation
+(deployed) tags its events with the same key and also keeps verified claims
 under it (`ARCHITECTURE.md` §4). No new logging framework or infra decision
 is proposed here.
 
@@ -204,12 +204,13 @@ meaningfully different profiles: Pre-Visit Brief and Change Detection are
 each single-turn (USERS.md §3; ARCHITECTURE.md §4), while Follow-Up
 Drilling is the only one designed to carry conversation state across turns
 (ARCHITECTURE.md §4) — a materially different token footprint that a
-single blended average would obscure. As deployed, the follow-up is a
-single-turn question with no conversation state, and Change Detection does
-not exist, so today's per-use-case figures cover the brief and that
-single-turn follow-up only. The multi-turn conversation (built, not
-deployed) emits the same `llm_usage_event` per turn; its token footprint has
-not been measured. Worth noting: because §5's
+single blended average would obscure. Change Detection does not exist, so
+today's per-use-case figures cover the brief, the single-turn follow-up and
+the multi-turn conversation. The conversation emits the same
+`llm_usage_event` per turn, and its token footprint has been measured:
+3,970 to 22,690 input tokens a turn across charts of 5 to 184 records,
+against the brief's 1,243 to 4,378 (`docs/COST_ANALYSIS.md` §1.4,
+measured 2026-09-20 on the Vultr host). Worth noting: because §5's
 verification step is a deterministic code check, not a second model call,
 it contributes effectively zero token cost — this metric tracks the
 reasoning step almost exclusively, not a diluted average across two
