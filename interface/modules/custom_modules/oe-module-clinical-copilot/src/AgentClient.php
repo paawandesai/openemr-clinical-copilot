@@ -51,6 +51,7 @@ final readonly class AgentClient
             throw $this->failed($status, $body, BriefFailure::BriefGenerationFailed);
         }
         try {
+            self::assertAnsweredFor($patient, $body);
             return PreVisitBrief::fromAgentResponse($body);
         } catch (\UnexpectedValueException $e) {
             throw $this->brokeContract($body, BriefFailure::BriefGenerationFailed, $e);
@@ -78,6 +79,7 @@ final readonly class AgentClient
             throw $this->failed($status, $body, BriefFailure::AnswerGenerationFailed);
         }
         try {
+            self::assertAnsweredFor($patient, $body);
             return ConversationTurn::fromAgentResponse($body);
         } catch (\UnexpectedValueException $e) {
             throw $this->brokeContract($body, BriefFailure::AnswerGenerationFailed, $e);
@@ -158,6 +160,20 @@ final readonly class AgentClient
             'exception' => $e,
         ]);
         return new BriefUnavailable($failure, $correlationId, $e);
+    }
+
+    /**
+     * The card names the open patient above what the agent returns (F-62), so
+     * the agent must say it answered for that patient.
+     *
+     * @param array<mixed> $body
+     * @throws \UnexpectedValueException
+     */
+    private static function assertAnsweredFor(PatientUuid $patient, array $body): void
+    {
+        if (($body['patient_id'] ?? null) !== $patient->value) {
+            throw new \UnexpectedValueException('Agent response is not for the patient it was asked about');
+        }
     }
 
     /**

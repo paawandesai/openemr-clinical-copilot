@@ -720,6 +720,35 @@ def test_switching_patient_mid_conversation_leaks_nothing_and_invalidates_state(
     assert world.drafts[-1]["context"] == ()
 
 
+def test_a_question_naming_someone_else_is_answered_for_the_open_chart_and_says_whose(world: FakeWorld) -> None:
+    """
+    findings.md F-62. Nothing parses the question for a named third party, by
+    decision: the answer is about the open chart whatever name the question
+    uses. What the contract guarantees instead is that every turn states the
+    patient it was answered for, so a UI can put that above the answer.
+    """
+    world.drafter = _echo_everything_known
+    body = _turn("Which of Tonja's medications are active?", PATIENT_B)
+
+    assert body.patient_id == PATIENT_B
+    assert body.patient_session_key == KEY_B
+    assert {pid for _, pid in world.reads} == {PATIENT_B}
+    assert [c.source_id for c in body.claims] == ["b-cond-1", "b-med-1"]
+    assert not any(text.lower() in body.answer.lower() for text in A_ONLY_TEXT)
+
+
+@pytest.mark.parametrize(
+    "question",
+    ["What is she on?", "Is her kidney function worsening?", "What was her blood pressure?", "When was that prescribed?"],
+    ids=["no_claims", "refused_unverifiable", "refused_out_of_scope", "reference_back"],
+)
+def test_every_turn_states_the_patient_it_was_answered_for(world: FakeWorld, question: str) -> None:
+    """F-62: answered, refused or empty, the response names its patient; both UIs head the answer with it."""
+    world.drafter = _answer(gaps=[ConversationGap.UNRESOLVED_REFERENCE], coverage=Coverage.NONE)
+    for patient_id in (PATIENT_A, PATIENT_B):
+        assert _turn(question, patient_id).patient_id == patient_id
+
+
 def test_patient_a_claims_asserted_during_patient_b_never_verify(world: FakeWorld) -> None:
     """If a model 'remembered' A anyway, the verifier's bounded set is B's records only."""
     world.drafter = _answer(*_med_claims(A_LISINOPRIL, "display"))

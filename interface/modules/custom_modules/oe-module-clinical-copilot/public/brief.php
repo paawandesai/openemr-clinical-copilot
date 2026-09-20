@@ -8,7 +8,7 @@
  * The token, the client secret and the session id never reach the browser.
  *
  * Request (form-encoded): pid, csrf_token_form.
- * Response: PreVisitBrief::toCardPayload(), or
+ * Response: PreVisitBrief::toCardPayload(), which names the open patient, or
  *   {"status": "error", "error": BriefFailure value, "message": ..., "correlation_id": ...|null}
  *   with BriefFailure::httpStatus().
  *
@@ -29,7 +29,6 @@ use OpenEMR\Common\Acl\AclMain;
 use OpenEMR\Common\Csrf\CsrfUtils;
 use OpenEMR\Common\Logging\EventAuditLogger;
 use OpenEMR\Common\Session\SessionWrapperFactory;
-use OpenEMR\Common\Uuid\UuidRegistry;
 use OpenEMR\Core\OEGlobalsBag;
 use OpenEMR\FHIR\Config\ServerConfig;
 use OpenEMR\Modules\ClinicalCopilot\AgentClient;
@@ -41,7 +40,7 @@ use OpenEMR\Modules\ClinicalCopilot\ClinicianTokenBroker;
 use OpenEMR\Modules\ClinicalCopilot\CoreSessionId;
 use OpenEMR\Modules\ClinicalCopilot\ModuleConfig;
 use OpenEMR\Modules\ClinicalCopilot\ModuleNotConfigured;
-use OpenEMR\Modules\ClinicalCopilot\PatientUuid;
+use OpenEMR\Modules\ClinicalCopilot\OpenPatient;
 use OpenEMR\Services\PatientService;
 use Symfony\Component\HttpClient\HttpClient;
 use Symfony\Component\HttpFoundation\Request;
@@ -90,9 +89,9 @@ try {
     $fail(BriefFailure::NotConfigured);
 }
 
-$uuidBytes = (new PatientService())->getUuid((string) $requestedPid);
 try {
-    $patient = new PatientUuid(is_string($uuidBytes) && $uuidBytes !== '' ? UuidRegistry::uuidToString($uuidBytes) : '');
+    $openPatient = OpenPatient::fromPatientData((new PatientService())->findByPid($requestedPid));
+    $patient = $openPatient->uuid;
     $coreSession = new CoreSessionId($session->getId());
 } catch (\DomainException $e) {
     $logger->error('Clinical Co-Pilot could not identify the patient or session for a brief', ['exception' => $e]);
@@ -137,4 +136,4 @@ try {
 }
 
 $audit(true, 'shown', $brief->correlationId);
-$respond(200, $brief->toCardPayload());
+$respond(200, $brief->toCardPayload($openPatient));

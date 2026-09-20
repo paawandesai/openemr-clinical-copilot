@@ -56,12 +56,14 @@ final readonly class PreVisitBrief
     }
 
     /**
-     * @return array{status: 'ok', brief: string, verification: array{claims: int, verified: int, unverified: int}, correlation_id: string}
+     * @param OpenPatient $patient Whom the brief is about: required, so no brief reaches the card unnamed (F-62).
+     * @return array{status: 'ok', patient: array{name: string, date_of_birth: ?string}, brief: string, verification: array{claims: int, verified: int, unverified: int}, correlation_id: string}
      */
-    public function toCardPayload(): array
+    public function toCardPayload(OpenPatient $patient): array
     {
         return [
             'status' => 'ok',
+            'patient' => $patient->toCardPayload(),
             'brief' => $this->text,
             'verification' => [
                 'claims' => $this->claims,

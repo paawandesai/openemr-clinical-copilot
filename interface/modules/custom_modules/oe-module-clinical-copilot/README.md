@@ -35,6 +35,23 @@ Deployment record for the live host and operator verification steps:
 Only users with the `patients`/`med` ACL (medical records) see the card. The
 endpoints check the same ACL again.
 
+### Whose brief, whose answer
+
+The brief and every follow-up answer open with a dark bar naming the patient:
+"Pre-Visit Brief for Phil Belford · DOB 1972-02-09", "Answer for Phil
+Belford · …". A question can name anyone ("which of Tonja's medications are
+active?"); the co-pilot answers only for the open chart and does not try to
+notice the difference (`docs/audit/findings.md` F-62), so the card says whose
+answer it is, every time, for the physician to catch a mismatch.
+
+The name comes from the server: `brief.php` and `conversation.php` build it
+(`src/OpenPatient.php`) from the `patient_data` row of the pid `ChartRequest`
+has just matched to the session, the same row that supplies the UUID sent to
+the agent. It is never read from the page or the question. A card payload
+cannot be built without it, `AgentClient` rejects an agent response whose
+`patient_id` is not the UUID it sent, and the card refuses to render a
+response that has no patient name.
+
 ### Follow-up questions
 
 Shown under the brief once a brief has rendered. Treatment matches the
@@ -96,8 +113,9 @@ OpenEMR (Apache/PHP): brief.php / conversation.php
   │                                                                        or  POST /pre-visit-brief/conversation
   │                                                                        Authorization: Bearer <token>
   ▼
-JSON to the card: brief text or the turn (answer, claims, retrieval), verification counts,
-correlation id (never the token, the agent session id or patient_session_key)
+JSON to the card: the open patient's name and date of birth (from OpenEMR, not the agent),
+brief text or the turn (answer, claims, retrieval), verification counts, correlation id
+(never the token, the agent session id or patient_session_key)
 ```
 
 ### Where the clinician's token comes from
@@ -249,6 +267,9 @@ They cover:
 - the agent client's contract and its error mapping, for the brief and for
   a conversation turn, and that a turn's payload to the browser carries no
   session id, `patient_session_key` or patient id;
+- that a brief or turn payload always names the open patient, that the name
+  and the UUID sent to the agent come from one `patient_data` row, and that an
+  agent response for any other patient is rejected;
 - the request guard both endpoints share (`ChartRequest`): method, CSRF,
   pid, ACL, and rejection when the session's open patient is not the card's;
 - the conversation session derivation: stable across turns, different for

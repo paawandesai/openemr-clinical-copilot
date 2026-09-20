@@ -20,6 +20,7 @@ use OpenEMR\Modules\ClinicalCopilot\ConversationNonce;
 use OpenEMR\Modules\ClinicalCopilot\ConversationSessionId;
 use OpenEMR\Modules\ClinicalCopilot\CoreSessionId;
 use OpenEMR\Modules\ClinicalCopilot\FollowUpQuestion;
+use OpenEMR\Modules\ClinicalCopilot\OpenPatient;
 use OpenEMR\Modules\ClinicalCopilot\PatientUuid;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
@@ -60,10 +61,11 @@ final class AgentClientTest extends TestCase
 
         $this->assertSame([
             'status' => 'ok',
+            'patient' => ['name' => 'Phil Belford', 'date_of_birth' => '1972-02-09'],
             'brief' => "Pre-Visit Brief\n\nAllergies: not recorded",
             'verification' => ['claims' => 2, 'verified' => 1, 'unverified' => 1],
             'correlation_id' => 'corr-1',
-        ], $brief->toCardPayload());
+        ], $brief->toCardPayload(self::openPatient()));
     }
 
     #[DataProvider('agentFailures')]
@@ -98,6 +100,14 @@ final class AgentClientTest extends TestCase
             'agent internal error' => [$error(500, 'internal_error'), BriefFailure::BriefGenerationFailed, 'corr-500'],
             'proxy error page, not JSON' => [new MockResponse('<html>502</html>', ['http_code' => 502]), BriefFailure::AgentUnavailable, null],
             'connection failure' => [new MockResponse('', ['error' => 'TLS handshake failed']), BriefFailure::AgentUnavailable, null],
+            'brief for a patient other than the one asked about' => [
+                new MockResponse(
+                    '{"brief":"x","patient_id":"a2c37430-0a29-4c57-8195-2c924c2b654a","correlation_id":"c","verification":{"claims":0,"verified":0,"unverified":0}}',
+                    ['http_code' => 200],
+                ),
+                BriefFailure::BriefGenerationFailed,
+                'c',
+            ],
             '200 that breaks the contract' => [
                 new MockResponse('{"brief":"x","correlation_id":"c","verification":{"claims":3,"verified":1,"unverified":1}}', ['http_code' => 200]),
                 BriefFailure::BriefGenerationFailed,
@@ -126,7 +136,9 @@ final class AgentClientTest extends TestCase
             json_decode($seen->body(), true, flags: JSON_THROW_ON_ERROR),
         );
 
-        $payload = $turn->toCardPayload();
+        $payload = $turn->toCardPayload(self::openPatient());
+        // F-62: every answer names the open patient, from the server's own record.
+        $this->assertSame(['name' => 'Phil Belford', 'date_of_birth' => '1972-02-09'], $payload['patient']);
         $this->assertSame('partially_answered', $payload['turn_status']);
         $this->assertSame(['claims' => 2, 'verified' => 1, 'unverified' => 1], $payload['verification']);
         $this->assertSame('reset_patient_changed', $payload['conversation']['transition']);
@@ -153,6 +165,7 @@ final class AgentClientTest extends TestCase
 
         $this->assertSame('refused_unverifiable', $turn->turnStatus);
         $this->assertSame([], $turn->claims);
+        $this->assertSame('Phil Belford', $turn->toCardPayload(self::openPatient())['patient']['name']);
     }
 
     #[DataProvider('conversationFailures')]
@@ -181,6 +194,10 @@ final class AgentClientTest extends TestCase
         );
         $inconsistent = self::turnResponse();
         $inconsistent['verification'] = ['claims' => 2, 'verified' => 2, 'unverified' => 0];
+        $anotherPatient = self::turnResponse();
+        $anotherPatient['patient_id'] = 'a2c37430-0a29-4c57-8195-2c924c2b654a';
+        $noPatient = self::turnResponse();
+        unset($noPatient['patient_id']);
         $noClaimText = self::turnResponse();
         $noClaimText['claims'] = [['resource_type' => 'Condition', 'source_id' => 's', 'field' => 'display', 'verified' => true]];
         return [
@@ -192,6 +209,8 @@ final class AgentClientTest extends TestCase
             'agent internal error' => [$error(500, 'internal_error'), BriefFailure::AnswerGenerationFailed, 'corr-500'],
             'an agent without the conversation endpoint' => [new MockResponse('{"detail":"Not Found"}', ['http_code' => 404]), BriefFailure::AgentUnavailable, null],
             'connection failure' => [new MockResponse('', ['error' => 'TLS handshake failed']), BriefFailure::AgentUnavailable, null],
+            'answer for a patient other than the one asked about' => [new MockResponse(json_encode($anotherPatient, JSON_THROW_ON_ERROR)), BriefFailure::AnswerGenerationFailed, 'corr-turn'],
+            'answer that does not say whom it is for' => [new MockResponse(json_encode($noPatient, JSON_THROW_ON_ERROR)), BriefFailure::AnswerGenerationFailed, 'corr-turn'],
             'summary that contradicts the claims' => [new MockResponse(json_encode($inconsistent, JSON_THROW_ON_ERROR)), BriefFailure::AnswerGenerationFailed, 'corr-turn'],
             'claim without its text' => [new MockResponse(json_encode($noClaimText, JSON_THROW_ON_ERROR)), BriefFailure::AnswerGenerationFailed, 'corr-turn'],
         ];
@@ -212,6 +231,17 @@ final class AgentClientTest extends TestCase
         $this->assertInstanceOf(HttpExchange::class, $seen);
         $this->assertSame('https://agent.example:8443/pre-visit-brief/conversation/end', $seen->url);
         $this->assertSame(['patient_id' => self::PATIENT, 'session_id' => $session->value], json_decode($seen->body(), true, flags: JSON_THROW_ON_ERROR));
+    }
+
+    private static function openPatient(): OpenPatient
+    {
+        return OpenPatient::fromPatientData([
+            'uuid' => hex2bin(str_replace('-', '', self::PATIENT)),
+            'fname' => 'Phil',
+            'mname' => '',
+            'lname' => 'Belford',
+            'DOB' => '1972-02-09',
+        ]);
     }
 
     private static function session(): ConversationSessionId
