@@ -63,10 +63,19 @@ human sets that outside the session. This exists so that a branch cannot both
 fail on a case and delete the case in the same commit. Report what you staged
 and why it should be promoted; do not promote it yourself.
 
-The hook matches on the resolved path, so `staging/../cases/x.json` and a write
-through a symlinked directory are blocked the same as a direct write. **Do not
-create symlinks anywhere under `agent/evals/`** — they are refused on both the
-link and the target side, exempt directories included.
+Two hooks enforce this. `gate-guard.sh` runs **before** a tool call and matches
+on the resolved path, so `staging/../cases/x.json` and a write through a
+symlinked directory are blocked the same as a direct write. **Do not create
+symlinks anywhere under `agent/evals/`** — they are refused on both the link
+and the target side, exempt directories included.
+
+`gate-effect-check.sh` runs **after** every Bash call and does not read the
+command at all: it asks git what changed and restores any protected path that
+moved. A `cd` into the directory, a path held in a variable, and a script that
+does the writing are all caught the same way. It reverts *any* uncommitted
+change to a protected path, not only the last command's — so a session that is
+deliberately editing gate files must be started with `W2_GATE_SESSION=1`, or it
+will lose those edits on its next Bash call.
 
 ## Where things are
 
