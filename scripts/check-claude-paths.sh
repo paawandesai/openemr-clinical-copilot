@@ -32,7 +32,8 @@ PLANNED=(
 # excused. A relocation that has happened makes its entry fail, which is the
 # prompt to update the note.
 ELSEWHERE=(
-  'agent/evals/factory@feat/doc-factory'
+  # (empty) — agent/evals/factory@feat/doc-factory lived here until that branch
+  # relocated to agent/evals/w2/factory/; this check is what noticed.
 )
 
 # Repo-relative prefixes a real path starts with. Anything else in backticks is
@@ -41,12 +42,14 @@ TOPLEVEL='^(agent|docs|scripts|src|library|interface|apis|templates|sql|tests|pu
 
 is_planned() {
   local p="$1" q
+  [ "${#PLANNED[@]}" -eq 0 ] && return 1
   for q in "${PLANNED[@]}"; do [ "$p" = "$q" ] && return 0; done
   return 1
 }
 
 elsewhere_branch() {
   local p="${1%/}" e
+  [ "${#ELSEWHERE[@]}" -eq 0 ] && return 1
   for e in "${ELSEWHERE[@]}"; do
     [ "${e%@*}" = "$p" ] && { printf '%s' "${e#*@}"; return 0; }
   done
