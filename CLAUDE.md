@@ -63,6 +63,11 @@ human sets that outside the session. This exists so that a branch cannot both
 fail on a case and delete the case in the same commit. Report what you staged
 and why it should be promoted; do not promote it yourself.
 
+The hook matches on the resolved path, so `staging/../cases/x.json` and a write
+through a symlinked directory are blocked the same as a direct write. **Do not
+create symlinks anywhere under `agent/evals/`** — they are refused on both the
+link and the target side, exempt directories included.
+
 ## Where things are
 
 | Thing | Path |

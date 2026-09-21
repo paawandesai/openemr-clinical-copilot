@@ -12,7 +12,7 @@ report) · `OPEN` (not settled; propose, do not assume) · `PENDING-SPIKE`
 
 ## D1 — Write-back path for documents and lab values
 
-**Status:** PENDING-SPIKE
+**Status:** SUPERSEDED (see D1 superseding, :162)
 **Date:** 2026-09-21
 
 **Decision:** Deferred. How extracted documents and lab values are written back
@@ -161,8 +161,9 @@ recorded against.
 
 ## D1 (superseding) — Write-back path for documents and lab values
 
-**Status:** DECIDED — supersedes the D1 `PENDING-SPIKE` entry above, which is
-left unedited for the record.
+**Status:** DECIDED — supersedes the original D1 above, whose body is left
+unedited for the record; only its status line was flipped to `SUPERSEDED`, as
+the header of this file prescribes.
 **Date:** 2026-09-21
 **Evidence:** [`docs/w2/spikes/writeback.md`](spikes/writeback.md). The draft
 work order that entry pointed at was not the one executed; it is marked
