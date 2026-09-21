@@ -249,5 +249,10 @@ block case generation outright, and the pressure to relax the rule would win.
 `scripts/gate-diff.sh` (pre-merge), which reads the same glob list through
 `gate-guard.sh --check-path` rather than keeping a copy.
 
-**Known migration:** `feat/doc-factory` currently writes to a repo-root
-`evals/factory/`. It relocates to `agent/evals/w2/factory/` when it merges.
+**Known migration:** `feat/doc-factory` writes to `agent/evals/factory/` — 40
+files, verified with `git diff --name-only main feat/doc-factory`. (The
+amendment that prompted this entry described it as a repo-root `evals/factory/`;
+that directory does not exist on that branch. Corrected here as a statement of
+fact; the decision above is unchanged.) `agent/evals/factory/` is gated, since
+`agent/evals/*` is. It relocates to the ungated `agent/evals/w2/factory/` when
+it merges.

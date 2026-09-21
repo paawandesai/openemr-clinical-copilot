@@ -27,6 +27,14 @@ PLANNED=(
   'agent/evals/w2/baseline.json'
 )
 
+# Named in CLAUDE.md as living on another branch (the relocation note). Written
+# as <path>@<branch>; verified to exist THERE, so these are checked, not
+# excused. A relocation that has happened makes its entry fail, which is the
+# prompt to update the note.
+ELSEWHERE=(
+  'agent/evals/factory@feat/doc-factory'
+)
+
 # Repo-relative prefixes a real path starts with. Anything else in backticks is
 # prose ("into `cases/`"), a branch name (`feat/doc-factory`) or a URL.
 TOPLEVEL='^(agent|docs|scripts|src|library|interface|apis|templates|sql|tests|public|sites|\.claude|\.github|\.gitlab-ci\.yml|composer\.json|package\.json|CLAUDE\.md|README\.md)(/|$)'
@@ -37,13 +45,34 @@ is_planned() {
   return 1
 }
 
-ok=0; miss=0; planned_ok=0
+elsewhere_branch() {
+  local p="${1%/}" e
+  for e in "${ELSEWHERE[@]}"; do
+    [ "${e%@*}" = "$p" ] && { printf '%s' "${e#*@}"; return 0; }
+  done
+  return 1
+}
+
+ok=0; miss=0; planned_ok=0; elsewhere_ok=0
 
 check_one() {
-  local f="$1" line=""
+  local f="$1" line="" branch
   case "$f" in
     *:[0-9]*) line="${f##*:}"; f="${f%:*}" ;;
   esac
+
+  if branch=$(elsewhere_branch "$f"); then
+    if ! git rev-parse --verify --quiet "$branch" >/dev/null; then
+      printf '  STALE   %s — branch %s no longer exists; update the note in CLAUDE.md\n' "$f" "$branch"
+      miss=$((miss + 1))
+    elif git ls-tree --name-only "$branch" "${f%/}" 2>/dev/null | grep -q .; then
+      elsewhere_ok=$((elsewhere_ok + 1))
+    else
+      printf '  STALE   %s — not on %s any more; the relocation may have happened\n' "$f" "$branch"
+      miss=$((miss + 1))
+    fi
+    return
+  fi
 
   if is_planned "$f"; then
     if [ -e "$f" ]; then
@@ -93,8 +122,8 @@ while IFS= read -r token; do
   done < <(expand_braces "$token")
 done < <(grep -oE '`[A-Za-z0-9_./{},:*-]+`' CLAUDE.md | tr -d '`' | grep -Fv '*' | sort -u)
 
-printf '\ncheck-claude-paths: %d resolved, %d planned-and-absent, %d broken\n' \
-  "$ok" "$planned_ok" "$miss"
+printf '\ncheck-claude-paths: %d resolved, %d planned-and-absent, %d on another branch, %d broken\n' \
+  "$ok" "$planned_ok" "$elsewhere_ok" "$miss"
 
 [ "$miss" -eq 0 ] || exit 1
 exit 0

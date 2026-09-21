@@ -133,10 +133,12 @@ nonzero if there are any. It reads the globs from
 edit-time hook cannot drift apart. A nonzero exit is not a veto — it means
 review the gate change on its own, before looking at the code.
 
-**Known relocation:** `feat/doc-factory` currently writes to a repo-root
-`evals/factory/`. That root `evals/` tree is gone; when `feat/doc-factory`
-merges, its factory moves to `agent/evals/w2/factory/`. Do not recreate a
-root-level `evals/`.
+**Known relocation:** `feat/doc-factory` writes to `agent/evals/factory/` (40
+files — not a repo-root `evals/`, which does not exist on that branch and must
+not be recreated). `agent/evals/factory/` is gated, because `agent/evals/*`
+is; `agent/evals/w2/factory/` is not. **Relocate it to `agent/evals/w2/factory/`
+when it merges** — `scripts/gate-diff.sh feat/doc-factory` flags all 40 files
+until then.
 
 ## Before you start
 
