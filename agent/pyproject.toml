@@ -11,7 +11,42 @@
 [tool.ruff]
 line-length = 100
 target-version = "py312"
-extend-exclude = [".venv", "__pycache__", "load-test"]
+extend-exclude = [
+    ".venv",
+    "__pycache__",
+    "load-test",
+
+    # The Week 1 eval suite is an eval-gate file set (CLAUDE.md invariant 7):
+    # its recorded results are the comparison point Week 2 is measured
+    # against, so the code being measured must not rewrite it — not even
+    # whitespace. .claude/hooks/gate-guard.sh blocks the edit and
+    # .claude/hooks/gate-effect-check.sh reverts it, so leaving these in
+    # ruff's scope only produces a formatter that cannot succeed. They are
+    # formatted in a session started with W2_GATE_SESSION=1, as its own
+    # commit, and not before.
+    #
+    # Listed file by file on purpose. A directory pattern ("evals") would also
+    # swallow evals/w2/ — the Week 2 tree being written now, which must stay
+    # formatted and linted. The .md files are here because ruff formats Python
+    # inside Markdown code fences, so they are in scope too.
+    "evals/README.md",
+    "evals/RESULTS.md",
+    "evals/RESULTS_CONVERSATION.md",
+    "evals/__init__.py",
+    "evals/conftest.py",
+    "evals/harness.py",
+    "evals/invariants.py",
+    "evals/oracle.py",
+    "evals/test_a_allergy_distinction.py",
+    "evals/test_b_source_attribution.py",
+    "evals/test_c_verifier_disclosure.py",
+    "evals/test_d_authorization.py",
+    "evals/test_e_nonexistent_patient.py",
+    "evals/test_f_scale_outlier.py",
+    "evals/test_g_cross_patient.py",
+    "evals/test_h_uncoded_names.py",
+    "evals/test_i_conversation.py",
+]
 
 [tool.ruff.lint]
 # Conservative on purpose. These are the rule families that catch real defects
