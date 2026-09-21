@@ -2,7 +2,7 @@
 # in exactly one place: one drug is written at the wrong strength.
 scenario_id: intake-scanned-light-med-005
 seed: 884127
-patient_ref: "18"
+patient_ref: "a2c373ec-57bf-41cb-8767-94410dcf663d"
 doc_type: intake_form
 quality: scanned_light
 note: Light scan; one medication written at a changed dose.

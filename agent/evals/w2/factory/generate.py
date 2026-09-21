@@ -168,8 +168,15 @@ def generate(
         scenario=spec.as_dict(),
         chart_source={
             "system": "local-openemr",
-            "origin": chart_origin,
+            # Deliberately NOT recorded: whether this run read the cache or
+            # OpenEMR. That is a property of the run, not of the document, and
+            # putting it here made the ground-truth bytes differ between a
+            # --refresh run and a cached one — i.e. it broke the determinism
+            # the whole format depends on. The CLI still prints it.
             "patient_ref": spec.patient_ref,
+            # The identifier that survives a move between OpenEMR instances;
+            # pid and pubpid do not. This is what a parity check keys on.
+            "patient_uuid": chart.uuid,
             "medications_on_chart": len(chart.medications),
             "allergies_on_chart": len(chart.allergies),
             "conditions_on_chart": len(chart.conditions),

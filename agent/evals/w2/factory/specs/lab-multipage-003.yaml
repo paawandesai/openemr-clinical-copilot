@@ -2,7 +2,7 @@
 # with the column header and a compact patient strip repeated on page 2.
 scenario_id: lab-multipage-003
 seed: 5150822
-patient_ref: "20"
+patient_ref: "a2c37430-0a29-4c57-8195-2c924c2b654a"
 doc_type: lab_pdf
 quality: clean
 note: Multi-page lab report; ferritin flagged low on the continuation page.

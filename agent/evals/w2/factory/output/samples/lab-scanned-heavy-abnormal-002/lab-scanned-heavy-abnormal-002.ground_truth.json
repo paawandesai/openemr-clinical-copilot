@@ -3,7 +3,7 @@
   "scenario": {
     "scenario_id": "lab-scanned-heavy-abnormal-002",
     "seed": 771403,
-    "patient_ref": "47",
+    "patient_ref": "a2c373d1-c8c6-47f3-b566-e4ceaacdb1c7",
     "doc_type": "lab_pdf",
     "quality": "scanned_heavy",
     "perturbations": [
@@ -33,11 +33,11 @@
   },
   "chart_source": {
     "system": "local-openemr",
-    "origin": "cache",
-    "patient_ref": "47",
-    "medications_on_chart": 5,
-    "allergies_on_chart": 4,
-    "conditions_on_chart": 51
+    "patient_ref": "a2c373d1-c8c6-47f3-b566-e4ceaacdb1c7",
+    "patient_uuid": "a2c373d1-c8c6-47f3-b566-e4ceaacdb1c7",
+    "medications_on_chart": 4,
+    "allergies_on_chart": 9,
+    "conditions_on_chart": 32
   },
   "coordinates": {
     "space": "clean_pdf",
@@ -48,15 +48,15 @@
   },
   "document": {
     "path": "lab-scanned-heavy-abnormal-002.pdf",
-    "sha256": "135c40a85e666309a64e2f72573c24cb566375375537304cdb041729773c1884",
-    "bytes": 153336,
+    "sha256": "b5c496017f38056326761ecec06ba856f8cf7eb3d37c15e0c4759037c998e4b2",
+    "bytes": 153074,
     "page_count": 1,
     "has_text_layer": false
   },
   "clean_reference": {
     "path": "lab-scanned-heavy-abnormal-002.clean.pdf",
-    "sha256": "d3a9febe77f01dca3f94e148b47cf69b29b53906b0484df7c98d602825aac749",
-    "bytes": 32583,
+    "sha256": "7d46273f9fb25692183255dd24cd89306746b807da669d9d77d9692282fa18cb",
+    "bytes": 32561,
     "page_count": 1,
     "has_text_layer": true
   },
@@ -99,7 +99,7 @@
           2.08291826,
           -12.5605906
         ],
-        "jpeg_bytes": 149657
+        "jpeg_bytes": 149395
       }
     ]
   },
@@ -224,16 +224,16 @@
       "status": "present",
       "kind": "text",
       "origin": "chart",
-      "value": "Maribeth658 Terese90 Watsica258",
+      "value": "Jae222 Dach178",
       "unit": null,
       "page": 1,
       "bbox": [
         130.0,
         137.54,
-        266.946,
+        196.528,
         149.631
       ],
-      "rendered_text": "Maribeth658 Terese90 Watsica258"
+      "rendered_text": "Jae222 Dach178"
     },
     {
       "field_path": "order.accession",
@@ -256,7 +256,7 @@
       "status": "present",
       "kind": "text",
       "origin": "chart",
-      "value": "1986-12-16",
+      "value": "1959-12-28",
       "unit": null,
       "page": 1,
       "bbox": [
@@ -265,7 +265,7 @@
         175.003,
         162.031
       ],
-      "rendered_text": "1986-12-16"
+      "rendered_text": "1959-12-28"
     },
     {
       "field_path": "order.specimen",
@@ -288,16 +288,16 @@
       "status": "present",
       "kind": "text",
       "origin": "chart",
-      "value": "Female",
+      "value": "Male",
       "unit": null,
       "page": 1,
       "bbox": [
         130.0,
         162.34,
-        159.339,
+        149.07,
         174.431
       ],
-      "rendered_text": "Female"
+      "rendered_text": "Male"
     },
     {
       "field_path": "order.collected",
@@ -320,7 +320,7 @@
       "status": "present",
       "kind": "text",
       "origin": "chart",
-      "value": "47",
+      "value": "31",
       "unit": null,
       "page": 1,
       "bbox": [
@@ -329,7 +329,7 @@
         139.786,
         186.831
       ],
-      "rendered_text": "47"
+      "rendered_text": "31"
     },
     {
       "field_path": "order.received",
@@ -352,16 +352,16 @@
       "status": "present",
       "kind": "text",
       "origin": "chart",
-      "value": "919 Kulas Drive Suite 4",
+      "value": "566 Labadie Station Suite 85",
       "unit": null,
       "page": 1,
       "bbox": [
         130.0,
         187.14,
-        221.951,
+        243.01,
         199.231
       ],
-      "rendered_text": "919 Kulas Drive Suite 4"
+      "rendered_text": "566 Labadie Station Suite 85"
     },
     {
       "field_path": "order.reported",
@@ -384,16 +384,16 @@
       "status": "present",
       "kind": "text",
       "origin": "chart",
-      "value": "Norwell, Massachusetts 00000",
+      "value": "Methuen, Massachusetts 01841",
       "unit": null,
       "page": 1,
       "bbox": [
         130.0,
         199.54,
-        249.821,
+        254.731,
         211.631
       ],
-      "rendered_text": "Norwell, Massachusetts 00000"
+      "rendered_text": "Methuen, Massachusetts 01841"
     },
     {
       "field_path": "order.ordering_provider",
@@ -592,7 +592,7 @@
       "status": "present",
       "kind": "text",
       "origin": "synthetic",
-      "value": 0.71,
+      "value": 0.85,
       "unit": "mg/dL",
       "page": 1,
       "bbox": [
@@ -601,7 +601,7 @@
         280.0,
         293.371
       ],
-      "rendered_text": "0.71"
+      "rendered_text": "0.85"
     },
     {
       "field_path": "results.cmp.creatinine.flag",
@@ -640,7 +640,7 @@
       "status": "present",
       "kind": "text",
       "origin": "synthetic",
-      "value": "0.50 - 1.10",
+      "value": "0.60 - 1.30",
       "unit": "mg/dL",
       "page": 1,
       "bbox": [
@@ -649,7 +649,7 @@
         455.117,
         293.371
       ],
-      "rendered_text": "0.50 - 1.10"
+      "rendered_text": "0.60 - 1.30"
     },
     {
       "field_path": "results.cmp.egfr.name",
@@ -1792,7 +1792,7 @@
       "status": "present",
       "kind": "text",
       "origin": "synthetic",
-      "value": 68.0,
+      "value": 62.0,
       "unit": "mg/dL",
       "page": 1,
       "bbox": [
@@ -1801,7 +1801,7 @@
         280.0,
         525.371
       ],
-      "rendered_text": "68"
+      "rendered_text": "62"
     },
     {
       "field_path": "results.lipid.hdl.flag",
@@ -1840,7 +1840,7 @@
       "status": "present",
       "kind": "text",
       "origin": "synthetic",
-      "value": "50 - 100",
+      "value": "40 - 100",
       "unit": "mg/dL",
       "page": 1,
       "bbox": [
@@ -1849,7 +1849,7 @@
         445.553,
         525.371
       ],
-      "rendered_text": "50 - 100"
+      "rendered_text": "40 - 100"
     },
     {
       "field_path": "results.lipid.ldl_calc.name",

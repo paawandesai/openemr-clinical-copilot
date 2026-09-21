@@ -3,7 +3,7 @@
 # is an extractor bug rather than a planted discrepancy.
 scenario_id: lab-clean-001
 seed: 20260921
-patient_ref: "18"
+patient_ref: "a2c373ec-57bf-41cb-8767-94410dcf663d"
 doc_type: lab_pdf
 quality: clean
 note: Clean CMP + lipid + A1c report, no perturbations.

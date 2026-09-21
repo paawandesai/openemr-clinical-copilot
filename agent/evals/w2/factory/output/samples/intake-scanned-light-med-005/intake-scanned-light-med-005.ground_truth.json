@@ -3,7 +3,7 @@
   "scenario": {
     "scenario_id": "intake-scanned-light-med-005",
     "seed": 884127,
-    "patient_ref": "18",
+    "patient_ref": "a2c373ec-57bf-41cb-8767-94410dcf663d",
     "doc_type": "intake_form",
     "quality": "scanned_light",
     "perturbations": [
@@ -18,11 +18,11 @@
   },
   "chart_source": {
     "system": "local-openemr",
-    "origin": "cache",
-    "patient_ref": "18",
-    "medications_on_chart": 15,
-    "allergies_on_chart": 7,
-    "conditions_on_chart": 32
+    "patient_ref": "a2c373ec-57bf-41cb-8767-94410dcf663d",
+    "patient_uuid": "a2c373ec-57bf-41cb-8767-94410dcf663d",
+    "medications_on_chart": 11,
+    "allergies_on_chart": 3,
+    "conditions_on_chart": 36
   },
   "coordinates": {
     "space": "clean_pdf",
@@ -33,15 +33,15 @@
   },
   "document": {
     "path": "intake-scanned-light-med-005.pdf",
-    "sha256": "2d9ea520d9ab1fc608bff0b215f22cdb7c71091456d4e12be09bba69aa2e1261",
-    "bytes": 679059,
+    "sha256": "b0f59431f2c8702ad443ecda8141378cdb258981d2ed60d4ea207ac80161a63b",
+    "bytes": 625765,
     "page_count": 2,
     "has_text_layer": false
   },
   "clean_reference": {
     "path": "intake-scanned-light-med-005.clean.pdf",
-    "sha256": "9c104d1902bc8e6a6c7f9e85a0e6903c79d3d576cec0188b7838dc89cc19cd71",
-    "bytes": 174245,
+    "sha256": "29e9de88b74ca0eae2babfcc4d344942bac03b141b63abcfc3e50c134c008a63",
+    "bytes": 129478,
     "page_count": 2,
     "has_text_layer": true
   },
@@ -84,7 +84,7 @@
           2.77777082,
           1.9050183
         ],
-        "jpeg_bytes": 388352
+        "jpeg_bytes": 382061
       },
       {
         "page": 2,
@@ -105,7 +105,7 @@
           2.77775392,
           3.53251548
         ],
-        "jpeg_bytes": 286649
+        "jpeg_bytes": 239646
       }
     ]
   },
@@ -128,11 +128,11 @@
         "mode": "dose_change"
       },
       "field_paths": [
-        "medications[13].dose"
+        "medications[6].dose"
       ],
-      "chart_value": "{21 (ethinyl estradiol 0.03 MG / levonorgestrel 0.15 MG Oral Tablet) / 7 (inert ingredients 1 MG Oral Tablet) } Pack [Levora 0.15/30 28 Day] (0.03 MG)",
-      "document_value": "Levora 0.15/30 28 Day 0.12 MG",
-      "expected_discrepancy": "The form gives Levora 0.15/30 28 Day as 0.12 MG; the chart product is '{21 (ethinyl estradiol 0.03 MG / levonorgestrel 0.15 MG Oral Tablet) / 7 (inert ingredients 1 MG Oral Tablet) } Pack [Levora 0.15/30 28 Day]', i.e. 0.03 MG."
+      "chart_value": "amLODIPine 2.5 MG Oral Tablet (2.5 MG)",
+      "document_value": "amLODIPine 10 MG",
+      "expected_discrepancy": "The form gives amLODIPine as 10 MG; the chart product is 'amLODIPine 2.5 MG Oral Tablet', i.e. 2.5 MG."
     }
   ],
   "fields": [
@@ -141,48 +141,48 @@
       "status": "present",
       "kind": "text",
       "origin": "chart",
-      "value": "Clemmie560 Collier206",
+      "value": "Merlyn225 Sanda877 Mueller846",
       "unit": null,
       "page": 1,
       "bbox": [
         86.869,
         126.87,
-        189.925,
-        140.57
+        231.012,
+        140.583
       ],
-      "rendered_text": "Clemmie560 Collier206"
+      "rendered_text": "Merlyn225 Sanda877 Mueller846"
     },
     {
       "field_path": "patient.dob",
       "status": "present",
       "kind": "text",
       "origin": "chart",
-      "value": "2001-12-24",
+      "value": "1960-09-25",
       "unit": null,
       "page": 1,
       "bbox": [
         419.665,
-        126.973,
-        469.003,
-        140.359
+        126.965,
+        468.63,
+        140.562
       ],
-      "rendered_text": "2001-12-24"
+      "rendered_text": "1960-09-25"
     },
     {
       "field_path": "patient.address",
       "status": "present",
       "kind": "text",
       "origin": "chart",
-      "value": "1084 Kling Station Apt 60",
+      "value": "890 Mills Well",
       "unit": null,
       "page": 1,
       "bbox": [
         95.078,
         150.793,
-        205.528,
+        157.282,
         164.514
       ],
-      "rendered_text": "1084 Kling Station Apt 60"
+      "rendered_text": "890 Mills Well"
     },
     {
       "field_path": "patient.sex",
@@ -194,9 +194,9 @@
       "page": 1,
       "bbox": [
         389.129,
-        150.749,
-        421.91,
-        164.616
+        151.232,
+        421.103,
+        164.578
       ],
       "rendered_text": "Female"
     },
@@ -205,16 +205,16 @@
       "status": "present",
       "kind": "text",
       "origin": "chart",
-      "value": "Lynn, Massachusetts 01902",
+      "value": "Westwood, Massachusetts 00000",
       "unit": null,
       "page": 1,
       "bbox": [
         124.704,
-        174.679,
-        242.465,
-        188.616
+        174.817,
+        264.826,
+        188.542
       ],
-      "rendered_text": "Lynn, Massachusetts 01902"
+      "rendered_text": "Westwood, Massachusetts 00000"
     },
     {
       "field_path": "visit.date",
@@ -226,9 +226,9 @@
       "page": 1,
       "bbox": [
         107.837,
-        199.019,
-        156.924,
-        212.574
+        198.849,
+        157.556,
+        212.606
       ],
       "rendered_text": "09/14/2026"
     },
@@ -237,32 +237,32 @@
       "status": "present",
       "kind": "text",
       "origin": "chart_derived",
-      "value": "Ongoing anemia, wants to discuss treatment",
+      "value": "Ongoing primary fibromyalgia syndrome, wants to discuss treatment",
       "unit": null,
       "page": 1,
       "bbox": [
         60.0,
-        250.891,
-        249.865,
-        264.57
+        250.774,
+        353.761,
+        264.577
       ],
-      "rendered_text": "Ongoing anemia, wants to discuss treatment"
+      "rendered_text": "Ongoing primary fibromyalgia syndrome, wants to discuss treatment"
     },
     {
       "field_path": "medications[0].name",
       "status": "present",
       "kind": "text",
       "origin": "chart_derived",
-      "value": "Loratadine 5 MG Chewable Tablet",
+      "value": "Hydrocortisone 10 MG/ML Topical Cream",
       "unit": null,
       "page": 1,
       "bbox": [
         59.0,
-        344.696,
-        105.852,
-        358.142
+        344.507,
+        126.451,
+        358.143
       ],
-      "rendered_text": "Loratadine",
+      "rendered_text": "Hydrocortisone",
       "note": "value is the full chart product name; the form carries the common name"
     },
     {
@@ -270,16 +270,16 @@
       "status": "present",
       "kind": "text",
       "origin": "chart_derived",
-      "value": "5 MG",
+      "value": "10 MG/ML",
       "unit": null,
       "page": 1,
       "bbox": [
         262.0,
-        344.58,
-        286.774,
-        358.121
+        344.951,
+        309.947,
+        358.236
       ],
-      "rendered_text": "5 MG"
+      "rendered_text": "10 MG/ML"
     },
     {
       "field_path": "medications[0].frequency",
@@ -291,9 +291,9 @@
       "page": 1,
       "bbox": [
         364.0,
-        344.409,
-        408.765,
-        358.152
+        344.491,
+        408.93,
+        358.101
       ],
       "rendered_text": "once daily",
       "note": "frequency has no chart counterpart"
@@ -303,16 +303,16 @@
       "status": "present",
       "kind": "text",
       "origin": "chart_derived",
-      "value": "NDA020800 0.3 ML Epinephrine 1 MG/ML Auto-Injector",
+      "value": "Terfenadine 60 MG Oral Tablet",
       "unit": null,
       "page": 1,
       "bbox": [
         59.0,
-        365.435,
-        112.103,
-        379.181
+        365.581,
+        109.342,
+        379.158
       ],
-      "rendered_text": "Epinephrine",
+      "rendered_text": "Terfenadine",
       "note": "value is the full chart product name; the form carries the common name"
     },
     {
@@ -320,16 +320,16 @@
       "status": "present",
       "kind": "text",
       "origin": "chart_derived",
-      "value": "0.3 ML",
+      "value": "60 MG",
       "unit": null,
       "page": 1,
       "bbox": [
         262.0,
-        365.612,
-        293.084,
-        379.18
+        365.452,
+        292.056,
+        379.218
       ],
-      "rendered_text": "0.3 ML"
+      "rendered_text": "60 MG"
     },
     {
       "field_path": "medications[1].frequency",
@@ -341,9 +341,9 @@
       "page": 1,
       "bbox": [
         364.0,
-        365.584,
-        410.106,
-        379.296
+        365.315,
+        411.113,
+        379.18
       ],
       "rendered_text": "twice daily",
       "note": "frequency has no chart counterpart"
@@ -353,16 +353,16 @@
       "status": "present",
       "kind": "text",
       "origin": "chart_derived",
-      "value": "Hydrocortisone 10 MG/ML Topical Cream",
+      "value": "Naproxen sodium 220 MG Oral Tablet",
       "unit": null,
       "page": 1,
       "bbox": [
         59.0,
-        386.542,
-        125.098,
-        400.102
+        386.382,
+        135.112,
+        400.251
       ],
-      "rendered_text": "Hydrocortisone",
+      "rendered_text": "Naproxen sodium",
       "note": "value is the full chart product name; the form carries the common name"
     },
     {
@@ -370,16 +370,16 @@
       "status": "present",
       "kind": "text",
       "origin": "chart_derived",
-      "value": "10 MG/ML",
+      "value": "220 MG",
       "unit": null,
       "page": 1,
       "bbox": [
         262.0,
-        386.374,
-        310.453,
-        400.141
+        386.431,
+        298.062,
+        400.135
       ],
-      "rendered_text": "10 MG/ML"
+      "rendered_text": "220 MG"
     },
     {
       "field_path": "medications[2].frequency",
@@ -391,9 +391,9 @@
       "page": 1,
       "bbox": [
         364.0,
-        386.315,
-        426.93,
-        400.078
+        386.333,
+        426.005,
+        400.128
       ],
       "rendered_text": "every morning",
       "note": "frequency has no chart counterpart"
@@ -403,16 +403,16 @@
       "status": "present",
       "kind": "text",
       "origin": "chart_derived",
-      "value": "120 ACTUAT fluticasone propionate 0.11 MG/ACTUAT Metered Dose Inhaler [Flovent]",
+      "value": "albuterol 5 MG/ML Inhalation Solution",
       "unit": null,
       "page": 1,
       "bbox": [
         59.0,
-        407.355,
-        91.527,
-        421.128
+        407.668,
+        97.216,
+        421.215
       ],
-      "rendered_text": "Flovent",
+      "rendered_text": "albuterol",
       "note": "value is the full chart product name; the form carries the common name"
     },
     {
@@ -420,16 +420,16 @@
       "status": "present",
       "kind": "text",
       "origin": "chart_derived",
-      "value": "0.11 MG/ACTUAT",
+      "value": "5 MG/ML",
       "unit": null,
       "page": 1,
       "bbox": [
         262.0,
-        407.784,
-        342.94,
-        421.251
+        407.648,
+        304.979,
+        421.098
       ],
-      "rendered_text": "0.11 MG/ACTUAT"
+      "rendered_text": "5 MG/ML"
     },
     {
       "field_path": "medications[3].frequency",
@@ -441,9 +441,9 @@
       "page": 1,
       "bbox": [
         364.0,
-        407.333,
-        410.798,
-        421.132
+        407.453,
+        410.263,
+        421.076
       ],
       "rendered_text": "twice daily",
       "note": "frequency has no chart counterpart"
@@ -453,16 +453,16 @@
       "status": "present",
       "kind": "text",
       "origin": "chart_derived",
-      "value": "albuterol 0.83 MG/ML Inhalation Solution",
+      "value": "Hydrochlorothiazide 25 MG Oral Tablet",
       "unit": null,
       "page": 1,
       "bbox": [
         59.0,
-        428.649,
-        97.57,
-        442.215
+        428.381,
+        147.144,
+        442.184
       ],
-      "rendered_text": "albuterol",
+      "rendered_text": "Hydrochlorothiazide",
       "note": "value is the full chart product name; the form carries the common name"
     },
     {
@@ -470,16 +470,16 @@
       "status": "present",
       "kind": "text",
       "origin": "chart_derived",
-      "value": "0.83 MG/ML",
+      "value": "25 MG",
       "unit": null,
       "page": 1,
       "bbox": [
         262.0,
-        428.453,
-        318.543,
-        442.095
+        428.311,
+        292.548,
+        442.154
       ],
-      "rendered_text": "0.83 MG/ML"
+      "rendered_text": "25 MG"
     },
     {
       "field_path": "medications[4].frequency",
@@ -491,9 +491,9 @@
       "page": 1,
       "bbox": [
         364.0,
-        428.533,
-        408.557,
-        442.132
+        428.581,
+        409.426,
+        442.073
       ],
       "rendered_text": "at bedtime",
       "note": "frequency has no chart counterpart"
@@ -503,16 +503,16 @@
       "status": "present",
       "kind": "text",
       "origin": "chart_derived",
-      "value": "{7 (ethinyl estradiol 0.01 MG Oral Tablet) / 84 (ethinyl estradiol 0.03 MG / levonorgestrel 0.15 MG Oral Tablet) } Pack [Seasonique]",
+      "value": "lisinopril 10 MG Oral Tablet",
       "unit": null,
       "page": 1,
       "bbox": [
         59.0,
-        449.381,
-        107.564,
-        463.151
+        449.471,
+        98.547,
+        463.159
       ],
-      "rendered_text": "Seasonique",
+      "rendered_text": "lisinopril",
       "note": "value is the full chart product name; the form carries the common name"
     },
     {
@@ -520,16 +520,16 @@
       "status": "present",
       "kind": "text",
       "origin": "chart_derived",
-      "value": "0.01 MG",
+      "value": "10 MG",
       "unit": null,
       "page": 1,
       "bbox": [
         262.0,
-        449.703,
-        299.574,
-        463.184
+        450.015,
+        292.507,
+        463.069
       ],
-      "rendered_text": "0.01 MG"
+      "rendered_text": "10 MG"
     },
     {
       "field_path": "medications[5].frequency",
@@ -541,9 +541,9 @@
       "page": 1,
       "bbox": [
         364.0,
-        449.407,
-        435.856,
-        463.218
+        449.469,
+        436.068,
+        463.185
       ],
       "rendered_text": "three times daily",
       "note": "frequency has no chart counterpart"
@@ -552,34 +552,34 @@
       "field_path": "medications[6].name",
       "status": "present",
       "kind": "text",
-      "origin": "chart_derived",
-      "value": "sodium fluoride 0.0272 MG/MG Oral Gel",
+      "origin": "perturbed",
+      "value": "amLODIPine 2.5 MG Oral Tablet",
       "unit": null,
       "page": 1,
       "bbox": [
         59.0,
-        470.543,
-        126.783,
-        484.236
+        470.762,
+        116.764,
+        484.115
       ],
-      "rendered_text": "sodium fluoride",
-      "note": "value is the full chart product name; the form carries the common name"
+      "rendered_text": "amLODIPine",
+      "note": "chart strength is 2.5 MG"
     },
     {
       "field_path": "medications[6].dose",
       "status": "present",
       "kind": "text",
-      "origin": "chart_derived",
-      "value": "0.0272 MG",
+      "origin": "perturbed",
+      "value": "10 MG",
       "unit": null,
       "page": 1,
       "bbox": [
         262.0,
-        470.385,
-        311.3,
-        483.954
+        470.84,
+        292.192,
+        484.13
       ],
-      "rendered_text": "0.0272 MG"
+      "rendered_text": "10 MG"
     },
     {
       "field_path": "medications[6].frequency",
@@ -591,9 +591,9 @@
       "page": 1,
       "bbox": [
         364.0,
-        470.606,
-        406.986,
-        484.117
+        470.767,
+        406.25,
+        484.237
       ],
       "rendered_text": "as needed",
       "note": "frequency has no chart counterpart"
@@ -603,16 +603,16 @@
       "status": "present",
       "kind": "text",
       "origin": "chart_derived",
-      "value": "sulfamethoxazole 800 MG / trimethoprim 160 MG Oral Tablet",
+      "value": "60 ACTUAT Fluticasone propionate 0.25 MG/ACTUAT / salmeterol 0.05 MG/ACTUAT Dry Powder Inhaler",
       "unit": null,
       "page": 1,
       "bbox": [
         59.0,
-        491.307,
-        193.034,
-        505.138
+        491.4,
+        158.793,
+        505.165
       ],
-      "rendered_text": "sulfamethoxazole trimethoprim",
+      "rendered_text": "Fluticasone propionate",
       "note": "value is the full chart product name; the form carries the common name"
     },
     {
@@ -620,16 +620,16 @@
       "status": "present",
       "kind": "text",
       "origin": "chart_derived",
-      "value": "800 MG",
+      "value": "0.25 MG/ACTUAT",
       "unit": null,
       "page": 1,
       "bbox": [
         262.0,
-        491.936,
-        296.925,
-        505.034
+        491.635,
+        342.908,
+        505.101
       ],
-      "rendered_text": "800 MG"
+      "rendered_text": "0.25 MG/ACTUAT"
     },
     {
       "field_path": "medications[7].frequency",
@@ -641,9 +641,9 @@
       "page": 1,
       "bbox": [
         364.0,
-        491.488,
-        424.969,
-        505.079
+        491.673,
+        425.492,
+        505.022
       ],
       "rendered_text": "every morning",
       "note": "frequency has no chart counterpart"
@@ -653,16 +653,16 @@
       "status": "present",
       "kind": "text",
       "origin": "chart_derived",
-      "value": "{5 (dienogest 2 MG / estradiol valerate 2 MG Oral Tablet) / 17 (dienogest 3 MG / estradiol valerate 2 MG Oral Tablet) / 2 (estradiol valerate 1 MG Oral Tablet) / 2 (estradiol valerate 3 MG Oral Tablet) / 2 (inert ingredients 1 MG Oral Tablet) } Pack [Nata",
+      "value": "Acetaminophen 325 MG Oral Tablet",
       "unit": null,
       "page": 1,
       "bbox": [
         59.0,
-        512.673,
-        140.314,
-        526.135
+        512.561,
+        125.982,
+        526.23
       ],
-      "rendered_text": "dienogest estradiol",
+      "rendered_text": "Acetaminophen",
       "note": "value is the full chart product name; the form carries the common name"
     },
     {
@@ -670,16 +670,16 @@
       "status": "present",
       "kind": "text",
       "origin": "chart_derived",
-      "value": "2 MG",
+      "value": "325 MG",
       "unit": null,
       "page": 1,
       "bbox": [
         262.0,
-        512.658,
-        287.526,
-        526.022
+        512.45,
+        298.35,
+        526.095
       ],
-      "rendered_text": "2 MG"
+      "rendered_text": "325 MG"
     },
     {
       "field_path": "medications[8].frequency",
@@ -691,9 +691,9 @@
       "page": 1,
       "bbox": [
         364.0,
-        512.546,
-        426.228,
-        526.211
+        512.545,
+        425.969,
+        526.235
       ],
       "rendered_text": "every morning",
       "note": "frequency has no chart counterpart"
@@ -703,16 +703,16 @@
       "status": "present",
       "kind": "text",
       "origin": "chart_derived",
-      "value": "cycloSPORINE, modified 100 MG Oral Capsule",
+      "value": "Naproxen 500 MG Oral Tablet",
       "unit": null,
       "page": 1,
       "bbox": [
         59.0,
-        533.452,
-        165.697,
-        547.235
+        533.49,
+        100.726,
+        547.149
       ],
-      "rendered_text": "cycloSPORINE modified",
+      "rendered_text": "Naproxen",
       "note": "value is the full chart product name; the form carries the common name"
     },
     {
@@ -720,16 +720,16 @@
       "status": "present",
       "kind": "text",
       "origin": "chart_derived",
-      "value": "100 MG",
+      "value": "500 MG",
       "unit": null,
       "page": 1,
       "bbox": [
         262.0,
-        533.523,
-        296.73,
-        547.099
+        533.405,
+        297.602,
+        547.035
       ],
-      "rendered_text": "100 MG"
+      "rendered_text": "500 MG"
     },
     {
       "field_path": "medications[9].frequency",
@@ -741,9 +741,9 @@
       "page": 1,
       "bbox": [
         364.0,
-        533.574,
-        407.061,
-        547.187
+        533.577,
+        406.992,
+        547.26
       ],
       "rendered_text": "as needed",
       "note": "frequency has no chart counterpart"
@@ -753,16 +753,16 @@
       "status": "present",
       "kind": "text",
       "origin": "chart_derived",
-      "value": "{24 (drospirenone 3 MG / ethinyl estradiol 0.02 MG Oral Tablet) / 4 (inert ingredients 1 MG Oral Tablet) } Pack [Yaz 28 Day]",
+      "value": "sodium fluoride 0.0272 MG/MG Oral Gel",
       "unit": null,
       "page": 1,
       "bbox": [
         59.0,
-        554.621,
-        108.092,
+        554.663,
+        127.659,
         568.159
       ],
-      "rendered_text": "Yaz 28 Day",
+      "rendered_text": "sodium fluoride",
       "note": "value is the full chart product name; the form carries the common name"
     },
     {
@@ -770,16 +770,16 @@
       "status": "present",
       "kind": "text",
       "origin": "chart_derived",
-      "value": "3 MG",
+      "value": "0.0272 MG",
       "unit": null,
       "page": 1,
       "bbox": [
         262.0,
-        554.663,
-        287.63,
-        568.101
+        554.498,
+        311.569,
+        568.132
       ],
-      "rendered_text": "3 MG"
+      "rendered_text": "0.0272 MG"
     },
     {
       "field_path": "medications[10].frequency",
@@ -791,209 +791,9 @@
       "page": 1,
       "bbox": [
         364.0,
-        554.711,
-        407.725,
-        568.114
-      ],
-      "rendered_text": "once daily",
-      "note": "frequency has no chart counterpart"
-    },
-    {
-      "field_path": "medications[11].name",
-      "status": "present",
-      "kind": "text",
-      "origin": "chart_derived",
-      "value": "{7 (ethinyl estradiol 0.035 MG / norgestimate 0.18 MG Oral Tablet) / 7 (ethinyl estradiol 0.035 MG / norgestimate 0.215 MG Oral Tablet) / 7 (ethinyl estradiol 0.035 MG / norgestimate 0.25 MG Oral Tablet) / 7 (inert ingredients 1 MG Oral Tablet) } Pack [Tr",
-      "unit": null,
-      "page": 1,
-      "bbox": [
-        59.0,
-        575.477,
-        129.466,
-        589.214
-      ],
-      "rendered_text": "ethinyl estradiol",
-      "note": "value is the full chart product name; the form carries the common name"
-    },
-    {
-      "field_path": "medications[11].dose",
-      "status": "present",
-      "kind": "text",
-      "origin": "chart_derived",
-      "value": "0.035 MG",
-      "unit": null,
-      "page": 1,
-      "bbox": [
-        262.0,
-        575.603,
-        305.452,
-        589.155
-      ],
-      "rendered_text": "0.035 MG"
-    },
-    {
-      "field_path": "medications[11].frequency",
-      "status": "present",
-      "kind": "text",
-      "origin": "synthetic",
-      "value": "at bedtime",
-      "unit": null,
-      "page": 1,
-      "bbox": [
-        364.0,
-        575.503,
-        409.82,
-        589.098
-      ],
-      "rendered_text": "at bedtime",
-      "note": "frequency has no chart counterpart"
-    },
-    {
-      "field_path": "medications[12].name",
-      "status": "present",
-      "kind": "text",
-      "origin": "chart_derived",
-      "value": "tropicamide 5 MG/ML Ophthalmic Solution",
-      "unit": null,
-      "page": 1,
-      "bbox": [
-        59.0,
-        596.573,
-        111.039,
-        610.104
-      ],
-      "rendered_text": "tropicamide",
-      "note": "value is the full chart product name; the form carries the common name"
-    },
-    {
-      "field_path": "medications[12].dose",
-      "status": "present",
-      "kind": "text",
-      "origin": "chart_derived",
-      "value": "5 MG/ML",
-      "unit": null,
-      "page": 1,
-      "bbox": [
-        262.0,
-        596.416,
-        304.404,
-        610.121
-      ],
-      "rendered_text": "5 MG/ML"
-    },
-    {
-      "field_path": "medications[12].frequency",
-      "status": "present",
-      "kind": "text",
-      "origin": "synthetic",
-      "value": "as needed",
-      "unit": null,
-      "page": 1,
-      "bbox": [
-        364.0,
-        596.451,
-        406.283,
-        610.143
-      ],
-      "rendered_text": "as needed",
-      "note": "frequency has no chart counterpart"
-    },
-    {
-      "field_path": "medications[13].name",
-      "status": "present",
-      "kind": "text",
-      "origin": "perturbed",
-      "value": "{21 (ethinyl estradiol 0.03 MG / levonorgestrel 0.15 MG Oral Tablet) / 7 (inert ingredients 1 MG Oral Tablet) } Pack [Levora 0.15/30 28 Day]",
-      "unit": null,
-      "page": 1,
-      "bbox": [
-        59.0,
-        617.545,
-        157.896,
-        631.155
-      ],
-      "rendered_text": "Levora 0.15/30 28 Day",
-      "note": "chart strength is 0.03 MG"
-    },
-    {
-      "field_path": "medications[13].dose",
-      "status": "present",
-      "kind": "text",
-      "origin": "perturbed",
-      "value": "0.12 MG",
-      "unit": null,
-      "page": 1,
-      "bbox": [
-        262.0,
-        617.631,
-        300.523,
-        631.175
-      ],
-      "rendered_text": "0.12 MG"
-    },
-    {
-      "field_path": "medications[13].frequency",
-      "status": "present",
-      "kind": "text",
-      "origin": "synthetic",
-      "value": "at bedtime",
-      "unit": null,
-      "page": 1,
-      "bbox": [
-        364.0,
-        617.42,
-        408.614,
-        631.161
-      ],
-      "rendered_text": "at bedtime",
-      "note": "frequency has no chart counterpart"
-    },
-    {
-      "field_path": "medications[14].name",
-      "status": "present",
-      "kind": "text",
-      "origin": "chart_derived",
-      "value": "1 ML medroxyprogesterone acetate 150 MG/ML Injection",
-      "unit": null,
-      "page": 1,
-      "bbox": [
-        59.0,
-        638.411,
-        186.486,
-        652.198
-      ],
-      "rendered_text": "medroxyprogesterone acetate",
-      "note": "value is the full chart product name; the form carries the common name"
-    },
-    {
-      "field_path": "medications[14].dose",
-      "status": "present",
-      "kind": "text",
-      "origin": "chart_derived",
-      "value": "1 ML",
-      "unit": null,
-      "page": 1,
-      "bbox": [
-        262.0,
-        639.015,
-        285.232,
-        651.991
-      ],
-      "rendered_text": "1 ML"
-    },
-    {
-      "field_path": "medications[14].frequency",
-      "status": "present",
-      "kind": "text",
-      "origin": "synthetic",
-      "value": "once daily",
-      "unit": null,
-      "page": 1,
-      "bbox": [
-        364.0,
-        638.6,
-        408.066,
-        652.142
+        554.477,
+        408.258,
+        568.214
       ],
       "rendered_text": "once daily",
       "note": "frequency has no chart counterpart"
@@ -1008,9 +808,9 @@
       "page": 1,
       "bbox": [
         59.0,
-        690.0,
+        606.0,
         67.5,
-        698.5
+        614.5
       ],
       "rendered_text": "",
       "note": "'No known drug allergies' box; checked only when the chart has no allergies"
@@ -1022,12 +822,12 @@
       "origin": "chart",
       "value": "Allergic disposition (finding)",
       "unit": null,
-      "page": 2,
+      "page": 1,
       "bbox": [
         59.0,
-        98.378,
-        184.581,
-        112.277
+        640.337,
+        184.189,
+        654.281
       ],
       "rendered_text": "Allergic disposition (finding)"
     },
@@ -1036,208 +836,80 @@
       "status": "present",
       "kind": "text",
       "origin": "chart",
-      "value": "Moderate",
+      "value": "Severe",
       "unit": null,
-      "page": 2,
+      "page": 1,
       "bbox": [
         282.0,
-        98.506,
-        324.434,
-        112.03
+        640.806,
+        310.682,
+        654.051
       ],
-      "rendered_text": "Moderate"
+      "rendered_text": "Severe"
     },
     {
       "field_path": "allergies[1].allergen",
       "status": "present",
       "kind": "text",
       "origin": "chart",
-      "value": "Bee venom (substance)",
+      "value": "Animal dander (substance)",
       "unit": null,
-      "page": 2,
+      "page": 1,
       "bbox": [
         59.0,
-        119.404,
-        157.196,
-        133.291
+        661.59,
+        174.84,
+        675.203
       ],
-      "rendered_text": "Bee venom (substance)"
+      "rendered_text": "Animal dander (substance)"
     },
     {
       "field_path": "allergies[1].reaction",
       "status": "present",
       "kind": "text",
       "origin": "chart",
-      "value": "Moderate",
+      "value": "Mild",
       "unit": null,
-      "page": 2,
+      "page": 1,
       "bbox": [
         282.0,
-        119.487,
-        323.623,
-        133.086
+        661.846,
+        302.415,
+        675.09
       ],
-      "rendered_text": "Moderate"
+      "rendered_text": "Mild"
     },
     {
       "field_path": "allergies[2].allergen",
       "status": "present",
       "kind": "text",
       "origin": "chart",
-      "value": "Mold (organism)",
+      "value": "Aspirin",
       "unit": null,
-      "page": 2,
+      "page": 1,
       "bbox": [
         59.0,
-        140.508,
-        131.714,
-        154.196
+        682.896,
+        90.104,
+        696.175
       ],
-      "rendered_text": "Mold (organism)"
+      "rendered_text": "Aspirin"
     },
     {
       "field_path": "allergies[2].reaction",
       "status": "present",
       "kind": "text",
       "origin": "chart",
-      "value": "Moderate",
+      "value": "Severe",
       "unit": null,
-      "page": 2,
+      "page": 1,
       "bbox": [
         282.0,
-        140.767,
-        323.57,
-        154.09
+        682.631,
+        310.744,
+        696.117
       ],
-      "rendered_text": "Moderate"
-    },
-    {
-      "field_path": "allergies[3].allergen",
-      "status": "present",
-      "kind": "text",
-      "origin": "chart",
-      "value": "House dust mite (organism)",
-      "unit": null,
-      "page": 2,
-      "bbox": [
-        59.0,
-        161.376,
-        180.433,
-        175.25
-      ],
-      "rendered_text": "House dust mite (organism)"
-    },
-    {
-      "field_path": "allergies[3].reaction",
-      "status": "present",
-      "kind": "text",
-      "origin": "chart",
-      "value": "Moderate",
-      "unit": null,
-      "page": 2,
-      "bbox": [
-        282.0,
-        161.653,
-        324.125,
-        175.094
-      ],
-      "rendered_text": "Moderate"
-    },
-    {
-      "field_path": "allergies[4].allergen",
-      "status": "present",
-      "kind": "text",
-      "origin": "chart",
-      "value": "Animal dander (substance)",
-      "unit": null,
-      "page": 2,
-      "bbox": [
-        59.0,
-        182.519,
-        175.297,
-        196.208
-      ],
-      "rendered_text": "Animal dander (substance)"
-    },
-    {
-      "field_path": "allergies[4].reaction",
-      "status": "present",
-      "kind": "text",
-      "origin": "chart",
-      "value": "Mild",
-      "unit": null,
-      "page": 2,
-      "bbox": [
-        282.0,
-        182.684,
-        301.799,
-        196.019
-      ],
-      "rendered_text": "Mild"
-    },
-    {
-      "field_path": "allergies[5].allergen",
-      "status": "present",
-      "kind": "text",
-      "origin": "chart",
-      "value": "Eggs (edible) (substance)",
-      "unit": null,
-      "page": 2,
-      "bbox": [
-        59.0,
-        203.305,
-        168.925,
-        217.261
-      ],
-      "rendered_text": "Eggs (edible) (substance)"
-    },
-    {
-      "field_path": "allergies[5].reaction",
-      "status": "present",
-      "kind": "text",
-      "origin": "chart",
-      "value": "Moderate",
-      "unit": null,
-      "page": 2,
-      "bbox": [
-        282.0,
-        203.614,
-        323.413,
-        217.211
-      ],
-      "rendered_text": "Moderate"
-    },
-    {
-      "field_path": "allergies[6].allergen",
-      "status": "present",
-      "kind": "text",
-      "origin": "chart",
-      "value": "Peanut (substance)",
-      "unit": null,
-      "page": 2,
-      "bbox": [
-        59.0,
-        224.695,
-        140.971,
-        238.104
-      ],
-      "rendered_text": "Peanut (substance)"
-    },
-    {
-      "field_path": "allergies[6].reaction",
-      "status": "present",
-      "kind": "text",
-      "origin": "chart",
-      "value": "Mild",
-      "unit": null,
-      "page": 2,
-      "bbox": [
-        282.0,
-        224.434,
-        302.675,
-        238.038
-      ],
-      "rendered_text": "Mild"
+      "rendered_text": "Severe"
     },
     {
       "field_path": "family_history.diabetes",
@@ -1249,9 +921,9 @@
       "page": 2,
       "bbox": [
         56.0,
-        278.0,
+        115.0,
         64.5,
-        286.5
+        123.5
       ],
       "rendered_text": "X",
       "note": "family history has no chart counterpart"
@@ -1266,9 +938,9 @@
       "page": 2,
       "bbox": [
         135.043,
-        275.889,
-        156.883,
-        288.346
+        112.87,
+        156.099,
+        125.341
       ],
       "rendered_text": "sister",
       "note": "family history has no chart counterpart"
@@ -1283,9 +955,9 @@
       "page": 2,
       "bbox": [
         306.0,
-        278.0,
+        115.0,
         314.5,
-        286.5
+        123.5
       ],
       "rendered_text": "",
       "note": "family history has no chart counterpart"
@@ -1300,9 +972,9 @@
       "page": 2,
       "bbox": [
         56.0,
-        301.0,
+        138.0,
         64.5,
-        309.5
+        146.5
       ],
       "rendered_text": "",
       "note": "family history has no chart counterpart"
@@ -1317,9 +989,9 @@
       "page": 2,
       "bbox": [
         306.0,
-        301.0,
+        138.0,
         314.5,
-        309.5
+        146.5
       ],
       "rendered_text": "",
       "note": "family history has no chart counterpart"
@@ -1334,9 +1006,9 @@
       "page": 2,
       "bbox": [
         56.0,
-        324.0,
+        161.0,
         64.5,
-        332.5
+        169.5
       ],
       "rendered_text": "",
       "note": "family history has no chart counterpart"
@@ -1351,9 +1023,9 @@
       "page": 2,
       "bbox": [
         306.0,
-        324.0,
+        161.0,
         314.5,
-        332.5
+        169.5
       ],
       "rendered_text": "",
       "note": "family history has no chart counterpart"
@@ -1363,16 +1035,16 @@
       "status": "present",
       "kind": "text",
       "origin": "chart",
-      "value": "Clemmie560 Collier206",
+      "value": "Merlyn225 Sanda877 Mueller846",
       "unit": null,
       "page": 2,
       "bbox": [
         126.533,
-        378.867,
-        228.757,
-        392.51
+        215.927,
+        271.545,
+        229.556
       ],
-      "rendered_text": "Clemmie560 Collier206"
+      "rendered_text": "Merlyn225 Sanda877 Mueller846"
     },
     {
       "field_path": "signature.date",
@@ -1384,9 +1056,9 @@
       "page": 2,
       "bbox": [
         392.318,
-        378.983,
-        440.829,
-        392.419
+        216.0,
+        441.182,
+        229.65
       ],
       "rendered_text": "09/14/2026"
     }

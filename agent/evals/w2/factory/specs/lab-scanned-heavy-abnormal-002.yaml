@@ -2,7 +2,7 @@
 # Image-only PDF: no text layer at all, so this case is OCR-or-nothing.
 scenario_id: lab-scanned-heavy-abnormal-002
 seed: 771403
-patient_ref: "47"
+patient_ref: "a2c373d1-c8c6-47f3-b566-e4ceaacdb1c7"
 doc_type: lab_pdf
 quality: scanned_heavy
 note: Heavy scan degradation plus high glucose, high ALT and low potassium.

@@ -3,7 +3,7 @@
   "scenario": {
     "scenario_id": "lab-multipage-003",
     "seed": 5150822,
-    "patient_ref": "20",
+    "patient_ref": "a2c37430-0a29-4c57-8195-2c924c2b654a",
     "doc_type": "lab_pdf",
     "quality": "clean",
     "perturbations": [
@@ -23,11 +23,11 @@
   },
   "chart_source": {
     "system": "local-openemr",
-    "origin": "cache",
-    "patient_ref": "20",
-    "medications_on_chart": 9,
-    "allergies_on_chart": 0,
-    "conditions_on_chart": 92
+    "patient_ref": "a2c37430-0a29-4c57-8195-2c924c2b654a",
+    "patient_uuid": "a2c37430-0a29-4c57-8195-2c924c2b654a",
+    "medications_on_chart": 7,
+    "allergies_on_chart": 10,
+    "conditions_on_chart": 21
   },
   "coordinates": {
     "space": "clean_pdf",
@@ -38,15 +38,15 @@
   },
   "document": {
     "path": "lab-multipage-003.pdf",
-    "sha256": "af5a6dafca11b741d0fde669ab07c4ae5b2a5cd86a370eda820f5d5dc1d0062a",
-    "bytes": 58296,
+    "sha256": "1b4c850a0b996e79a2475e9c03a18c6269e13c7b265a715cb8cabad1003c1ec6",
+    "bytes": 58276,
     "page_count": 2,
     "has_text_layer": true
   },
   "clean_reference": {
     "path": "lab-multipage-003.pdf",
-    "sha256": "af5a6dafca11b741d0fde669ab07c4ae5b2a5cd86a370eda820f5d5dc1d0062a",
-    "bytes": 58296,
+    "sha256": "1b4c850a0b996e79a2475e9c03a18c6269e13c7b265a715cb8cabad1003c1ec6",
+    "bytes": 58276,
     "page_count": 2,
     "has_text_layer": true
   },
@@ -83,8 +83,8 @@
         "results.iron_vitamins.ferritin.flag"
       ],
       "chart_value": null,
-      "document_value": "12 ng/mL",
-      "expected_discrepancy": "Ferritin is reported as 12 ng/mL, below the reference interval 30 - 400 ng/mL, and flagged 'L'."
+      "document_value": "6 ng/mL",
+      "expected_discrepancy": "Ferritin is reported as 6 ng/mL, below the reference interval 15 - 150 ng/mL, and flagged 'L'."
     }
   ],
   "fields": [
@@ -157,16 +157,16 @@
       "status": "present",
       "kind": "text",
       "origin": "chart",
-      "value": "Dee580 Eichmann909",
+      "value": "Tonja658 Grant908",
       "unit": null,
       "page": 1,
       "bbox": [
         130.0,
         137.54,
-        217.067,
+        205.821,
         149.631
       ],
-      "rendered_text": "Dee580 Eichmann909"
+      "rendered_text": "Tonja658 Grant908"
     },
     {
       "field_path": "order.accession",
@@ -189,7 +189,7 @@
       "status": "present",
       "kind": "text",
       "origin": "chart",
-      "value": "1975-02-18",
+      "value": "2014-01-24",
       "unit": null,
       "page": 1,
       "bbox": [
@@ -198,7 +198,7 @@
         175.003,
         162.031
       ],
-      "rendered_text": "1975-02-18"
+      "rendered_text": "2014-01-24"
     },
     {
       "field_path": "order.specimen",
@@ -221,16 +221,16 @@
       "status": "present",
       "kind": "text",
       "origin": "chart",
-      "value": "Male",
+      "value": "Female",
       "unit": null,
       "page": 1,
       "bbox": [
         130.0,
         162.34,
-        149.07,
+        159.339,
         174.431
       ],
-      "rendered_text": "Male"
+      "rendered_text": "Female"
     },
     {
       "field_path": "order.collected",
@@ -253,7 +253,7 @@
       "status": "present",
       "kind": "text",
       "origin": "chart",
-      "value": "20",
+      "value": "49",
       "unit": null,
       "page": 1,
       "bbox": [
@@ -262,7 +262,7 @@
         139.786,
         186.831
       ],
-      "rendered_text": "20"
+      "rendered_text": "49"
     },
     {
       "field_path": "order.received",
@@ -285,16 +285,16 @@
       "status": "present",
       "kind": "text",
       "origin": "chart",
-      "value": "421 Howe Manor Suite 31",
+      "value": "887 Watsica Divide",
       "unit": null,
       "page": 1,
       "bbox": [
         130.0,
         187.14,
-        231.737,
+        205.31,
         199.231
       ],
-      "rendered_text": "421 Howe Manor Suite 31"
+      "rendered_text": "887 Watsica Divide"
     },
     {
       "field_path": "order.reported",
@@ -317,16 +317,16 @@
       "status": "present",
       "kind": "text",
       "origin": "chart",
-      "value": "Springfield, Massachusetts 01107",
+      "value": "Everett, Massachusetts 02149",
       "unit": null,
       "page": 1,
       "bbox": [
         130.0,
         199.54,
-        262.062,
+        248.369,
         211.631
       ],
-      "rendered_text": "Springfield, Massachusetts 01107"
+      "rendered_text": "Everett, Massachusetts 02149"
     },
     {
       "field_path": "order.ordering_provider",
@@ -525,7 +525,7 @@
       "status": "present",
       "kind": "text",
       "origin": "synthetic",
-      "value": 0.98,
+      "value": 0.83,
       "unit": "mg/dL",
       "page": 1,
       "bbox": [
@@ -534,7 +534,7 @@
         280.0,
         293.371
       ],
-      "rendered_text": "0.98"
+      "rendered_text": "0.83"
     },
     {
       "field_path": "results.cmp.creatinine.flag",
@@ -573,7 +573,7 @@
       "status": "present",
       "kind": "text",
       "origin": "synthetic",
-      "value": "0.60 - 1.30",
+      "value": "0.50 - 1.10",
       "unit": "mg/dL",
       "page": 1,
       "bbox": [
@@ -582,7 +582,7 @@
         455.117,
         293.371
       ],
-      "rendered_text": "0.60 - 1.30"
+      "rendered_text": "0.50 - 1.10"
     },
     {
       "field_path": "results.cmp.egfr.name",
@@ -1645,7 +1645,7 @@
       "status": "present",
       "kind": "text",
       "origin": "synthetic",
-      "value": 5.08,
+      "value": 4.57,
       "unit": "M/uL",
       "page": 1,
       "bbox": [
@@ -1654,7 +1654,7 @@
         280.0,
         512.771
       ],
-      "rendered_text": "5.08"
+      "rendered_text": "4.57"
     },
     {
       "field_path": "results.cbc.rbc.flag",
@@ -1693,7 +1693,7 @@
       "status": "present",
       "kind": "text",
       "origin": "synthetic",
-      "value": "4.20 - 5.80",
+      "value": "3.80 - 5.20",
       "unit": "M/uL",
       "page": 1,
       "bbox": [
@@ -1702,7 +1702,7 @@
         455.117,
         512.771
       ],
-      "rendered_text": "4.20 - 5.80"
+      "rendered_text": "3.80 - 5.20"
     },
     {
       "field_path": "results.cbc.hemoglobin.name",
@@ -1725,7 +1725,7 @@
       "status": "present",
       "kind": "text",
       "origin": "synthetic",
-      "value": 15.4,
+      "value": 13.7,
       "unit": "g/dL",
       "page": 1,
       "bbox": [
@@ -1734,7 +1734,7 @@
         280.0,
         525.371
       ],
-      "rendered_text": "15.4"
+      "rendered_text": "13.7"
     },
     {
       "field_path": "results.cbc.hemoglobin.flag",
@@ -1773,7 +1773,7 @@
       "status": "present",
       "kind": "text",
       "origin": "synthetic",
-      "value": "13.5 - 17.5",
+      "value": "12.0 - 15.5",
       "unit": "g/dL",
       "page": 1,
       "bbox": [
@@ -1782,7 +1782,7 @@
         455.117,
         525.371
       ],
-      "rendered_text": "13.5 - 17.5"
+      "rendered_text": "12.0 - 15.5"
     },
     {
       "field_path": "results.cbc.hematocrit.name",
@@ -1805,7 +1805,7 @@
       "status": "present",
       "kind": "text",
       "origin": "synthetic",
-      "value": 45.2,
+      "value": 39.5,
       "unit": "%",
       "page": 1,
       "bbox": [
@@ -1814,7 +1814,7 @@
         280.0,
         537.971
       ],
-      "rendered_text": "45.2"
+      "rendered_text": "39.5"
     },
     {
       "field_path": "results.cbc.hematocrit.flag",
@@ -1853,7 +1853,7 @@
       "status": "present",
       "kind": "text",
       "origin": "synthetic",
-      "value": "41.0 - 53.0",
+      "value": "36.0 - 46.0",
       "unit": "%",
       "page": 1,
       "bbox": [
@@ -1862,7 +1862,7 @@
         455.117,
         537.971
       ],
-      "rendered_text": "41.0 - 53.0"
+      "rendered_text": "36.0 - 46.0"
     },
     {
       "field_path": "results.cbc.mcv.name",
@@ -2685,7 +2685,7 @@
       "status": "present",
       "kind": "text",
       "origin": "synthetic",
-      "value": 59.0,
+      "value": 66.0,
       "unit": "mg/dL",
       "page": 2,
       "bbox": [
@@ -2694,7 +2694,7 @@
         280.0,
         134.771
       ],
-      "rendered_text": "59"
+      "rendered_text": "66"
     },
     {
       "field_path": "results.lipid.hdl.flag",
@@ -2733,7 +2733,7 @@
       "status": "present",
       "kind": "text",
       "origin": "synthetic",
-      "value": "40 - 100",
+      "value": "50 - 100",
       "unit": "mg/dL",
       "page": 2,
       "bbox": [
@@ -2742,7 +2742,7 @@
         445.553,
         134.771
       ],
-      "rendered_text": "40 - 100"
+      "rendered_text": "50 - 100"
     },
     {
       "field_path": "results.lipid.ldl_calc.name",
@@ -3565,16 +3565,16 @@
       "status": "present",
       "kind": "text",
       "origin": "perturbed",
-      "value": 12.0,
+      "value": 6.0,
       "unit": "ng/mL",
       "page": 2,
       "bbox": [
-        270.437,
+        275.218,
         390.598,
         280.0,
         402.44
       ],
-      "rendered_text": "12"
+      "rendered_text": "6"
     },
     {
       "field_path": "results.iron_vitamins.ferritin.flag",
@@ -3613,7 +3613,7 @@
       "status": "present",
       "kind": "text",
       "origin": "synthetic",
-      "value": "30 - 400",
+      "value": "15 - 150",
       "unit": "ng/mL",
       "page": 2,
       "bbox": [
@@ -3622,7 +3622,7 @@
         445.553,
         402.371
       ],
-      "rendered_text": "30 - 400"
+      "rendered_text": "15 - 150"
     },
     {
       "field_path": "results.iron_vitamins.vitamin_d.name",

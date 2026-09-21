@@ -2,7 +2,7 @@
 # the city-state-ZIP line is scribbled out, and one charted allergy is missing.
 scenario_id: intake-missing-allergy-006
 seed: 4420913
-patient_ref: "47"
+patient_ref: "a2c37430-0a29-4c57-8195-2c924c2b654a"
 doc_type: intake_form
 quality: clean
 note: Missing DOB, illegible city/state/ZIP, and one charted allergy omitted.

@@ -20,6 +20,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
 from pathlib import Path
 
 import pymupdf
@@ -218,11 +219,18 @@ def test_scan_affine_inverse_round_trips():
 # -- spec validation -------------------------------------------------------
 
 
+#: The spec-validation cases below still run a real generate, so they must name
+#: a patient the committed cache already holds — otherwise they fall through to
+#: OpenEMR, which both needs a live database and writes a stray cache file into
+#: the committed cache directory.
+CACHED_PATIENT_REF = "a2c373ec-57bf-41cb-8767-94410dcf663d"
+
+
 def _spec(**overrides):
     base = {
         "scenario_id": "t-001",
         "seed": 1,
-        "patient_ref": "18",
+        "patient_ref": CACHED_PATIENT_REF,
         "doc_type": "lab_pdf",
         "quality": "clean",
     }
@@ -329,3 +337,46 @@ def test_canonical_pdf_bytes_refuses_a_pdf_it_cannot_canonicalise():
 
     with pytest.raises(NonReproduciblePdf):
         canonical_pdf_bytes(b"%PDF-1.7\ntrailer\n<</Size 1/Root 1 0 R>>\nstartxref\n9\n%%EOF\n")
+
+
+def test_ground_truth_carries_nothing_that_depends_on_the_run():
+    """
+    The ground truth must be a function of the spec and the chart, nothing else.
+
+    `chart_source` once recorded whether that run read the cache or OpenEMR,
+    which made a `--refresh` run and a cached run produce different bytes for
+    the same spec — the determinism tests above only missed it because they
+    happen to take the same path every time.
+    """
+    expected = {
+        "system",
+        "patient_ref",
+        "patient_uuid",
+        "medications_on_chart",
+        "allergies_on_chart",
+        "conditions_on_chart",
+    }
+    for scenario_id in SPEC_IDS:
+        payload = json.loads(
+            (SAMPLES_DIR / scenario_id / f"{scenario_id}.ground_truth.json").read_text(
+                encoding="utf-8"
+            )
+        )
+        assert set(payload["chart_source"]) == expected, scenario_id
+
+
+@pytest.mark.parametrize("scenario_id", SPEC_IDS)
+def test_specs_reference_a_patient_by_uuid(scenario_id):
+    """
+    patient_ref is the FHIR UUID, not a pid.
+
+    pid and pubpid are assigned per OpenEMR instance at import, so a spec keyed
+    on one cannot be checked against another deployment — which is exactly how
+    the first parity run came back all-MISMATCH.
+    """
+    spec = SPEC_BY_ID[scenario_id]
+    assert re.fullmatch(r"[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}", spec.patient_ref), (
+        spec.patient_ref
+    )
+    chart = _chart(spec)
+    assert chart.uuid == spec.patient_ref

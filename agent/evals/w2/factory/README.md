@@ -59,7 +59,7 @@ One YAML file per scenario, in `specs/`.
 ```yaml
 scenario_id: lab-clean-001     # lowercase [a-z0-9._-], unique within a run
 seed: 20260921                 # every random choice derives from this
-patient_ref: "18"              # OpenEMR pid, pubpid, or uuid hex
+patient_ref: "a2c373ec-…"      # the patient FHIR UUID (see "Which patient")
 doc_type: lab_pdf              # lab_pdf | intake_form
 quality: clean                 # clean | scanned_light | scanned_heavy
 note: free text, carried into the ground truth for humans
@@ -95,7 +95,7 @@ convert it without guessing.
 {
   "schema_version": "doc-factory-groundtruth/0.1.0",
   "scenario":    { "scenario_id": ..., "seed": ..., "perturbations": [...] },
-  "chart_source":{ "system": "local-openemr", "origin": "cache" | "openemr", ... },
+  "chart_source":{ "system": "local-openemr", "patient_uuid": "a2c373ec-…", ... },
   "coordinates": { "space": "clean_pdf", "units": "pt", "origin": "top-left", "y_axis": "down" },
   "document":    { "path": ..., "sha256": ..., "page_count": ..., "has_text_layer": false },
   "clean_reference": { "path": "<id>.clean.pdf", "sha256": ..., "has_text_layer": true },
@@ -156,6 +156,10 @@ fixed anchor (`content.ANCHOR_DATE`) for the same reason.
 
 Two caveats worth knowing:
 
+* Nothing that depends on *how a run went* may enter the ground truth. This is
+  easy to get wrong: `chart_source` briefly recorded whether the chart came
+  from the cache or from OpenEMR, which made `generate --refresh` and a cached
+  `generate` emit different bytes for the same spec.
 * PDF output is byte-stable because `canvas.canonical_pdf_bytes` rewrites the
   random `/ID` MuPDF stamps into the trailer. It raises rather than returning
   un-canonicalised bytes, because a silently-random id is a reproducibility bug
@@ -164,6 +168,36 @@ Two caveats worth knowing:
   encoder, so their bytes are stable within one environment but may differ
   across Pillow versions. The ground truth and the `.clean.pdf` are stable
   everywhere, and the tests check those two separately.
+
+## Which patient a spec names
+
+`patient_ref` is the patient's **FHIR UUID**, in the dashed form OpenEMR
+returns as `Patient.id`. `pid` and `pubpid` are also accepted, but do not use
+them in a committed spec: OpenEMR assigns both per instance at import time, so
+a spec keyed on a pid means a different person on a different deployment — or
+nobody at all. A first pass at this keyed on pids, and every patient in it was
+absent from the deployed instance.
+
+The cached chart records the UUID too (`record.uuid`), and every ground-truth
+file repeats it at `chart_source.patient_uuid`, so a generated document can be
+checked against a live FHIR server without going back to the database.
+
+The three patients the samples use were picked from the deployed population by
+chart richness — each has medications, allergies, conditions and labs — with
+two deliberate exclusions: the Week 1 F-57 patient, whose penicillin allergy
+carries a data-absent code and exists to exercise that defect, and one other
+patient carrying a penicillin allergy. Those belong to eval cases that target
+the defect, not to general-purpose document scenarios.
+
+| uuid | meds | allergies | conditions | labs | used by |
+|---|---|---|---|---|---|
+| `a2c373ec-…663d` | 22 | 3 | 36 | 183 | `lab-clean-001`, `intake-scanned-light-med-005` |
+| `a2c373d1-…db1c7` | 8 | 9 | 32 | 215 | `lab-scanned-heavy-abnormal-002`, `intake-clean-004` |
+| `a2c37430-…b2654a` | 14 | 10 | 21 | 39 | `lab-multipage-003`, `intake-missing-allergy-006` |
+
+(Counts are FHIR resource counts. The cache holds fewer medications, because
+OpenEMR emits one `MedicationRequest` per `lists` row *and* one per
+`prescriptions` row while the chart holds each drug once.)
 
 ## Chart source
 

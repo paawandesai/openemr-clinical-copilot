@@ -28,7 +28,7 @@ from dataclasses import asdict, dataclass, field
 from pathlib import Path
 from typing import Any
 
-CHART_CACHE_SCHEMA_VERSION = "doc-factory-chart-cache/0.1.0"
+CHART_CACHE_SCHEMA_VERSION = "doc-factory-chart-cache/0.2.0"
 
 #: Synthea encodes drug strength in the product name, e.g.
 #: "Loratadine 5 MG Chewable Tablet" -> "5 MG". OpenEMR's prescriptions.dosage
@@ -70,6 +70,11 @@ class ChartRecord:
     """The subset of a chart the factory renders from."""
 
     patient_ref: str
+    #: The patient's FHIR/OpenEMR UUID, canonical dashed lowercase. This is the
+    #: only identifier that means the same patient on two OpenEMR instances —
+    #: pid and pubpid are assigned per-instance at import, so a chart cached
+    #: against one deployment cannot be checked against another without it.
+    uuid: str
     mrn: str
     first_name: str
     middle_name: str
@@ -179,7 +184,10 @@ def db_settings(env_path: Path | None = None) -> DbSettings:
 
 _DEMOGRAPHICS_SQL = """
     SELECT pid, pubpid, fname, mname, lname, DOB, sex,
-           street, city, state, postal_code, phone_home, phone_cell
+           street, city, state, postal_code, phone_home, phone_cell,
+           LOWER(CONCAT_WS('-',
+               SUBSTR(HEX(uuid), 1, 8), SUBSTR(HEX(uuid), 9, 4), SUBSTR(HEX(uuid), 13, 4),
+               SUBSTR(HEX(uuid), 17, 4), SUBSTR(HEX(uuid), 21, 12))) AS uuid_text
     FROM patient_data
     WHERE {predicate}
     LIMIT 1
@@ -241,12 +249,13 @@ def fetch_chart(patient_ref: str, settings: DbSettings) -> ChartRecord:
                 # Belt and braces: any accidental write raises instead of landing.
                 cursor.execute("SET SESSION TRANSACTION READ ONLY")
 
+                bare_uuid = patient_ref.replace("-", "")
                 if patient_ref.isdigit():
                     predicate, params = "pid = %s", (int(patient_ref),)
-                elif len(patient_ref) == 32 and all(
-                    c in "0123456789abcdefABCDEF" for c in patient_ref
-                ):
-                    predicate, params = "HEX(uuid) = %s", (patient_ref.upper(),)
+                elif len(bare_uuid) == 32 and all(c in "0123456789abcdefABCDEF" for c in bare_uuid):
+                    # Accepted dashed or bare; specs use the dashed form, which
+                    # is what FHIR returns as Patient.id.
+                    predicate, params = "HEX(uuid) = %s", (bare_uuid.upper(),)
                 else:
                     predicate, params = "pubpid = %s", (patient_ref,)
 
@@ -313,6 +322,7 @@ def fetch_chart(patient_ref: str, settings: DbSettings) -> ChartRecord:
 
     return ChartRecord(
         patient_ref=patient_ref,
+        uuid=_clean(demographics["uuid_text"]),
         mrn=_clean(demographics["pubpid"]) or str(pid),
         first_name=_clean(demographics["fname"]),
         middle_name=_clean(demographics["mname"]),

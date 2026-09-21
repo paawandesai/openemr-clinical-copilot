@@ -3,7 +3,7 @@
   "scenario": {
     "scenario_id": "lab-clean-001",
     "seed": 20260921,
-    "patient_ref": "18",
+    "patient_ref": "a2c373ec-57bf-41cb-8767-94410dcf663d",
     "doc_type": "lab_pdf",
     "quality": "clean",
     "perturbations": [],
@@ -11,11 +11,11 @@
   },
   "chart_source": {
     "system": "local-openemr",
-    "origin": "cache",
-    "patient_ref": "18",
-    "medications_on_chart": 15,
-    "allergies_on_chart": 7,
-    "conditions_on_chart": 32
+    "patient_ref": "a2c373ec-57bf-41cb-8767-94410dcf663d",
+    "patient_uuid": "a2c373ec-57bf-41cb-8767-94410dcf663d",
+    "medications_on_chart": 11,
+    "allergies_on_chart": 3,
+    "conditions_on_chart": 36
   },
   "coordinates": {
     "space": "clean_pdf",
@@ -26,15 +26,15 @@
   },
   "document": {
     "path": "lab-clean-001.pdf",
-    "sha256": "049b62333f235fc6e8304c7cc4c6a600746149e2af87ed3e51a9722b68b85ad9",
-    "bytes": 31858,
+    "sha256": "c76f48d860be68b4005dbdb9443065b23190d3cf7cf2e0dc46c919992ca20921",
+    "bytes": 31851,
     "page_count": 1,
     "has_text_layer": true
   },
   "clean_reference": {
     "path": "lab-clean-001.pdf",
-    "sha256": "049b62333f235fc6e8304c7cc4c6a600746149e2af87ed3e51a9722b68b85ad9",
-    "bytes": 31858,
+    "sha256": "c76f48d860be68b4005dbdb9443065b23190d3cf7cf2e0dc46c919992ca20921",
+    "bytes": 31851,
     "page_count": 1,
     "has_text_layer": true
   },
@@ -117,16 +117,16 @@
       "status": "present",
       "kind": "text",
       "origin": "chart",
-      "value": "Clemmie560 Collier206",
+      "value": "Merlyn225 Sanda877 Mueller846",
       "unit": null,
       "page": 1,
       "bbox": [
         130.0,
         137.54,
-        221.441,
+        259.615,
         149.631
       ],
-      "rendered_text": "Clemmie560 Collier206"
+      "rendered_text": "Merlyn225 Sanda877 Mueller846"
     },
     {
       "field_path": "order.accession",
@@ -149,7 +149,7 @@
       "status": "present",
       "kind": "text",
       "origin": "chart",
-      "value": "2001-12-24",
+      "value": "1960-09-25",
       "unit": null,
       "page": 1,
       "bbox": [
@@ -158,7 +158,7 @@
         175.003,
         162.031
       ],
-      "rendered_text": "2001-12-24"
+      "rendered_text": "1960-09-25"
     },
     {
       "field_path": "order.specimen",
@@ -213,7 +213,7 @@
       "status": "present",
       "kind": "text",
       "origin": "chart",
-      "value": "18",
+      "value": "38",
       "unit": null,
       "page": 1,
       "bbox": [
@@ -222,7 +222,7 @@
         139.786,
         186.831
       ],
-      "rendered_text": "18"
+      "rendered_text": "38"
     },
     {
       "field_path": "order.received",
@@ -245,16 +245,16 @@
       "status": "present",
       "kind": "text",
       "origin": "chart",
-      "value": "1084 Kling Station Apt 60",
+      "value": "890 Mills Well",
       "unit": null,
       "page": 1,
       "bbox": [
         130.0,
         187.14,
-        229.308,
+        184.27,
         199.231
       ],
-      "rendered_text": "1084 Kling Station Apt 60"
+      "rendered_text": "890 Mills Well"
     },
     {
       "field_path": "order.reported",
@@ -277,16 +277,16 @@
       "status": "present",
       "kind": "text",
       "origin": "chart",
-      "value": "Lynn, Massachusetts 01902",
+      "value": "Westwood, Massachusetts 00000",
       "unit": null,
       "page": 1,
       "bbox": [
         130.0,
         199.54,
-        239.569,
+        261.569,
         211.631
       ],
-      "rendered_text": "Lynn, Massachusetts 01902"
+      "rendered_text": "Westwood, Massachusetts 00000"
     },
     {
       "field_path": "order.ordering_provider",

@@ -3,7 +3,7 @@
   "scenario": {
     "scenario_id": "intake-missing-allergy-006",
     "seed": 4420913,
-    "patient_ref": "47",
+    "patient_ref": "a2c37430-0a29-4c57-8195-2c924c2b654a",
     "doc_type": "intake_form",
     "quality": "clean",
     "perturbations": [
@@ -30,11 +30,11 @@
   },
   "chart_source": {
     "system": "local-openemr",
-    "origin": "cache",
-    "patient_ref": "47",
-    "medications_on_chart": 5,
-    "allergies_on_chart": 4,
-    "conditions_on_chart": 51
+    "patient_ref": "a2c37430-0a29-4c57-8195-2c924c2b654a",
+    "patient_uuid": "a2c37430-0a29-4c57-8195-2c924c2b654a",
+    "medications_on_chart": 7,
+    "allergies_on_chart": 10,
+    "conditions_on_chart": 21
   },
   "coordinates": {
     "space": "clean_pdf",
@@ -45,22 +45,27 @@
   },
   "document": {
     "path": "intake-missing-allergy-006.pdf",
-    "sha256": "8f6ffd4bca81cdd7c790bbc1149f45a5fcd612396cc298a3a5e37ae55ea7acc5",
-    "bytes": 92723,
-    "page_count": 1,
+    "sha256": "acc04d16609a878a2bb69fdbd9da060cfea65943aa99e58dc0a60f790fc92b2f",
+    "bytes": 134300,
+    "page_count": 2,
     "has_text_layer": true
   },
   "clean_reference": {
     "path": "intake-missing-allergy-006.pdf",
-    "sha256": "8f6ffd4bca81cdd7c790bbc1149f45a5fcd612396cc298a3a5e37ae55ea7acc5",
-    "bytes": 92723,
-    "page_count": 1,
+    "sha256": "acc04d16609a878a2bb69fdbd9da060cfea65943aa99e58dc0a60f790fc92b2f",
+    "bytes": 134300,
+    "page_count": 2,
     "has_text_layer": true
   },
   "transform": null,
   "pages": [
     {
       "number": 1,
+      "width": 612.0,
+      "height": 792.0
+    },
+    {
+      "number": 2,
       "width": 612.0,
       "height": 792.0
     }
@@ -72,9 +77,9 @@
         "mode": "omit"
       },
       "field_paths": [],
-      "chart_value": "Tree pollen (substance)",
+      "chart_value": "Fish (substance)",
       "document_value": null,
-      "expected_discrepancy": "The chart records an allergy to 'Tree pollen (substance)'; the form omits it."
+      "expected_discrepancy": "The chart records an allergy to 'Fish (substance)'; the form omits it."
     },
     {
       "kind": "missing_field",
@@ -84,9 +89,9 @@
       "field_paths": [
         "patient.dob"
       ],
-      "chart_value": "1986-12-16",
+      "chart_value": "2014-01-24",
       "document_value": null,
-      "expected_discrepancy": "The document does not carry patient.dob; the chart value is '1986-12-16'. An extractor must report it as absent, not infer it."
+      "expected_discrepancy": "The document does not carry patient.dob; the chart value is '2014-01-24'. An extractor must report it as absent, not infer it."
     },
     {
       "kind": "illegible_field",
@@ -96,9 +101,9 @@
       "field_paths": [
         "patient.city_state_zip"
       ],
-      "chart_value": "Norwell, Massachusetts 00000",
+      "chart_value": "Everett, Massachusetts 02149",
       "document_value": null,
-      "expected_discrepancy": "patient.city_state_zip is present as ink but unreadable; the chart value is 'Norwell, Massachusetts 00000'. An extractor must report it as illegible, not guess."
+      "expected_discrepancy": "patient.city_state_zip is present as ink but unreadable; the chart value is 'Everett, Massachusetts 02149'. An extractor must report it as illegible, not guess."
     }
   ],
   "fields": [
@@ -107,23 +112,23 @@
       "status": "present",
       "kind": "text",
       "origin": "chart",
-      "value": "Maribeth658 Terese90 Watsica258",
+      "value": "Tonja658 Grant908",
       "unit": null,
       "page": 1,
       "bbox": [
         86.869,
-        126.796,
-        239.279,
+        126.921,
+        173.497,
         140.571
       ],
-      "rendered_text": "Maribeth658 Terese90 Watsica258"
+      "rendered_text": "Tonja658 Grant908"
     },
     {
       "field_path": "patient.dob",
       "status": "absent",
       "kind": "text",
       "origin": "perturbed",
-      "value": "1986-12-16",
+      "value": "2014-01-24",
       "unit": null,
       "page": null,
       "bbox": null,
@@ -134,16 +139,16 @@
       "status": "present",
       "kind": "text",
       "origin": "chart",
-      "value": "919 Kulas Drive Suite 4",
+      "value": "887 Watsica Divide",
       "unit": null,
       "page": 1,
       "bbox": [
         95.078,
-        150.812,
-        197.945,
-        164.565
+        150.853,
+        179.744,
+        164.605
       ],
-      "rendered_text": "919 Kulas Drive Suite 4"
+      "rendered_text": "887 Watsica Divide"
     },
     {
       "field_path": "patient.sex",
@@ -155,9 +160,9 @@
       "page": 1,
       "bbox": [
         389.129,
-        150.822,
-        421.354,
-        164.406
+        151.011,
+        420.584,
+        164.29
       ],
       "rendered_text": "Female"
     },
@@ -166,7 +171,7 @@
       "status": "illegible",
       "kind": "text",
       "origin": "perturbed",
-      "value": "Norwell, Massachusetts 00000",
+      "value": "Everett, Massachusetts 02149",
       "unit": null,
       "page": 1,
       "bbox": [
@@ -187,9 +192,9 @@
       "page": 1,
       "bbox": [
         107.837,
-        198.767,
-        156.205,
-        212.551
+        198.916,
+        157.187,
+        212.692
       ],
       "rendered_text": "09/14/2026"
     },
@@ -203,9 +208,9 @@
       "page": 1,
       "bbox": [
         60.0,
-        250.822,
-        270.025,
-        264.642
+        250.767,
+        270.694,
+        264.669
       ],
       "rendered_text": "gingival disease - recheck and medication review"
     },
@@ -214,16 +219,16 @@
       "status": "present",
       "kind": "text",
       "origin": "chart_derived",
-      "value": "Astemizole 10 MG Oral Tablet",
+      "value": "Fexofenadine hydrochloride 30 MG Oral Tablet",
       "unit": null,
       "page": 1,
       "bbox": [
         59.0,
-        344.458,
-        105.31,
-        358.2
+        344.682,
+        179.422,
+        358.175
       ],
-      "rendered_text": "Astemizole",
+      "rendered_text": "Fexofenadine hydrochloride",
       "note": "value is the full chart product name; the form carries the common name"
     },
     {
@@ -231,16 +236,16 @@
       "status": "present",
       "kind": "text",
       "origin": "chart_derived",
-      "value": "10 MG",
+      "value": "30 MG",
       "unit": null,
       "page": 1,
       "bbox": [
         262.0,
-        344.878,
-        291.614,
-        358.118
+        344.333,
+        293.421,
+        358.114
       ],
-      "rendered_text": "10 MG"
+      "rendered_text": "30 MG"
     },
     {
       "field_path": "medications[0].frequency",
@@ -252,9 +257,9 @@
       "page": 1,
       "bbox": [
         364.0,
-        344.53,
-        406.617,
-        357.986
+        344.417,
+        406.784,
+        358.1
       ],
       "rendered_text": "as needed",
       "note": "frequency has no chart counterpart"
@@ -269,9 +274,9 @@
       "page": 1,
       "bbox": [
         59.0,
-        365.486,
-        112.207,
-        379.209
+        365.59,
+        111.358,
+        379.168
       ],
       "rendered_text": "Epinephrine",
       "note": "value is the full chart product name; the form carries the common name"
@@ -286,9 +291,9 @@
       "page": 1,
       "bbox": [
         262.0,
-        365.318,
-        293.098,
-        379.215
+        365.351,
+        293.844,
+        379.102
       ],
       "rendered_text": "0.3 ML"
     },
@@ -302,9 +307,9 @@
       "page": 1,
       "bbox": [
         364.0,
-        365.833,
-        408.677,
-        379.28
+        365.431,
+        409.178,
+        379.157
       ],
       "rendered_text": "at bedtime",
       "note": "frequency has no chart counterpart"
@@ -314,16 +319,16 @@
       "status": "present",
       "kind": "text",
       "origin": "chart_derived",
-      "value": "Acetaminophen 325 MG Oral Tablet",
+      "value": "sodium fluoride 0.0272 MG/MG Oral Gel",
       "unit": null,
       "page": 1,
       "bbox": [
         59.0,
-        386.391,
-        125.704,
-        400.049
+        386.496,
+        126.493,
+        400.104
       ],
-      "rendered_text": "Acetaminophen",
+      "rendered_text": "sodium fluoride",
       "note": "value is the full chart product name; the form carries the common name"
     },
     {
@@ -331,16 +336,16 @@
       "status": "present",
       "kind": "text",
       "origin": "chart_derived",
-      "value": "325 MG",
+      "value": "0.0272 MG",
       "unit": null,
       "page": 1,
       "bbox": [
         262.0,
-        386.661,
-        297.056,
-        400.02
+        386.459,
+        311.116,
+        400.016
       ],
-      "rendered_text": "325 MG"
+      "rendered_text": "0.0272 MG"
     },
     {
       "field_path": "medications[2].frequency",
@@ -352,9 +357,9 @@
       "page": 1,
       "bbox": [
         364.0,
-        386.639,
-        428.105,
-        400.173
+        386.409,
+        427.435,
+        400.225
       ],
       "rendered_text": "every morning",
       "note": "frequency has no chart counterpart"
@@ -364,16 +369,16 @@
       "status": "present",
       "kind": "text",
       "origin": "chart_derived",
-      "value": "Acetaminophen 325 MG Oral Tablet [Tylenol]",
+      "value": "Acetaminophen 160 MG Chewable Tablet",
       "unit": null,
       "page": 1,
       "bbox": [
         59.0,
-        407.341,
-        91.907,
-        421.217
+        407.461,
+        125.332,
+        421.149
       ],
-      "rendered_text": "Tylenol",
+      "rendered_text": "Acetaminophen",
       "note": "value is the full chart product name; the form carries the common name"
     },
     {
@@ -381,16 +386,16 @@
       "status": "present",
       "kind": "text",
       "origin": "chart_derived",
-      "value": "325 MG",
+      "value": "160 MG",
       "unit": null,
       "page": 1,
       "bbox": [
         262.0,
-        407.648,
-        297.134,
-        420.872
+        407.585,
+        296.646,
+        421.169
       ],
-      "rendered_text": "325 MG"
+      "rendered_text": "160 MG"
     },
     {
       "field_path": "medications[3].frequency",
@@ -402,9 +407,9 @@
       "page": 1,
       "bbox": [
         364.0,
-        407.934,
-        408.661,
-        421.169
+        407.463,
+        408.152,
+        421.198
       ],
       "rendered_text": "at bedtime",
       "note": "frequency has no chart counterpart"
@@ -414,16 +419,16 @@
       "status": "present",
       "kind": "text",
       "origin": "chart_derived",
-      "value": "sodium fluoride 0.0272 MG/MG Oral Gel",
+      "value": "Penicillin V Potassium 250 MG Oral Tablet",
       "unit": null,
       "page": 1,
       "bbox": [
         59.0,
-        428.447,
-        125.256,
-        442.152
+        428.516,
+        148.23,
+        442.208
       ],
-      "rendered_text": "sodium fluoride",
+      "rendered_text": "Penicillin Potassium",
       "note": "value is the full chart product name; the form carries the common name"
     },
     {
@@ -431,16 +436,16 @@
       "status": "present",
       "kind": "text",
       "origin": "chart_derived",
-      "value": "0.0272 MG",
+      "value": "250 MG",
       "unit": null,
       "page": 1,
       "bbox": [
         262.0,
-        428.52,
-        310.827,
-        441.998
+        428.595,
+        298.088,
+        442.061
       ],
-      "rendered_text": "0.0272 MG"
+      "rendered_text": "250 MG"
     },
     {
       "field_path": "medications[4].frequency",
@@ -452,11 +457,111 @@
       "page": 1,
       "bbox": [
         364.0,
-        428.461,
-        410.864,
-        442.061
+        428.571,
+        410.711,
+        442.191
       ],
       "rendered_text": "twice daily",
+      "note": "frequency has no chart counterpart"
+    },
+    {
+      "field_path": "medications[5].name",
+      "status": "present",
+      "kind": "text",
+      "origin": "chart_derived",
+      "value": "Amoxicillin 250 MG / Clavulanate 125 MG Oral Tablet",
+      "unit": null,
+      "page": 1,
+      "bbox": [
+        59.0,
+        449.339,
+        164.26,
+        463.235
+      ],
+      "rendered_text": "Amoxicillin Clavulanate",
+      "note": "value is the full chart product name; the form carries the common name"
+    },
+    {
+      "field_path": "medications[5].dose",
+      "status": "present",
+      "kind": "text",
+      "origin": "chart_derived",
+      "value": "250 MG",
+      "unit": null,
+      "page": 1,
+      "bbox": [
+        262.0,
+        449.953,
+        296.836,
+        463.161
+      ],
+      "rendered_text": "250 MG"
+    },
+    {
+      "field_path": "medications[5].frequency",
+      "status": "present",
+      "kind": "text",
+      "origin": "synthetic",
+      "value": "twice daily",
+      "unit": null,
+      "page": 1,
+      "bbox": [
+        364.0,
+        449.748,
+        410.888,
+        463.26
+      ],
+      "rendered_text": "twice daily",
+      "note": "frequency has no chart counterpart"
+    },
+    {
+      "field_path": "medications[6].name",
+      "status": "present",
+      "kind": "text",
+      "origin": "chart_derived",
+      "value": "Acetaminophen 325 MG Oral Tablet",
+      "unit": null,
+      "page": 1,
+      "bbox": [
+        59.0,
+        470.621,
+        125.556,
+        484.096
+      ],
+      "rendered_text": "Acetaminophen",
+      "note": "value is the full chart product name; the form carries the common name"
+    },
+    {
+      "field_path": "medications[6].dose",
+      "status": "present",
+      "kind": "text",
+      "origin": "chart_derived",
+      "value": "325 MG",
+      "unit": null,
+      "page": 1,
+      "bbox": [
+        262.0,
+        470.682,
+        297.129,
+        484.081
+      ],
+      "rendered_text": "325 MG"
+    },
+    {
+      "field_path": "medications[6].frequency",
+      "status": "present",
+      "kind": "text",
+      "origin": "synthetic",
+      "value": "three times daily",
+      "unit": null,
+      "page": 1,
+      "bbox": [
+        364.0,
+        470.338,
+        435.011,
+        484.072
+      ],
+      "rendered_text": "three times daily",
       "note": "frequency has no chart counterpart"
     },
     {
@@ -469,9 +574,9 @@
       "page": 1,
       "bbox": [
         59.0,
-        480.0,
+        522.0,
         67.5,
-        488.5
+        530.5
       ],
       "rendered_text": "",
       "note": "'No known drug allergies' box; checked only when the chart has no allergies"
@@ -486,62 +591,94 @@
       "page": 1,
       "bbox": [
         59.0,
-        514.449,
-        183.409,
-        528.238
+        556.41,
+        182.832,
+        570.209
       ],
       "rendered_text": "Allergic disposition (finding)"
+    },
+    {
+      "field_path": "allergies[0].reaction",
+      "status": "present",
+      "kind": "text",
+      "origin": "chart",
+      "value": "Severe",
+      "unit": null,
+      "page": 1,
+      "bbox": [
+        282.0,
+        556.627,
+        310.477,
+        570.038
+      ],
+      "rendered_text": "Severe"
     },
     {
       "field_path": "allergies[1].allergen",
       "status": "present",
       "kind": "text",
       "origin": "chart",
-      "value": "Aspirin",
+      "value": "Bee venom (substance)",
       "unit": null,
       "page": 1,
       "bbox": [
         59.0,
-        535.562,
-        90.914,
-        549.064
+        577.6,
+        158.252,
+        591.178
       ],
-      "rendered_text": "Aspirin"
+      "rendered_text": "Bee venom (substance)"
     },
     {
       "field_path": "allergies[1].reaction",
       "status": "present",
       "kind": "text",
       "origin": "chart",
-      "value": "Moderate",
+      "value": "Severe",
       "unit": null,
       "page": 1,
       "bbox": [
         282.0,
-        535.379,
-        323.657,
-        549.137
+        577.866,
+        310.254,
+        591.164
       ],
-      "rendered_text": "Moderate"
+      "rendered_text": "Severe"
     },
     {
       "field_path": "allergies[2].allergen",
       "status": "present",
       "kind": "text",
       "origin": "chart",
-      "value": "Fish (substance)",
+      "value": "Mold (organism)",
       "unit": null,
       "page": 1,
       "bbox": [
         59.0,
-        556.583,
-        130.353,
-        570.237
+        598.64,
+        131.181,
+        612.145
       ],
-      "rendered_text": "Fish (substance)"
+      "rendered_text": "Mold (organism)"
     },
     {
-      "field_path": "allergies[2].reaction",
+      "field_path": "allergies[3].allergen",
+      "status": "present",
+      "kind": "text",
+      "origin": "chart",
+      "value": "Animal dander (substance)",
+      "unit": null,
+      "page": 1,
+      "bbox": [
+        59.0,
+        619.365,
+        176.246,
+        633.243
+      ],
+      "rendered_text": "Animal dander (substance)"
+    },
+    {
+      "field_path": "allergies[3].reaction",
       "status": "present",
       "kind": "text",
       "origin": "chart",
@@ -550,9 +687,137 @@
       "page": 1,
       "bbox": [
         282.0,
-        556.945,
-        301.636,
-        569.976
+        619.622,
+        302.148,
+        633.21
+      ],
+      "rendered_text": "Mild"
+    },
+    {
+      "field_path": "allergies[4].allergen",
+      "status": "present",
+      "kind": "text",
+      "origin": "chart",
+      "value": "Tree pollen (substance)",
+      "unit": null,
+      "page": 1,
+      "bbox": [
+        59.0,
+        640.48,
+        158.638,
+        654.198
+      ],
+      "rendered_text": "Tree pollen (substance)"
+    },
+    {
+      "field_path": "allergies[5].allergen",
+      "status": "present",
+      "kind": "text",
+      "origin": "chart",
+      "value": "Aspirin",
+      "unit": null,
+      "page": 1,
+      "bbox": [
+        59.0,
+        661.606,
+        90.76,
+        675.202
+      ],
+      "rendered_text": "Aspirin"
+    },
+    {
+      "field_path": "allergies[6].allergen",
+      "status": "present",
+      "kind": "text",
+      "origin": "chart",
+      "value": "Cow's milk (substance)",
+      "unit": null,
+      "page": 1,
+      "bbox": [
+        59.0,
+        682.499,
+        158.501,
+        696.19
+      ],
+      "rendered_text": "Cow's milk (substance)"
+    },
+    {
+      "field_path": "allergies[6].reaction",
+      "status": "present",
+      "kind": "text",
+      "origin": "chart",
+      "value": "Mild",
+      "unit": null,
+      "page": 1,
+      "bbox": [
+        282.0,
+        682.558,
+        302.791,
+        696.232
+      ],
+      "rendered_text": "Mild"
+    },
+    {
+      "field_path": "allergies[7].allergen",
+      "status": "present",
+      "kind": "text",
+      "origin": "chart",
+      "value": "Wheat (substance)",
+      "unit": null,
+      "page": 1,
+      "bbox": [
+        59.0,
+        703.423,
+        137.269,
+        717.169
+      ],
+      "rendered_text": "Wheat (substance)"
+    },
+    {
+      "field_path": "allergies[7].reaction",
+      "status": "present",
+      "kind": "text",
+      "origin": "chart",
+      "value": "Moderate",
+      "unit": null,
+      "page": 1,
+      "bbox": [
+        282.0,
+        703.422,
+        324.101,
+        717.057
+      ],
+      "rendered_text": "Moderate"
+    },
+    {
+      "field_path": "allergies[8].allergen",
+      "status": "present",
+      "kind": "text",
+      "origin": "chart",
+      "value": "Shellfish (substance)",
+      "unit": null,
+      "page": 2,
+      "bbox": [
+        59.0,
+        98.456,
+        149.168,
+        112.23
+      ],
+      "rendered_text": "Shellfish (substance)"
+    },
+    {
+      "field_path": "allergies[8].reaction",
+      "status": "present",
+      "kind": "text",
+      "origin": "chart",
+      "value": "Mild",
+      "unit": null,
+      "page": 2,
+      "bbox": [
+        282.0,
+        98.926,
+        301.571,
+        111.835
       ],
       "rendered_text": "Mild"
     },
@@ -563,12 +828,12 @@
       "origin": "synthetic",
       "value": true,
       "unit": null,
-      "page": 1,
+      "page": 2,
       "bbox": [
         56.0,
-        610.0,
+        152.0,
         64.5,
-        618.5
+        160.5
       ],
       "rendered_text": "X",
       "note": "family history has no chart counterpart"
@@ -580,12 +845,12 @@
       "origin": "synthetic",
       "value": "paternal grandfather",
       "unit": null,
-      "page": 1,
+      "page": 2,
       "bbox": [
         135.043,
-        607.67,
-        215.365,
-        620.335
+        149.693,
+        216.298,
+        162.335
       ],
       "rendered_text": "paternal grandfather",
       "note": "family history has no chart counterpart"
@@ -597,12 +862,12 @@
       "origin": "synthetic",
       "value": false,
       "unit": null,
-      "page": 1,
+      "page": 2,
       "bbox": [
         306.0,
-        610.0,
+        152.0,
         314.5,
-        618.5
+        160.5
       ],
       "rendered_text": "",
       "note": "family history has no chart counterpart"
@@ -614,12 +879,12 @@
       "origin": "synthetic",
       "value": true,
       "unit": null,
-      "page": 1,
+      "page": 2,
       "bbox": [
         56.0,
-        633.0,
+        175.0,
         64.5,
-        641.5
+        183.5
       ],
       "rendered_text": "X",
       "note": "family history has no chart counterpart"
@@ -631,12 +896,12 @@
       "origin": "synthetic",
       "value": "maternal grandmother",
       "unit": null,
-      "page": 1,
+      "page": 2,
       "bbox": [
         153.272,
-        630.869,
-        240.836,
-        643.327
+        172.819,
+        241.777,
+        185.34
       ],
       "rendered_text": "maternal grandmother",
       "note": "family history has no chart counterpart"
@@ -648,12 +913,12 @@
       "origin": "synthetic",
       "value": true,
       "unit": null,
-      "page": 1,
+      "page": 2,
       "bbox": [
         306.0,
-        633.0,
+        175.0,
         314.5,
-        641.5
+        183.5
       ],
       "rendered_text": "X",
       "note": "family history has no chart counterpart"
@@ -665,12 +930,12 @@
       "origin": "synthetic",
       "value": "brother",
       "unit": null,
-      "page": 1,
+      "page": 2,
       "bbox": [
         379.115,
-        631.033,
-        408.028,
-        643.278
+        173.181,
+        407.977,
+        185.231
       ],
       "rendered_text": "brother",
       "note": "family history has no chart counterpart"
@@ -682,12 +947,12 @@
       "origin": "synthetic",
       "value": false,
       "unit": null,
-      "page": 1,
+      "page": 2,
       "bbox": [
         56.0,
-        656.0,
+        198.0,
         64.5,
-        664.5
+        206.5
       ],
       "rendered_text": "",
       "note": "family history has no chart counterpart"
@@ -699,12 +964,12 @@
       "origin": "synthetic",
       "value": true,
       "unit": null,
-      "page": 1,
+      "page": 2,
       "bbox": [
         306.0,
-        656.0,
+        198.0,
         314.5,
-        664.5
+        206.5
       ],
       "rendered_text": "X",
       "note": "family history has no chart counterpart"
@@ -716,12 +981,12 @@
       "origin": "synthetic",
       "value": "sister",
       "unit": null,
-      "page": 1,
+      "page": 2,
       "bbox": [
         380.484,
-        653.917,
-        401.606,
-        666.241
+        195.862,
+        401.383,
+        208.235
       ],
       "rendered_text": "sister",
       "note": "family history has no chart counterpart"
@@ -731,16 +996,16 @@
       "status": "present",
       "kind": "text",
       "origin": "chart",
-      "value": "Maribeth658 Terese90 Watsica258",
+      "value": "Tonja658 Grant908",
       "unit": null,
-      "page": 1,
+      "page": 2,
       "bbox": [
         126.533,
-        710.893,
-        278.698,
-        724.66
+        252.75,
+        211.482,
+        266.67
       ],
-      "rendered_text": "Maribeth658 Terese90 Watsica258"
+      "rendered_text": "Tonja658 Grant908"
     },
     {
       "field_path": "signature.date",
@@ -749,12 +1014,12 @@
       "origin": "synthetic",
       "value": "09/14/2026",
       "unit": null,
-      "page": 1,
+      "page": 2,
       "bbox": [
         392.318,
-        711.04,
-        440.354,
-        724.545
+        252.829,
+        441.033,
+        266.561
       ],
       "rendered_text": "09/14/2026"
     }
