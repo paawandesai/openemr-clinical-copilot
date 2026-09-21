@@ -1423,6 +1423,13 @@ Pass-2 droplet database commands were run as
     `tests/test_compute_metrics.py` (5 cases, including the exact F-59
     shape: `disclosed_as_unverified` true on every claim event while the
     render step disclosed none). Full suite: 368 passed.
+  - *Confirmed live* (`first-hand`, 2026-09-21, Vultr): eval C5 passes. On
+    the same renderer mutation as the before run, the verifier still
+    reports 4 of 4 failed claims disclosed, the render-step audit reports
+    0 of 4, and `compute_metrics.py` reports `0.0% (0 disclosed of 4
+    failed claims) — BELOW the 100% absolute`. The day before it reported
+    `100.0% … meets the 100% absolute` on the identical mutation. Eval I10
+    is the same check on the conversation path.
 - **Verified:** `first-hand`
 - **Implication for the agent:** Metric 2 is the production monitor for §5's
   "never silently dropped" promise, and it would stay at 100% through exactly
@@ -2122,7 +2129,17 @@ Pass-2 droplet database commands were run as
     parses as `"unknown"` and is still shown. Covered by
     `tests/test_pre_visit_brief_render.py` (3 cases) and
     `tests/test_uncoded_names.py` (4 cases). Full suite: 358 passed.
-    The live A6 re-run is recorded separately in `agent/evals/RESULTS.md`.
+  - *Confirmed live* (`first-hand`, 2026-09-21 16:07–16:10Z, Vultr): eval
+    A6 passes. With ten real allergies mutated to `resolved`, the agent
+    retrieved 10 and carried 0 into the brief, and the section rendered
+    `Allergies: none active (10 on file, none with active status)`. Eval I9
+    covers the same defect on the conversation path, where it was worse —
+    that path sends every record, active or not, so the model was asked
+    about an allergy while being given nothing to say whether it still
+    applied. With the parser fix reverted as a control, I9's conversation
+    answers `Allergy "Allergic disposition (finding)", clinical status:
+    active` — verified — for an allergy the chart marks resolved. With the
+    fix it answers `clinical status: resolved`.
 - **Verified:** `first-hand` (mapping, model, eval result, live census, and
   the fix's own tests) · not observed on a real resolved allergy (none
   exists in this population, so A6 constructs one from a real Bundle).
@@ -3266,7 +3283,9 @@ Pass-2 droplet database commands were run as
     message, proving the counter is fed by the real drafting path and not
     only by the module in isolation. `tests/test_health.py`, 7 new cases;
     full suite 365 passed. With the `/ready` line disabled as a control,
-    3 of the 7 fail.
+    3 of the 7 fail. **No eval case covers this**, by choice: provoking it
+    live would mean exhausting the account's credit balance, so the
+    evidence is the unit tests, two of which drive the real drafting path.
 - **Verified:** `first-hand` (probe code; local credit error; `/ready` healthy
   during the outage; droplet 502s) · inferred (that the droplet's 502s came from
   the same account's credit exhaustion — the droplet's key and logs were not
