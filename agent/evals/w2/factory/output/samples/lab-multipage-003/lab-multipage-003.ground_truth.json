@@ -1,0 +1,3868 @@
+{
+  "schema_version": "doc-factory-groundtruth/0.1.0",
+  "scenario": {
+    "scenario_id": "lab-multipage-003",
+    "seed": 5150822,
+    "patient_ref": "20",
+    "doc_type": "lab_pdf",
+    "quality": "clean",
+    "perturbations": [
+      {
+        "kind": "multi_page",
+        "params": {}
+      },
+      {
+        "kind": "abnormal_value",
+        "params": {
+          "test": "ferritin",
+          "direction": "low"
+        }
+      }
+    ],
+    "note": "Multi-page lab report; ferritin flagged low on the continuation page."
+  },
+  "chart_source": {
+    "system": "local-openemr",
+    "origin": "cache",
+    "patient_ref": "20",
+    "medications_on_chart": 9,
+    "allergies_on_chart": 0,
+    "conditions_on_chart": 92
+  },
+  "coordinates": {
+    "space": "clean_pdf",
+    "units": "pt",
+    "origin": "top-left",
+    "y_axis": "down",
+    "note": "bbox is [x0, y0, x1, y1] on the original clean layout (<scenario_id>.clean.pdf), in PyMuPDF page space. For scanned variants map through transform.pdf_points_to_image_px."
+  },
+  "document": {
+    "path": "lab-multipage-003.pdf",
+    "sha256": "af5a6dafca11b741d0fde669ab07c4ae5b2a5cd86a370eda820f5d5dc1d0062a",
+    "bytes": 58296,
+    "page_count": 2,
+    "has_text_layer": true
+  },
+  "clean_reference": {
+    "path": "lab-multipage-003.pdf",
+    "sha256": "af5a6dafca11b741d0fde669ab07c4ae5b2a5cd86a370eda820f5d5dc1d0062a",
+    "bytes": 58296,
+    "page_count": 2,
+    "has_text_layer": true
+  },
+  "transform": null,
+  "pages": [
+    {
+      "number": 1,
+      "width": 612.0,
+      "height": 792.0
+    },
+    {
+      "number": 2,
+      "width": 612.0,
+      "height": 792.0
+    }
+  ],
+  "perturbations": [
+    {
+      "kind": "multi_page",
+      "params": {},
+      "field_paths": [],
+      "chart_value": null,
+      "document_value": "6 panels",
+      "expected_discrepancy": "Layout perturbation, not a data discrepancy: the result table is long enough to continue onto page 2, so an extractor must read past page 1."
+    },
+    {
+      "kind": "abnormal_value",
+      "params": {
+        "test": "ferritin",
+        "direction": "low"
+      },
+      "field_paths": [
+        "results.iron_vitamins.ferritin.value",
+        "results.iron_vitamins.ferritin.flag"
+      ],
+      "chart_value": null,
+      "document_value": "12 ng/mL",
+      "expected_discrepancy": "Ferritin is reported as 12 ng/mL, below the reference interval 30 - 400 ng/mL, and flagged 'L'."
+    }
+  ],
+  "fields": [
+    {
+      "field_path": "lab.name",
+      "status": "present",
+      "kind": "text",
+      "origin": "synthetic",
+      "value": "Northfield Regional Laboratory",
+      "unit": null,
+      "page": 1,
+      "bbox": [
+        54.0,
+        58.34,
+        351.525,
+        79.115
+      ],
+      "rendered_text": "NORTHFIELD REGIONAL LABORATORY"
+    },
+    {
+      "field_path": "lab.address",
+      "status": "present",
+      "kind": "text",
+      "origin": "synthetic",
+      "value": "Peabody, MA 01960   Tel (978) 555-0142",
+      "unit": null,
+      "page": 1,
+      "bbox": [
+        54.0,
+        89.4,
+        201.192,
+        100.392
+      ],
+      "rendered_text": "Peabody, MA 01960   Tel (978) 555-0142"
+    },
+    {
+      "field_path": "lab.clia",
+      "status": "present",
+      "kind": "text",
+      "origin": "synthetic",
+      "value": "22D0451193",
+      "unit": null,
+      "page": 1,
+      "bbox": [
+        512.192,
+        89.4,
+        558.0,
+        100.392
+      ],
+      "rendered_text": "22D0451193"
+    },
+    {
+      "field_path": "lab.director",
+      "status": "present",
+      "kind": "text",
+      "origin": "synthetic",
+      "value": "Alan R. Petrosian, MD, PhD",
+      "unit": null,
+      "page": 1,
+      "bbox": [
+        385.944,
+        100.4,
+        558.0,
+        111.392
+      ],
+      "rendered_text": "Laboratory Director: Alan R. Petrosian, MD, PhD"
+    },
+    {
+      "field_path": "patient.name",
+      "status": "present",
+      "kind": "text",
+      "origin": "chart",
+      "value": "Dee580 Eichmann909",
+      "unit": null,
+      "page": 1,
+      "bbox": [
+        130.0,
+        137.54,
+        217.067,
+        149.631
+      ],
+      "rendered_text": "Dee580 Eichmann909"
+    },
+    {
+      "field_path": "order.accession",
+      "status": "present",
+      "kind": "text",
+      "origin": "synthetic",
+      "value": "260905-271-1676",
+      "unit": null,
+      "page": 1,
+      "bbox": [
+        384.0,
+        137.54,
+        453.467,
+        149.631
+      ],
+      "rendered_text": "260905-271-1676"
+    },
+    {
+      "field_path": "patient.dob",
+      "status": "present",
+      "kind": "text",
+      "origin": "chart",
+      "value": "1975-02-18",
+      "unit": null,
+      "page": 1,
+      "bbox": [
+        130.0,
+        149.94,
+        175.003,
+        162.031
+      ],
+      "rendered_text": "1975-02-18"
+    },
+    {
+      "field_path": "order.specimen",
+      "status": "present",
+      "kind": "text",
+      "origin": "synthetic",
+      "value": "Plasma, lithium heparin",
+      "unit": null,
+      "page": 1,
+      "bbox": [
+        384.0,
+        149.94,
+        475.45,
+        162.031
+      ],
+      "rendered_text": "Plasma, lithium heparin"
+    },
+    {
+      "field_path": "patient.sex",
+      "status": "present",
+      "kind": "text",
+      "origin": "chart",
+      "value": "Male",
+      "unit": null,
+      "page": 1,
+      "bbox": [
+        130.0,
+        162.34,
+        149.07,
+        174.431
+      ],
+      "rendered_text": "Male"
+    },
+    {
+      "field_path": "order.collected",
+      "status": "present",
+      "kind": "text",
+      "origin": "synthetic",
+      "value": "2026-09-05 09:24",
+      "unit": null,
+      "page": 1,
+      "bbox": [
+        384.0,
+        162.34,
+        453.467,
+        174.431
+      ],
+      "rendered_text": "2026-09-05 09:24"
+    },
+    {
+      "field_path": "patient.mrn",
+      "status": "present",
+      "kind": "text",
+      "origin": "chart",
+      "value": "20",
+      "unit": null,
+      "page": 1,
+      "bbox": [
+        130.0,
+        174.74,
+        139.786,
+        186.831
+      ],
+      "rendered_text": "20"
+    },
+    {
+      "field_path": "order.received",
+      "status": "present",
+      "kind": "text",
+      "origin": "synthetic",
+      "value": "2026-09-05 13:41",
+      "unit": null,
+      "page": 1,
+      "bbox": [
+        384.0,
+        174.74,
+        453.467,
+        186.831
+      ],
+      "rendered_text": "2026-09-05 13:41"
+    },
+    {
+      "field_path": "patient.address",
+      "status": "present",
+      "kind": "text",
+      "origin": "chart",
+      "value": "421 Howe Manor Suite 31",
+      "unit": null,
+      "page": 1,
+      "bbox": [
+        130.0,
+        187.14,
+        231.737,
+        199.231
+      ],
+      "rendered_text": "421 Howe Manor Suite 31"
+    },
+    {
+      "field_path": "order.reported",
+      "status": "present",
+      "kind": "text",
+      "origin": "synthetic",
+      "value": "2026-09-05 16:41",
+      "unit": null,
+      "page": 1,
+      "bbox": [
+        384.0,
+        187.14,
+        453.467,
+        199.231
+      ],
+      "rendered_text": "2026-09-05 16:41"
+    },
+    {
+      "field_path": "patient.city_state_zip",
+      "status": "present",
+      "kind": "text",
+      "origin": "chart",
+      "value": "Springfield, Massachusetts 01107",
+      "unit": null,
+      "page": 1,
+      "bbox": [
+        130.0,
+        199.54,
+        262.062,
+        211.631
+      ],
+      "rendered_text": "Springfield, Massachusetts 01107"
+    },
+    {
+      "field_path": "order.ordering_provider",
+      "status": "present",
+      "kind": "text",
+      "origin": "synthetic",
+      "value": "Hannah Lindqvist, NP",
+      "unit": null,
+      "page": 1,
+      "bbox": [
+        384.0,
+        199.54,
+        469.105,
+        211.631
+      ],
+      "rendered_text": "Hannah Lindqvist, NP"
+    },
+    {
+      "field_path": "results.cmp.glucose.name",
+      "status": "present",
+      "kind": "text",
+      "origin": "synthetic",
+      "value": "Glucose",
+      "unit": null,
+      "page": 1,
+      "bbox": [
+        57.0,
+        256.355,
+        88.545,
+        268.171
+      ],
+      "rendered_text": "Glucose"
+    },
+    {
+      "field_path": "results.cmp.glucose.value",
+      "status": "present",
+      "kind": "text",
+      "origin": "synthetic",
+      "value": 81.0,
+      "unit": "mg/dL",
+      "page": 1,
+      "bbox": [
+        270.437,
+        256.355,
+        280.0,
+        268.171
+      ],
+      "rendered_text": "81"
+    },
+    {
+      "field_path": "results.cmp.glucose.flag",
+      "status": "present",
+      "kind": "text",
+      "origin": "synthetic",
+      "value": "",
+      "unit": null,
+      "page": 1,
+      "bbox": [
+        306.0,
+        256.398,
+        306.0,
+        268.24
+      ],
+      "rendered_text": ""
+    },
+    {
+      "field_path": "results.cmp.glucose.unit",
+      "status": "present",
+      "kind": "text",
+      "origin": "synthetic",
+      "value": "mg/dL",
+      "unit": null,
+      "page": 1,
+      "bbox": [
+        326.0,
+        256.355,
+        349.899,
+        268.171
+      ],
+      "rendered_text": "mg/dL"
+    },
+    {
+      "field_path": "results.cmp.glucose.reference_range",
+      "status": "present",
+      "kind": "text",
+      "origin": "synthetic",
+      "value": "70 - 99",
+      "unit": "mg/dL",
+      "page": 1,
+      "bbox": [
+        414.0,
+        256.355,
+        440.772,
+        268.171
+      ],
+      "rendered_text": "70 - 99"
+    },
+    {
+      "field_path": "results.cmp.bun.name",
+      "status": "present",
+      "kind": "text",
+      "origin": "synthetic",
+      "value": "BUN (Urea Nitrogen)",
+      "unit": null,
+      "page": 1,
+      "bbox": [
+        57.0,
+        268.955,
+        136.799,
+        280.771
+      ],
+      "rendered_text": "BUN (Urea Nitrogen)"
+    },
+    {
+      "field_path": "results.cmp.bun.value",
+      "status": "present",
+      "kind": "text",
+      "origin": "synthetic",
+      "value": 15.0,
+      "unit": "mg/dL",
+      "page": 1,
+      "bbox": [
+        270.437,
+        268.955,
+        280.0,
+        280.771
+      ],
+      "rendered_text": "15"
+    },
+    {
+      "field_path": "results.cmp.bun.flag",
+      "status": "present",
+      "kind": "text",
+      "origin": "synthetic",
+      "value": "",
+      "unit": null,
+      "page": 1,
+      "bbox": [
+        306.0,
+        268.998,
+        306.0,
+        280.84
+      ],
+      "rendered_text": ""
+    },
+    {
+      "field_path": "results.cmp.bun.unit",
+      "status": "present",
+      "kind": "text",
+      "origin": "synthetic",
+      "value": "mg/dL",
+      "unit": null,
+      "page": 1,
+      "bbox": [
+        326.0,
+        268.955,
+        349.899,
+        280.771
+      ],
+      "rendered_text": "mg/dL"
+    },
+    {
+      "field_path": "results.cmp.bun.reference_range",
+      "status": "present",
+      "kind": "text",
+      "origin": "synthetic",
+      "value": "7 - 20",
+      "unit": "mg/dL",
+      "page": 1,
+      "bbox": [
+        414.0,
+        268.955,
+        435.99,
+        280.771
+      ],
+      "rendered_text": "7 - 20"
+    },
+    {
+      "field_path": "results.cmp.creatinine.name",
+      "status": "present",
+      "kind": "text",
+      "origin": "synthetic",
+      "value": "Creatinine",
+      "unit": null,
+      "page": 1,
+      "bbox": [
+        57.0,
+        281.555,
+        96.19,
+        293.371
+      ],
+      "rendered_text": "Creatinine"
+    },
+    {
+      "field_path": "results.cmp.creatinine.value",
+      "status": "present",
+      "kind": "text",
+      "origin": "synthetic",
+      "value": 0.98,
+      "unit": "mg/dL",
+      "page": 1,
+      "bbox": [
+        263.264,
+        281.555,
+        280.0,
+        293.371
+      ],
+      "rendered_text": "0.98"
+    },
+    {
+      "field_path": "results.cmp.creatinine.flag",
+      "status": "present",
+      "kind": "text",
+      "origin": "synthetic",
+      "value": "",
+      "unit": null,
+      "page": 1,
+      "bbox": [
+        306.0,
+        281.598,
+        306.0,
+        293.44
+      ],
+      "rendered_text": ""
+    },
+    {
+      "field_path": "results.cmp.creatinine.unit",
+      "status": "present",
+      "kind": "text",
+      "origin": "synthetic",
+      "value": "mg/dL",
+      "unit": null,
+      "page": 1,
+      "bbox": [
+        326.0,
+        281.555,
+        349.899,
+        293.371
+      ],
+      "rendered_text": "mg/dL"
+    },
+    {
+      "field_path": "results.cmp.creatinine.reference_range",
+      "status": "present",
+      "kind": "text",
+      "origin": "synthetic",
+      "value": "0.60 - 1.30",
+      "unit": "mg/dL",
+      "page": 1,
+      "bbox": [
+        414.0,
+        281.555,
+        455.117,
+        293.371
+      ],
+      "rendered_text": "0.60 - 1.30"
+    },
+    {
+      "field_path": "results.cmp.egfr.name",
+      "status": "present",
+      "kind": "text",
+      "origin": "synthetic",
+      "value": "eGFR",
+      "unit": null,
+      "page": 1,
+      "bbox": [
+        57.0,
+        294.155,
+        79.936,
+        305.971
+      ],
+      "rendered_text": "eGFR"
+    },
+    {
+      "field_path": "results.cmp.egfr.value",
+      "status": "present",
+      "kind": "text",
+      "origin": "synthetic",
+      "value": 86.0,
+      "unit": "mL/min/1.73",
+      "page": 1,
+      "bbox": [
+        270.437,
+        294.155,
+        280.0,
+        305.971
+      ],
+      "rendered_text": "86"
+    },
+    {
+      "field_path": "results.cmp.egfr.flag",
+      "status": "present",
+      "kind": "text",
+      "origin": "synthetic",
+      "value": "",
+      "unit": null,
+      "page": 1,
+      "bbox": [
+        306.0,
+        294.198,
+        306.0,
+        306.04
+      ],
+      "rendered_text": ""
+    },
+    {
+      "field_path": "results.cmp.egfr.unit",
+      "status": "present",
+      "kind": "text",
+      "origin": "synthetic",
+      "value": "mL/min/1.73",
+      "unit": null,
+      "page": 1,
+      "bbox": [
+        326.0,
+        294.155,
+        373.317,
+        305.971
+      ],
+      "rendered_text": "mL/min/1.73"
+    },
+    {
+      "field_path": "results.cmp.egfr.reference_range",
+      "status": "present",
+      "kind": "text",
+      "origin": "synthetic",
+      "value": "60 - 120",
+      "unit": "mL/min/1.73",
+      "page": 1,
+      "bbox": [
+        414.0,
+        294.155,
+        445.553,
+        305.971
+      ],
+      "rendered_text": "60 - 120"
+    },
+    {
+      "field_path": "results.cmp.sodium.name",
+      "status": "present",
+      "kind": "text",
+      "origin": "synthetic",
+      "value": "Sodium",
+      "unit": null,
+      "page": 1,
+      "bbox": [
+        57.0,
+        306.755,
+        86.154,
+        318.571
+      ],
+      "rendered_text": "Sodium"
+    },
+    {
+      "field_path": "results.cmp.sodium.value",
+      "status": "present",
+      "kind": "text",
+      "origin": "synthetic",
+      "value": 142.0,
+      "unit": "mmol/L",
+      "page": 1,
+      "bbox": [
+        265.655,
+        306.755,
+        280.0,
+        318.571
+      ],
+      "rendered_text": "142"
+    },
+    {
+      "field_path": "results.cmp.sodium.flag",
+      "status": "present",
+      "kind": "text",
+      "origin": "synthetic",
+      "value": "",
+      "unit": null,
+      "page": 1,
+      "bbox": [
+        306.0,
+        306.798,
+        306.0,
+        318.64
+      ],
+      "rendered_text": ""
+    },
+    {
+      "field_path": "results.cmp.sodium.unit",
+      "status": "present",
+      "kind": "text",
+      "origin": "synthetic",
+      "value": "mmol/L",
+      "unit": null,
+      "page": 1,
+      "bbox": [
+        326.0,
+        306.755,
+        354.191,
+        318.571
+      ],
+      "rendered_text": "mmol/L"
+    },
+    {
+      "field_path": "results.cmp.sodium.reference_range",
+      "status": "present",
+      "kind": "text",
+      "origin": "synthetic",
+      "value": "136 - 145",
+      "unit": "mmol/L",
+      "page": 1,
+      "bbox": [
+        414.0,
+        306.755,
+        450.335,
+        318.571
+      ],
+      "rendered_text": "136 - 145"
+    },
+    {
+      "field_path": "results.cmp.potassium.name",
+      "status": "present",
+      "kind": "text",
+      "origin": "synthetic",
+      "value": "Potassium",
+      "unit": null,
+      "page": 1,
+      "bbox": [
+        57.0,
+        319.355,
+        97.145,
+        331.171
+      ],
+      "rendered_text": "Potassium"
+    },
+    {
+      "field_path": "results.cmp.potassium.value",
+      "status": "present",
+      "kind": "text",
+      "origin": "synthetic",
+      "value": 4.3,
+      "unit": "mmol/L",
+      "page": 1,
+      "bbox": [
+        268.046,
+        319.355,
+        280.0,
+        331.171
+      ],
+      "rendered_text": "4.3"
+    },
+    {
+      "field_path": "results.cmp.potassium.flag",
+      "status": "present",
+      "kind": "text",
+      "origin": "synthetic",
+      "value": "",
+      "unit": null,
+      "page": 1,
+      "bbox": [
+        306.0,
+        319.398,
+        306.0,
+        331.24
+      ],
+      "rendered_text": ""
+    },
+    {
+      "field_path": "results.cmp.potassium.unit",
+      "status": "present",
+      "kind": "text",
+      "origin": "synthetic",
+      "value": "mmol/L",
+      "unit": null,
+      "page": 1,
+      "bbox": [
+        326.0,
+        319.355,
+        354.191,
+        331.171
+      ],
+      "rendered_text": "mmol/L"
+    },
+    {
+      "field_path": "results.cmp.potassium.reference_range",
+      "status": "present",
+      "kind": "text",
+      "origin": "synthetic",
+      "value": "3.5 - 5.1",
+      "unit": "mmol/L",
+      "page": 1,
+      "bbox": [
+        414.0,
+        319.355,
+        445.553,
+        331.171
+      ],
+      "rendered_text": "3.5 - 5.1"
+    },
+    {
+      "field_path": "results.cmp.chloride.name",
+      "status": "present",
+      "kind": "text",
+      "origin": "synthetic",
+      "value": "Chloride",
+      "unit": null,
+      "page": 1,
+      "bbox": [
+        57.0,
+        331.955,
+        89.018,
+        343.771
+      ],
+      "rendered_text": "Chloride"
+    },
+    {
+      "field_path": "results.cmp.chloride.value",
+      "status": "present",
+      "kind": "text",
+      "origin": "synthetic",
+      "value": 103.0,
+      "unit": "mmol/L",
+      "page": 1,
+      "bbox": [
+        265.655,
+        331.955,
+        280.0,
+        343.771
+      ],
+      "rendered_text": "103"
+    },
+    {
+      "field_path": "results.cmp.chloride.flag",
+      "status": "present",
+      "kind": "text",
+      "origin": "synthetic",
+      "value": "",
+      "unit": null,
+      "page": 1,
+      "bbox": [
+        306.0,
+        331.998,
+        306.0,
+        343.84
+      ],
+      "rendered_text": ""
+    },
+    {
+      "field_path": "results.cmp.chloride.unit",
+      "status": "present",
+      "kind": "text",
+      "origin": "synthetic",
+      "value": "mmol/L",
+      "unit": null,
+      "page": 1,
+      "bbox": [
+        326.0,
+        331.955,
+        354.191,
+        343.771
+      ],
+      "rendered_text": "mmol/L"
+    },
+    {
+      "field_path": "results.cmp.chloride.reference_range",
+      "status": "present",
+      "kind": "text",
+      "origin": "synthetic",
+      "value": "98 - 107",
+      "unit": "mmol/L",
+      "page": 1,
+      "bbox": [
+        414.0,
+        331.955,
+        445.553,
+        343.771
+      ],
+      "rendered_text": "98 - 107"
+    },
+    {
+      "field_path": "results.cmp.co2.name",
+      "status": "present",
+      "kind": "text",
+      "origin": "synthetic",
+      "value": "CO2 (Bicarbonate)",
+      "unit": null,
+      "page": 1,
+      "bbox": [
+        57.0,
+        344.555,
+        128.69,
+        356.371
+      ],
+      "rendered_text": "CO2 (Bicarbonate)"
+    },
+    {
+      "field_path": "results.cmp.co2.value",
+      "status": "present",
+      "kind": "text",
+      "origin": "synthetic",
+      "value": 25.0,
+      "unit": "mmol/L",
+      "page": 1,
+      "bbox": [
+        270.437,
+        344.555,
+        280.0,
+        356.371
+      ],
+      "rendered_text": "25"
+    },
+    {
+      "field_path": "results.cmp.co2.flag",
+      "status": "present",
+      "kind": "text",
+      "origin": "synthetic",
+      "value": "",
+      "unit": null,
+      "page": 1,
+      "bbox": [
+        306.0,
+        344.598,
+        306.0,
+        356.44
+      ],
+      "rendered_text": ""
+    },
+    {
+      "field_path": "results.cmp.co2.unit",
+      "status": "present",
+      "kind": "text",
+      "origin": "synthetic",
+      "value": "mmol/L",
+      "unit": null,
+      "page": 1,
+      "bbox": [
+        326.0,
+        344.555,
+        354.191,
+        356.371
+      ],
+      "rendered_text": "mmol/L"
+    },
+    {
+      "field_path": "results.cmp.co2.reference_range",
+      "status": "present",
+      "kind": "text",
+      "origin": "synthetic",
+      "value": "22 - 29",
+      "unit": "mmol/L",
+      "page": 1,
+      "bbox": [
+        414.0,
+        344.555,
+        440.772,
+        356.371
+      ],
+      "rendered_text": "22 - 29"
+    },
+    {
+      "field_path": "results.cmp.calcium.name",
+      "status": "present",
+      "kind": "text",
+      "origin": "synthetic",
+      "value": "Calcium",
+      "unit": null,
+      "page": 1,
+      "bbox": [
+        57.0,
+        357.155,
+        88.055,
+        368.971
+      ],
+      "rendered_text": "Calcium"
+    },
+    {
+      "field_path": "results.cmp.calcium.value",
+      "status": "present",
+      "kind": "text",
+      "origin": "synthetic",
+      "value": 9.1,
+      "unit": "mg/dL",
+      "page": 1,
+      "bbox": [
+        268.046,
+        357.155,
+        280.0,
+        368.971
+      ],
+      "rendered_text": "9.1"
+    },
+    {
+      "field_path": "results.cmp.calcium.flag",
+      "status": "present",
+      "kind": "text",
+      "origin": "synthetic",
+      "value": "",
+      "unit": null,
+      "page": 1,
+      "bbox": [
+        306.0,
+        357.198,
+        306.0,
+        369.04
+      ],
+      "rendered_text": ""
+    },
+    {
+      "field_path": "results.cmp.calcium.unit",
+      "status": "present",
+      "kind": "text",
+      "origin": "synthetic",
+      "value": "mg/dL",
+      "unit": null,
+      "page": 1,
+      "bbox": [
+        326.0,
+        357.155,
+        349.899,
+        368.971
+      ],
+      "rendered_text": "mg/dL"
+    },
+    {
+      "field_path": "results.cmp.calcium.reference_range",
+      "status": "present",
+      "kind": "text",
+      "origin": "synthetic",
+      "value": "8.6 - 10.2",
+      "unit": "mg/dL",
+      "page": 1,
+      "bbox": [
+        414.0,
+        357.155,
+        450.335,
+        368.971
+      ],
+      "rendered_text": "8.6 - 10.2"
+    },
+    {
+      "field_path": "results.cmp.protein_total.name",
+      "status": "present",
+      "kind": "text",
+      "origin": "synthetic",
+      "value": "Protein, Total",
+      "unit": null,
+      "page": 1,
+      "bbox": [
+        57.0,
+        369.755,
+        108.144,
+        381.571
+      ],
+      "rendered_text": "Protein, Total"
+    },
+    {
+      "field_path": "results.cmp.protein_total.value",
+      "status": "present",
+      "kind": "text",
+      "origin": "synthetic",
+      "value": 7.7,
+      "unit": "g/dL",
+      "page": 1,
+      "bbox": [
+        268.046,
+        369.755,
+        280.0,
+        381.571
+      ],
+      "rendered_text": "7.7"
+    },
+    {
+      "field_path": "results.cmp.protein_total.flag",
+      "status": "present",
+      "kind": "text",
+      "origin": "synthetic",
+      "value": "",
+      "unit": null,
+      "page": 1,
+      "bbox": [
+        306.0,
+        369.798,
+        306.0,
+        381.64
+      ],
+      "rendered_text": ""
+    },
+    {
+      "field_path": "results.cmp.protein_total.unit",
+      "status": "present",
+      "kind": "text",
+      "origin": "synthetic",
+      "value": "g/dL",
+      "unit": null,
+      "page": 1,
+      "bbox": [
+        326.0,
+        369.755,
+        342.736,
+        381.571
+      ],
+      "rendered_text": "g/dL"
+    },
+    {
+      "field_path": "results.cmp.protein_total.reference_range",
+      "status": "present",
+      "kind": "text",
+      "origin": "synthetic",
+      "value": "6.4 - 8.3",
+      "unit": "g/dL",
+      "page": 1,
+      "bbox": [
+        414.0,
+        369.755,
+        445.553,
+        381.571
+      ],
+      "rendered_text": "6.4 - 8.3"
+    },
+    {
+      "field_path": "results.cmp.albumin.name",
+      "status": "present",
+      "kind": "text",
+      "origin": "synthetic",
+      "value": "Albumin",
+      "unit": null,
+      "page": 1,
+      "bbox": [
+        57.0,
+        382.355,
+        88.063,
+        394.171
+      ],
+      "rendered_text": "Albumin"
+    },
+    {
+      "field_path": "results.cmp.albumin.value",
+      "status": "present",
+      "kind": "text",
+      "origin": "synthetic",
+      "value": 4.5,
+      "unit": "g/dL",
+      "page": 1,
+      "bbox": [
+        268.046,
+        382.355,
+        280.0,
+        394.171
+      ],
+      "rendered_text": "4.5"
+    },
+    {
+      "field_path": "results.cmp.albumin.flag",
+      "status": "present",
+      "kind": "text",
+      "origin": "synthetic",
+      "value": "",
+      "unit": null,
+      "page": 1,
+      "bbox": [
+        306.0,
+        382.398,
+        306.0,
+        394.24
+      ],
+      "rendered_text": ""
+    },
+    {
+      "field_path": "results.cmp.albumin.unit",
+      "status": "present",
+      "kind": "text",
+      "origin": "synthetic",
+      "value": "g/dL",
+      "unit": null,
+      "page": 1,
+      "bbox": [
+        326.0,
+        382.355,
+        342.736,
+        394.171
+      ],
+      "rendered_text": "g/dL"
+    },
+    {
+      "field_path": "results.cmp.albumin.reference_range",
+      "status": "present",
+      "kind": "text",
+      "origin": "synthetic",
+      "value": "3.5 - 5.0",
+      "unit": "g/dL",
+      "page": 1,
+      "bbox": [
+        414.0,
+        382.355,
+        445.553,
+        394.171
+      ],
+      "rendered_text": "3.5 - 5.0"
+    },
+    {
+      "field_path": "results.cmp.bilirubin_total.name",
+      "status": "present",
+      "kind": "text",
+      "origin": "synthetic",
+      "value": "Bilirubin, Total",
+      "unit": null,
+      "page": 1,
+      "bbox": [
+        57.0,
+        394.955,
+        111.481,
+        406.771
+      ],
+      "rendered_text": "Bilirubin, Total"
+    },
+    {
+      "field_path": "results.cmp.bilirubin_total.value",
+      "status": "present",
+      "kind": "text",
+      "origin": "synthetic",
+      "value": 0.8,
+      "unit": "mg/dL",
+      "page": 1,
+      "bbox": [
+        268.046,
+        394.955,
+        280.0,
+        406.771
+      ],
+      "rendered_text": "0.8"
+    },
+    {
+      "field_path": "results.cmp.bilirubin_total.flag",
+      "status": "present",
+      "kind": "text",
+      "origin": "synthetic",
+      "value": "",
+      "unit": null,
+      "page": 1,
+      "bbox": [
+        306.0,
+        394.998,
+        306.0,
+        406.84
+      ],
+      "rendered_text": ""
+    },
+    {
+      "field_path": "results.cmp.bilirubin_total.unit",
+      "status": "present",
+      "kind": "text",
+      "origin": "synthetic",
+      "value": "mg/dL",
+      "unit": null,
+      "page": 1,
+      "bbox": [
+        326.0,
+        394.955,
+        349.899,
+        406.771
+      ],
+      "rendered_text": "mg/dL"
+    },
+    {
+      "field_path": "results.cmp.bilirubin_total.reference_range",
+      "status": "present",
+      "kind": "text",
+      "origin": "synthetic",
+      "value": "0.2 - 1.2",
+      "unit": "mg/dL",
+      "page": 1,
+      "bbox": [
+        414.0,
+        394.955,
+        445.553,
+        406.771
+      ],
+      "rendered_text": "0.2 - 1.2"
+    },
+    {
+      "field_path": "results.cmp.alp.name",
+      "status": "present",
+      "kind": "text",
+      "origin": "synthetic",
+      "value": "Alkaline Phosphatase",
+      "unit": null,
+      "page": 1,
+      "bbox": [
+        57.0,
+        407.555,
+        139.698,
+        419.371
+      ],
+      "rendered_text": "Alkaline Phosphatase"
+    },
+    {
+      "field_path": "results.cmp.alp.value",
+      "status": "present",
+      "kind": "text",
+      "origin": "synthetic",
+      "value": 85.0,
+      "unit": "U/L",
+      "page": 1,
+      "bbox": [
+        270.437,
+        407.555,
+        280.0,
+        419.371
+      ],
+      "rendered_text": "85"
+    },
+    {
+      "field_path": "results.cmp.alp.flag",
+      "status": "present",
+      "kind": "text",
+      "origin": "synthetic",
+      "value": "",
+      "unit": null,
+      "page": 1,
+      "bbox": [
+        306.0,
+        407.598,
+        306.0,
+        419.44
+      ],
+      "rendered_text": ""
+    },
+    {
+      "field_path": "results.cmp.alp.unit",
+      "status": "present",
+      "kind": "text",
+      "origin": "synthetic",
+      "value": "U/L",
+      "unit": null,
+      "page": 1,
+      "bbox": [
+        326.0,
+        407.555,
+        339.382,
+        419.371
+      ],
+      "rendered_text": "U/L"
+    },
+    {
+      "field_path": "results.cmp.alp.reference_range",
+      "status": "present",
+      "kind": "text",
+      "origin": "synthetic",
+      "value": "40 - 129",
+      "unit": "U/L",
+      "page": 1,
+      "bbox": [
+        414.0,
+        407.555,
+        445.553,
+        419.371
+      ],
+      "rendered_text": "40 - 129"
+    },
+    {
+      "field_path": "results.cmp.ast.name",
+      "status": "present",
+      "kind": "text",
+      "origin": "synthetic",
+      "value": "AST (SGOT)",
+      "unit": null,
+      "page": 1,
+      "bbox": [
+        57.0,
+        420.155,
+        106.218,
+        431.971
+      ],
+      "rendered_text": "AST (SGOT)"
+    },
+    {
+      "field_path": "results.cmp.ast.value",
+      "status": "present",
+      "kind": "text",
+      "origin": "synthetic",
+      "value": 18.0,
+      "unit": "U/L",
+      "page": 1,
+      "bbox": [
+        270.437,
+        420.155,
+        280.0,
+        431.971
+      ],
+      "rendered_text": "18"
+    },
+    {
+      "field_path": "results.cmp.ast.flag",
+      "status": "present",
+      "kind": "text",
+      "origin": "synthetic",
+      "value": "",
+      "unit": null,
+      "page": 1,
+      "bbox": [
+        306.0,
+        420.198,
+        306.0,
+        432.04
+      ],
+      "rendered_text": ""
+    },
+    {
+      "field_path": "results.cmp.ast.unit",
+      "status": "present",
+      "kind": "text",
+      "origin": "synthetic",
+      "value": "U/L",
+      "unit": null,
+      "page": 1,
+      "bbox": [
+        326.0,
+        420.155,
+        339.382,
+        431.971
+      ],
+      "rendered_text": "U/L"
+    },
+    {
+      "field_path": "results.cmp.ast.reference_range",
+      "status": "present",
+      "kind": "text",
+      "origin": "synthetic",
+      "value": "10 - 40",
+      "unit": "U/L",
+      "page": 1,
+      "bbox": [
+        414.0,
+        420.155,
+        440.772,
+        431.971
+      ],
+      "rendered_text": "10 - 40"
+    },
+    {
+      "field_path": "results.cmp.alt.name",
+      "status": "present",
+      "kind": "text",
+      "origin": "synthetic",
+      "value": "ALT (SGPT)",
+      "unit": null,
+      "page": 1,
+      "bbox": [
+        57.0,
+        432.755,
+        104.309,
+        444.571
+      ],
+      "rendered_text": "ALT (SGPT)"
+    },
+    {
+      "field_path": "results.cmp.alt.value",
+      "status": "present",
+      "kind": "text",
+      "origin": "synthetic",
+      "value": 47.0,
+      "unit": "U/L",
+      "page": 1,
+      "bbox": [
+        270.437,
+        432.755,
+        280.0,
+        444.571
+      ],
+      "rendered_text": "47"
+    },
+    {
+      "field_path": "results.cmp.alt.flag",
+      "status": "present",
+      "kind": "text",
+      "origin": "synthetic",
+      "value": "",
+      "unit": null,
+      "page": 1,
+      "bbox": [
+        306.0,
+        432.798,
+        306.0,
+        444.64
+      ],
+      "rendered_text": ""
+    },
+    {
+      "field_path": "results.cmp.alt.unit",
+      "status": "present",
+      "kind": "text",
+      "origin": "synthetic",
+      "value": "U/L",
+      "unit": null,
+      "page": 1,
+      "bbox": [
+        326.0,
+        432.755,
+        339.382,
+        444.571
+      ],
+      "rendered_text": "U/L"
+    },
+    {
+      "field_path": "results.cmp.alt.reference_range",
+      "status": "present",
+      "kind": "text",
+      "origin": "synthetic",
+      "value": "7 - 56",
+      "unit": "U/L",
+      "page": 1,
+      "bbox": [
+        414.0,
+        432.755,
+        435.99,
+        444.571
+      ],
+      "rendered_text": "7 - 56"
+    },
+    {
+      "field_path": "results.cbc.wbc.name",
+      "status": "present",
+      "kind": "text",
+      "origin": "synthetic",
+      "value": "WBC",
+      "unit": null,
+      "page": 1,
+      "bbox": [
+        57.0,
+        488.355,
+        77.064,
+        500.171
+      ],
+      "rendered_text": "WBC"
+    },
+    {
+      "field_path": "results.cbc.wbc.value",
+      "status": "present",
+      "kind": "text",
+      "origin": "synthetic",
+      "value": 9.7,
+      "unit": "K/uL",
+      "page": 1,
+      "bbox": [
+        268.046,
+        488.355,
+        280.0,
+        500.171
+      ],
+      "rendered_text": "9.7"
+    },
+    {
+      "field_path": "results.cbc.wbc.flag",
+      "status": "present",
+      "kind": "text",
+      "origin": "synthetic",
+      "value": "",
+      "unit": null,
+      "page": 1,
+      "bbox": [
+        306.0,
+        488.398,
+        306.0,
+        500.24
+      ],
+      "rendered_text": ""
+    },
+    {
+      "field_path": "results.cbc.wbc.unit",
+      "status": "present",
+      "kind": "text",
+      "origin": "synthetic",
+      "value": "K/uL",
+      "unit": null,
+      "page": 1,
+      "bbox": [
+        326.0,
+        488.355,
+        343.69,
+        500.171
+      ],
+      "rendered_text": "K/uL"
+    },
+    {
+      "field_path": "results.cbc.wbc.reference_range",
+      "status": "present",
+      "kind": "text",
+      "origin": "synthetic",
+      "value": "4.0 - 11.0",
+      "unit": "K/uL",
+      "page": 1,
+      "bbox": [
+        414.0,
+        488.355,
+        450.335,
+        500.171
+      ],
+      "rendered_text": "4.0 - 11.0"
+    },
+    {
+      "field_path": "results.cbc.rbc.name",
+      "status": "present",
+      "kind": "text",
+      "origin": "synthetic",
+      "value": "RBC",
+      "unit": null,
+      "page": 1,
+      "bbox": [
+        57.0,
+        500.955,
+        75.155,
+        512.771
+      ],
+      "rendered_text": "RBC"
+    },
+    {
+      "field_path": "results.cbc.rbc.value",
+      "status": "present",
+      "kind": "text",
+      "origin": "synthetic",
+      "value": 5.08,
+      "unit": "M/uL",
+      "page": 1,
+      "bbox": [
+        263.264,
+        500.955,
+        280.0,
+        512.771
+      ],
+      "rendered_text": "5.08"
+    },
+    {
+      "field_path": "results.cbc.rbc.flag",
+      "status": "present",
+      "kind": "text",
+      "origin": "synthetic",
+      "value": "",
+      "unit": null,
+      "page": 1,
+      "bbox": [
+        306.0,
+        500.998,
+        306.0,
+        512.84
+      ],
+      "rendered_text": ""
+    },
+    {
+      "field_path": "results.cbc.rbc.unit",
+      "status": "present",
+      "kind": "text",
+      "origin": "synthetic",
+      "value": "M/uL",
+      "unit": null,
+      "page": 1,
+      "bbox": [
+        326.0,
+        500.955,
+        345.118,
+        512.771
+      ],
+      "rendered_text": "M/uL"
+    },
+    {
+      "field_path": "results.cbc.rbc.reference_range",
+      "status": "present",
+      "kind": "text",
+      "origin": "synthetic",
+      "value": "4.20 - 5.80",
+      "unit": "M/uL",
+      "page": 1,
+      "bbox": [
+        414.0,
+        500.955,
+        455.117,
+        512.771
+      ],
+      "rendered_text": "4.20 - 5.80"
+    },
+    {
+      "field_path": "results.cbc.hemoglobin.name",
+      "status": "present",
+      "kind": "text",
+      "origin": "synthetic",
+      "value": "Hemoglobin",
+      "unit": null,
+      "page": 1,
+      "bbox": [
+        57.0,
+        513.555,
+        102.881,
+        525.371
+      ],
+      "rendered_text": "Hemoglobin"
+    },
+    {
+      "field_path": "results.cbc.hemoglobin.value",
+      "status": "present",
+      "kind": "text",
+      "origin": "synthetic",
+      "value": 15.4,
+      "unit": "g/dL",
+      "page": 1,
+      "bbox": [
+        263.264,
+        513.555,
+        280.0,
+        525.371
+      ],
+      "rendered_text": "15.4"
+    },
+    {
+      "field_path": "results.cbc.hemoglobin.flag",
+      "status": "present",
+      "kind": "text",
+      "origin": "synthetic",
+      "value": "",
+      "unit": null,
+      "page": 1,
+      "bbox": [
+        306.0,
+        513.598,
+        306.0,
+        525.44
+      ],
+      "rendered_text": ""
+    },
+    {
+      "field_path": "results.cbc.hemoglobin.unit",
+      "status": "present",
+      "kind": "text",
+      "origin": "synthetic",
+      "value": "g/dL",
+      "unit": null,
+      "page": 1,
+      "bbox": [
+        326.0,
+        513.555,
+        342.736,
+        525.371
+      ],
+      "rendered_text": "g/dL"
+    },
+    {
+      "field_path": "results.cbc.hemoglobin.reference_range",
+      "status": "present",
+      "kind": "text",
+      "origin": "synthetic",
+      "value": "13.5 - 17.5",
+      "unit": "g/dL",
+      "page": 1,
+      "bbox": [
+        414.0,
+        513.555,
+        455.117,
+        525.371
+      ],
+      "rendered_text": "13.5 - 17.5"
+    },
+    {
+      "field_path": "results.cbc.hematocrit.name",
+      "status": "present",
+      "kind": "text",
+      "origin": "synthetic",
+      "value": "Hematocrit",
+      "unit": null,
+      "page": 1,
+      "bbox": [
+        57.0,
+        526.155,
+        98.572,
+        537.971
+      ],
+      "rendered_text": "Hematocrit"
+    },
+    {
+      "field_path": "results.cbc.hematocrit.value",
+      "status": "present",
+      "kind": "text",
+      "origin": "synthetic",
+      "value": 45.2,
+      "unit": "%",
+      "page": 1,
+      "bbox": [
+        263.264,
+        526.155,
+        280.0,
+        537.971
+      ],
+      "rendered_text": "45.2"
+    },
+    {
+      "field_path": "results.cbc.hematocrit.flag",
+      "status": "present",
+      "kind": "text",
+      "origin": "synthetic",
+      "value": "",
+      "unit": null,
+      "page": 1,
+      "bbox": [
+        306.0,
+        526.198,
+        306.0,
+        538.04
+      ],
+      "rendered_text": ""
+    },
+    {
+      "field_path": "results.cbc.hematocrit.unit",
+      "status": "present",
+      "kind": "text",
+      "origin": "synthetic",
+      "value": "%",
+      "unit": null,
+      "page": 1,
+      "bbox": [
+        326.0,
+        526.155,
+        333.645,
+        537.971
+      ],
+      "rendered_text": "%"
+    },
+    {
+      "field_path": "results.cbc.hematocrit.reference_range",
+      "status": "present",
+      "kind": "text",
+      "origin": "synthetic",
+      "value": "41.0 - 53.0",
+      "unit": "%",
+      "page": 1,
+      "bbox": [
+        414.0,
+        526.155,
+        455.117,
+        537.971
+      ],
+      "rendered_text": "41.0 - 53.0"
+    },
+    {
+      "field_path": "results.cbc.mcv.name",
+      "status": "present",
+      "kind": "text",
+      "origin": "synthetic",
+      "value": "MCV",
+      "unit": null,
+      "page": 1,
+      "bbox": [
+        57.0,
+        538.755,
+        76.109,
+        550.571
+      ],
+      "rendered_text": "MCV"
+    },
+    {
+      "field_path": "results.cbc.mcv.value",
+      "status": "present",
+      "kind": "text",
+      "origin": "synthetic",
+      "value": 88.0,
+      "unit": "fL",
+      "page": 1,
+      "bbox": [
+        270.437,
+        538.755,
+        280.0,
+        550.571
+      ],
+      "rendered_text": "88"
+    },
+    {
+      "field_path": "results.cbc.mcv.flag",
+      "status": "present",
+      "kind": "text",
+      "origin": "synthetic",
+      "value": "",
+      "unit": null,
+      "page": 1,
+      "bbox": [
+        306.0,
+        538.798,
+        306.0,
+        550.64
+      ],
+      "rendered_text": ""
+    },
+    {
+      "field_path": "results.cbc.mcv.unit",
+      "status": "present",
+      "kind": "text",
+      "origin": "synthetic",
+      "value": "fL",
+      "unit": null,
+      "page": 1,
+      "bbox": [
+        326.0,
+        538.755,
+        333.172,
+        550.571
+      ],
+      "rendered_text": "fL"
+    },
+    {
+      "field_path": "results.cbc.mcv.reference_range",
+      "status": "present",
+      "kind": "text",
+      "origin": "synthetic",
+      "value": "80 - 100",
+      "unit": "fL",
+      "page": 1,
+      "bbox": [
+        414.0,
+        538.755,
+        445.553,
+        550.571
+      ],
+      "rendered_text": "80 - 100"
+    },
+    {
+      "field_path": "results.cbc.mch.name",
+      "status": "present",
+      "kind": "text",
+      "origin": "synthetic",
+      "value": "MCH",
+      "unit": null,
+      "page": 1,
+      "bbox": [
+        57.0,
+        551.355,
+        76.582,
+        563.171
+      ],
+      "rendered_text": "MCH"
+    },
+    {
+      "field_path": "results.cbc.mch.value",
+      "status": "present",
+      "kind": "text",
+      "origin": "synthetic",
+      "value": 29.9,
+      "unit": "pg",
+      "page": 1,
+      "bbox": [
+        263.264,
+        551.355,
+        280.0,
+        563.171
+      ],
+      "rendered_text": "29.9"
+    },
+    {
+      "field_path": "results.cbc.mch.flag",
+      "status": "present",
+      "kind": "text",
+      "origin": "synthetic",
+      "value": "",
+      "unit": null,
+      "page": 1,
+      "bbox": [
+        306.0,
+        551.398,
+        306.0,
+        563.24
+      ],
+      "rendered_text": ""
+    },
+    {
+      "field_path": "results.cbc.mch.unit",
+      "status": "present",
+      "kind": "text",
+      "origin": "synthetic",
+      "value": "pg",
+      "unit": null,
+      "page": 1,
+      "bbox": [
+        326.0,
+        551.355,
+        335.563,
+        563.171
+      ],
+      "rendered_text": "pg"
+    },
+    {
+      "field_path": "results.cbc.mch.reference_range",
+      "status": "present",
+      "kind": "text",
+      "origin": "synthetic",
+      "value": "27.0 - 33.0",
+      "unit": "pg",
+      "page": 1,
+      "bbox": [
+        414.0,
+        551.355,
+        455.117,
+        563.171
+      ],
+      "rendered_text": "27.0 - 33.0"
+    },
+    {
+      "field_path": "results.cbc.mchc.name",
+      "status": "present",
+      "kind": "text",
+      "origin": "synthetic",
+      "value": "MCHC",
+      "unit": null,
+      "page": 1,
+      "bbox": [
+        57.0,
+        563.955,
+        82.791,
+        575.771
+      ],
+      "rendered_text": "MCHC"
+    },
+    {
+      "field_path": "results.cbc.mchc.value",
+      "status": "present",
+      "kind": "text",
+      "origin": "synthetic",
+      "value": 33.4,
+      "unit": "g/dL",
+      "page": 1,
+      "bbox": [
+        263.264,
+        563.955,
+        280.0,
+        575.771
+      ],
+      "rendered_text": "33.4"
+    },
+    {
+      "field_path": "results.cbc.mchc.flag",
+      "status": "present",
+      "kind": "text",
+      "origin": "synthetic",
+      "value": "",
+      "unit": null,
+      "page": 1,
+      "bbox": [
+        306.0,
+        563.998,
+        306.0,
+        575.84
+      ],
+      "rendered_text": ""
+    },
+    {
+      "field_path": "results.cbc.mchc.unit",
+      "status": "present",
+      "kind": "text",
+      "origin": "synthetic",
+      "value": "g/dL",
+      "unit": null,
+      "page": 1,
+      "bbox": [
+        326.0,
+        563.955,
+        342.736,
+        575.771
+      ],
+      "rendered_text": "g/dL"
+    },
+    {
+      "field_path": "results.cbc.mchc.reference_range",
+      "status": "present",
+      "kind": "text",
+      "origin": "synthetic",
+      "value": "32.0 - 36.0",
+      "unit": "g/dL",
+      "page": 1,
+      "bbox": [
+        414.0,
+        563.955,
+        455.117,
+        575.771
+      ],
+      "rendered_text": "32.0 - 36.0"
+    },
+    {
+      "field_path": "results.cbc.rdw.name",
+      "status": "present",
+      "kind": "text",
+      "origin": "synthetic",
+      "value": "RDW",
+      "unit": null,
+      "page": 1,
+      "bbox": [
+        57.0,
+        576.555,
+        77.537,
+        588.371
+      ],
+      "rendered_text": "RDW"
+    },
+    {
+      "field_path": "results.cbc.rdw.value",
+      "status": "present",
+      "kind": "text",
+      "origin": "synthetic",
+      "value": 13.9,
+      "unit": "%",
+      "page": 1,
+      "bbox": [
+        263.264,
+        576.555,
+        280.0,
+        588.371
+      ],
+      "rendered_text": "13.9"
+    },
+    {
+      "field_path": "results.cbc.rdw.flag",
+      "status": "present",
+      "kind": "text",
+      "origin": "synthetic",
+      "value": "",
+      "unit": null,
+      "page": 1,
+      "bbox": [
+        306.0,
+        576.598,
+        306.0,
+        588.44
+      ],
+      "rendered_text": ""
+    },
+    {
+      "field_path": "results.cbc.rdw.unit",
+      "status": "present",
+      "kind": "text",
+      "origin": "synthetic",
+      "value": "%",
+      "unit": null,
+      "page": 1,
+      "bbox": [
+        326.0,
+        576.555,
+        333.645,
+        588.371
+      ],
+      "rendered_text": "%"
+    },
+    {
+      "field_path": "results.cbc.rdw.reference_range",
+      "status": "present",
+      "kind": "text",
+      "origin": "synthetic",
+      "value": "11.5 - 14.5",
+      "unit": "%",
+      "page": 1,
+      "bbox": [
+        414.0,
+        576.555,
+        455.117,
+        588.371
+      ],
+      "rendered_text": "11.5 - 14.5"
+    },
+    {
+      "field_path": "results.cbc.platelets.name",
+      "status": "present",
+      "kind": "text",
+      "origin": "synthetic",
+      "value": "Platelets",
+      "unit": null,
+      "page": 1,
+      "bbox": [
+        57.0,
+        589.155,
+        89.981,
+        600.971
+      ],
+      "rendered_text": "Platelets"
+    },
+    {
+      "field_path": "results.cbc.platelets.value",
+      "status": "present",
+      "kind": "text",
+      "origin": "synthetic",
+      "value": 267.0,
+      "unit": "K/uL",
+      "page": 1,
+      "bbox": [
+        265.655,
+        589.155,
+        280.0,
+        600.971
+      ],
+      "rendered_text": "267"
+    },
+    {
+      "field_path": "results.cbc.platelets.flag",
+      "status": "present",
+      "kind": "text",
+      "origin": "synthetic",
+      "value": "",
+      "unit": null,
+      "page": 1,
+      "bbox": [
+        306.0,
+        589.198,
+        306.0,
+        601.04
+      ],
+      "rendered_text": ""
+    },
+    {
+      "field_path": "results.cbc.platelets.unit",
+      "status": "present",
+      "kind": "text",
+      "origin": "synthetic",
+      "value": "K/uL",
+      "unit": null,
+      "page": 1,
+      "bbox": [
+        326.0,
+        589.155,
+        343.69,
+        600.971
+      ],
+      "rendered_text": "K/uL"
+    },
+    {
+      "field_path": "results.cbc.platelets.reference_range",
+      "status": "present",
+      "kind": "text",
+      "origin": "synthetic",
+      "value": "150 - 400",
+      "unit": "K/uL",
+      "page": 1,
+      "bbox": [
+        414.0,
+        589.155,
+        450.335,
+        600.971
+      ],
+      "rendered_text": "150 - 400"
+    },
+    {
+      "field_path": "results.cbc.neutrophils_pct.name",
+      "status": "present",
+      "kind": "text",
+      "origin": "synthetic",
+      "value": "Neutrophils",
+      "unit": null,
+      "page": 1,
+      "bbox": [
+        57.0,
+        601.755,
+        100.49,
+        613.571
+      ],
+      "rendered_text": "Neutrophils"
+    },
+    {
+      "field_path": "results.cbc.neutrophils_pct.value",
+      "status": "present",
+      "kind": "text",
+      "origin": "synthetic",
+      "value": 61.0,
+      "unit": "%",
+      "page": 1,
+      "bbox": [
+        270.437,
+        601.755,
+        280.0,
+        613.571
+      ],
+      "rendered_text": "61"
+    },
+    {
+      "field_path": "results.cbc.neutrophils_pct.flag",
+      "status": "present",
+      "kind": "text",
+      "origin": "synthetic",
+      "value": "",
+      "unit": null,
+      "page": 1,
+      "bbox": [
+        306.0,
+        601.798,
+        306.0,
+        613.64
+      ],
+      "rendered_text": ""
+    },
+    {
+      "field_path": "results.cbc.neutrophils_pct.unit",
+      "status": "present",
+      "kind": "text",
+      "origin": "synthetic",
+      "value": "%",
+      "unit": null,
+      "page": 1,
+      "bbox": [
+        326.0,
+        601.755,
+        333.645,
+        613.571
+      ],
+      "rendered_text": "%"
+    },
+    {
+      "field_path": "results.cbc.neutrophils_pct.reference_range",
+      "status": "present",
+      "kind": "text",
+      "origin": "synthetic",
+      "value": "40 - 70",
+      "unit": "%",
+      "page": 1,
+      "bbox": [
+        414.0,
+        601.755,
+        440.772,
+        613.571
+      ],
+      "rendered_text": "40 - 70"
+    },
+    {
+      "field_path": "results.cbc.lymphocytes_pct.name",
+      "status": "present",
+      "kind": "text",
+      "origin": "synthetic",
+      "value": "Lymphocytes",
+      "unit": null,
+      "page": 1,
+      "bbox": [
+        57.0,
+        614.355,
+        107.663,
+        626.171
+      ],
+      "rendered_text": "Lymphocytes"
+    },
+    {
+      "field_path": "results.cbc.lymphocytes_pct.value",
+      "status": "present",
+      "kind": "text",
+      "origin": "synthetic",
+      "value": 28.0,
+      "unit": "%",
+      "page": 1,
+      "bbox": [
+        270.437,
+        614.355,
+        280.0,
+        626.171
+      ],
+      "rendered_text": "28"
+    },
+    {
+      "field_path": "results.cbc.lymphocytes_pct.flag",
+      "status": "present",
+      "kind": "text",
+      "origin": "synthetic",
+      "value": "",
+      "unit": null,
+      "page": 1,
+      "bbox": [
+        306.0,
+        614.398,
+        306.0,
+        626.24
+      ],
+      "rendered_text": ""
+    },
+    {
+      "field_path": "results.cbc.lymphocytes_pct.unit",
+      "status": "present",
+      "kind": "text",
+      "origin": "synthetic",
+      "value": "%",
+      "unit": null,
+      "page": 1,
+      "bbox": [
+        326.0,
+        614.355,
+        333.645,
+        626.171
+      ],
+      "rendered_text": "%"
+    },
+    {
+      "field_path": "results.cbc.lymphocytes_pct.reference_range",
+      "status": "present",
+      "kind": "text",
+      "origin": "synthetic",
+      "value": "20 - 45",
+      "unit": "%",
+      "page": 1,
+      "bbox": [
+        414.0,
+        614.355,
+        440.772,
+        626.171
+      ],
+      "rendered_text": "20 - 45"
+    },
+    {
+      "field_path": "results.cbc.monocytes_pct.name",
+      "status": "present",
+      "kind": "text",
+      "origin": "synthetic",
+      "value": "Monocytes",
+      "unit": null,
+      "page": 1,
+      "bbox": [
+        57.0,
+        626.955,
+        98.581,
+        638.771
+      ],
+      "rendered_text": "Monocytes"
+    },
+    {
+      "field_path": "results.cbc.monocytes_pct.value",
+      "status": "present",
+      "kind": "text",
+      "origin": "synthetic",
+      "value": 5.0,
+      "unit": "%",
+      "page": 1,
+      "bbox": [
+        275.218,
+        626.955,
+        280.0,
+        638.771
+      ],
+      "rendered_text": "5"
+    },
+    {
+      "field_path": "results.cbc.monocytes_pct.flag",
+      "status": "present",
+      "kind": "text",
+      "origin": "synthetic",
+      "value": "",
+      "unit": null,
+      "page": 1,
+      "bbox": [
+        306.0,
+        626.998,
+        306.0,
+        638.84
+      ],
+      "rendered_text": ""
+    },
+    {
+      "field_path": "results.cbc.monocytes_pct.unit",
+      "status": "present",
+      "kind": "text",
+      "origin": "synthetic",
+      "value": "%",
+      "unit": null,
+      "page": 1,
+      "bbox": [
+        326.0,
+        626.955,
+        333.645,
+        638.771
+      ],
+      "rendered_text": "%"
+    },
+    {
+      "field_path": "results.cbc.monocytes_pct.reference_range",
+      "status": "present",
+      "kind": "text",
+      "origin": "synthetic",
+      "value": "2 - 12",
+      "unit": "%",
+      "page": 1,
+      "bbox": [
+        414.0,
+        626.955,
+        435.99,
+        638.771
+      ],
+      "rendered_text": "2 - 12"
+    },
+    {
+      "field_path": "results.lipid.cholesterol_total.name",
+      "status": "present",
+      "kind": "text",
+      "origin": "synthetic",
+      "value": "Cholesterol, Total",
+      "unit": null,
+      "page": 1,
+      "bbox": [
+        57.0,
+        682.555,
+        124.39,
+        694.371
+      ],
+      "rendered_text": "Cholesterol, Total"
+    },
+    {
+      "field_path": "results.lipid.cholesterol_total.value",
+      "status": "present",
+      "kind": "text",
+      "origin": "synthetic",
+      "value": 177.0,
+      "unit": "mg/dL",
+      "page": 1,
+      "bbox": [
+        265.655,
+        682.555,
+        280.0,
+        694.371
+      ],
+      "rendered_text": "177"
+    },
+    {
+      "field_path": "results.lipid.cholesterol_total.flag",
+      "status": "present",
+      "kind": "text",
+      "origin": "synthetic",
+      "value": "",
+      "unit": null,
+      "page": 1,
+      "bbox": [
+        306.0,
+        682.598,
+        306.0,
+        694.44
+      ],
+      "rendered_text": ""
+    },
+    {
+      "field_path": "results.lipid.cholesterol_total.unit",
+      "status": "present",
+      "kind": "text",
+      "origin": "synthetic",
+      "value": "mg/dL",
+      "unit": null,
+      "page": 1,
+      "bbox": [
+        326.0,
+        682.555,
+        349.899,
+        694.371
+      ],
+      "rendered_text": "mg/dL"
+    },
+    {
+      "field_path": "results.lipid.cholesterol_total.reference_range",
+      "status": "present",
+      "kind": "text",
+      "origin": "synthetic",
+      "value": "125 - 200",
+      "unit": "mg/dL",
+      "page": 1,
+      "bbox": [
+        414.0,
+        682.555,
+        450.335,
+        694.371
+      ],
+      "rendered_text": "125 - 200"
+    },
+    {
+      "field_path": "results.lipid.triglycerides.name",
+      "status": "present",
+      "kind": "text",
+      "origin": "synthetic",
+      "value": "Triglycerides",
+      "unit": null,
+      "page": 1,
+      "bbox": [
+        57.0,
+        695.155,
+        105.736,
+        706.971
+      ],
+      "rendered_text": "Triglycerides"
+    },
+    {
+      "field_path": "results.lipid.triglycerides.value",
+      "status": "present",
+      "kind": "text",
+      "origin": "synthetic",
+      "value": 116.0,
+      "unit": "mg/dL",
+      "page": 1,
+      "bbox": [
+        265.655,
+        695.155,
+        280.0,
+        706.971
+      ],
+      "rendered_text": "116"
+    },
+    {
+      "field_path": "results.lipid.triglycerides.flag",
+      "status": "present",
+      "kind": "text",
+      "origin": "synthetic",
+      "value": "",
+      "unit": null,
+      "page": 1,
+      "bbox": [
+        306.0,
+        695.198,
+        306.0,
+        707.04
+      ],
+      "rendered_text": ""
+    },
+    {
+      "field_path": "results.lipid.triglycerides.unit",
+      "status": "present",
+      "kind": "text",
+      "origin": "synthetic",
+      "value": "mg/dL",
+      "unit": null,
+      "page": 1,
+      "bbox": [
+        326.0,
+        695.155,
+        349.899,
+        706.971
+      ],
+      "rendered_text": "mg/dL"
+    },
+    {
+      "field_path": "results.lipid.triglycerides.reference_range",
+      "status": "present",
+      "kind": "text",
+      "origin": "synthetic",
+      "value": "35 - 150",
+      "unit": "mg/dL",
+      "page": 1,
+      "bbox": [
+        414.0,
+        695.155,
+        445.553,
+        706.971
+      ],
+      "rendered_text": "35 - 150"
+    },
+    {
+      "field_path": "results.lipid.hdl.name",
+      "status": "present",
+      "kind": "text",
+      "origin": "synthetic",
+      "value": "HDL Cholesterol",
+      "unit": null,
+      "page": 2,
+      "bbox": [
+        57.0,
+        122.955,
+        120.081,
+        134.771
+      ],
+      "rendered_text": "HDL Cholesterol"
+    },
+    {
+      "field_path": "results.lipid.hdl.value",
+      "status": "present",
+      "kind": "text",
+      "origin": "synthetic",
+      "value": 59.0,
+      "unit": "mg/dL",
+      "page": 2,
+      "bbox": [
+        270.437,
+        122.955,
+        280.0,
+        134.771
+      ],
+      "rendered_text": "59"
+    },
+    {
+      "field_path": "results.lipid.hdl.flag",
+      "status": "present",
+      "kind": "text",
+      "origin": "synthetic",
+      "value": "",
+      "unit": null,
+      "page": 2,
+      "bbox": [
+        306.0,
+        122.998,
+        306.0,
+        134.84
+      ],
+      "rendered_text": ""
+    },
+    {
+      "field_path": "results.lipid.hdl.unit",
+      "status": "present",
+      "kind": "text",
+      "origin": "synthetic",
+      "value": "mg/dL",
+      "unit": null,
+      "page": 2,
+      "bbox": [
+        326.0,
+        122.955,
+        349.899,
+        134.771
+      ],
+      "rendered_text": "mg/dL"
+    },
+    {
+      "field_path": "results.lipid.hdl.reference_range",
+      "status": "present",
+      "kind": "text",
+      "origin": "synthetic",
+      "value": "40 - 100",
+      "unit": "mg/dL",
+      "page": 2,
+      "bbox": [
+        414.0,
+        122.955,
+        445.553,
+        134.771
+      ],
+      "rendered_text": "40 - 100"
+    },
+    {
+      "field_path": "results.lipid.ldl_calc.name",
+      "status": "present",
+      "kind": "text",
+      "origin": "synthetic",
+      "value": "LDL Cholesterol (calc)",
+      "unit": null,
+      "page": 2,
+      "bbox": [
+        57.0,
+        135.555,
+        142.063,
+        147.371
+      ],
+      "rendered_text": "LDL Cholesterol (calc)"
+    },
+    {
+      "field_path": "results.lipid.ldl_calc.value",
+      "status": "present",
+      "kind": "text",
+      "origin": "synthetic",
+      "value": 96.0,
+      "unit": "mg/dL",
+      "page": 2,
+      "bbox": [
+        270.437,
+        135.555,
+        280.0,
+        147.371
+      ],
+      "rendered_text": "96"
+    },
+    {
+      "field_path": "results.lipid.ldl_calc.flag",
+      "status": "present",
+      "kind": "text",
+      "origin": "synthetic",
+      "value": "",
+      "unit": null,
+      "page": 2,
+      "bbox": [
+        306.0,
+        135.598,
+        306.0,
+        147.44
+      ],
+      "rendered_text": ""
+    },
+    {
+      "field_path": "results.lipid.ldl_calc.unit",
+      "status": "present",
+      "kind": "text",
+      "origin": "synthetic",
+      "value": "mg/dL",
+      "unit": null,
+      "page": 2,
+      "bbox": [
+        326.0,
+        135.555,
+        349.899,
+        147.371
+      ],
+      "rendered_text": "mg/dL"
+    },
+    {
+      "field_path": "results.lipid.ldl_calc.reference_range",
+      "status": "present",
+      "kind": "text",
+      "origin": "synthetic",
+      "value": "40 - 100",
+      "unit": "mg/dL",
+      "page": 2,
+      "bbox": [
+        414.0,
+        135.555,
+        445.553,
+        147.371
+      ],
+      "rendered_text": "40 - 100"
+    },
+    {
+      "field_path": "results.lipid.chol_hdl_ratio.name",
+      "status": "present",
+      "kind": "text",
+      "origin": "synthetic",
+      "value": "Total Chol / HDL Ratio",
+      "unit": null,
+      "page": 2,
+      "bbox": [
+        57.0,
+        148.155,
+        143.026,
+        159.971
+      ],
+      "rendered_text": "Total Chol / HDL Ratio"
+    },
+    {
+      "field_path": "results.lipid.chol_hdl_ratio.value",
+      "status": "present",
+      "kind": "text",
+      "origin": "synthetic",
+      "value": 4.6,
+      "unit": "ratio",
+      "page": 2,
+      "bbox": [
+        268.046,
+        148.155,
+        280.0,
+        159.971
+      ],
+      "rendered_text": "4.6"
+    },
+    {
+      "field_path": "results.lipid.chol_hdl_ratio.flag",
+      "status": "present",
+      "kind": "text",
+      "origin": "synthetic",
+      "value": "",
+      "unit": null,
+      "page": 2,
+      "bbox": [
+        306.0,
+        148.198,
+        306.0,
+        160.04
+      ],
+      "rendered_text": ""
+    },
+    {
+      "field_path": "results.lipid.chol_hdl_ratio.unit",
+      "status": "present",
+      "kind": "text",
+      "origin": "synthetic",
+      "value": "ratio",
+      "unit": null,
+      "page": 2,
+      "bbox": [
+        326.0,
+        148.155,
+        342.727,
+        159.971
+      ],
+      "rendered_text": "ratio"
+    },
+    {
+      "field_path": "results.lipid.chol_hdl_ratio.reference_range",
+      "status": "present",
+      "kind": "text",
+      "origin": "synthetic",
+      "value": "1.5 - 5.0",
+      "unit": "ratio",
+      "page": 2,
+      "bbox": [
+        414.0,
+        148.155,
+        445.553,
+        159.971
+      ],
+      "rendered_text": "1.5 - 5.0"
+    },
+    {
+      "field_path": "results.a1c.hba1c.name",
+      "status": "present",
+      "kind": "text",
+      "origin": "synthetic",
+      "value": "Hemoglobin A1c",
+      "unit": null,
+      "page": 2,
+      "bbox": [
+        57.0,
+        203.755,
+        120.09,
+        215.571
+      ],
+      "rendered_text": "Hemoglobin A1c"
+    },
+    {
+      "field_path": "results.a1c.hba1c.value",
+      "status": "present",
+      "kind": "text",
+      "origin": "synthetic",
+      "value": 5.0,
+      "unit": "%",
+      "page": 2,
+      "bbox": [
+        268.046,
+        203.755,
+        280.0,
+        215.571
+      ],
+      "rendered_text": "5.0"
+    },
+    {
+      "field_path": "results.a1c.hba1c.flag",
+      "status": "present",
+      "kind": "text",
+      "origin": "synthetic",
+      "value": "",
+      "unit": null,
+      "page": 2,
+      "bbox": [
+        306.0,
+        203.798,
+        306.0,
+        215.64
+      ],
+      "rendered_text": ""
+    },
+    {
+      "field_path": "results.a1c.hba1c.unit",
+      "status": "present",
+      "kind": "text",
+      "origin": "synthetic",
+      "value": "%",
+      "unit": null,
+      "page": 2,
+      "bbox": [
+        326.0,
+        203.755,
+        333.645,
+        215.571
+      ],
+      "rendered_text": "%"
+    },
+    {
+      "field_path": "results.a1c.hba1c.reference_range",
+      "status": "present",
+      "kind": "text",
+      "origin": "synthetic",
+      "value": "4.0 - 5.6",
+      "unit": "%",
+      "page": 2,
+      "bbox": [
+        414.0,
+        203.755,
+        445.553,
+        215.571
+      ],
+      "rendered_text": "4.0 - 5.6"
+    },
+    {
+      "field_path": "results.a1c.eag.name",
+      "status": "present",
+      "kind": "text",
+      "origin": "synthetic",
+      "value": "Est. Average Glucose",
+      "unit": null,
+      "page": 2,
+      "bbox": [
+        57.0,
+        216.355,
+        140.171,
+        228.171
+      ],
+      "rendered_text": "Est. Average Glucose"
+    },
+    {
+      "field_path": "results.a1c.eag.value",
+      "status": "present",
+      "kind": "text",
+      "origin": "synthetic",
+      "value": 73.0,
+      "unit": "mg/dL",
+      "page": 2,
+      "bbox": [
+        270.437,
+        216.355,
+        280.0,
+        228.171
+      ],
+      "rendered_text": "73"
+    },
+    {
+      "field_path": "results.a1c.eag.flag",
+      "status": "present",
+      "kind": "text",
+      "origin": "synthetic",
+      "value": "",
+      "unit": null,
+      "page": 2,
+      "bbox": [
+        306.0,
+        216.398,
+        306.0,
+        228.24
+      ],
+      "rendered_text": ""
+    },
+    {
+      "field_path": "results.a1c.eag.unit",
+      "status": "present",
+      "kind": "text",
+      "origin": "synthetic",
+      "value": "mg/dL",
+      "unit": null,
+      "page": 2,
+      "bbox": [
+        326.0,
+        216.355,
+        349.899,
+        228.171
+      ],
+      "rendered_text": "mg/dL"
+    },
+    {
+      "field_path": "results.a1c.eag.reference_range",
+      "status": "present",
+      "kind": "text",
+      "origin": "synthetic",
+      "value": "68 - 114",
+      "unit": "mg/dL",
+      "page": 2,
+      "bbox": [
+        414.0,
+        216.355,
+        445.553,
+        228.171
+      ],
+      "rendered_text": "68 - 114"
+    },
+    {
+      "field_path": "results.thyroid.tsh.name",
+      "status": "present",
+      "kind": "text",
+      "origin": "synthetic",
+      "value": "TSH",
+      "unit": null,
+      "page": 2,
+      "bbox": [
+        57.0,
+        271.955,
+        74.2,
+        283.771
+      ],
+      "rendered_text": "TSH"
+    },
+    {
+      "field_path": "results.thyroid.tsh.value",
+      "status": "present",
+      "kind": "text",
+      "origin": "synthetic",
+      "value": 1.963,
+      "unit": "uIU/mL",
+      "page": 2,
+      "bbox": [
+        258.483,
+        271.955,
+        280.0,
+        283.771
+      ],
+      "rendered_text": "1.963"
+    },
+    {
+      "field_path": "results.thyroid.tsh.flag",
+      "status": "present",
+      "kind": "text",
+      "origin": "synthetic",
+      "value": "",
+      "unit": null,
+      "page": 2,
+      "bbox": [
+        306.0,
+        271.998,
+        306.0,
+        283.84
+      ],
+      "rendered_text": ""
+    },
+    {
+      "field_path": "results.thyroid.tsh.unit",
+      "status": "present",
+      "kind": "text",
+      "origin": "synthetic",
+      "value": "uIU/mL",
+      "unit": null,
+      "page": 2,
+      "bbox": [
+        326.0,
+        271.955,
+        353.718,
+        283.771
+      ],
+      "rendered_text": "uIU/mL"
+    },
+    {
+      "field_path": "results.thyroid.tsh.reference_range",
+      "status": "present",
+      "kind": "text",
+      "origin": "synthetic",
+      "value": "0.450 - 4.500",
+      "unit": "uIU/mL",
+      "page": 2,
+      "bbox": [
+        414.0,
+        271.955,
+        464.68,
+        283.771
+      ],
+      "rendered_text": "0.450 - 4.500"
+    },
+    {
+      "field_path": "results.thyroid.t4_free.name",
+      "status": "present",
+      "kind": "text",
+      "origin": "synthetic",
+      "value": "Free T4",
+      "unit": null,
+      "page": 2,
+      "bbox": [
+        57.0,
+        284.555,
+        87.109,
+        296.371
+      ],
+      "rendered_text": "Free T4"
+    },
+    {
+      "field_path": "results.thyroid.t4_free.value",
+      "status": "present",
+      "kind": "text",
+      "origin": "synthetic",
+      "value": 1.56,
+      "unit": "ng/dL",
+      "page": 2,
+      "bbox": [
+        263.264,
+        284.555,
+        280.0,
+        296.371
+      ],
+      "rendered_text": "1.56"
+    },
+    {
+      "field_path": "results.thyroid.t4_free.flag",
+      "status": "present",
+      "kind": "text",
+      "origin": "synthetic",
+      "value": "",
+      "unit": null,
+      "page": 2,
+      "bbox": [
+        306.0,
+        284.598,
+        306.0,
+        296.44
+      ],
+      "rendered_text": ""
+    },
+    {
+      "field_path": "results.thyroid.t4_free.unit",
+      "status": "present",
+      "kind": "text",
+      "origin": "synthetic",
+      "value": "ng/dL",
+      "unit": null,
+      "page": 2,
+      "bbox": [
+        326.0,
+        284.555,
+        347.517,
+        296.371
+      ],
+      "rendered_text": "ng/dL"
+    },
+    {
+      "field_path": "results.thyroid.t4_free.reference_range",
+      "status": "present",
+      "kind": "text",
+      "origin": "synthetic",
+      "value": "0.82 - 1.77",
+      "unit": "ng/dL",
+      "page": 2,
+      "bbox": [
+        414.0,
+        284.555,
+        455.117,
+        296.371
+      ],
+      "rendered_text": "0.82 - 1.77"
+    },
+    {
+      "field_path": "results.thyroid.t3_total.name",
+      "status": "present",
+      "kind": "text",
+      "origin": "synthetic",
+      "value": "T3, Total",
+      "unit": null,
+      "page": 2,
+      "bbox": [
+        57.0,
+        297.155,
+        90.936,
+        308.971
+      ],
+      "rendered_text": "T3, Total"
+    },
+    {
+      "field_path": "results.thyroid.t3_total.value",
+      "status": "present",
+      "kind": "text",
+      "origin": "synthetic",
+      "value": 128.0,
+      "unit": "ng/dL",
+      "page": 2,
+      "bbox": [
+        265.655,
+        297.155,
+        280.0,
+        308.971
+      ],
+      "rendered_text": "128"
+    },
+    {
+      "field_path": "results.thyroid.t3_total.flag",
+      "status": "present",
+      "kind": "text",
+      "origin": "synthetic",
+      "value": "",
+      "unit": null,
+      "page": 2,
+      "bbox": [
+        306.0,
+        297.198,
+        306.0,
+        309.04
+      ],
+      "rendered_text": ""
+    },
+    {
+      "field_path": "results.thyroid.t3_total.unit",
+      "status": "present",
+      "kind": "text",
+      "origin": "synthetic",
+      "value": "ng/dL",
+      "unit": null,
+      "page": 2,
+      "bbox": [
+        326.0,
+        297.155,
+        347.517,
+        308.971
+      ],
+      "rendered_text": "ng/dL"
+    },
+    {
+      "field_path": "results.thyroid.t3_total.reference_range",
+      "status": "present",
+      "kind": "text",
+      "origin": "synthetic",
+      "value": "71 - 180",
+      "unit": "ng/dL",
+      "page": 2,
+      "bbox": [
+        414.0,
+        297.155,
+        445.553,
+        308.971
+      ],
+      "rendered_text": "71 - 180"
+    },
+    {
+      "field_path": "results.iron_vitamins.iron.name",
+      "status": "present",
+      "kind": "text",
+      "origin": "synthetic",
+      "value": "Iron, Total",
+      "unit": null,
+      "page": 2,
+      "bbox": [
+        57.0,
+        352.755,
+        95.717,
+        364.571
+      ],
+      "rendered_text": "Iron, Total"
+    },
+    {
+      "field_path": "results.iron_vitamins.iron.value",
+      "status": "present",
+      "kind": "text",
+      "origin": "synthetic",
+      "value": 125.0,
+      "unit": "ug/dL",
+      "page": 2,
+      "bbox": [
+        265.655,
+        352.755,
+        280.0,
+        364.571
+      ],
+      "rendered_text": "125"
+    },
+    {
+      "field_path": "results.iron_vitamins.iron.flag",
+      "status": "present",
+      "kind": "text",
+      "origin": "synthetic",
+      "value": "",
+      "unit": null,
+      "page": 2,
+      "bbox": [
+        306.0,
+        352.798,
+        306.0,
+        364.64
+      ],
+      "rendered_text": ""
+    },
+    {
+      "field_path": "results.iron_vitamins.iron.unit",
+      "status": "present",
+      "kind": "text",
+      "origin": "synthetic",
+      "value": "ug/dL",
+      "unit": null,
+      "page": 2,
+      "bbox": [
+        326.0,
+        352.755,
+        347.517,
+        364.571
+      ],
+      "rendered_text": "ug/dL"
+    },
+    {
+      "field_path": "results.iron_vitamins.iron.reference_range",
+      "status": "present",
+      "kind": "text",
+      "origin": "synthetic",
+      "value": "50 - 180",
+      "unit": "ug/dL",
+      "page": 2,
+      "bbox": [
+        414.0,
+        352.755,
+        445.553,
+        364.571
+      ],
+      "rendered_text": "50 - 180"
+    },
+    {
+      "field_path": "results.iron_vitamins.tibc.name",
+      "status": "present",
+      "kind": "text",
+      "origin": "synthetic",
+      "value": "Iron Binding Capacity",
+      "unit": null,
+      "page": 2,
+      "bbox": [
+        57.0,
+        365.355,
+        138.734,
+        377.171
+      ],
+      "rendered_text": "Iron Binding Capacity"
+    },
+    {
+      "field_path": "results.iron_vitamins.tibc.value",
+      "status": "present",
+      "kind": "text",
+      "origin": "synthetic",
+      "value": 330.0,
+      "unit": "ug/dL",
+      "page": 2,
+      "bbox": [
+        265.655,
+        365.355,
+        280.0,
+        377.171
+      ],
+      "rendered_text": "330"
+    },
+    {
+      "field_path": "results.iron_vitamins.tibc.flag",
+      "status": "present",
+      "kind": "text",
+      "origin": "synthetic",
+      "value": "",
+      "unit": null,
+      "page": 2,
+      "bbox": [
+        306.0,
+        365.398,
+        306.0,
+        377.24
+      ],
+      "rendered_text": ""
+    },
+    {
+      "field_path": "results.iron_vitamins.tibc.unit",
+      "status": "present",
+      "kind": "text",
+      "origin": "synthetic",
+      "value": "ug/dL",
+      "unit": null,
+      "page": 2,
+      "bbox": [
+        326.0,
+        365.355,
+        347.517,
+        377.171
+      ],
+      "rendered_text": "ug/dL"
+    },
+    {
+      "field_path": "results.iron_vitamins.tibc.reference_range",
+      "status": "present",
+      "kind": "text",
+      "origin": "synthetic",
+      "value": "250 - 450",
+      "unit": "ug/dL",
+      "page": 2,
+      "bbox": [
+        414.0,
+        365.355,
+        450.335,
+        377.171
+      ],
+      "rendered_text": "250 - 450"
+    },
+    {
+      "field_path": "results.iron_vitamins.iron_saturation.name",
+      "status": "present",
+      "kind": "text",
+      "origin": "synthetic",
+      "value": "Iron Saturation",
+      "unit": null,
+      "page": 2,
+      "bbox": [
+        57.0,
+        377.955,
+        113.407,
+        389.771
+      ],
+      "rendered_text": "Iron Saturation"
+    },
+    {
+      "field_path": "results.iron_vitamins.iron_saturation.value",
+      "status": "present",
+      "kind": "text",
+      "origin": "synthetic",
+      "value": 37.0,
+      "unit": "%",
+      "page": 2,
+      "bbox": [
+        270.437,
+        377.955,
+        280.0,
+        389.771
+      ],
+      "rendered_text": "37"
+    },
+    {
+      "field_path": "results.iron_vitamins.iron_saturation.flag",
+      "status": "present",
+      "kind": "text",
+      "origin": "synthetic",
+      "value": "",
+      "unit": null,
+      "page": 2,
+      "bbox": [
+        306.0,
+        377.998,
+        306.0,
+        389.84
+      ],
+      "rendered_text": ""
+    },
+    {
+      "field_path": "results.iron_vitamins.iron_saturation.unit",
+      "status": "present",
+      "kind": "text",
+      "origin": "synthetic",
+      "value": "%",
+      "unit": null,
+      "page": 2,
+      "bbox": [
+        326.0,
+        377.955,
+        333.645,
+        389.771
+      ],
+      "rendered_text": "%"
+    },
+    {
+      "field_path": "results.iron_vitamins.iron_saturation.reference_range",
+      "status": "present",
+      "kind": "text",
+      "origin": "synthetic",
+      "value": "15 - 55",
+      "unit": "%",
+      "page": 2,
+      "bbox": [
+        414.0,
+        377.955,
+        440.772,
+        389.771
+      ],
+      "rendered_text": "15 - 55"
+    },
+    {
+      "field_path": "results.iron_vitamins.ferritin.name",
+      "status": "present",
+      "kind": "text",
+      "origin": "synthetic",
+      "value": "Ferritin",
+      "unit": null,
+      "page": 2,
+      "bbox": [
+        57.0,
+        390.555,
+        83.755,
+        402.371
+      ],
+      "rendered_text": "Ferritin"
+    },
+    {
+      "field_path": "results.iron_vitamins.ferritin.value",
+      "status": "present",
+      "kind": "text",
+      "origin": "perturbed",
+      "value": 12.0,
+      "unit": "ng/mL",
+      "page": 2,
+      "bbox": [
+        270.437,
+        390.598,
+        280.0,
+        402.44
+      ],
+      "rendered_text": "12"
+    },
+    {
+      "field_path": "results.iron_vitamins.ferritin.flag",
+      "status": "present",
+      "kind": "text",
+      "origin": "perturbed",
+      "value": "L",
+      "unit": null,
+      "page": 2,
+      "bbox": [
+        303.373,
+        390.598,
+        308.627,
+        402.44
+      ],
+      "rendered_text": "L"
+    },
+    {
+      "field_path": "results.iron_vitamins.ferritin.unit",
+      "status": "present",
+      "kind": "text",
+      "origin": "synthetic",
+      "value": "ng/mL",
+      "unit": null,
+      "page": 2,
+      "bbox": [
+        326.0,
+        390.555,
+        349.899,
+        402.371
+      ],
+      "rendered_text": "ng/mL"
+    },
+    {
+      "field_path": "results.iron_vitamins.ferritin.reference_range",
+      "status": "present",
+      "kind": "text",
+      "origin": "synthetic",
+      "value": "30 - 400",
+      "unit": "ng/mL",
+      "page": 2,
+      "bbox": [
+        414.0,
+        390.555,
+        445.553,
+        402.371
+      ],
+      "rendered_text": "30 - 400"
+    },
+    {
+      "field_path": "results.iron_vitamins.vitamin_d.name",
+      "status": "present",
+      "kind": "text",
+      "origin": "synthetic",
+      "value": "Vitamin D, 25-Hydroxy",
+      "unit": null,
+      "page": 2,
+      "bbox": [
+        57.0,
+        403.155,
+        143.017,
+        414.971
+      ],
+      "rendered_text": "Vitamin D, 25-Hydroxy"
+    },
+    {
+      "field_path": "results.iron_vitamins.vitamin_d.value",
+      "status": "present",
+      "kind": "text",
+      "origin": "synthetic",
+      "value": 58.5,
+      "unit": "ng/mL",
+      "page": 2,
+      "bbox": [
+        263.264,
+        403.155,
+        280.0,
+        414.971
+      ],
+      "rendered_text": "58.5"
+    },
+    {
+      "field_path": "results.iron_vitamins.vitamin_d.flag",
+      "status": "present",
+      "kind": "text",
+      "origin": "synthetic",
+      "value": "",
+      "unit": null,
+      "page": 2,
+      "bbox": [
+        306.0,
+        403.198,
+        306.0,
+        415.04
+      ],
+      "rendered_text": ""
+    },
+    {
+      "field_path": "results.iron_vitamins.vitamin_d.unit",
+      "status": "present",
+      "kind": "text",
+      "origin": "synthetic",
+      "value": "ng/mL",
+      "unit": null,
+      "page": 2,
+      "bbox": [
+        326.0,
+        403.155,
+        349.899,
+        414.971
+      ],
+      "rendered_text": "ng/mL"
+    },
+    {
+      "field_path": "results.iron_vitamins.vitamin_d.reference_range",
+      "status": "present",
+      "kind": "text",
+      "origin": "synthetic",
+      "value": "30.0 - 100.0",
+      "unit": "ng/mL",
+      "page": 2,
+      "bbox": [
+        414.0,
+        403.155,
+        459.898,
+        414.971
+      ],
+      "rendered_text": "30.0 - 100.0"
+    },
+    {
+      "field_path": "results.iron_vitamins.vitamin_b12.name",
+      "status": "present",
+      "kind": "text",
+      "origin": "synthetic",
+      "value": "Vitamin B-12",
+      "unit": null,
+      "page": 2,
+      "bbox": [
+        57.0,
+        415.755,
+        106.226,
+        427.571
+      ],
+      "rendered_text": "Vitamin B-12"
+    },
+    {
+      "field_path": "results.iron_vitamins.vitamin_b12.value",
+      "status": "present",
+      "kind": "text",
+      "origin": "synthetic",
+      "value": 838.0,
+      "unit": "pg/mL",
+      "page": 2,
+      "bbox": [
+        265.655,
+        415.755,
+        280.0,
+        427.571
+      ],
+      "rendered_text": "838"
+    },
+    {
+      "field_path": "results.iron_vitamins.vitamin_b12.flag",
+      "status": "present",
+      "kind": "text",
+      "origin": "synthetic",
+      "value": "",
+      "unit": null,
+      "page": 2,
+      "bbox": [
+        306.0,
+        415.798,
+        306.0,
+        427.64
+      ],
+      "rendered_text": ""
+    },
+    {
+      "field_path": "results.iron_vitamins.vitamin_b12.unit",
+      "status": "present",
+      "kind": "text",
+      "origin": "synthetic",
+      "value": "pg/mL",
+      "unit": null,
+      "page": 2,
+      "bbox": [
+        326.0,
+        415.755,
+        349.899,
+        427.571
+      ],
+      "rendered_text": "pg/mL"
+    },
+    {
+      "field_path": "results.iron_vitamins.vitamin_b12.reference_range",
+      "status": "present",
+      "kind": "text",
+      "origin": "synthetic",
+      "value": "232 - 1245",
+      "unit": "pg/mL",
+      "page": 2,
+      "bbox": [
+        414.0,
+        415.755,
+        455.117,
+        427.571
+      ],
+      "rendered_text": "232 - 1245"
+    },
+    {
+      "field_path": "results.iron_vitamins.folate.name",
+      "status": "present",
+      "kind": "text",
+      "origin": "synthetic",
+      "value": "Folate, Serum",
+      "unit": null,
+      "page": 2,
+      "bbox": [
+        57.0,
+        428.355,
+        111.008,
+        440.171
+      ],
+      "rendered_text": "Folate, Serum"
+    },
+    {
+      "field_path": "results.iron_vitamins.folate.value",
+      "status": "present",
+      "kind": "text",
+      "origin": "synthetic",
+      "value": 14.6,
+      "unit": "ng/mL",
+      "page": 2,
+      "bbox": [
+        263.264,
+        428.355,
+        280.0,
+        440.171
+      ],
+      "rendered_text": "14.6"
+    },
+    {
+      "field_path": "results.iron_vitamins.folate.flag",
+      "status": "present",
+      "kind": "text",
+      "origin": "synthetic",
+      "value": "",
+      "unit": null,
+      "page": 2,
+      "bbox": [
+        306.0,
+        428.398,
+        306.0,
+        440.24
+      ],
+      "rendered_text": ""
+    },
+    {
+      "field_path": "results.iron_vitamins.folate.unit",
+      "status": "present",
+      "kind": "text",
+      "origin": "synthetic",
+      "value": "ng/mL",
+      "unit": null,
+      "page": 2,
+      "bbox": [
+        326.0,
+        428.355,
+        349.899,
+        440.171
+      ],
+      "rendered_text": "ng/mL"
+    },
+    {
+      "field_path": "results.iron_vitamins.folate.reference_range",
+      "status": "present",
+      "kind": "text",
+      "origin": "synthetic",
+      "value": "3.0 - 20.0",
+      "unit": "ng/mL",
+      "page": 2,
+      "bbox": [
+        414.0,
+        428.355,
+        450.335,
+        440.171
+      ],
+      "rendered_text": "3.0 - 20.0"
+    }
+  ]
+}

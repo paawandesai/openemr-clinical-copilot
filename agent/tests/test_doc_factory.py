@@ -1,8 +1,8 @@
 """
-Tests for the synthetic document factory (evals/factory).
+Tests for the synthetic document factory (evals/w2/factory).
 
 None of these need OpenEMR: the charts the sample scenarios reference are
-committed under ``evals/factory/cache/``, which is the point of the cache.
+committed under ``evals/w2/factory/cache/``, which is the point of the cache.
 
 Two different notions of "deterministic" are checked separately, because they
 hold to different degrees:
@@ -25,18 +25,18 @@ from pathlib import Path
 import pymupdf
 import pytest
 
-from evals.factory.chart import ChartRecord, read_cache
-from evals.factory.degrade import _invert_affine, _page_transform
-from evals.factory.generate import (
+from evals.w2.factory.chart import ChartRecord, read_cache
+from evals.w2.factory.degrade import _invert_affine, _page_transform
+from evals.w2.factory.generate import (
     DEFAULT_CACHE_DIR,
     DEFAULT_SPEC_DIR,
     generate,
     ground_truth_for,
 )
-from evals.factory.spec import SpecError, load_specs, parse_spec
-from evals.factory.validate import validate
+from evals.w2.factory.spec import SpecError, load_specs, parse_spec
+from evals.w2.factory.validate import validate
 
-FACTORY_DIR = Path(__file__).resolve().parents[1] / "evals" / "factory"
+FACTORY_DIR = Path(__file__).resolve().parents[1] / "evals" / "w2" / "factory"
 SAMPLES_DIR = FACTORY_DIR / "output" / "samples"
 
 SPECS = load_specs(DEFAULT_SPEC_DIR)
@@ -48,7 +48,7 @@ def _chart(spec) -> ChartRecord:
     record = read_cache(DEFAULT_CACHE_DIR, spec.patient_ref)
     assert record is not None, (
         f"no committed chart cache for {spec.scenario_id}; "
-        f"run: python -m evals.factory generate evals/factory/specs --refresh"
+        f"run: python -m evals.w2.factory generate evals/w2/factory/specs --refresh"
     )
     return record
 
@@ -272,7 +272,7 @@ def test_canonical_pdf_bytes_survives_a_literal_string_trailer_id():
     because the random bytes were printable. Both forms have to be rewritten,
     or that save keeps a random id and the output stops being reproducible.
     """
-    from evals.factory.canvas import canonical_pdf_bytes
+    from evals.w2.factory.canvas import canonical_pdf_bytes
 
     digests = set()
     for _ in range(300):
@@ -288,7 +288,7 @@ def test_canonical_pdf_bytes_survives_a_literal_string_trailer_id():
 
 
 def test_canonical_pdf_bytes_refuses_a_pdf_it_cannot_canonicalise():
-    from evals.factory.canvas import NonReproduciblePdf, canonical_pdf_bytes
+    from evals.w2.factory.canvas import NonReproduciblePdf, canonical_pdf_bytes
 
     with pytest.raises(NonReproduciblePdf):
         canonical_pdf_bytes(b"%PDF-1.7\ntrailer\n<</Size 1/Root 1 0 R>>\nstartxref\n9\n%%EOF\n")

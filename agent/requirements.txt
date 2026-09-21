@@ -34,7 +34,7 @@ langfuse>=4.15.3,<5
 # correlation_id to every log line for a request's lifetime
 structlog>=26.1.0
 
-# --- evals/factory: the synthetic document factory (evals/factory/README.md) ---
+# --- evals/w2/factory: the synthetic document factory (evals/w2/factory/README.md) ---
 
 # PDF rendering, rasterisation and text extraction. One engine does all three,
 # which is what lets the factory compute a field's bbox from font metrics while
@@ -47,10 +47,10 @@ pillow>=11.0.0
 # The lighting field, sensor noise and speckle in degrade.py.
 numpy>=2.1.0
 
-# Scenario specs are YAML (evals/factory/spec.py). Already present transitively
-# via langchain-core; declared because evals/factory imports it directly.
+# Scenario specs are YAML (evals/w2/factory/spec.py). Already present transitively
+# via langchain-core; declared because evals/w2/factory imports it directly.
 pyyaml>=6.0.2
 
-# Read-only chart pull from the local OpenEMR MySQL (evals/factory/chart.py).
+# Read-only chart pull from the local OpenEMR MySQL (evals/w2/factory/chart.py).
 # Pure Python, so no libmysqlclient on the host.
 pymysql>=1.1.1
