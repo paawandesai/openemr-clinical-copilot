@@ -69,13 +69,14 @@ symlinked directory are blocked the same as a direct write. **Do not create
 symlinks anywhere under `agent/evals/`** — they are refused on both the link
 and the target side, exempt directories included.
 
-`gate-effect-check.sh` runs **after** every Bash call and does not read the
-command at all: it asks git what changed and restores any protected path that
-moved. A `cd` into the directory, a path held in a variable, and a script that
-does the writing are all caught the same way. It reverts *any* uncommitted
-change to a protected path, not only the last command's — so a session that is
+`gate-effect-check.sh` runs **after every tool call** — not just Bash — and does
+not read the command at all: it asks git what changed and restores any
+protected path that moved. A `cd` into the directory, a path held in a
+variable, a script that does the writing, and an MCP tool `gate-guard.sh` has
+never heard of are all caught the same way. It reverts *any* uncommitted change
+to a protected path, not only the last call's — so a session that is
 deliberately editing gate files must be started with `W2_GATE_SESSION=1`, or it
-will lose those edits on its next Bash call.
+will lose those edits on its next tool call.
 
 ## Where things are
 

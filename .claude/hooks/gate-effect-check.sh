@@ -9,25 +9,31 @@
 #   f=agent/evals/w2/cases/v.json; echo {} > "$f"   the path is in a variable
 #   ./agent/evals/w2/staging/gen.sh                 the writes are in a script
 #
-# This hook does not read the command at all. After every Bash call it asks git
+# This hook does not read the command at all. After every tool call it asks git
 # what actually changed, and if a protected path moved, puts it back. Text
 # parsing is a courtesy that produces a good error message; this is the part
 # that holds.
+#
+# It is wired to matcher "*", not "Bash": an MCP server's filesystem tool, or
+# any tool added later, writes files just as well as a shell does, and
+# gate-guard.sh only knows how to read file_path/notebook_path out of the tools
+# it was written for. Asking git what changed needs no such knowledge.
 #
 # Restores are confined to protected paths. It never runs a bare `git checkout`
 # or `git clean` over the tree.
 #
 # WARNING — this reverts ANY uncommitted change to a protected path, not only
-# one the last command made. In an implementation session that is exactly the
+# one the last tool call made. In an implementation session that is exactly the
 # point. If you are deliberately working on gate files, start Claude Code with:
 #
 #     W2_GATE_SESSION=1 claude
 #
 # and this hook stands down entirely. Editing gate files with the hook live
-# means losing the edit on the next Bash call — including this file itself.
+# means losing the edit on the next tool call — including this file itself.
 #
-# Reads PostToolUse hook input JSON on stdin. Exit 0 = nothing to do. Exit 2 =
-# something was restored, or an internal error (fail closed). The docs say exit
+# Reads PostToolUse hook input JSON on stdin; .tool_name is not consulted.
+# Exit 0 = nothing to do. Exit 2 = something was restored, or an internal error
+# (fail closed). The docs say exit
 # 2 is not honoured on PostToolUse, so the message Claude actually reads is the
 # `additionalContext` in the JSON on stdout; the restore itself is the
 # enforcement either way.
@@ -167,7 +173,7 @@ done <<<"$HITS"
 
 These are eval-gate files: rubrics, eval cases, the baseline, judge config, CI
 config, the gate hook, or the settings that wire it up (CLAUDE.md invariant 7).
-The command that just ran changed one, whether or not it named it.
+The tool call that just ran changed one, whether or not it named it.
 
 The check is on the effect, not the command text, so `cd` into the directory, a
 path held in a variable, and a script that does the writing are all caught the
@@ -180,7 +186,7 @@ EOF
 } >&2
 
 N=$(printf '%s\n' "${RESTORED[@]:-}" | grep -c .)
-MSG="gate-effect-check restored $N protected path(s) that the last command changed. See stderr for the list. Do not retry the write; report it instead."
+MSG="gate-effect-check restored $N protected path(s) that the last tool call changed. See stderr for the list. Do not retry the write; report it instead."
 jq -n --arg m "$MSG" '{
   hookSpecificOutput: {
     hookEventName: "PostToolUse",
