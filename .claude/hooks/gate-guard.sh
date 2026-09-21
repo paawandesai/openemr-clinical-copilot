@@ -47,6 +47,38 @@
 
 set -uo pipefail
 
+# --- fail closed --------------------------------------------------------------
+# A gate that errors out and returns 0 is not a gate. Every exit this script
+# means to make goes through gate_exit(); anything else reaching the EXIT trap
+# — an unbound variable under `set -u`, a jq crash, a failed cd, a killed
+# subprocess — is an internal error and leaves with 2, which blocks the tool
+# call. Exit 1 is never a decision this script makes in hook mode.
+_INTENTIONAL=0
+
+gate_exit() { _INTENTIONAL=1; exit "$1"; }
+
+gate_fail() {
+  printf 'gate-guard: %s\ngate-guard: failing closed — the tool call is blocked. This is a\nbug in the gate, not a decision about your change. Report it.\n' "$1" >&2
+  if command -v jq >/dev/null 2>&1; then
+    jq -n --arg r "gate-guard internal error: $1 (failing closed)" '{
+      hookSpecificOutput: {
+        hookEventName: "PreToolUse",
+        permissionDecision: "deny",
+        permissionDecisionReason: $r
+      }
+    }' 2>/dev/null || true
+  fi
+  gate_exit 2
+}
+
+_on_exit() {
+  local rc=$?
+  [ "$_INTENTIONAL" = "1" ] && exit "$rc"
+  printf 'gate-guard: unexpected internal error (status %s); failing closed.\n' "$rc" >&2
+  exit 2
+}
+trap _on_exit EXIT
+
 # --- protected paths, repo-root-relative ------------------------------------
 # Matched with bash glob patterns against the repo-relative path. Note that in
 # a [[ ]] pattern match, * spans / — so 'agent/evals/*' covers the whole tree.
@@ -128,6 +160,12 @@ is_protected_rel() {
 # The file need not exist. The longest existing prefix is resolved physically
 # with `cd -P` (which resolves symlinks AND .. in the order the OS does), and
 # the non-existent tail is appended.
+# canonical() and to_repo_relative() are called inside $( ), so they must
+# signal failure by RETURNING nonzero, never by exiting — an exit there ends
+# only the subshell. Callers go through resolve_or_fail(), which runs in the
+# current shell and turns that nonzero into a real fail-closed block.
+canon_err() { printf 'gate-guard: %s\n' "$1" >&2; return 1; }
+
 canonical() {
   local p="$1" base_dir="${2:-$CWD}"
   case "$p" in
@@ -135,29 +173,51 @@ canonical() {
     *)  p="$base_dir/$p" ;;
   esac
 
+  # Strip trailing components until something exists. `-L` is tested as well as
+  # `-e`, because `-e` is false for a dangling or looping symlink: without it
+  # the loop would strip the link away and canonicalise the path as if the link
+  # were an ordinary missing directory. A dangling
+  # `staging/dangle -> ../cases/nope` would then read as "under staging/".
   local head="$p" tail="" guard=0
-  while [ ! -e "$head" ] && [ "$head" != "/" ] && [ -n "$head" ] && [ "$guard" -lt 64 ]; do
+  while [ ! -e "$head" ] && [ ! -L "$head" ] && [ "$head" != "/" ] && [ -n "$head" ] && [ "$guard" -lt 64 ]; do
     tail="$(basename -- "$head")${tail:+/$tail}"
     head="$(dirname -- "$head")"
     guard=$((guard + 1))
   done
+  if [ "$guard" -ge 64 ]; then
+    canon_err "path \"$p\" has more than 64 unresolvable components"
+    return 1
+  fi
 
   if [ -d "$head" ]; then
-    head="$(cd -P -- "$head" 2>/dev/null && pwd -P)" || head="$p"
-  elif [ -e "$head" ]; then
-    # An existing non-directory, possibly a symlink chain to a file.
+    # A cd -P failure here is a symlink loop (ELOOP) or an unreadable
+    # directory. Either way the real destination is unknown, so fail closed
+    # rather than fall back to the unresolved path.
+    head="$(cd -P -- "$head" 2>/dev/null && pwd -P)" \
+      || { canon_err "cannot resolve directory \"$head\" (symlink loop or unreadable)"; return 1; }
+  elif [ -e "$head" ] || [ -L "$head" ]; then
+    # An existing non-directory, possibly a symlink chain to a file. `-e` is
+    # false for a dangling or looping link, so `-L` is tested too.
     local d b n=0 t
-    d="$(cd -P -- "$(dirname -- "$head")" 2>/dev/null && pwd -P)" || d="$(dirname -- "$head")"
+    d="$(cd -P -- "$(dirname -- "$head")" 2>/dev/null && pwd -P)" \
+      || { canon_err "cannot resolve parent of \"$head\""; return 1; }
     b="$(basename -- "$head")"
     while [ -L "$d/$b" ] && [ "$n" -lt 32 ]; do
-      t="$(readlink -- "$d/$b")"
+      t="$(readlink -- "$d/$b")" || { canon_err "cannot read link \"$d/$b\""; return 1; }
       case "$t" in
-        /*) d="$(cd -P -- "$(dirname -- "$t")" 2>/dev/null && pwd -P)" ;;
-        *)  d="$(cd -P -- "$d/$(dirname -- "$t")" 2>/dev/null && pwd -P)" ;;
+        /*) d="$(cd -P -- "$(dirname -- "$t")" 2>/dev/null && pwd -P)" \
+              || { canon_err "cannot resolve link target directory for \"$d/$b\""; return 1; } ;;
+        *)  d="$(cd -P -- "$d/$(dirname -- "$t")" 2>/dev/null && pwd -P)" \
+              || { canon_err "cannot resolve link target directory for \"$d/$b\""; return 1; } ;;
       esac
       b="$(basename -- "$t")"
       n=$((n + 1))
     done
+    # Still a link after 32 hops: a loop, or a chain too deep to trust.
+    if [ -L "$d/$b" ]; then
+      canon_err "symlink chain from \"$p\" exceeds 32 hops (loop?) — cannot determine the real path"
+      return 1
+    fi
     head="$d/$b"
   fi
 
@@ -168,7 +228,7 @@ canonical() {
 # A path outside the repo is returned absolute and matches no glob.
 to_repo_relative() {
   local abs
-  abs=$(canonical "$1" "${2:-$CWD}")
+  abs=$(canonical "$1" "${2:-$CWD}") || return 1
   case "$abs" in
     "$REPO_ROOT"/*) printf '%s' "${abs#"$REPO_ROOT"/}" ;;
     "$REPO_ROOT")   printf '%s' "." ;;
@@ -176,10 +236,20 @@ to_repo_relative() {
   esac
 }
 
+# resolve_or_fail <varname> <raw path> [base dir]
+# Resolves in the CURRENT shell so a resolution failure can block the tool
+# call, and assigns the result to the named variable.
+resolve_or_fail() {
+  local __var="$1" __raw="$2" __base="${3:-$CWD}" __out
+  __out=$(to_repo_relative "$__raw" "$__base") \
+    || gate_fail "cannot resolve path \"$__raw\" — refusing to guess where it points"
+  printf -v "$__var" '%s' "$__out"
+}
+
 # Convenience wrappers taking a raw (possibly relative, possibly traversing)
 # path rather than an already-normalised repo-relative one.
-is_protected() { is_protected_rel "$(to_repo_relative "$1" "${2:-$CWD}")"; }
-is_exempt()    { is_exempt_rel    "$(to_repo_relative "$1" "${2:-$CWD}")"; }
+is_protected() { local __r; resolve_or_fail __r "$1" "${2:-$CWD}"; is_protected_rel "$__r"; }
+is_exempt()    { local __r; resolve_or_fail __r "$1" "${2:-$CWD}"; is_exempt_rel    "$__r"; }
 
 # --- CLI modes, handled before anything reads stdin --------------------------
 # CWD/REPO_ROOT are needed by canonical(); in CLI mode they come from the
@@ -190,11 +260,11 @@ REPO_ROOT=$(cd -P -- "$REPO_ROOT" 2>/dev/null && pwd -P || printf '%s' "$REPO_RO
 case "${1:-}" in
   --print-globs)
     printf '%s\n' "${PROTECTED_GLOBS[@]}"
-    exit 0
+    gate_exit 0
     ;;
   --print-exceptions)
     printf '%s\n' "${UNPROTECTED_GLOBS[@]}"
-    exit 0
+    gate_exit 0
     ;;
   --check-path)
     shift
@@ -205,26 +275,37 @@ case "${1:-}" in
         hits=1
       fi
     done
-    exit "$hits"
+    gate_exit "$hits"
     ;;
   --canonical)
     # Debugging aid: show what a path actually resolves to.
     shift
-    for rel in "$@"; do printf '%s\t%s\n' "$rel" "$(to_repo_relative "$rel")"; done
-    exit 0
+    for raw in "$@"; do
+      resolve_or_fail rel "$raw"
+      printf '%s\t%s\n' "$raw" "$rel"
+    done
+    gate_exit 0
     ;;
 esac
 
 # --- read hook input ---------------------------------------------------------
-INPUT=$(cat)
+command -v jq >/dev/null 2>&1 \
+  || gate_fail "jq not found; cannot inspect tool input"
 
-if ! command -v jq >/dev/null 2>&1; then
-  echo "gate-guard: jq not found; cannot inspect tool input, failing closed." >&2
-  exit 2
-fi
+INPUT=$(cat) || gate_fail "could not read hook input from stdin"
 
-TOOL_NAME=$(printf '%s' "$INPUT" | jq -r '.tool_name // empty')
-CWD=$(printf '%s' "$INPUT" | jq -r '.cwd // empty')
+# Empty or unparseable stdin is not "no tool call to check" — it means this
+# script cannot tell what is about to happen, which is the case it must never
+# wave through.
+[ -n "${INPUT//[[:space:]]/}" ] || gate_fail "empty stdin: no hook input to inspect"
+printf '%s' "$INPUT" | jq -e . >/dev/null 2>&1 \
+  || gate_fail "stdin is not valid JSON: cannot determine the tool call"
+
+TOOL_NAME=$(printf '%s' "$INPUT" | jq -r '.tool_name // empty') \
+  || gate_fail "could not read .tool_name from hook input"
+[ -n "$TOOL_NAME" ] || gate_fail "hook input has no .tool_name"
+
+CWD=$(printf '%s' "$INPUT" | jq -r '.cwd // empty') || gate_fail "could not read .cwd"
 [ -n "$CWD" ] || CWD="$PWD"
 
 # The session's real cwd replaces the process default set above; canonical()
@@ -247,12 +328,12 @@ $WHY
     }
   }'
   printf '%s\n' "$reason" >&2
-  exit 2
+  gate_exit 2
 }
 
 # --- the escape hatch, set outside the session by a human --------------------
 if [ "${W2_GATE_SESSION:-}" = "1" ]; then
-  exit 0
+  gate_exit 0
 fi
 
 case "$TOOL_NAME" in
@@ -262,7 +343,7 @@ case "$TOOL_NAME" in
       | map(select(. != null)) | unique | .[]')
     while IFS= read -r raw; do
       [ -n "$raw" ] || continue
-      rel=$(to_repo_relative "$raw")
+      resolve_or_fail rel "$raw"
       if is_protected_rel "$rel"; then
         # Report the resolved path, not the one as typed — otherwise
         # "staging/../cases/x.json" would be denied with a message naming a
@@ -280,8 +361,9 @@ case "$TOOL_NAME" in
     # as well as Write can. Only flags a command that both names a protected
     # path and contains something that mutates a file, so reading a gate file
     # (cat, grep, git diff) stays allowed.
-    CMD=$(printf '%s' "$INPUT" | jq -r '.tool_input.command // empty')
-    [ -n "$CMD" ] || exit 0
+    CMD=$(printf '%s' "$INPUT" | jq -r '.tool_input.command // empty') \
+      || gate_fail "could not read .tool_input.command"
+    [ -n "$CMD" ] || gate_exit 0
 
     # Path-shaped tokens, with shell punctuation flattened to whitespace.
     TOKENS=$(printf '%s' "$CMD" | tr '|;&()<>`"'"'"'\n\t' ' ' )
@@ -308,9 +390,12 @@ case "$TOOL_NAME" in
         # Canonicalise the link's PARENT, not the link itself: `ln` creates a
         # new name, and if that name already exists as a link, resolving it
         # would resolve the target against the wrong directory.
-        link_dir="$(canonical "$(dirname -- "$link_raw")")"
+        link_dir="$(canonical "$(dirname -- "$link_raw")")" \
+          || gate_fail "cannot resolve the link's parent directory from \"$link_raw\""
         for tok in "${LINK_TOKENS[@]}"; do
-          for rel in "$(to_repo_relative "$tok")" "$(to_repo_relative "$tok" "$link_dir")"; do
+          resolve_or_fail rel_cwd "$tok"
+          resolve_or_fail rel_lnk "$tok" "$link_dir"
+          for rel in "$rel_cwd" "$rel_lnk"; do
             if is_protected_rel "$rel" || is_exempt_rel "$rel"; then
               deny "$rel" "tool: Bash — creating a link into or out of the eval tree. Links are refused on both the link and the target side, in gated AND exempt directories, because a link from agent/evals/w2/staging/ into cases/ would turn every later write through it into an unreviewed gate change."
             fi
@@ -320,7 +405,7 @@ case "$TOOL_NAME" in
     fi
 
     # --- ordinary mutation ---------------------------------------------------
-    printf '%s' "$CMD" | grep -Eq '(>|>>|\btee\b|\bsed\b[^|]*-i|\bperl\b[^|]*-i|\brm\b|\bmv\b|\bcp\b|\btruncate\b|\bdd\b|\bpatch\b|\bgit\s+checkout\s+--|\bgit\s+restore\b|\bchmod\b)' || exit 0
+    printf '%s' "$CMD" | grep -Eq '(>|>>|\btee\b|\bsed\b[^|]*-i|\bperl\b[^|]*-i|\brm\b|\bmv\b|\bcp\b|\btruncate\b|\bdd\b|\bpatch\b|\bgit\s+checkout\s+--|\bgit\s+restore\b|\bchmod\b)' || gate_exit 0
 
     # Each path-shaped token is canonicalised and checked on its own, rather
     # than asking whether the command string "mentions" a gate path.
@@ -330,7 +415,7 @@ case "$TOOL_NAME" in
       case "$tok" in
         -*|'') continue ;;
       esac
-      rel=$(to_repo_relative "$tok")
+      resolve_or_fail rel "$tok"
       if is_protected_rel "$rel"; then
         if [ "$rel" != "$tok" ]; then
           deny "$rel" "tool: Bash — written as \"$tok\", which resolves here. The command mutates files. Reads are fine; writes are not. Generated cases go to agent/evals/w2/staging/, and promotion into cases/ needs a W2_GATE_SESSION=1 session."
@@ -341,4 +426,4 @@ case "$TOOL_NAME" in
     ;;
 esac
 
-exit 0
+gate_exit 0
