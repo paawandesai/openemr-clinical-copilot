@@ -68,11 +68,13 @@ from app.middleware.langfuse_export import (  # noqa: E402
 from app.models.fhir_resources import FhirResourceType as R  # noqa: E402
 from app.models.metrics_events import (  # noqa: E402
     AuthorizationCheckEvent,
+    ClaimDisclosureEvent,
     ClaimVerifiedEvent,
     LatencyEvent,
     RetrievalEvent,
     UseCase,
 )
+from app.verification.disclosure import CLAIM_DISCLOSURE_EVENT  # noqa: E402
 
 DEFAULT_LOG_FILE = AGENT_DIR / "logs" / "agent-stdout.jsonl"
 
@@ -220,24 +222,48 @@ def metric_1(log: Log) -> None:
 def metric_2(log: Log) -> bool:
     """Returns False when the 100% absolute is broken."""
     print("[2] Unverified-Claim Disclosure Rate")
-    print(f"    source: event_type \"{CLAIM_VERIFIED_EVENT}\" (ClaimVerifiedEvent), fields event_data.passed, event_data.disclosed_as_unverified")
-    print("    rule:   among passed == false: count(disclosed_as_unverified == true) / count(passed == false); absolute target 100%")
-    parsed, invalid = parse_all(log.of_type(CLAIM_VERIFIED_EVENT), ClaimVerifiedEvent)
+    print(f"    source: event_type \"{CLAIM_DISCLOSURE_EVENT}\" (ClaimDisclosureEvent), field event_data.disclosed")
+    print("    rule:   count(disclosed == true) / count(all); absolute target 100%")
+    print(f"    note:   read from the rendered text after the render step ran, not from {CLAIM_VERIFIED_EVENT}'s")
+    print("            disclosed_as_unverified, which the verifier sets to true before rendering (findings.md F-59)")
+
+    # How many failed claims the verifier produced, which is how many
+    # disclosure events there should be. A gap between the two is itself a
+    # defect: it means the render step never reported on some claim.
+    verified, invalid = parse_all(log.of_type(CLAIM_VERIFIED_EVENT), ClaimVerifiedEvent)
     report_invalid(invalid, ClaimVerifiedEvent)
+    failed_claims = [(e, c) for e, c in verified if not c.passed]
+
+    parsed, invalid = parse_all(log.of_type(CLAIM_DISCLOSURE_EVENT), ClaimDisclosureEvent)
+    report_invalid(invalid, ClaimDisclosureEvent)
+
     if not parsed:
-        print(f"    result: {insufficient(CLAIM_VERIFIED_EVENT)}")
-        return True
-    failed = [(e, c) for e, c in parsed if not c.passed]
-    if not failed:
-        print(f"    result: {insufficient(CLAIM_VERIFIED_EVENT, ' with passed == false')} (among {len(parsed)} claims)")
-        return True
-    disclosed = [e for e, c in failed if c.disclosed_as_unverified]
-    undisclosed = [(e, c) for e, c in failed if not c.disclosed_as_unverified]
+        if not failed_claims:
+            print(f"    result: {insufficient(CLAIM_DISCLOSURE_EVENT)} (no claim failed verification)")
+            return True
+        # Never report 100% here: the whole point of F-59 is that a
+        # missing signal must not read as a clean bill of health.
+        print(
+            f"    result: NOT COMPUTED — {len(failed_claims)} claim(s) failed verification but the log holds no "
+            f"{CLAIM_DISCLOSURE_EVENT}. Either the log predates the render-step audit or that audit did not run; "
+            "either way, whether the physician saw those failures is unknown, not 100%"
+        )
+        return False
+
+    disclosed = [e for e, c in parsed if c.disclosed]
+    undisclosed = [(e, c) for e, c in parsed if not c.disclosed]
     verdict = "meets the 100% absolute" if not undisclosed else "BELOW the 100% absolute — render-step defect"
-    print(f"    result: {pct(len(disclosed), len(failed))}  ({len(disclosed)} disclosed of {len(failed)} failed claims) — {verdict} — {lines_ref(e.line for e, _ in failed)}")
+    print(f"    result: {pct(len(disclosed), len(parsed))}  ({len(disclosed)} disclosed of {len(parsed)} failed claims) — {verdict} — {lines_ref(e.line for e, _ in parsed)}")
     for event, claim in undisclosed:
-        print(f"      UNDISCLOSED: line {event.line}, source_id {claim.source_id}, correlation_id {claim.correlation_id}")
-    return not undisclosed
+        print(f"      UNDISCLOSED: line {event.line}, source_id {claim.source_id}, field {claim.field}, correlation_id {claim.correlation_id}")
+
+    missing = len(failed_claims) - len(parsed)
+    if missing > 0:
+        print(
+            f"      INCOMPLETE: {len(failed_claims)} claim(s) failed verification but only {len(parsed)} were "
+            "reported on by the render step; the difference was never audited"
+        )
+    return not undisclosed and missing <= 0
 
 
 def metric_3(log: Log) -> bool:

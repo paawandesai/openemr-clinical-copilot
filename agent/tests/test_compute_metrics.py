@@ -52,6 +52,17 @@ def claim(passed: bool, disclosed: bool) -> str:
     )
 
 
+def disclosure(disclosed: bool, source_id: str = "x") -> str:
+    """The post-render audit's event — what Metric 2 is computed from (F-59)."""
+    return agent_event(
+        "claim_disclosure_event",
+        {"source_id": source_id, "resource_type": "Condition", "field": "display",
+         "disclosed": disclosed, "correlation_id": "c1", "use_case": "pre_visit_brief",
+         "patient_session_key": SESSION},
+        "pre_visit_brief",
+    )
+
+
 def auth(requested: str, outcome: str) -> str:
     return agent_event(
         "authorization_check_event",
@@ -81,13 +92,42 @@ class ComputeMetricsTest(unittest.TestCase):
     def test_all_claims_pass_leaves_disclosure_rate_without_data(self) -> None:
         _, out = self.run_script([claim(True, False)])
         self.assertIn("100.0%  (1 passed of 1 claims)", out)
-        self.assertIn("insufficient data — 0 events of type claim_verified_event with passed == false found", out)
+        self.assertIn("insufficient data — 0 events of type claim_disclosure_event found", out)
+        self.assertIn("no claim failed verification", out)
 
     def test_undisclosed_failure_breaks_the_absolute(self) -> None:
-        code, out = self.run_script([claim(False, True), claim(False, False)])
+        """Metric 2 reads the render step's audit, not the verifier's intent."""
+        code, out = self.run_script(
+            [claim(False, True), claim(False, True), disclosure(True), disclosure(False)]
+        )
         self.assertEqual(code, 1)
         self.assertIn("50.0%  (1 disclosed of 2 failed claims) — BELOW the 100% absolute", out)
-        self.assertIn("UNDISCLOSED: line 2", out)
+        self.assertIn("UNDISCLOSED: line 4", out)
+
+    def test_a_hidden_failure_is_caught_even_though_the_verifier_called_it_disclosed(self) -> None:
+        """
+        F-59 exactly: disclosed_as_unverified is true on both claim events,
+        as the verifier always sets it, while the render step disclosed
+        neither. The old source reported 100% here.
+        """
+        code, out = self.run_script(
+            [claim(False, True), claim(False, True), disclosure(False), disclosure(False)]
+        )
+        self.assertEqual(code, 1)
+        self.assertIn("0.0%  (0 disclosed of 2 failed claims) — BELOW the 100% absolute", out)
+
+    def test_failed_claims_with_no_audit_are_not_reported_as_full_disclosure(self) -> None:
+        """A missing signal must not read as a clean bill of health."""
+        code, out = self.run_script([claim(False, True)])
+        self.assertEqual(code, 1)
+        self.assertIn("NOT COMPUTED", out)
+        self.assertIn("whether the physician saw those failures is unknown, not 100%", out)
+
+    def test_an_audit_that_misses_a_failed_claim_is_reported_as_incomplete(self) -> None:
+        code, out = self.run_script([claim(False, True), claim(False, True), disclosure(True)])
+        self.assertEqual(code, 1)
+        self.assertIn("INCOMPLETE", out)
+        self.assertIn("only 1 were reported on by the render step", out)
 
     def test_accepted_out_of_scope_request_violates_invariant(self) -> None:
         code, out = self.run_script([auth("user/Patient.read", "accepted"), auth("user/Observation.read", "rejected"), auth("user/Observation.read", "accepted")])

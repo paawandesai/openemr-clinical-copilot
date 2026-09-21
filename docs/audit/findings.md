@@ -1342,6 +1342,9 @@ Pass-2 droplet database commands were run as
 ### F-59 — Logged Metric 2 cannot detect a render step that hides failed claims
 - **Category:** Compliance / Observability
 - **Severity:** Medium (monitoring gap, not a live bug)
+- **Status:** **Fixed** 2026-09-21 (`fix/remaining-defects`), not yet
+  deployed. Metric 2 is now computed from the rendered text. One boundary
+  remains and is stated under Remediation.
 - **Claim:** `KEY_METRICS.md` Metric 2 (Unverified-Claim Disclosure Rate) is the
   share of failed claims actually surfaced to the physician, and "anything
   under 100% here is a defect in the render step". As implemented it reads
@@ -1365,9 +1368,61 @@ Pass-2 droplet database commands were run as
   - The real renderer discloses correctly (`first-hand`, same run): B2
     (failed claims shown as UNVERIFIED across 5 live briefs) and C1–C4
     (injected failures shown as UNVERIFIED with their reason) pass.
-- **Remediation:** not done. Record disclosure from the render step — one
-  event per failed claim, emitted after the brief text is built, saying
-  whether its UNVERIFIED line is present — and compute Metric 2 from that.
+- **Remediation:** **done 2026-09-21**, as the entry above described.
+  `app/verification/disclosure.py` emits one `claim_disclosure_event` per
+  failed claim, carrying `disclosed` — observed, by looking for that
+  claim's UNVERIFIED line in the rendered text. `scripts/compute_metrics.py`
+  `metric_2` is computed from that field.
+  - *What makes the check independent of the bug it looks for.* It reads
+    the rendered text, the artifact the physician is shown, not the
+    renderer's intentions; and it is called by the graph node **after** the
+    render function returns, never from inside it, so replacing or breaking
+    the renderer does not remove the check — the substituted renderer's
+    output is what gets audited. A check that re-derived "did I write this
+    line?" from the same loop that writes the lines would share any bug in
+    that loop and prove nothing.
+  - *Presence is counted, not just tested.* Two failed claims can render
+    the same line (same value, same reason); if the renderer wrote it once,
+    exactly one of them was disclosed.
+  - *A missing signal no longer reads as success.* If failed claims exist
+    and no disclosure event does, `metric_2` prints `NOT COMPUTED` and
+    fails, rather than reporting 100%. If some failed claims were never
+    audited it prints `INCOMPLETE` and fails. Reporting a clean number from
+    absent evidence is the specific shape of this finding.
+  - *All three render paths are covered*, not only the brief: the brief
+    (`app/graph/pre_visit_brief.py`), the constrained single-turn follow-up
+    and the multi-turn conversation each call the audit after their own
+    render call, passing their own line builder. Metric 2 spans all three
+    use cases, so covering only the brief would have left the same gap for
+    the other two.
+  - *`ClaimVerifiedEvent.disclosed_as_unverified` is kept and no longer
+    feeds Metric 2.* The two fields answer different questions and both are
+    worth logging: that one is what the verifier **required**, the new one
+    is what the physician was **shown**. Eval C5 now asserts the divergence
+    directly — the verifier says every failed claim was disclosed while the
+    audit says none were.
+  - **The boundary, stated rather than fixed.** The audit runs in the same
+    process as the renderer and reads the string that process produced. It
+    catches a render step that drops, hides or softens a failed claim,
+    which is this finding's stated risk. It is **not** an end-to-end check
+    of what a browser finally paints: if the chart embed's own JavaScript
+    hid an UNVERIFIED line, this would still report it disclosed. That
+    would need a check at the display surface, which is a different
+    mechanism outside this service and is not built.
+- **Before / after:**
+  - *Before* (eval C5, `first-hand`, 2026-09-20 run on the Vultr host):
+    with the renderer replaced by one that drops failed claims, the suite's
+    text check found 5 violations while
+    `compute_metrics.py` reported `100.0% (4 disclosed of 4 failed claims)
+    — meets the 100% absolute`.
+  - *After* (`first-hand`, 2026-09-21, same mutation, live FHIR): C5
+    passes. The verifier's own events still report every failed claim as
+    `disclosed_as_unverified=True`, the render-step audit reports 0 of them
+    disclosed, and Metric 2 reports below the absolute and exits non-zero.
+    With the audit call removed as a control, C5 fails. Unit coverage in
+    `tests/test_compute_metrics.py` (5 cases, including the exact F-59
+    shape: `disclosed_as_unverified` true on every claim event while the
+    render step disclosed none). Full suite: 368 passed.
 - **Verified:** `first-hand`
 - **Implication for the agent:** Metric 2 is the production monitor for §5's
   "never silently dropped" promise, and it would stay at 100% through exactly
