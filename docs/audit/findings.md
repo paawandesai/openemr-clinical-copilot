@@ -3127,6 +3127,8 @@ Pass-2 droplet database commands were run as
 ### F-60 — `/ready` reports the model provider healthy while an exhausted credit balance fails every brief
 - **Category:** Architecture / Observability
 - **Severity:** Medium
+- **Status:** **Fixed** 2026-09-21 (`fix/remaining-defects`), not yet
+  deployed. Reactive by construction — see Remediation for the tradeoff.
 - **Claim:** `/ready`'s LLM check calls `models.retrieve`, which needs a valid
   key but spends no tokens, so it cannot see a billing failure. On 2026-09-16
   the Anthropic account's credit balance ran out during an eval run: briefs
@@ -3154,10 +3156,62 @@ Pass-2 droplet database commands were run as
     by the next run (its observations were read in-session first), and the
     droplet agent container was recreated at 2026-09-16T22:17:46Z by a separate
     deployment, so its logs for the window are gone.
-- **Remediation:** not done. Either a readiness check that spends a minimal
-  token budget on a slower cadence than `/ready` polling, or readiness that
-  also reflects recent `llm_call_failed` events (for example, consecutive
-  `invalid_request_error` / billing failures → `not_ready`).
+- **Remediation:** **done 2026-09-21**, taking the second of the two options
+  below. `app/reasoning/provider_health.py` records the outcome of every
+  real model call the service makes — there are exactly two call sites,
+  `draft_claims.stream_claims` (brief) and `draft_follow_up.stream_structured`
+  (follow-up and conversation) — and `/ready` reports `llm_provider`
+  unhealthy when the last three consecutive calls all failed and the most
+  recent was within five minutes. The existing `models.retrieve` probe is
+  kept alongside it.
+  - *Why not a probe that spends tokens.* Whether the account can still pay
+    for a completion is only observable by attempting one, so a proactive
+    check means a real call on a timer. At the 15 s cache TTL that is about
+    5,760 calls a day, roughly **$13/month**, it puts a billable model call
+    behind a publicly reachable endpoint, and it consumes the same rate
+    limit it exists to protect. The service already makes real calls; this
+    reads those instead.
+  - *The tradeoff, stated plainly.* The signal is **reactive**: the first
+    few briefs after the credits run out still fail. They fail closed and
+    fast — 502, no partial brief, which this finding's own evidence
+    records — and from the third consecutive failure `/ready` returns 503,
+    so an orchestrator stops routing here and an operator polling `/ready`
+    sees the incident instead of a green light over a dead service. A
+    token-spending probe would have caught it before the first failure.
+    That is the accuracy bought for $13/month and a public billable call,
+    and it was judged not worth it.
+  - *Three parameters, each against a specific failure.* **Consecutive**
+    failures rather than a rate, so a single request-specific
+    `BadRequestError` (a prompt too long for one large chart) never makes
+    the whole service unready. **Threshold 3**, low enough to report an
+    outage within a few requests, high enough to ignore one dropped
+    connection. **A 300 s staleness window**, without which readiness that
+    gates traffic deadlocks: no traffic means no model calls, so no success
+    could ever clear the count. That is the half-open step of an ordinary
+    circuit breaker, and it is why this is a readiness input only — it
+    never blocks a request.
+  - *Read uncached.* The check is in `ready()`, not inside the
+    `_CachedProbe`, because a readiness signal that lagged an outage by the
+    15 s cache TTL would reproduce a smaller version of this very finding.
+  - `llm_call_failed` now also carries `consecutive_failures`, so the log
+    shows how close the service was to reporting unready.
+- **Before / after:**
+  - *Before* (`first-hand`, 2026-09-16, above): `models.retrieve` succeeded
+    throughout, `/ready` returned 200 `llm_provider: healthy` at ~22:06Z
+    while every brief in the same window returned 502.
+  - *After* (`first-hand`, unit tests, 2026-09-21): with the tokenless
+    probe still succeeding — the exact condition that made the outage
+    invisible — three recorded failures make `/ready` return 503 with
+    `llm_provider: {"status": "unhealthy", "detail": "Recent model calls
+    are failing"}`. One failure does not; a success clears the run; the run
+    goes stale after the window so readiness recovers without traffic; and
+    the outage is reported without waiting for the probe cache. Two further
+    tests drive `draft_pre_visit_brief` itself with an
+    `anthropic.BadRequestError` carrying this finding's own credit-balance
+    message, proving the counter is fed by the real drafting path and not
+    only by the module in isolation. `tests/test_health.py`, 7 new cases;
+    full suite 365 passed. With the `/ready` line disabled as a control,
+    3 of the 7 fail.
 - **Verified:** `first-hand` (probe code; local credit error; `/ready` healthy
   during the outage; droplet 502s) · inferred (that the droplet's 502s came from
   the same account's credit exhaustion — the droplet's key and logs were not

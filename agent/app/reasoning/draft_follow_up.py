@@ -57,6 +57,7 @@ from app.models.fhir_resources import (
 )
 from app.models.follow_up import RecordGap
 from app.models.metrics_events import UseCase
+from app.reasoning import provider_health
 from app.reasoning.draft_claims import (
     _FALLBACK_BETA,
     _MAX_TOKENS,
@@ -269,6 +270,7 @@ async def stream_structured(
             message = await stream.get_final_message()
             request_id = stream.request_id
     except anthropic.APIError as exc:
+        provider_health.record_failure()
         log_event(
             "llm_call_failed",
             event_data={
@@ -276,11 +278,13 @@ async def stream_structured(
                 "requested_model": MODEL,
                 "latency_ms": round((time.perf_counter() - started) * 1000),
                 "error_type": type(exc).__name__,
+                "consecutive_failures": provider_health.consecutive_failures(),
             },
             use_case=_USE_CASE,
             patient_session_key=patient_session_key,
         )
         raise
+    provider_health.record_success()
     latency_ms = round((time.perf_counter() - started) * 1000)
 
     usage = message.usage

@@ -12,8 +12,18 @@ Required checks (decide readiness):
                 holds no token of its own (ARCHITECTURE.md §2), so this
                 proves OpenEMR's FHIR API is up, not that any clinician's
                 token will be accepted.
-  llm_provider  The Anthropic API accepts this service's API key and serves
-                the drafting model (models.retrieve — no tokens consumed).
+  llm_provider  Two signals, either of which can make it unhealthy:
+                - The Anthropic API accepts this service's API key and
+                  serves the drafting model (models.retrieve — no tokens
+                  consumed). Proactive: catches a revoked key, a missing
+                  model or an unreachable API before any brief fails.
+                - The service's own recent model calls are not failing in a
+                  run (app/reasoning/provider_health.py). Reactive, and the
+                  only signal that can see an exhausted credit balance:
+                  that leaves the key valid and the model retrievable while
+                  every completion fails, which is exactly what happened on
+                  2026-09-16 (findings.md F-60). Read uncached, so an
+                  outage is not hidden for the cache TTL.
 
 Reported, not required:
   observability_backend  Self-hosted Langfuse export
@@ -56,6 +66,7 @@ from app.fhir.exceptions import FhirClientError
 from app.middleware import langfuse_export
 from app.middleware.langfuse_export import ObservabilityExportUnavailable, check_export_health
 from app.models.api import DependencyCheck, ReadyResponse
+from app.reasoning import provider_health
 from app.reasoning.draft_claims import MODEL
 
 router = APIRouter()
@@ -159,6 +170,16 @@ async def health() -> dict[str, str]:
 )
 async def ready() -> JSONResponse:
     fhir, llm_provider = await asyncio.gather(_FHIR.outcome(), _LLM_PROVIDER.outcome())
+    # Read uncached, and allowed to override a healthy probe. The probe
+    # proves the key is accepted and the model exists; it spends no tokens,
+    # so it cannot see an exhausted credit balance, which leaves both of
+    # those true while every completion fails (findings.md F-60). This
+    # reads the service's own recent model calls instead. It is not part of
+    # _LLM_PROVIDER because that result is cached for _CACHE_TTL_SECONDS,
+    # and a readiness signal that lags an outage by up to 15 s would
+    # reproduce the blind window F-60 describes.
+    if provider_health.looks_down():
+        llm_provider = _Outcome("unhealthy", "Recent model calls are failing")
     observability = _observability_outcome()
 
     is_ready = fhir.status == "healthy" and llm_provider.status == "healthy"

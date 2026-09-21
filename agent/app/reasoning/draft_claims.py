@@ -17,8 +17,9 @@ What the model is given:
 
 - Records narrowed to what Use Case 1 covers — conditions with
   clinical_status "active", medication requests with status "active", and
-  every allergy record. That selection is a fixed rule, so it runs here
-  in code rather than being left to the model.
+  allergies the chart has not marked resolved or inactive (F-58; the
+  asymmetry is explained at _ENDED_ALLERGY_STATUSES). That selection is a
+  fixed rule, so it runs here in code rather than being left to the model.
 - Each record as its `model_dump(mode="json")`, so a claim's `value` is a
   verbatim copy of that serialization.
 - Only records the chart names (drafted_records). A record with no name
@@ -68,6 +69,7 @@ from app.models.fhir_resources import (
     MedicationRequest,
 )
 from app.models.metrics_events import UseCase
+from app.reasoning import provider_health
 
 MODEL = "claude-opus-5"
 
@@ -435,8 +437,10 @@ async def draft_pre_visit_brief(
             message = await stream.get_final_message()
             request_id = stream.request_id
     except anthropic.APIError as exc:
-        # Logged so a failed call still counts toward Metrics 4 and 6,
-        # then re-raised: the caller decides how to recover.
+        # Logged so a failed call still counts toward Metrics 4 and 6, and
+        # recorded so /ready can see a provider outage a tokenless probe
+        # cannot (F-60). Then re-raised: the caller decides how to recover.
+        provider_health.record_failure()
         log_event(
             "llm_call_failed",
             event_data={
@@ -444,11 +448,13 @@ async def draft_pre_visit_brief(
                 "requested_model": MODEL,
                 "latency_ms": round((time.perf_counter() - started) * 1000),
                 "error_type": type(exc).__name__,
+                "consecutive_failures": provider_health.consecutive_failures(),
             },
             use_case=UseCase.PRE_VISIT_BRIEF,
             patient_session_key=patient_session_key,
         )
         raise
+    provider_health.record_success()
     latency_ms = round((time.perf_counter() - started) * 1000)
 
     usage = message.usage
