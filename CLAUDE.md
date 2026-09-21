@@ -78,6 +78,23 @@ to a protected path, not only the last call's — so a session that is
 deliberately editing gate files must be started with `W2_GATE_SESSION=1`, or it
 will lose those edits on its next tool call.
 
+**Known limit — hook timeout.** Both hooks fail *closed* on every error they
+can observe: bad input, an unresolvable path, a crash inside the script all
+exit 2. What they cannot cover is not running. A hook cancelled at its timeout
+(`.claude/settings.json`: 30s for `gate-guard.sh`, 120s for
+`gate-effect-check.sh`) is a hook that returned no decision, and the tool call
+proceeds. On this repo the effect check takes ~130 ms on a clean tree and
+~240 ms when it restores, so the margin is large — but the gate is not a
+sandbox, and a machine under heavy load, a slow filesystem or a very dirty tree
+could in principle push it past the limit and let a call through unchecked.
+Treat the hooks as a guard against mistakes and drift, not as a security
+boundary against a determined bypass.
+
+Two more surfaces the hooks do not cover: a process started earlier that keeps
+writing in the background, and another session or editor working in the same
+worktree. The effect check notices those only incidentally, on the next tool
+call.
+
 ## Where things are
 
 | Thing | Path |

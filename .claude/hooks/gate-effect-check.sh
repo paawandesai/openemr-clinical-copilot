@@ -83,9 +83,10 @@ REPO_ROOT=$(git -C "$CWD" rev-parse --show-toplevel 2>/dev/null) \
   || gate_fail "\"$CWD\" is not inside a git repository; cannot tell what changed"
 cd "$REPO_ROOT" || gate_fail "cannot enter repository root \"$REPO_ROOT\""
 
-# The glob list lives in exactly one place.
-GUARD="$REPO_ROOT/.claude/hooks/gate-guard.sh"
-[ -x "$GUARD" ] || gate_fail "gate-guard.sh not found or not executable at $GUARD"
+# The glob list lives in exactly one place (gate-lib.sh), reached through the
+# read-only query interface. gate-guard.sh itself takes no arguments.
+GUARD="$REPO_ROOT/.claude/hooks/gate-cli.sh"
+[ -x "$GUARD" ] || gate_fail "gate-cli.sh not found or not executable at $GUARD"
 
 # --- what actually changed ----------------------------------------------------
 # -z because a path may contain a space, a quote or a newline; the default
@@ -128,7 +129,7 @@ GUARD_RC=$?
 case "$GUARD_RC" in
   0) gate_exit 0 ;;                      # nothing protected changed
   1) : ;;                                # protected paths found
-  *) gate_fail "gate-guard.sh --check-path exited $GUARD_RC" ;;
+  *) gate_fail "gate-cli.sh --check-path exited $GUARD_RC" ;;
 esac
 
 # --- restore ------------------------------------------------------------------
