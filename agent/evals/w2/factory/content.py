@@ -15,10 +15,11 @@ from __future__ import annotations
 
 import datetime as dt
 import re
-from dataclasses import dataclass, field
-from typing import Iterable
+from collections.abc import Iterable
+from dataclasses import dataclass
 
 from evals.w2.factory.chart import ChartRecord
+from evals.w2.factory.groundtruth import PerturbationRecord
 from evals.w2.factory.panels import (
     MULTI_PAGE_PANELS,
     PANELS_BY_KEY,
@@ -27,7 +28,6 @@ from evals.w2.factory.panels import (
     LabTest,
     find_test,
 )
-from evals.w2.factory.groundtruth import PerturbationRecord
 from evals.w2.factory.rng import stream
 from evals.w2.factory.spec import PerturbationKind, ScenarioSpec, SpecError
 
@@ -36,12 +36,30 @@ from evals.w2.factory.spec import PerturbationKind, ScenarioSpec, SpecError
 ANCHOR_DATE = dt.date(2026, 9, 15)
 
 _LABS = (
-    ("Northfield Regional Laboratory", "1400 Cabot Industrial Way, Suite 210", "Peabody, MA 01960",
-     "(978) 555-0142", "22D0451193", "Alan R. Petrosian, MD, PhD"),
-    ("Bay State Clinical Diagnostics", "88 Harborview Drive", "Quincy, MA 02169",
-     "(617) 555-0188", "22D2118740", "Nadia Okonjo-Reyes, MD"),
-    ("Merrimack Valley Pathology Associates", "310 River Mill Road", "Lowell, MA 01852",
-     "(978) 555-0119", "22D9042216", "Terrence Vuong, DO"),
+    (
+        "Northfield Regional Laboratory",
+        "1400 Cabot Industrial Way, Suite 210",
+        "Peabody, MA 01960",
+        "(978) 555-0142",
+        "22D0451193",
+        "Alan R. Petrosian, MD, PhD",
+    ),
+    (
+        "Bay State Clinical Diagnostics",
+        "88 Harborview Drive",
+        "Quincy, MA 02169",
+        "(617) 555-0188",
+        "22D2118740",
+        "Nadia Okonjo-Reyes, MD",
+    ),
+    (
+        "Merrimack Valley Pathology Associates",
+        "310 River Mill Road",
+        "Lowell, MA 01852",
+        "(978) 555-0119",
+        "22D9042216",
+        "Terrence Vuong, DO",
+    ),
 )
 
 _ORDERING_PROVIDERS = (
@@ -66,7 +84,14 @@ _WRONG_NAMES = (
     "Curtis Yamamoto",
 )
 
-_FREQUENCIES = ("once daily", "twice daily", "every morning", "at bedtime", "as needed", "three times daily")
+_FREQUENCIES = (
+    "once daily",
+    "twice daily",
+    "every morning",
+    "at bedtime",
+    "as needed",
+    "three times daily",
+)
 
 _ADDED_MEDS = (
     ("Metformin", "500 MG", "twice daily"),
@@ -91,7 +116,14 @@ _FAMILY_HISTORY_CONDITIONS = (
     ("asthma", "Asthma"),
 )
 
-_RELATIONS = ("mother", "father", "sister", "brother", "maternal grandmother", "paternal grandfather")
+_RELATIONS = (
+    "mother",
+    "father",
+    "sister",
+    "brother",
+    "maternal grandmother",
+    "paternal grandfather",
+)
 
 _CONCERN_TEMPLATES = (
     "Follow-up for {condition}",
@@ -114,14 +146,53 @@ _REGISTRATION_CODE = re.compile(r"\b(?:NDA|ANDA|NDC|BLA)\d+\b", re.IGNORECASE)
 _WORD_RE = re.compile(r"[A-Za-z][A-Za-z-]{2,}")
 #: Units, dose forms and packaging words. Whatever is left after these is
 #: the closest thing the product name has to a drug name.
-_NOT_A_DRUG_WORD = frozenset({
-    "actuat", "auto-injector", "capsule", "capsules", "chewable", "cream", "day",
-    "disintegrating", "dose", "drops", "extended", "film", "gel", "hour", "inert",
-    "ingredients", "inhalation", "inhaler", "injection", "kit", "lotion", "mcg",
-    "metered", "ointment", "ophthalmic", "oral", "pack", "patch", "pen", "prefilled",
-    "release", "solution", "spray", "sublingual", "suppository", "suspension",
-    "syringe", "tablet", "tablets", "topical", "transdermal", "unt", "vial",
-})
+_NOT_A_DRUG_WORD = frozenset(
+    {
+        "actuat",
+        "auto-injector",
+        "capsule",
+        "capsules",
+        "chewable",
+        "cream",
+        "day",
+        "disintegrating",
+        "dose",
+        "drops",
+        "extended",
+        "film",
+        "gel",
+        "hour",
+        "inert",
+        "ingredients",
+        "inhalation",
+        "inhaler",
+        "injection",
+        "kit",
+        "lotion",
+        "mcg",
+        "metered",
+        "ointment",
+        "ophthalmic",
+        "oral",
+        "pack",
+        "patch",
+        "pen",
+        "prefilled",
+        "release",
+        "solution",
+        "spray",
+        "sublingual",
+        "suppository",
+        "suspension",
+        "syringe",
+        "tablet",
+        "tablets",
+        "topical",
+        "transdermal",
+        "unt",
+        "vial",
+    }
+)
 
 
 def display_name(raw: str) -> str:
@@ -157,21 +228,29 @@ def short_drug_name(product_name: str) -> str:
 
     # Drop registration numbers before tokenising: "NDA020800" would
     # otherwise leave a bare "NDA" behind as the first word.
-    words = [w for w in _WORD_RE.findall(_REGISTRATION_CODE.sub(" ", product_name))
-             if w.lower() not in _NOT_A_DRUG_WORD]
+    words = [
+        w
+        for w in _WORD_RE.findall(_REGISTRATION_CODE.sub(" ", product_name))
+        if w.lower() not in _NOT_A_DRUG_WORD
+    ]
     if not words:
         return product_name.strip(" {}[]/,")[:24]
     return " ".join(words[:2]).rstrip(",")
 
 
 def condition_phrase(condition_name: str) -> str:
-    """"Childhood asthma (disorder)" -> "childhood asthma"."""
-    return re.sub(r"\s*\((disorder|finding|situation|procedure)\)\s*$", "", condition_name).strip().lower()
+    """ "Childhood asthma (disorder)" -> "childhood asthma"."""
+    return (
+        re.sub(r"\s*\((disorder|finding|situation|procedure)\)\s*$", "", condition_name)
+        .strip()
+        .lower()
+    )
 
 
 # --------------------------------------------------------------------------
 # Perturbation bookkeeping
 # --------------------------------------------------------------------------
+
 
 class PerturbationPlan:
     """
@@ -182,10 +261,12 @@ class PerturbationPlan:
 
     def __init__(self, spec: ScenarioSpec) -> None:
         self.missing: dict[str, bool] = {
-            str(p.get("field")): False for p in spec.perturbations_of(PerturbationKind.MISSING_FIELD)
+            str(p.get("field")): False
+            for p in spec.perturbations_of(PerturbationKind.MISSING_FIELD)
         }
         self.illegible: dict[str, bool] = {
-            str(p.get("field")): False for p in spec.perturbations_of(PerturbationKind.ILLEGIBLE_FIELD)
+            str(p.get("field")): False
+            for p in spec.perturbations_of(PerturbationKind.ILLEGIBLE_FIELD)
         }
         overlap = set(self.missing) & set(self.illegible)
         if overlap:
@@ -207,8 +288,10 @@ class PerturbationPlan:
 
     def assert_all_applied(self, scenario_id: str, rendered_paths: Iterable[str]) -> None:
         known = sorted(set(rendered_paths))
-        unapplied = sorted([f for f, hit in self.missing.items() if not hit]
-                           + [f for f, hit in self.illegible.items() if not hit])
+        unapplied = sorted(
+            [f for f, hit in self.missing.items() if not hit]
+            + [f for f, hit in self.illegible.items() if not hit]
+        )
         if unapplied:
             raise SpecError(
                 f"{scenario_id}: perturbation field(s) {unapplied} are not rendered by this document. "
@@ -219,6 +302,7 @@ class PerturbationPlan:
 # --------------------------------------------------------------------------
 # Lab report content
 # --------------------------------------------------------------------------
+
 
 @dataclass(frozen=True)
 class LabIdentity:
@@ -296,9 +380,15 @@ def plan_lab(spec: ScenarioSpec, chart: ChartRecord) -> LabContent:
         )
 
     collected_day = ANCHOR_DATE - dt.timedelta(days=order_rng.randrange(2, 21))
-    collected = dt.datetime.combine(collected_day, dt.time(order_rng.randrange(6, 11), order_rng.choice((5, 12, 24, 38, 47))))
-    received = collected + dt.timedelta(hours=order_rng.randrange(2, 7), minutes=order_rng.choice((3, 17, 29, 44)))
-    reported = received + dt.timedelta(days=order_rng.randrange(0, 2), hours=order_rng.randrange(3, 14))
+    collected = dt.datetime.combine(
+        collected_day, dt.time(order_rng.randrange(6, 11), order_rng.choice((5, 12, 24, 38, 47)))
+    )
+    received = collected + dt.timedelta(
+        hours=order_rng.randrange(2, 7), minutes=order_rng.choice((3, 17, 29, 44))
+    )
+    reported = received + dt.timedelta(
+        days=order_rng.randrange(0, 2), hours=order_rng.randrange(3, 14)
+    )
 
     accession = (
         f"{collected_day.strftime('%y%m%d')}-"
@@ -401,6 +491,7 @@ def plan_lab(spec: ScenarioSpec, chart: ChartRecord) -> LabContent:
 # --------------------------------------------------------------------------
 # Intake form content
 # --------------------------------------------------------------------------
+
 
 @dataclass(frozen=True)
 class IntakeClinic:
@@ -520,8 +611,12 @@ def plan_intake(spec: ScenarioSpec, chart: ChartRecord) -> IntakeContent:
             medications.insert(
                 index,
                 IntakeMedication(
-                    written_name=name, dose=dose, frequency=frequency, chart_name=None,
-                    is_perturbed=True, note="not on the chart medication list",
+                    written_name=name,
+                    dose=dose,
+                    frequency=frequency,
+                    chart_name=None,
+                    is_perturbed=True,
+                    note="not on the chart medication list",
                 ),
             )
             records.append(
@@ -538,7 +633,9 @@ def plan_intake(spec: ScenarioSpec, chart: ChartRecord) -> IntakeContent:
             )
         elif mode == "omit":
             if not medications:
-                raise SpecError(f"{spec.scenario_id}: med_discrepancy omit, but the chart has no medications")
+                raise SpecError(
+                    f"{spec.scenario_id}: med_discrepancy omit, but the chart has no medications"
+                )
             index = med_rng.randrange(len(medications))
             dropped = medications.pop(index)
             records.append(
@@ -571,8 +668,11 @@ def plan_intake(spec: ScenarioSpec, chart: ChartRecord) -> IntakeContent:
                 changed_amount = multiplier
             changed = f"{changed_amount:g} {unit}".strip()
             medications[index] = IntakeMedication(
-                written_name=target.written_name, dose=changed, frequency=target.frequency,
-                chart_name=target.chart_name, is_perturbed=True,
+                written_name=target.written_name,
+                dose=changed,
+                frequency=target.frequency,
+                chart_name=target.chart_name,
+                is_perturbed=True,
                 note=f"chart strength is {original}",
             )
             records.append(
@@ -621,7 +721,9 @@ def plan_intake(spec: ScenarioSpec, chart: ChartRecord) -> IntakeContent:
             )
         else:  # omit
             if not allergies:
-                raise SpecError(f"{spec.scenario_id}: allergy_discrepancy omit, but the chart has no allergies")
+                raise SpecError(
+                    f"{spec.scenario_id}: allergy_discrepancy omit, but the chart has no allergies"
+                )
             index = med_rng.randrange(len(allergies))
             dropped = allergies.pop(index)
             records.append(
@@ -642,7 +744,9 @@ def plan_intake(spec: ScenarioSpec, chart: ChartRecord) -> IntakeContent:
     for key, label in _FAMILY_HISTORY_CONDITIONS:
         checked = family_rng.random() < 0.38
         relation = _RELATIONS[family_rng.randrange(len(_RELATIONS))] if checked else None
-        family_history.append(IntakeFamilyHistory(key=key, label=label, checked=checked, relation=relation))
+        family_history.append(
+            IntakeFamilyHistory(key=key, label=label, checked=checked, relation=relation)
+        )
 
     return IntakeContent(
         clinic=clinic,

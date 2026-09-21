@@ -117,8 +117,14 @@ def validate_file(ground_truth_path: Path) -> ScenarioReport:
         text_pages = [opened[i].get_text("text").strip() for i in range(opened.page_count)]
     if scanned:
         offenders = [i + 1 for i, t in enumerate(text_pages) if t]
-        check(not offenders, f"{document['path']}: quality={quality} but pages {offenders} have a text layer")
-        check(payload.get("transform") is not None, f"{scenario_id}: scanned document has no transform block")
+        check(
+            not offenders,
+            f"{document['path']}: quality={quality} but pages {offenders} have a text layer",
+        )
+        check(
+            payload.get("transform") is not None,
+            f"{scenario_id}: scanned document has no transform block",
+        )
         if payload.get("transform"):
             check(
                 len(payload["transform"]["pages"]) == len(text_pages),
@@ -143,21 +149,27 @@ def validate_file(ground_truth_path: Path) -> ScenarioReport:
         rendered = record["rendered_text"]
 
         if status == "absent":
-            check(page_number is None and bbox is None,
-                  f"{path}: status=absent but carries page/bbox {page_number}/{bbox}")
+            check(
+                page_number is None and bbox is None,
+                f"{path}: status=absent but carries page/bbox {page_number}/{bbox}",
+            )
             check(rendered == "", f"{path}: status=absent but rendered_text is {rendered!r}")
             continue
 
-        if not check(isinstance(page_number, int) and 1 <= page_number <= clean_doc.page_count,
-                     f"{path}: page {page_number!r} is out of range 1..{clean_doc.page_count}"):
+        if not check(
+            isinstance(page_number, int) and 1 <= page_number <= clean_doc.page_count,
+            f"{path}: page {page_number!r} is out of range 1..{clean_doc.page_count}",
+        ):
             continue
         if not check(bbox is not None, f"{path}: status={status} but bbox is null"):
             continue
 
         page_rect = page_rects[page_number - 1]
         inside = (
-            bbox[0] >= page_rect.x0 - 0.5 and bbox[1] >= page_rect.y0 - 0.5
-            and bbox[2] <= page_rect.x1 + 0.5 and bbox[3] <= page_rect.y1 + 0.5
+            bbox[0] >= page_rect.x0 - 0.5
+            and bbox[1] >= page_rect.y0 - 0.5
+            and bbox[2] <= page_rect.x1 + 0.5
+            and bbox[3] <= page_rect.y1 + 0.5
         )
         check(inside, f"{path}: bbox {bbox} falls outside page {page_number} {tuple(page_rect)}")
 
@@ -165,13 +177,13 @@ def validate_file(ground_truth_path: Path) -> ScenarioReport:
         extracted = " ".join(word[4] for word in found)
 
         if status == "illegible":
-            check(not extracted,
-                  f"{path}: status=illegible but the bbox extracts text {extracted!r}")
+            check(
+                not extracted, f"{path}: status=illegible but the bbox extracts text {extracted!r}"
+            )
             continue
 
         if rendered == "":
-            check(not extracted,
-                  f"{path}: blank field but the bbox extracts text {extracted!r}")
+            check(not extracted, f"{path}: blank field but the bbox extracts text {extracted!r}")
             continue
 
         check(

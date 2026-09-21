@@ -156,7 +156,9 @@ def _parse_perturbation(raw: Any, index: int, where: str, doc_type: DocType) -> 
 
     if doc_type not in _APPLICABLE[kind]:
         allowed = ", ".join(sorted(d.value for d in _APPLICABLE[kind]))
-        raise SpecError(f"{at}: kind {kind.value!r} does not apply to doc_type {doc_type.value!r} (only {allowed})")
+        raise SpecError(
+            f"{at}: kind {kind.value!r} does not apply to doc_type {doc_type.value!r} (only {allowed})"
+        )
 
     params = {k: v for k, v in raw.items() if k != "kind"}
     for required in _REQUIRED_PARAMS[kind]:
@@ -203,7 +205,9 @@ def parse_spec(raw: Any, source_path: Path | None = None) -> ScenarioSpec:
 
     raw_perturbations = raw.get("perturbations") or []
     if not isinstance(raw_perturbations, list):
-        raise SpecError(f"{where}: perturbations must be a list, got {type(raw_perturbations).__name__}")
+        raise SpecError(
+            f"{where}: perturbations must be a list, got {type(raw_perturbations).__name__}"
+        )
     perturbations = tuple(
         _parse_perturbation(p, i, where, doc_type) for i, p in enumerate(raw_perturbations)
     )
@@ -213,7 +217,13 @@ def parse_spec(raw: Any, source_path: Path | None = None) -> ScenarioSpec:
         raise SpecError(f"{where}: note must be a string")
 
     unknown = set(raw) - {
-        "scenario_id", "seed", "patient_ref", "doc_type", "quality", "perturbations", "note",
+        "scenario_id",
+        "seed",
+        "patient_ref",
+        "doc_type",
+        "quality",
+        "perturbations",
+        "note",
     }
     if unknown:
         raise SpecError(f"{where}: unknown top-level key(s): {', '.join(sorted(unknown))}")
@@ -249,6 +259,8 @@ def load_specs(target: Path) -> list[ScenarioSpec]:
     for spec in specs:
         previous = seen.get(spec.scenario_id)
         if previous is not None:
-            raise SpecError(f"duplicate scenario_id {spec.scenario_id!r} in {previous} and {spec.source_path}")
+            raise SpecError(
+                f"duplicate scenario_id {spec.scenario_id!r} in {previous} and {spec.source_path}"
+            )
         seen[spec.scenario_id] = spec.source_path or target
     return specs

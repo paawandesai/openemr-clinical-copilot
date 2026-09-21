@@ -70,6 +70,7 @@ def test_six_sample_scenarios_are_committed():
 
 # -- determinism -----------------------------------------------------------
 
+
 @pytest.mark.parametrize("scenario_id", SPEC_IDS)
 def test_ground_truth_is_deterministic(scenario_id):
     """Same spec + same seed -> identical ground truth, twice in a row."""
@@ -108,7 +109,9 @@ def test_clean_pdf_bytes_reproduce_the_committed_sample(tmp_path, scenario_id):
     assert _sha256(result.clean_path) == _sha256(committed)
 
 
-@pytest.mark.parametrize("scenario_id", ["lab-scanned-heavy-abnormal-002", "intake-scanned-light-med-005"])
+@pytest.mark.parametrize(
+    "scenario_id", ["lab-scanned-heavy-abnormal-002", "intake-scanned-light-med-005"]
+)
 def test_scanned_pdf_bytes_are_stable_within_a_run(tmp_path, scenario_id):
     spec = SPEC_BY_ID[scenario_id]
     first = generate(spec, output_root=tmp_path / "a", cache_dir=DEFAULT_CACHE_DIR)
@@ -117,6 +120,7 @@ def test_scanned_pdf_bytes_are_stable_within_a_run(tmp_path, scenario_id):
 
 
 # -- the committed samples -------------------------------------------------
+
 
 def test_validate_passes_on_every_committed_sample():
     report = validate(SAMPLES_DIR)
@@ -143,19 +147,28 @@ def test_every_sample_records_its_perturbations():
     for scenario_id in SPEC_IDS:
         spec = SPEC_BY_ID[scenario_id]
         payload = json.loads(
-            (SAMPLES_DIR / scenario_id / f"{scenario_id}.ground_truth.json").read_text(encoding="utf-8")
+            (SAMPLES_DIR / scenario_id / f"{scenario_id}.ground_truth.json").read_text(
+                encoding="utf-8"
+            )
         )
         recorded = {p["kind"] for p in payload["perturbations"]}
         requested = {p.kind.value for p in spec.perturbations}
-        assert requested <= recorded, f"{scenario_id}: {requested - recorded} never reached the ground truth"
+        assert requested <= recorded, (
+            f"{scenario_id}: {requested - recorded} never reached the ground truth"
+        )
         for entry in payload["perturbations"]:
-            assert entry["expected_discrepancy"], f"{scenario_id}: {entry['kind']} has no expected_discrepancy"
+            assert entry["expected_discrepancy"], (
+                f"{scenario_id}: {entry['kind']} has no expected_discrepancy"
+            )
 
 
 def test_absent_and_illegible_fields_keep_the_chart_value():
     payload = json.loads(
-        (SAMPLES_DIR / "intake-missing-allergy-006" / "intake-missing-allergy-006.ground_truth.json")
-        .read_text(encoding="utf-8")
+        (
+            SAMPLES_DIR
+            / "intake-missing-allergy-006"
+            / "intake-missing-allergy-006.ground_truth.json"
+        ).read_text(encoding="utf-8")
     )
     by_path = {f["field_path"]: f for f in payload["fields"]}
 
@@ -173,8 +186,11 @@ def test_absent_and_illegible_fields_keep_the_chart_value():
 
 def test_scanned_samples_record_a_usable_transform():
     payload = json.loads(
-        (SAMPLES_DIR / "lab-scanned-heavy-abnormal-002" / "lab-scanned-heavy-abnormal-002.ground_truth.json")
-        .read_text(encoding="utf-8")
+        (
+            SAMPLES_DIR
+            / "lab-scanned-heavy-abnormal-002"
+            / "lab-scanned-heavy-abnormal-002.ground_truth.json"
+        ).read_text(encoding="utf-8")
     )
     transform = payload["transform"]
     assert transform["kind"] == "scan"
@@ -201,6 +217,7 @@ def test_scan_affine_inverse_round_trips():
 
 # -- spec validation -------------------------------------------------------
 
+
 def _spec(**overrides):
     base = {
         "scenario_id": "t-001",
@@ -225,7 +242,9 @@ def test_perturbation_requires_its_parameters():
 
 def test_perturbation_enum_parameters_are_checked():
     with pytest.raises(SpecError, match="direction="):
-        parse_spec(_spec(perturbations=[{"kind": "abnormal_value", "test": "glucose", "direction": "up"}]))
+        parse_spec(
+            _spec(perturbations=[{"kind": "abnormal_value", "test": "glucose", "direction": "up"}])
+        )
 
 
 def test_unknown_top_level_keys_are_rejected():
@@ -234,36 +253,43 @@ def test_unknown_top_level_keys_are_rejected():
 
 
 def test_abnormal_value_on_an_unordered_panel_fails(tmp_path):
-    spec = parse_spec(_spec(
-        scenario_id="t-unordered",
-        perturbations=[{"kind": "abnormal_value", "test": "ferritin", "direction": "low"}],
-    ))
+    spec = parse_spec(
+        _spec(
+            scenario_id="t-unordered",
+            perturbations=[{"kind": "abnormal_value", "test": "ferritin", "direction": "low"}],
+        )
+    )
     with pytest.raises(SpecError, match="which this report does not order"):
         generate(spec, output_root=tmp_path, cache_dir=DEFAULT_CACHE_DIR)
 
 
 def test_perturbation_naming_a_field_the_document_never_renders_fails(tmp_path):
-    spec = parse_spec(_spec(
-        scenario_id="t-unknown-field",
-        perturbations=[{"kind": "missing_field", "field": "patient.favourite_colour"}],
-    ))
+    spec = parse_spec(
+        _spec(
+            scenario_id="t-unknown-field",
+            perturbations=[{"kind": "missing_field", "field": "patient.favourite_colour"}],
+        )
+    )
     with pytest.raises(SpecError, match="are not rendered by this document"):
         generate(spec, output_root=tmp_path, cache_dir=DEFAULT_CACHE_DIR)
 
 
 def test_a_field_cannot_be_both_missing_and_illegible(tmp_path):
-    spec = parse_spec(_spec(
-        scenario_id="t-conflict",
-        perturbations=[
-            {"kind": "missing_field", "field": "patient.dob"},
-            {"kind": "illegible_field", "field": "patient.dob"},
-        ],
-    ))
+    spec = parse_spec(
+        _spec(
+            scenario_id="t-conflict",
+            perturbations=[
+                {"kind": "missing_field", "field": "patient.dob"},
+                {"kind": "illegible_field", "field": "patient.dob"},
+            ],
+        )
+    )
     with pytest.raises(SpecError, match="both missing_field and illegible_field"):
         generate(spec, output_root=tmp_path, cache_dir=DEFAULT_CACHE_DIR)
 
 
 # -- reproducible PDF bytes ------------------------------------------------
+
 
 def test_canonical_pdf_bytes_survives_a_literal_string_trailer_id():
     """
@@ -278,12 +304,23 @@ def test_canonical_pdf_bytes_survives_a_literal_string_trailer_id():
     for _ in range(300):
         document = pymupdf.open()
         document.new_page(width=200, height=200)
-        document.set_metadata({
-            "title": "t", "producer": "p", "creator": "c", "author": "a",
-            "subject": "s", "keywords": "k",
-            "creationDate": "D:20260101000000Z", "modDate": "D:20260101000000Z",
-        })
-        digests.add(hashlib.sha256(canonical_pdf_bytes(document.tobytes(garbage=4, deflate=True))).hexdigest())
+        document.set_metadata(
+            {
+                "title": "t",
+                "producer": "p",
+                "creator": "c",
+                "author": "a",
+                "subject": "s",
+                "keywords": "k",
+                "creationDate": "D:20260101000000Z",
+                "modDate": "D:20260101000000Z",
+            }
+        )
+        digests.add(
+            hashlib.sha256(
+                canonical_pdf_bytes(document.tobytes(garbage=4, deflate=True))
+            ).hexdigest()
+        )
     assert len(digests) == 1, "identical content produced more than one byte sequence"
 
 

@@ -126,7 +126,9 @@ def generate(
     refresh: bool = False,
     env_path: Path | None = None,
 ) -> GenerateResult:
-    chart, chart_origin = load_chart(spec.patient_ref, cache_dir, refresh=refresh, env_path=env_path)
+    chart, chart_origin = load_chart(
+        spec.patient_ref, cache_dir, refresh=refresh, env_path=env_path
+    )
     paper = _SCAN_PAPER.get(spec.quality)
 
     if spec.doc_type is DocType.LAB_PDF:
@@ -136,7 +138,10 @@ def generate(
     else:
         content = plan_intake(spec, chart)
         canvas = render_intake.render(content, seed=spec.seed, paper=paper)
-        title, subject = f"Patient Intake Form - {spec.scenario_id}", "synthetic patient intake form"
+        title, subject = (
+            f"Patient Intake Form - {spec.scenario_id}",
+            "synthetic patient intake form",
+        )
 
     content.plan.assert_all_applied(spec.scenario_id, (f.field_path for f in canvas.fields))
 
@@ -226,6 +231,7 @@ def ground_truth_for(spec: ScenarioSpec, chart: ChartRecord) -> dict:
         "pages": canvas.page_sizes(),
         "fields": [f.to_json() for f in canvas.fields],
         "perturbations": [
-            p.to_json() for p in list(content.perturbations) + _perturbation_records_for_fields(canvas)
+            p.to_json()
+            for p in list(content.perturbations) + _perturbation_records_for_fields(canvas)
         ],
     }

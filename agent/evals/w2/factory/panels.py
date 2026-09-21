@@ -26,7 +26,11 @@ class LabTest:
     high_female: float | None = None
 
     def interval(self, sex: str) -> tuple[float, float]:
-        if sex.strip().lower().startswith("f") and self.low_female is not None and self.high_female is not None:
+        if (
+            sex.strip().lower().startswith("f")
+            and self.low_female is not None
+            and self.high_female is not None
+        ):
             return self.low_female, self.high_female
         return self.low, self.high
 
@@ -57,8 +61,8 @@ class LabTest:
     def draw_abnormal(self, rng: random.Random, sex: str, direction: str) -> float:
         """A value unambiguously outside the interval on the requested side."""
         low, high = self.interval(sex)
-        span = max(high - low, 10 ** -self.decimals)
-        step = 10 ** -self.decimals
+        span = max(high - low, 10**-self.decimals)
+        step = 10**-self.decimals
         if direction == "high":
             return round(high + span * rng.uniform(0.18, 0.55) + step, self.decimals)
 

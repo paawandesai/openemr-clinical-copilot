@@ -21,8 +21,8 @@ import hashlib
 import math
 import random
 import re
+from collections.abc import Iterable, Sequence
 from dataclasses import dataclass
-from typing import Iterable, Sequence
 
 import pymupdf
 
@@ -53,13 +53,27 @@ _FONT_CACHE: dict[str, pymupdf.Font] = {}
 #: every drawn string passes through here first; ``rendered_text`` records the
 #: substituted form, which is what is actually on the page, while ``value``
 #: keeps the original.
-_TRANSLITERATE = str.maketrans({
-    "\u2014": "-", "\u2013": "-", "\u2012": "-", "\u2212": "-",
-    "\u2018": "'", "\u2019": "'", "\u201a": ",",
-    "\u201c": '"', "\u201d": '"', "\u201e": '"',
-    "\u2026": "...", "\u2022": "*", "\u00d7": "x", "\u00a0": " ",
-    "\u2009": " ", "\u202f": " ", "\ufeff": "",
-})
+_TRANSLITERATE = str.maketrans(
+    {
+        "\u2014": "-",
+        "\u2013": "-",
+        "\u2012": "-",
+        "\u2212": "-",
+        "\u2018": "'",
+        "\u2019": "'",
+        "\u201a": ",",
+        "\u201c": '"',
+        "\u201d": '"',
+        "\u201e": '"',
+        "\u2026": "...",
+        "\u2022": "*",
+        "\u00d7": "x",
+        "\u00a0": " ",
+        "\u2009": " ",
+        "\u202f": " ",
+        "\ufeff": "",
+    }
+)
 
 
 def drawable(text: str) -> str:
@@ -155,7 +169,9 @@ class PageGeometry:
 class DocumentCanvas:
     """A multi-page PDF under construction, with per-field ground truth."""
 
-    def __init__(self, geometry: PageGeometry, seed: int, paper: tuple[float, float, float] | None = None) -> None:
+    def __init__(
+        self, geometry: PageGeometry, seed: int, paper: tuple[float, float, float] | None = None
+    ) -> None:
         self.geometry = geometry
         self.doc = pymupdf.open()
         self.fields: list[FieldRecord] = []
@@ -171,8 +187,11 @@ class DocumentCanvas:
     def new_page(self) -> pymupdf.Page:
         page = self.doc.new_page(width=self.geometry.width, height=self.geometry.height)
         if self._paper is not None:
-            page.draw_rect(pymupdf.Rect(0, 0, self.geometry.width, self.geometry.height),
-                           color=None, fill=self._paper)
+            page.draw_rect(
+                pymupdf.Rect(0, 0, self.geometry.width, self.geometry.height),
+                color=None,
+                fill=self._paper,
+            )
         self._page = page
         self.page_number = self.doc.page_count
         self.y = self.geometry.margin_top
@@ -200,11 +219,17 @@ class DocumentCanvas:
     ) -> pymupdf.Rect:
         """Static chrome — headings, column titles, boilerplate."""
         drawn = drawable(text)
-        self.page.insert_text((x, baseline), drawn, fontname=FONTS[font], fontsize=size, color=tuple(color))
+        self.page.insert_text(
+            (x, baseline), drawn, fontname=FONTS[font], fontsize=size, color=tuple(color)
+        )
         return _text_bbox(x, baseline, drawn, font, size)
 
-    def rule(self, x0: float, y: float, x1: float, *, width: float = 0.7, color: Sequence[float] = RULE) -> None:
-        self.page.draw_line(pymupdf.Point(x0, y), pymupdf.Point(x1, y), color=tuple(color), width=width)
+    def rule(
+        self, x0: float, y: float, x1: float, *, width: float = 0.7, color: Sequence[float] = RULE
+    ) -> None:
+        self.page.draw_line(
+            pymupdf.Point(x0, y), pymupdf.Point(x1, y), color=tuple(color), width=width
+        )
 
     def band(self, rect: pymupdf.Rect, fill: Sequence[float]) -> None:
         self.page.draw_rect(rect, color=None, fill=tuple(fill))
@@ -241,7 +266,9 @@ class DocumentCanvas:
         if font == "hand":
             rect = self._draw_hand(x, baseline, drawn, size, color)
         else:
-            self.page.insert_text((x, baseline), drawn, fontname=FONTS[font], fontsize=size, color=tuple(color))
+            self.page.insert_text(
+                (x, baseline), drawn, fontname=FONTS[font], fontsize=size, color=tuple(color)
+            )
             rect = _text_bbox(x, baseline, drawn, font, size)
 
         self.fields.append(
@@ -361,7 +388,9 @@ class DocumentCanvas:
 
     # -- handwriting + scribble --------------------------------------------
 
-    def _draw_hand(self, x: float, baseline: float, text: str, size: float, color: Sequence[float]) -> pymupdf.Rect:
+    def _draw_hand(
+        self, x: float, baseline: float, text: str, size: float, color: Sequence[float]
+    ) -> pymupdf.Rect:
         """
         Glyph-by-glyph Times-Italic with a seeded baseline/advance/size wobble.
 
@@ -401,24 +430,36 @@ class DocumentCanvas:
                 t = step / steps
                 px = rect.x0 + t * rect.width
                 wave = math.sin(phase + t * math.pi * (2.5 + stroke * 1.4)) * rect.height * 0.42
-                py = (rect.y0 + rect.height * (0.18 + 0.13 * stroke)
-                      + wave + self._jitter.uniform(-0.7, 0.7))
+                py = (
+                    rect.y0
+                    + rect.height * (0.18 + 0.13 * stroke)
+                    + wave
+                    + self._jitter.uniform(-0.7, 0.7)
+                )
                 points.append(pymupdf.Point(px, min(max(py, rect.y0), rect.y1)))
-            self.page.draw_polyline(points, color=(0.10, 0.10, 0.14), width=1.1 + 0.2 * (stroke % 3))
+            self.page.draw_polyline(
+                points, color=(0.10, 0.10, 0.14), width=1.1 + 0.2 * (stroke % 3)
+            )
         # A few cross strokes, the way a pen goes back over a mistake.
-        for cross in range(4):
+        for _ in range(4):
             x0 = rect.x0 + rect.width * self._jitter.uniform(0.02, 0.7)
             x1 = min(x0 + rect.width * self._jitter.uniform(0.2, 0.45), rect.x1)
             self.page.draw_line(
-                pymupdf.Point(x0, rect.y1 - 1.0), pymupdf.Point(x1, rect.y0 + 1.0),
-                color=(0.10, 0.10, 0.14), width=1.0,
+                pymupdf.Point(x0, rect.y1 - 1.0),
+                pymupdf.Point(x1, rect.y0 + 1.0),
+                color=(0.10, 0.10, 0.14),
+                width=1.0,
             )
 
     # -- output ------------------------------------------------------------
 
     def page_sizes(self) -> list[dict[str, float | int]]:
         return [
-            {"number": i + 1, "width": round(self.doc[i].rect.width, 3), "height": round(self.doc[i].rect.height, 3)}
+            {
+                "number": i + 1,
+                "width": round(self.doc[i].rect.width, 3),
+                "height": round(self.doc[i].rect.height, 3),
+            }
             for i in range(self.doc.page_count)
         ]
 
@@ -457,20 +498,20 @@ def _id_array_span(raw: bytes) -> tuple[int, int] | None:
         return None
 
     index = key + 3
-    while index < len(raw) and raw[index:index + 1].isspace():
+    while index < len(raw) and raw[index : index + 1].isspace():
         index += 1
-    if raw[index:index + 1] != b"[":
+    if raw[index : index + 1] != b"[":
         return None
 
     open_bracket = index
     index += 1
     while index < len(raw):
-        char = raw[index:index + 1]
+        char = raw[index : index + 1]
         if char == b"(":
             index += 1
             nesting = 1
             while index < len(raw) and nesting:
-                current = raw[index:index + 1]
+                current = raw[index : index + 1]
                 if current == b"\\":
                     index += 2
                     continue
@@ -584,7 +625,17 @@ def emit_field(
             field_path, x, baseline, value=truth, unit=unit, width=ink_width, size=size, note=note
         )
     return canvas.field(
-        field_path, x, baseline, text,
-        value=truth, unit=unit, origin=origin, font=font, size=size,
-        color=color, align=align, width=width, note=note,
+        field_path,
+        x,
+        baseline,
+        text,
+        value=truth,
+        unit=unit,
+        origin=origin,
+        font=font,
+        size=size,
+        color=color,
+        align=align,
+        width=width,
+        note=note,
     )

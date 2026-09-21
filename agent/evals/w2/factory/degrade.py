@@ -81,12 +81,12 @@ def _invert_affine(m: tuple[float, float, float, float, float, float]) -> tuple[
     det = a * d - b * c
     if abs(det) < 1e-12:  # pragma: no cover - skew angles are always small
         raise ValueError("degenerate scan transform")
-    return (d / det, -c / det, (c * f - d * e) / det,
-            -b / det, a / det, (b * e - a * f) / det)
+    return (d / det, -c / det, (c * f - d * e) / det, -b / det, a / det, (b * e - a * f) / det)
 
 
-def _page_transform(width_px: int, height_px: int, scale: float, angle_degrees: float
-                    ) -> tuple[float, float, float, float, float, float]:
+def _page_transform(
+    width_px: int, height_px: int, scale: float, angle_degrees: float
+) -> tuple[float, float, float, float, float, float]:
     """
     Forward map from a point on the clean layout to a pixel in the scan.
 
@@ -109,17 +109,19 @@ def _page_transform(width_px: int, height_px: int, scale: float, angle_degrees: 
     return (a, c, e, b, d, f)
 
 
-def _lighting_field(shape: tuple[int, int], profile: ScanProfile, rng: np.random.Generator) -> np.ndarray:
+def _lighting_field(
+    shape: tuple[int, int], profile: ScanProfile, rng: np.random.Generator
+) -> np.ndarray:
     """A smooth multiplicative illumination field in roughly 0.55 - 1.05."""
     height, width = shape
     ys = np.linspace(-1.0, 1.0, height, dtype=np.float32)[:, None]
     xs = np.linspace(-1.0, 1.0, width, dtype=np.float32)[None, :]
 
-    radius = np.sqrt(xs ** 2 + ys ** 2) / np.sqrt(2.0)
-    vignette = 1.0 - profile.vignette * radius ** 2
+    radius = np.sqrt(xs**2 + ys**2) / np.sqrt(2.0)
+    vignette = 1.0 - profile.vignette * radius**2
 
     ramp_angle = float(rng.uniform(0.0, 2.0 * np.pi))
-    ramp = (np.cos(ramp_angle) * xs + np.sin(ramp_angle) * ys)
+    ramp = np.cos(ramp_angle) * xs + np.sin(ramp_angle) * ys
     illumination = 1.0 + profile.illumination_ramp * ramp
 
     # One broad, off-centre bright patch, the way a platen light falls off.
@@ -129,8 +131,9 @@ def _lighting_field(shape: tuple[int, int], profile: ScanProfile, rng: np.random
     return (vignette * illumination * patch).astype(np.float32)
 
 
-def _degrade_page(image: Image.Image, profile: ScanProfile, angle: float,
-                  rng: np.random.Generator) -> tuple[Image.Image, tuple[float, ...]]:
+def _degrade_page(
+    image: Image.Image, profile: ScanProfile, angle: float, rng: np.random.Generator
+) -> tuple[Image.Image, tuple[float, ...]]:
     width_px, height_px = image.size
     scale = profile.dpi / 72.0
     # The raster already carries the dpi scale, so PIL is handed the rotation
@@ -168,7 +171,9 @@ def _degrade_page(image: Image.Image, profile: ScanProfile, angle: float,
     return Image.fromarray(np.clip(array, 0, 255).astype(np.uint8), mode="RGB"), forward
 
 
-def scan(clean_pdf: bytes, quality: Quality, seed: int, scenario_id: str) -> tuple[bytes, dict[str, Any]]:
+def scan(
+    clean_pdf: bytes, quality: Quality, seed: int, scenario_id: str
+) -> tuple[bytes, dict[str, Any]]:
     """
     Rasterise, degrade and re-wrap ``clean_pdf``.
 
@@ -190,7 +195,9 @@ def scan(clean_pdf: bytes, quality: Quality, seed: int, scenario_id: str) -> tup
         degraded, forward = _degrade_page(image, profile, angle, rng)
 
         buffer = io.BytesIO()
-        degraded.save(buffer, format="JPEG", quality=profile.jpeg_quality, optimize=False, progressive=False)
+        degraded.save(
+            buffer, format="JPEG", quality=profile.jpeg_quality, optimize=False, progressive=False
+        )
         jpeg = buffer.getvalue()
 
         rect = page.rect
@@ -208,13 +215,17 @@ def scan(clean_pdf: bytes, quality: Quality, seed: int, scenario_id: str) -> tup
             }
         )
 
-    set_fixed_metadata(output, title=f"{scenario_id} (scanned)", subject="synthetic scanned document")
+    set_fixed_metadata(
+        output, title=f"{scenario_id} (scanned)", subject="synthetic scanned document"
+    )
     raw = canonical_pdf_bytes(output.tobytes(garbage=4, deflate=True))
 
     verify = pymupdf.open(stream=raw, filetype="pdf")
     for index in range(verify.page_count):
         leftover = verify[index].get_text("text").strip()
-        assert not leftover, f"{scenario_id}: scanned page {index + 1} still has a text layer: {leftover[:80]!r}"
+        assert not leftover, (
+            f"{scenario_id}: scanned page {index + 1} still has a text layer: {leftover[:80]!r}"
+        )
 
     transform = {
         "kind": "scan",

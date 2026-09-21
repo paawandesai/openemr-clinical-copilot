@@ -99,7 +99,7 @@ class ChartRecord:
         return asdict(self)
 
     @classmethod
-    def from_json(cls, raw: dict[str, Any]) -> "ChartRecord":
+    def from_json(cls, raw: dict[str, Any]) -> ChartRecord:
         return cls(
             **{k: v for k, v in raw.items() if k not in ("medications", "allergies", "conditions")},
             medications=tuple(ChartMedication(**m) for m in raw.get("medications", [])),
@@ -109,7 +109,7 @@ class ChartRecord:
 
 
 def extract_strength(product_name: str) -> str | None:
-    """"Loratadine 5 MG Chewable Tablet" -> "5 MG"; None when the name has none."""
+    """ "Loratadine 5 MG Chewable Tablet" -> "5 MG"; None when the name has none."""
     match = _STRENGTH_RE.search(product_name)
     if match is None:
         return None
@@ -119,6 +119,7 @@ def extract_strength(product_name: str) -> str | None:
 # --------------------------------------------------------------------------
 # Connection settings
 # --------------------------------------------------------------------------
+
 
 def _load_dotenv(env_path: Path) -> dict[str, str]:
     """Minimal KEY=VALUE reader. Values are returned, never logged."""
@@ -242,7 +243,9 @@ def fetch_chart(patient_ref: str, settings: DbSettings) -> ChartRecord:
 
                 if patient_ref.isdigit():
                     predicate, params = "pid = %s", (int(patient_ref),)
-                elif len(patient_ref) == 32 and all(c in "0123456789abcdefABCDEF" for c in patient_ref):
+                elif len(patient_ref) == 32 and all(
+                    c in "0123456789abcdefABCDEF" for c in patient_ref
+                ):
                     predicate, params = "HEX(uuid) = %s", (patient_ref.upper(),)
                 else:
                     predicate, params = "pubpid = %s", (patient_ref,)
@@ -250,7 +253,9 @@ def fetch_chart(patient_ref: str, settings: DbSettings) -> ChartRecord:
                 cursor.execute(_DEMOGRAPHICS_SQL.format(predicate=predicate), params)
                 demographics = cursor.fetchone()
                 if demographics is None:
-                    raise ChartUnavailable(f"no patient in local OpenEMR for patient_ref={patient_ref!r}")
+                    raise ChartUnavailable(
+                        f"no patient in local OpenEMR for patient_ref={patient_ref!r}"
+                    )
 
                 pid = int(demographics["pid"])
 
@@ -272,7 +277,9 @@ def fetch_chart(patient_ref: str, settings: DbSettings) -> ChartRecord:
     except ChartUnavailable:
         raise
     except Exception as exc:  # noqa: BLE001 - surfaced as ChartUnavailable
-        raise ChartUnavailable(f"failed reading patient_ref={patient_ref!r} from local OpenEMR") from exc
+        raise ChartUnavailable(
+            f"failed reading patient_ref={patient_ref!r} from local OpenEMR"
+        ) from exc
 
     medications = tuple(
         ChartMedication(
@@ -326,6 +333,7 @@ def fetch_chart(patient_ref: str, settings: DbSettings) -> ChartRecord:
 # --------------------------------------------------------------------------
 # Cache
 # --------------------------------------------------------------------------
+
 
 def cache_path(cache_dir: Path, patient_ref: str) -> Path:
     safe = re.sub(r"[^A-Za-z0-9._-]", "_", patient_ref)
