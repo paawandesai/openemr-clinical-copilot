@@ -296,12 +296,23 @@ passed against a real token 34 h past its `exp`.
 
 **No regression.** Every case that passed on 2026-09-20 passes here.
 
-**What the live-endpoint cases are testing.** The fixes are committed and
-**not deployed**, so the deployed agent still carries the F-58, F-59 and
-F-60 defects. The cases that prove those fixes — A6, C5, I9, I10 — are all
-in-process and run this checkout. The live-endpoint cases (A1–A5, B1–B3, D,
-E, F1, G) run against the deployed build, and pass there because no live
-allergy is resolved, which is what made F-58 latent in the first place.
+**What the live-endpoint cases were testing, and what changed after.** At
+the time of this run the fixes were committed and **not deployed**, so the
+deployed agent still carried the F-58, F-59 and F-60 defects. The cases that
+prove those fixes — A6, C5, I9, I10 — are all in-process and ran this
+checkout, so the run is a valid record of them. The live-endpoint cases
+(A1–A5, B1–B3, D, E, F1, G) ran against the pre-fix build and passed there
+because no live allergy is resolved, which is what made F-58 latent in the
+first place.
+
+**The fixes were deployed at 16:22:49Z**, eight minutes after this run
+finished. The deployed container's `app/` is byte-identical to the branch
+the run used, and all three fixes were verified in the running process
+(`docs/audit/findings.md`, each finding's "Deployed and verified" line). A
+re-run would therefore exercise them on both paths; the numbers above would
+not change, because no case's outcome depended on the deployed build
+carrying the defect.
+
 F-60's fix has no eval case: it is covered by `tests/test_health.py`,
 7 cases, because provoking it live would mean exhausting the account's
 credit balance.

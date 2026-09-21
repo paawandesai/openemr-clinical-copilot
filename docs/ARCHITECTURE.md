@@ -219,9 +219,12 @@ there on 2026-09-21, after the fixes for F-58, F-59 and F-60. They replace
 the 2026-09-20 run on the same host (29 PASS, 2 FAIL — the two being F-58
 and F-59 before they were fixed) and the 2026-09-16 run on the DigitalOcean
 droplet (23 PASS, 4 FAIL); `agent/evals/README.md` keeps what each found.
-**The fixes are committed and not deployed**, so the in-process cases
-exercise them while the live-endpoint cases still run against the deployed
-build — `agent/evals/README.md` says which cases are which. The measured conversation costs in `docs/COST_ANALYSIS.md`
+**The fixes were deployed at 16:22:49Z, eight minutes after that run
+finished**, so the run's live-endpoint cases exercised the build that still
+carried the three defects while its in-process cases exercised the fixes;
+`agent/evals/README.md` says which cases are which. The deployed container's
+`app/` was then hash-compared against the fix branch and matches it exactly,
+and all three fixes were verified in the running process. The measured conversation costs in `docs/COST_ANALYSIS.md`
 §1.4 are from the same host and day. So is the load test:
 `agent/load-test/RESULTS.md` (the 10 and 50 virtual-user runs, the real
 end-to-end batch, and the CPU and memory baseline) was re-run on the Vultr

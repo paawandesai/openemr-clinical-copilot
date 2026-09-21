@@ -1342,9 +1342,10 @@ Pass-2 droplet database commands were run as
 ### F-59 — Logged Metric 2 cannot detect a render step that hides failed claims
 - **Category:** Compliance / Observability
 - **Severity:** Medium (monitoring gap, not a live bug)
-- **Status:** **Fixed** 2026-09-21 (`fix/remaining-defects`), not yet
-  deployed. Metric 2 is now computed from the rendered text. One boundary
-  remains and is stated under Remediation.
+- **Status:** **Fixed and deployed** 2026-09-21 (`fix/remaining-defects`;
+  deployed to the Vultr host at 16:22:49Z, verified in the running process).
+  Metric 2 is now computed from the rendered text. One boundary remains and
+  is stated under Remediation.
 - **Claim:** `KEY_METRICS.md` Metric 2 (Unverified-Claim Disclosure Rate) is the
   share of failed claims actually surfaced to the physician, and "anything
   under 100% here is a defect in the render step". As implemented it reads
@@ -1430,6 +1431,11 @@ Pass-2 droplet database commands were run as
     failed claims) — BELOW the 100% absolute`. The day before it reported
     `100.0% … meets the 100% absolute` on the identical mutation. Eval I10
     is the same check on the conversation path.
+  - *Deployed and verified in the running process* (`first-hand`,
+    2026-09-21 16:22:49Z, Vultr): all three render modules — the brief, the
+    single-turn follow-up and the conversation — expose `audit_disclosure`
+    in the deployed process, and `claim_disclosure_event` is the event type
+    it emits.
 - **Verified:** `first-hand`
 - **Implication for the agent:** Metric 2 is the production monitor for §5's
   "never silently dropped" promise, and it would stay at 100% through exactly
@@ -2057,8 +2063,9 @@ Pass-2 droplet database commands were run as
 ### F-58 — Allergy clinical status is discarded before drafting; a resolved allergy would render as current
 - **Category:** Data Quality
 - **Severity:** Medium (latent — no live allergy is resolved)
-- **Status:** **Fixed** 2026-09-21 (`fix/remaining-defects`), not yet
-  deployed. See Remediation and Before / after below.
+- **Status:** **Fixed and deployed** 2026-09-21 (`fix/remaining-defects`;
+  deployed to the Vultr host at 16:22:49Z, verified in the running process —
+  see Before / after below).
 - **Claim:** OpenEMR's FHIR `AllergyIntolerance` carries `clinicalStatus`
   (`active`, `resolved`, `inactive`), but the agent's allergy model has no
   status field, so status never reaches the model or the renderer. A resolved
@@ -2088,8 +2095,7 @@ Pass-2 droplet database commands were run as
     AllergyIntolerance records, across the 10 patients with any, report
     `clinicalStatus` `active`. Nothing renders wrongly today.
 - **Remediation:** **done 2026-09-21** on `fix/remaining-defects`, in the
-  three layers the status was missing from. Not deployed at the time of
-  writing; the operator deploys after review.
+  three layers the status was missing from.
   - `app/models/fhir_resources.py` — `AllergyIntolerance` gains a required
     `clinical_status`, declared exactly as `Condition.clinical_status` is.
   - `app/fhir/client.py:488` — `get_allergy_intolerances` reads
@@ -2140,6 +2146,12 @@ Pass-2 droplet database commands were run as
     answers `Allergy "Allergic disposition (finding)", clinical status:
     active` — verified — for an allergy the chart marks resolved. With the
     fix it answers `clinical status: resolved`.
+  - *Deployed and verified in the running process* (`first-hand`,
+    2026-09-21 16:22:49Z, Vultr): the container's `app/` is byte-identical
+    to the fix branch (37 files, hash-compared). In that process,
+    `brief_records` returns `[]` for an allergy whose status is `resolved`
+    and keeps one whose status is `unknown` — both halves of the fix,
+    including the F-21 fail-safe.
 - **Verified:** `first-hand` (mapping, model, eval result, live census, and
   the fix's own tests) · not observed on a real resolved allergy (none
   exists in this population, so A6 constructs one from a real Bundle).
@@ -3199,8 +3211,9 @@ Pass-2 droplet database commands were run as
 ### F-60 — `/ready` reports the model provider healthy while an exhausted credit balance fails every brief
 - **Category:** Architecture / Observability
 - **Severity:** Medium
-- **Status:** **Fixed** 2026-09-21 (`fix/remaining-defects`), not yet
-  deployed. Reactive by construction — see Remediation for the tradeoff.
+- **Status:** **Fixed and deployed** 2026-09-21 (`fix/remaining-defects`;
+  deployed to the Vultr host at 16:22:49Z, verified in the running process).
+  Reactive by construction — see Remediation for the tradeoff.
 - **Claim:** `/ready`'s LLM check calls `models.retrieve`, which needs a valid
   key but spends no tokens, so it cannot see a billing failure. On 2026-09-16
   the Anthropic account's credit balance ran out during an eval run: briefs
@@ -3286,6 +3299,11 @@ Pass-2 droplet database commands were run as
     3 of the 7 fail. **No eval case covers this**, by choice: provoking it
     live would mean exhausting the account's credit balance, so the
     evidence is the unit tests, two of which drive the real drafting path.
+  - *Deployed and verified in the running process* (`first-hand`,
+    2026-09-21 16:22:49Z, Vultr): `ready()` in the deployed process
+    consults `provider_health.looks_down`, at a threshold of 3 consecutive
+    failures and a 300 s staleness window. Not provoked live: that would
+    mean exhausting the account's credit balance.
 - **Verified:** `first-hand` (probe code; local credit error; `/ready` healthy
   during the outage; droplet 502s) · inferred (that the droplet's 502s came from
   the same account's credit exhaustion — the droplet's key and logs were not
