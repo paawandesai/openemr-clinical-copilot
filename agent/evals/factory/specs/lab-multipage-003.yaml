@@ -1,0 +1,13 @@
+# Six panels: the result table runs past the bottom of page 1 and continues,
+# with the column header and a compact patient strip repeated on page 2.
+scenario_id: lab-multipage-003
+seed: 5150822
+patient_ref: "20"
+doc_type: lab_pdf
+quality: clean
+note: Multi-page lab report; ferritin flagged low on the continuation page.
+perturbations:
+  - kind: multi_page
+  - kind: abnormal_value
+    test: ferritin
+    direction: low

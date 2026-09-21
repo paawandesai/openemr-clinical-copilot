@@ -1,0 +1,294 @@
+{
+  "cache_schema_version": "doc-factory-chart-cache/0.1.0",
+  "record": {
+    "allergies": [
+      {
+        "allergen": "Allergic disposition (finding)",
+        "reaction": "Moderate",
+        "severity": null
+      },
+      {
+        "allergen": "Bee venom (substance)",
+        "reaction": "Moderate",
+        "severity": null
+      },
+      {
+        "allergen": "Mold (organism)",
+        "reaction": "Moderate",
+        "severity": null
+      },
+      {
+        "allergen": "House dust mite (organism)",
+        "reaction": "Moderate",
+        "severity": null
+      },
+      {
+        "allergen": "Animal dander (substance)",
+        "reaction": "Mild",
+        "severity": null
+      },
+      {
+        "allergen": "Eggs (edible) (substance)",
+        "reaction": "Moderate",
+        "severity": null
+      },
+      {
+        "allergen": "Peanut (substance)",
+        "reaction": "Mild",
+        "severity": null
+      }
+    ],
+    "city": "Lynn",
+    "conditions": [
+      {
+        "code": "SNOMED-CT:233678006",
+        "name": "Childhood asthma (disorder)",
+        "onset": "2005-10-27"
+      },
+      {
+        "code": "SNOMED-CT:24079001",
+        "name": "Atopic dermatitis (disorder)",
+        "onset": "2009-11-29"
+      },
+      {
+        "code": "SNOMED-CT:314529007",
+        "name": "Medication review due (situation)",
+        "onset": "2013-01-07"
+      },
+      {
+        "code": "SNOMED-CT:314529007",
+        "name": "Medication review due (situation)",
+        "onset": "2018-02-05"
+      },
+      {
+        "code": "SNOMED-CT:109570002",
+        "name": "Primary dental caries (disorder)",
+        "onset": "2018-02-19"
+      },
+      {
+        "code": "SNOMED-CT:314529007",
+        "name": "Medication review due (situation)",
+        "onset": "2019-02-11"
+      },
+      {
+        "code": "SNOMED-CT:307426000",
+        "name": "Acute infective cystitis (disorder)",
+        "onset": "2019-12-11"
+      },
+      {
+        "code": "SNOMED-CT:473461003",
+        "name": "Educated to high school level (finding)",
+        "onset": "2020-02-17"
+      },
+      {
+        "code": "SNOMED-CT:160903007",
+        "name": "Full-time employment (finding)",
+        "onset": "2020-02-17"
+      },
+      {
+        "code": "SNOMED-CT:73595000",
+        "name": "Stress (finding)",
+        "onset": "2020-02-17"
+      },
+      {
+        "code": "SNOMED-CT:314529007",
+        "name": "Medication review due (situation)",
+        "onset": "2021-02-22"
+      },
+      {
+        "code": "SNOMED-CT:423315002",
+        "name": "Limited social contact (finding)",
+        "onset": "2021-02-22"
+      },
+      {
+        "code": "SNOMED-CT:195967001",
+        "name": "Asthma (disorder)",
+        "onset": "2022-02-28"
+      },
+      {
+        "code": "SNOMED-CT:314529007",
+        "name": "Medication review due (situation)",
+        "onset": "2022-02-28"
+      },
+      {
+        "code": "SNOMED-CT:424393004",
+        "name": "Reports of violence in the environment (finding)",
+        "onset": "2022-02-28"
+      },
+      {
+        "code": "SNOMED-CT:66383009",
+        "name": "Gingivitis (disorder)",
+        "onset": "2022-02-28"
+      },
+      {
+        "code": "SNOMED-CT:18718003",
+        "name": "Gingival disease (disorder)",
+        "onset": "2022-03-14"
+      },
+      {
+        "code": "SNOMED-CT:109570002",
+        "name": "Primary dental caries (disorder)",
+        "onset": "2022-03-14"
+      },
+      {
+        "code": "SNOMED-CT:72892002",
+        "name": "Normal pregnancy (finding)",
+        "onset": "2022-09-12"
+      },
+      {
+        "code": "SNOMED-CT:314529007",
+        "name": "Medication review due (situation)",
+        "onset": "2023-03-06"
+      },
+      {
+        "code": "SNOMED-CT:160904001",
+        "name": "Part-time employment (finding)",
+        "onset": "2023-03-06"
+      },
+      {
+        "code": "SNOMED-CT:160903007",
+        "name": "Full-time employment (finding)",
+        "onset": "2024-03-11"
+      },
+      {
+        "code": "SNOMED-CT:314529007",
+        "name": "Medication review due (situation)",
+        "onset": "2025-03-17"
+      },
+      {
+        "code": "SNOMED-CT:44054006",
+        "name": "Diabetes mellitus type 2 (disorder)",
+        "onset": "2025-03-17"
+      },
+      {
+        "code": "SNOMED-CT:73438004",
+        "name": "Unemployed (finding)",
+        "onset": "2025-03-17"
+      },
+      {
+        "code": "SNOMED-CT:422650009",
+        "name": "Social isolation (finding)",
+        "onset": "2025-03-17"
+      },
+      {
+        "code": "SNOMED-CT:66383009",
+        "name": "Gingivitis (disorder)",
+        "onset": "2025-03-17"
+      },
+      {
+        "code": "SNOMED-CT:314529007",
+        "name": "Medication review due (situation)",
+        "onset": "2026-03-23"
+      },
+      {
+        "code": "SNOMED-CT:302870006",
+        "name": "Hypertriglyceridemia (disorder)",
+        "onset": "2026-03-23"
+      },
+      {
+        "code": "SNOMED-CT:271737000",
+        "name": "Anemia (disorder)",
+        "onset": "2026-03-23"
+      },
+      {
+        "code": "SNOMED-CT:741062008",
+        "name": "Not in labor force (finding)",
+        "onset": "2026-03-23"
+      },
+      {
+        "code": "SNOMED-CT:423315002",
+        "name": "Limited social contact (finding)",
+        "onset": "2026-03-23"
+      }
+    ],
+    "dob": "2001-12-24",
+    "first_name": "Clemmie560",
+    "last_name": "Collier206",
+    "medications": [
+      {
+        "name": "Loratadine 5 MG Chewable Tablet",
+        "started": "2003-02-05",
+        "strength": "5 MG"
+      },
+      {
+        "name": "NDA020800 0.3 ML Epinephrine 1 MG/ML Auto-Injector",
+        "started": "2003-02-05",
+        "strength": "0.3 ML"
+      },
+      {
+        "name": "Hydrocortisone 10 MG/ML Topical Cream",
+        "started": "2009-12-04",
+        "strength": "10 MG/ML"
+      },
+      {
+        "name": "120 ACTUAT fluticasone propionate 0.11 MG/ACTUAT Metered Dose Inhaler [Flovent]",
+        "started": "2016-01-25",
+        "strength": "0.11 MG/ACTUAT"
+      },
+      {
+        "name": "albuterol 0.83 MG/ML Inhalation Solution",
+        "started": "2016-01-25",
+        "strength": "0.83 MG/ML"
+      },
+      {
+        "name": "{7 (ethinyl estradiol 0.01 MG Oral Tablet) / 84 (ethinyl estradiol 0.03 MG / levonorgestrel 0.15 MG Oral Tablet) } Pack [Seasonique]",
+        "started": "2016-12-18",
+        "strength": "0.01 MG"
+      },
+      {
+        "name": "sodium fluoride 0.0272 MG/MG Oral Gel",
+        "started": "2019-02-25",
+        "strength": "0.0272 MG"
+      },
+      {
+        "name": "sulfamethoxazole 800 MG / trimethoprim 160 MG Oral Tablet",
+        "started": "2019-12-11",
+        "strength": "800 MG"
+      },
+      {
+        "name": "{5 (dienogest 2 MG / estradiol valerate 2 MG Oral Tablet) / 17 (dienogest 3 MG / estradiol valerate 2 MG Oral Tablet) / 2 (estradiol valerate 1 MG Oral Tablet) / 2 (estradiol valerate 3 MG Oral Tablet) / 2 (inert ingredients 1 MG Oral Tablet) } Pack [Nata",
+        "started": "2020-11-27",
+        "strength": "2 MG"
+      },
+      {
+        "name": "cycloSPORINE, modified 100 MG Oral Capsule",
+        "started": "2022-09-11",
+        "strength": "100 MG"
+      },
+      {
+        "name": "{24 (drospirenone 3 MG / ethinyl estradiol 0.02 MG Oral Tablet) / 4 (inert ingredients 1 MG Oral Tablet) } Pack [Yaz 28 Day]",
+        "started": "2023-06-05",
+        "strength": "3 MG"
+      },
+      {
+        "name": "{7 (ethinyl estradiol 0.035 MG / norgestimate 0.18 MG Oral Tablet) / 7 (ethinyl estradiol 0.035 MG / norgestimate 0.215 MG Oral Tablet) / 7 (ethinyl estradiol 0.035 MG / norgestimate 0.25 MG Oral Tablet) / 7 (inert ingredients 1 MG Oral Tablet) } Pack [Tr",
+        "started": "2024-05-30",
+        "strength": "0.035 MG"
+      },
+      {
+        "name": "tropicamide 5 MG/ML Ophthalmic Solution",
+        "started": "2025-04-07",
+        "strength": "5 MG/ML"
+      },
+      {
+        "name": "{21 (ethinyl estradiol 0.03 MG / levonorgestrel 0.15 MG Oral Tablet) / 7 (inert ingredients 1 MG Oral Tablet) } Pack [Levora 0.15/30 28 Day]",
+        "started": "2025-05-25",
+        "strength": "0.03 MG"
+      },
+      {
+        "name": "1 ML medroxyprogesterone acetate 150 MG/ML Injection",
+        "started": "2026-05-20",
+        "strength": "1 ML"
+      }
+    ],
+    "middle_name": "",
+    "mrn": "18",
+    "patient_ref": "18",
+    "phone": "",
+    "postal_code": "01902",
+    "sex": "Female",
+    "state": "Massachusetts",
+    "street": "1084 Kling Station Apt 60"
+  },
+  "source": "local-openemr-mysql"
+}

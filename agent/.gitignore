@@ -2,3 +2,8 @@ __pycache__/
 *.pyc
 .venv/
 venv/
+
+# evals/factory writes generated documents here; the six committed sample
+# scenarios under output/samples/ are the exception (evals/factory/README.md).
+evals/factory/output/*
+!evals/factory/output/samples/

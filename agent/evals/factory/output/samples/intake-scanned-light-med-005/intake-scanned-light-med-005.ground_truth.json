@@ -1,0 +1,1394 @@
+{
+  "schema_version": "doc-factory-groundtruth/0.1.0",
+  "scenario": {
+    "scenario_id": "intake-scanned-light-med-005",
+    "seed": 884127,
+    "patient_ref": "18",
+    "doc_type": "intake_form",
+    "quality": "scanned_light",
+    "perturbations": [
+      {
+        "kind": "med_discrepancy",
+        "params": {
+          "mode": "dose_change"
+        }
+      }
+    ],
+    "note": "Light scan; one medication written at a changed dose."
+  },
+  "chart_source": {
+    "system": "local-openemr",
+    "origin": "cache",
+    "patient_ref": "18",
+    "medications_on_chart": 15,
+    "allergies_on_chart": 7,
+    "conditions_on_chart": 32
+  },
+  "coordinates": {
+    "space": "clean_pdf",
+    "units": "pt",
+    "origin": "top-left",
+    "y_axis": "down",
+    "note": "bbox is [x0, y0, x1, y1] on the original clean layout (<scenario_id>.clean.pdf), in PyMuPDF page space. For scanned variants map through transform.pdf_points_to_image_px."
+  },
+  "document": {
+    "path": "intake-scanned-light-med-005.pdf",
+    "sha256": "c2fceb09ff6fa2a15f5ddc0051774c67216155726790adcb4059109203cfc9f5",
+    "bytes": 679050,
+    "page_count": 2,
+    "has_text_layer": false
+  },
+  "clean_reference": {
+    "path": "intake-scanned-light-med-005.clean.pdf",
+    "sha256": "f6ff9edec78edd14fd4ffee9adc81f99a31bf587d5d3a8e351055a74597cd135",
+    "bytes": 174236,
+    "page_count": 2,
+    "has_text_layer": true
+  },
+  "transform": {
+    "kind": "scan",
+    "profile": {
+      "name": "scanned_light",
+      "dpi": 200,
+      "skew_degrees": 0.45,
+      "noise_sigma": 3.2,
+      "blur_radius": 0.35,
+      "jpeg_quality": 82,
+      "vignette": 0.1,
+      "illumination_ramp": 0.05,
+      "speckle_density": 2e-05,
+      "paper_tint": [
+        252,
+        251,
+        247
+      ]
+    },
+    "mapping": "image_x = a*x + c*y + e ; image_y = b*x + d*y + f, with pdf_points_to_image_px = [a, c, e, b, d, f] and (x, y) a point on the clean layout in PyMuPDF page space (top-left origin, y down).",
+    "pages": [
+      {
+        "page": 1,
+        "skew_degrees": -0.12823,
+        "image_size_px": [
+          1700,
+          2200
+        ],
+        "page_size_pt": [
+          612.0,
+          792.0
+        ],
+        "pdf_points_to_image_px": [
+          2.77777082,
+          0.00621655,
+          -2.45962436,
+          -0.00621655,
+          2.77777082,
+          1.9050183
+        ],
+        "jpeg_bytes": 388352
+      },
+      {
+        "page": 2,
+        "skew_degrees": -0.23748,
+        "image_size_px": [
+          1700,
+          2200
+        ],
+        "page_size_pt": [
+          612.0,
+          792.0
+        ],
+        "pdf_points_to_image_px": [
+          2.77775392,
+          0.01151329,
+          -4.55196179,
+          -0.01151329,
+          2.77775392,
+          3.53251548
+        ],
+        "jpeg_bytes": 286649
+      }
+    ]
+  },
+  "pages": [
+    {
+      "number": 1,
+      "width": 612.0,
+      "height": 792.0
+    },
+    {
+      "number": 2,
+      "width": 612.0,
+      "height": 792.0
+    }
+  ],
+  "perturbations": [
+    {
+      "kind": "med_discrepancy",
+      "params": {
+        "mode": "dose_change"
+      },
+      "field_paths": [
+        "medications[13].dose"
+      ],
+      "chart_value": "{21 (ethinyl estradiol 0.03 MG / levonorgestrel 0.15 MG Oral Tablet) / 7 (inert ingredients 1 MG Oral Tablet) } Pack [Levora 0.15/30 28 Day] (0.03 MG)",
+      "document_value": "Levora 0.15/30 28 Day 0.12 MG",
+      "expected_discrepancy": "The form gives Levora 0.15/30 28 Day as 0.12 MG; the chart product is '{21 (ethinyl estradiol 0.03 MG / levonorgestrel 0.15 MG Oral Tablet) / 7 (inert ingredients 1 MG Oral Tablet) } Pack [Levora 0.15/30 28 Day]', i.e. 0.03 MG."
+    }
+  ],
+  "fields": [
+    {
+      "field_path": "patient.name",
+      "status": "present",
+      "kind": "text",
+      "origin": "chart",
+      "value": "Clemmie560 Collier206",
+      "unit": null,
+      "page": 1,
+      "bbox": [
+        86.869,
+        126.87,
+        189.925,
+        140.57
+      ],
+      "rendered_text": "Clemmie560 Collier206"
+    },
+    {
+      "field_path": "patient.dob",
+      "status": "present",
+      "kind": "text",
+      "origin": "chart",
+      "value": "2001-12-24",
+      "unit": null,
+      "page": 1,
+      "bbox": [
+        419.665,
+        126.973,
+        469.003,
+        140.359
+      ],
+      "rendered_text": "2001-12-24"
+    },
+    {
+      "field_path": "patient.address",
+      "status": "present",
+      "kind": "text",
+      "origin": "chart",
+      "value": "1084 Kling Station Apt 60",
+      "unit": null,
+      "page": 1,
+      "bbox": [
+        95.078,
+        150.793,
+        205.528,
+        164.514
+      ],
+      "rendered_text": "1084 Kling Station Apt 60"
+    },
+    {
+      "field_path": "patient.sex",
+      "status": "present",
+      "kind": "text",
+      "origin": "chart",
+      "value": "Female",
+      "unit": null,
+      "page": 1,
+      "bbox": [
+        389.129,
+        150.749,
+        421.91,
+        164.616
+      ],
+      "rendered_text": "Female"
+    },
+    {
+      "field_path": "patient.city_state_zip",
+      "status": "present",
+      "kind": "text",
+      "origin": "chart",
+      "value": "Lynn, Massachusetts 01902",
+      "unit": null,
+      "page": 1,
+      "bbox": [
+        124.704,
+        174.679,
+        242.465,
+        188.616
+      ],
+      "rendered_text": "Lynn, Massachusetts 01902"
+    },
+    {
+      "field_path": "visit.date",
+      "status": "present",
+      "kind": "text",
+      "origin": "synthetic",
+      "value": "09/14/2026",
+      "unit": null,
+      "page": 1,
+      "bbox": [
+        107.837,
+        199.019,
+        156.924,
+        212.574
+      ],
+      "rendered_text": "09/14/2026"
+    },
+    {
+      "field_path": "chief_concern",
+      "status": "present",
+      "kind": "text",
+      "origin": "chart_derived",
+      "value": "Ongoing anemia, wants to discuss treatment",
+      "unit": null,
+      "page": 1,
+      "bbox": [
+        60.0,
+        250.891,
+        249.865,
+        264.57
+      ],
+      "rendered_text": "Ongoing anemia, wants to discuss treatment"
+    },
+    {
+      "field_path": "medications[0].name",
+      "status": "present",
+      "kind": "text",
+      "origin": "chart_derived",
+      "value": "Loratadine 5 MG Chewable Tablet",
+      "unit": null,
+      "page": 1,
+      "bbox": [
+        59.0,
+        344.696,
+        105.852,
+        358.142
+      ],
+      "rendered_text": "Loratadine",
+      "note": "value is the full chart product name; the form carries the common name"
+    },
+    {
+      "field_path": "medications[0].dose",
+      "status": "present",
+      "kind": "text",
+      "origin": "chart_derived",
+      "value": "5 MG",
+      "unit": null,
+      "page": 1,
+      "bbox": [
+        262.0,
+        344.58,
+        286.774,
+        358.121
+      ],
+      "rendered_text": "5 MG"
+    },
+    {
+      "field_path": "medications[0].frequency",
+      "status": "present",
+      "kind": "text",
+      "origin": "synthetic",
+      "value": "once daily",
+      "unit": null,
+      "page": 1,
+      "bbox": [
+        364.0,
+        344.409,
+        408.765,
+        358.152
+      ],
+      "rendered_text": "once daily",
+      "note": "frequency has no chart counterpart"
+    },
+    {
+      "field_path": "medications[1].name",
+      "status": "present",
+      "kind": "text",
+      "origin": "chart_derived",
+      "value": "NDA020800 0.3 ML Epinephrine 1 MG/ML Auto-Injector",
+      "unit": null,
+      "page": 1,
+      "bbox": [
+        59.0,
+        365.435,
+        112.103,
+        379.181
+      ],
+      "rendered_text": "Epinephrine",
+      "note": "value is the full chart product name; the form carries the common name"
+    },
+    {
+      "field_path": "medications[1].dose",
+      "status": "present",
+      "kind": "text",
+      "origin": "chart_derived",
+      "value": "0.3 ML",
+      "unit": null,
+      "page": 1,
+      "bbox": [
+        262.0,
+        365.612,
+        293.084,
+        379.18
+      ],
+      "rendered_text": "0.3 ML"
+    },
+    {
+      "field_path": "medications[1].frequency",
+      "status": "present",
+      "kind": "text",
+      "origin": "synthetic",
+      "value": "twice daily",
+      "unit": null,
+      "page": 1,
+      "bbox": [
+        364.0,
+        365.584,
+        410.106,
+        379.296
+      ],
+      "rendered_text": "twice daily",
+      "note": "frequency has no chart counterpart"
+    },
+    {
+      "field_path": "medications[2].name",
+      "status": "present",
+      "kind": "text",
+      "origin": "chart_derived",
+      "value": "Hydrocortisone 10 MG/ML Topical Cream",
+      "unit": null,
+      "page": 1,
+      "bbox": [
+        59.0,
+        386.542,
+        125.098,
+        400.102
+      ],
+      "rendered_text": "Hydrocortisone",
+      "note": "value is the full chart product name; the form carries the common name"
+    },
+    {
+      "field_path": "medications[2].dose",
+      "status": "present",
+      "kind": "text",
+      "origin": "chart_derived",
+      "value": "10 MG/ML",
+      "unit": null,
+      "page": 1,
+      "bbox": [
+        262.0,
+        386.374,
+        310.453,
+        400.141
+      ],
+      "rendered_text": "10 MG/ML"
+    },
+    {
+      "field_path": "medications[2].frequency",
+      "status": "present",
+      "kind": "text",
+      "origin": "synthetic",
+      "value": "every morning",
+      "unit": null,
+      "page": 1,
+      "bbox": [
+        364.0,
+        386.315,
+        426.93,
+        400.078
+      ],
+      "rendered_text": "every morning",
+      "note": "frequency has no chart counterpart"
+    },
+    {
+      "field_path": "medications[3].name",
+      "status": "present",
+      "kind": "text",
+      "origin": "chart_derived",
+      "value": "120 ACTUAT fluticasone propionate 0.11 MG/ACTUAT Metered Dose Inhaler [Flovent]",
+      "unit": null,
+      "page": 1,
+      "bbox": [
+        59.0,
+        407.355,
+        91.527,
+        421.128
+      ],
+      "rendered_text": "Flovent",
+      "note": "value is the full chart product name; the form carries the common name"
+    },
+    {
+      "field_path": "medications[3].dose",
+      "status": "present",
+      "kind": "text",
+      "origin": "chart_derived",
+      "value": "0.11 MG/ACTUAT",
+      "unit": null,
+      "page": 1,
+      "bbox": [
+        262.0,
+        407.784,
+        342.94,
+        421.251
+      ],
+      "rendered_text": "0.11 MG/ACTUAT"
+    },
+    {
+      "field_path": "medications[3].frequency",
+      "status": "present",
+      "kind": "text",
+      "origin": "synthetic",
+      "value": "twice daily",
+      "unit": null,
+      "page": 1,
+      "bbox": [
+        364.0,
+        407.333,
+        410.798,
+        421.132
+      ],
+      "rendered_text": "twice daily",
+      "note": "frequency has no chart counterpart"
+    },
+    {
+      "field_path": "medications[4].name",
+      "status": "present",
+      "kind": "text",
+      "origin": "chart_derived",
+      "value": "albuterol 0.83 MG/ML Inhalation Solution",
+      "unit": null,
+      "page": 1,
+      "bbox": [
+        59.0,
+        428.649,
+        97.57,
+        442.215
+      ],
+      "rendered_text": "albuterol",
+      "note": "value is the full chart product name; the form carries the common name"
+    },
+    {
+      "field_path": "medications[4].dose",
+      "status": "present",
+      "kind": "text",
+      "origin": "chart_derived",
+      "value": "0.83 MG/ML",
+      "unit": null,
+      "page": 1,
+      "bbox": [
+        262.0,
+        428.453,
+        318.543,
+        442.095
+      ],
+      "rendered_text": "0.83 MG/ML"
+    },
+    {
+      "field_path": "medications[4].frequency",
+      "status": "present",
+      "kind": "text",
+      "origin": "synthetic",
+      "value": "at bedtime",
+      "unit": null,
+      "page": 1,
+      "bbox": [
+        364.0,
+        428.533,
+        408.557,
+        442.132
+      ],
+      "rendered_text": "at bedtime",
+      "note": "frequency has no chart counterpart"
+    },
+    {
+      "field_path": "medications[5].name",
+      "status": "present",
+      "kind": "text",
+      "origin": "chart_derived",
+      "value": "{7 (ethinyl estradiol 0.01 MG Oral Tablet) / 84 (ethinyl estradiol 0.03 MG / levonorgestrel 0.15 MG Oral Tablet) } Pack [Seasonique]",
+      "unit": null,
+      "page": 1,
+      "bbox": [
+        59.0,
+        449.381,
+        107.564,
+        463.151
+      ],
+      "rendered_text": "Seasonique",
+      "note": "value is the full chart product name; the form carries the common name"
+    },
+    {
+      "field_path": "medications[5].dose",
+      "status": "present",
+      "kind": "text",
+      "origin": "chart_derived",
+      "value": "0.01 MG",
+      "unit": null,
+      "page": 1,
+      "bbox": [
+        262.0,
+        449.703,
+        299.574,
+        463.184
+      ],
+      "rendered_text": "0.01 MG"
+    },
+    {
+      "field_path": "medications[5].frequency",
+      "status": "present",
+      "kind": "text",
+      "origin": "synthetic",
+      "value": "three times daily",
+      "unit": null,
+      "page": 1,
+      "bbox": [
+        364.0,
+        449.407,
+        435.856,
+        463.218
+      ],
+      "rendered_text": "three times daily",
+      "note": "frequency has no chart counterpart"
+    },
+    {
+      "field_path": "medications[6].name",
+      "status": "present",
+      "kind": "text",
+      "origin": "chart_derived",
+      "value": "sodium fluoride 0.0272 MG/MG Oral Gel",
+      "unit": null,
+      "page": 1,
+      "bbox": [
+        59.0,
+        470.543,
+        126.783,
+        484.236
+      ],
+      "rendered_text": "sodium fluoride",
+      "note": "value is the full chart product name; the form carries the common name"
+    },
+    {
+      "field_path": "medications[6].dose",
+      "status": "present",
+      "kind": "text",
+      "origin": "chart_derived",
+      "value": "0.0272 MG",
+      "unit": null,
+      "page": 1,
+      "bbox": [
+        262.0,
+        470.385,
+        311.3,
+        483.954
+      ],
+      "rendered_text": "0.0272 MG"
+    },
+    {
+      "field_path": "medications[6].frequency",
+      "status": "present",
+      "kind": "text",
+      "origin": "synthetic",
+      "value": "as needed",
+      "unit": null,
+      "page": 1,
+      "bbox": [
+        364.0,
+        470.606,
+        406.986,
+        484.117
+      ],
+      "rendered_text": "as needed",
+      "note": "frequency has no chart counterpart"
+    },
+    {
+      "field_path": "medications[7].name",
+      "status": "present",
+      "kind": "text",
+      "origin": "chart_derived",
+      "value": "sulfamethoxazole 800 MG / trimethoprim 160 MG Oral Tablet",
+      "unit": null,
+      "page": 1,
+      "bbox": [
+        59.0,
+        491.307,
+        193.034,
+        505.138
+      ],
+      "rendered_text": "sulfamethoxazole trimethoprim",
+      "note": "value is the full chart product name; the form carries the common name"
+    },
+    {
+      "field_path": "medications[7].dose",
+      "status": "present",
+      "kind": "text",
+      "origin": "chart_derived",
+      "value": "800 MG",
+      "unit": null,
+      "page": 1,
+      "bbox": [
+        262.0,
+        491.936,
+        296.925,
+        505.034
+      ],
+      "rendered_text": "800 MG"
+    },
+    {
+      "field_path": "medications[7].frequency",
+      "status": "present",
+      "kind": "text",
+      "origin": "synthetic",
+      "value": "every morning",
+      "unit": null,
+      "page": 1,
+      "bbox": [
+        364.0,
+        491.488,
+        424.969,
+        505.079
+      ],
+      "rendered_text": "every morning",
+      "note": "frequency has no chart counterpart"
+    },
+    {
+      "field_path": "medications[8].name",
+      "status": "present",
+      "kind": "text",
+      "origin": "chart_derived",
+      "value": "{5 (dienogest 2 MG / estradiol valerate 2 MG Oral Tablet) / 17 (dienogest 3 MG / estradiol valerate 2 MG Oral Tablet) / 2 (estradiol valerate 1 MG Oral Tablet) / 2 (estradiol valerate 3 MG Oral Tablet) / 2 (inert ingredients 1 MG Oral Tablet) } Pack [Nata",
+      "unit": null,
+      "page": 1,
+      "bbox": [
+        59.0,
+        512.673,
+        140.314,
+        526.135
+      ],
+      "rendered_text": "dienogest estradiol",
+      "note": "value is the full chart product name; the form carries the common name"
+    },
+    {
+      "field_path": "medications[8].dose",
+      "status": "present",
+      "kind": "text",
+      "origin": "chart_derived",
+      "value": "2 MG",
+      "unit": null,
+      "page": 1,
+      "bbox": [
+        262.0,
+        512.658,
+        287.526,
+        526.022
+      ],
+      "rendered_text": "2 MG"
+    },
+    {
+      "field_path": "medications[8].frequency",
+      "status": "present",
+      "kind": "text",
+      "origin": "synthetic",
+      "value": "every morning",
+      "unit": null,
+      "page": 1,
+      "bbox": [
+        364.0,
+        512.546,
+        426.228,
+        526.211
+      ],
+      "rendered_text": "every morning",
+      "note": "frequency has no chart counterpart"
+    },
+    {
+      "field_path": "medications[9].name",
+      "status": "present",
+      "kind": "text",
+      "origin": "chart_derived",
+      "value": "cycloSPORINE, modified 100 MG Oral Capsule",
+      "unit": null,
+      "page": 1,
+      "bbox": [
+        59.0,
+        533.452,
+        165.697,
+        547.235
+      ],
+      "rendered_text": "cycloSPORINE modified",
+      "note": "value is the full chart product name; the form carries the common name"
+    },
+    {
+      "field_path": "medications[9].dose",
+      "status": "present",
+      "kind": "text",
+      "origin": "chart_derived",
+      "value": "100 MG",
+      "unit": null,
+      "page": 1,
+      "bbox": [
+        262.0,
+        533.523,
+        296.73,
+        547.099
+      ],
+      "rendered_text": "100 MG"
+    },
+    {
+      "field_path": "medications[9].frequency",
+      "status": "present",
+      "kind": "text",
+      "origin": "synthetic",
+      "value": "as needed",
+      "unit": null,
+      "page": 1,
+      "bbox": [
+        364.0,
+        533.574,
+        407.061,
+        547.187
+      ],
+      "rendered_text": "as needed",
+      "note": "frequency has no chart counterpart"
+    },
+    {
+      "field_path": "medications[10].name",
+      "status": "present",
+      "kind": "text",
+      "origin": "chart_derived",
+      "value": "{24 (drospirenone 3 MG / ethinyl estradiol 0.02 MG Oral Tablet) / 4 (inert ingredients 1 MG Oral Tablet) } Pack [Yaz 28 Day]",
+      "unit": null,
+      "page": 1,
+      "bbox": [
+        59.0,
+        554.621,
+        108.092,
+        568.159
+      ],
+      "rendered_text": "Yaz 28 Day",
+      "note": "value is the full chart product name; the form carries the common name"
+    },
+    {
+      "field_path": "medications[10].dose",
+      "status": "present",
+      "kind": "text",
+      "origin": "chart_derived",
+      "value": "3 MG",
+      "unit": null,
+      "page": 1,
+      "bbox": [
+        262.0,
+        554.663,
+        287.63,
+        568.101
+      ],
+      "rendered_text": "3 MG"
+    },
+    {
+      "field_path": "medications[10].frequency",
+      "status": "present",
+      "kind": "text",
+      "origin": "synthetic",
+      "value": "once daily",
+      "unit": null,
+      "page": 1,
+      "bbox": [
+        364.0,
+        554.711,
+        407.725,
+        568.114
+      ],
+      "rendered_text": "once daily",
+      "note": "frequency has no chart counterpart"
+    },
+    {
+      "field_path": "medications[11].name",
+      "status": "present",
+      "kind": "text",
+      "origin": "chart_derived",
+      "value": "{7 (ethinyl estradiol 0.035 MG / norgestimate 0.18 MG Oral Tablet) / 7 (ethinyl estradiol 0.035 MG / norgestimate 0.215 MG Oral Tablet) / 7 (ethinyl estradiol 0.035 MG / norgestimate 0.25 MG Oral Tablet) / 7 (inert ingredients 1 MG Oral Tablet) } Pack [Tr",
+      "unit": null,
+      "page": 1,
+      "bbox": [
+        59.0,
+        575.477,
+        129.466,
+        589.214
+      ],
+      "rendered_text": "ethinyl estradiol",
+      "note": "value is the full chart product name; the form carries the common name"
+    },
+    {
+      "field_path": "medications[11].dose",
+      "status": "present",
+      "kind": "text",
+      "origin": "chart_derived",
+      "value": "0.035 MG",
+      "unit": null,
+      "page": 1,
+      "bbox": [
+        262.0,
+        575.603,
+        305.452,
+        589.155
+      ],
+      "rendered_text": "0.035 MG"
+    },
+    {
+      "field_path": "medications[11].frequency",
+      "status": "present",
+      "kind": "text",
+      "origin": "synthetic",
+      "value": "at bedtime",
+      "unit": null,
+      "page": 1,
+      "bbox": [
+        364.0,
+        575.503,
+        409.82,
+        589.098
+      ],
+      "rendered_text": "at bedtime",
+      "note": "frequency has no chart counterpart"
+    },
+    {
+      "field_path": "medications[12].name",
+      "status": "present",
+      "kind": "text",
+      "origin": "chart_derived",
+      "value": "tropicamide 5 MG/ML Ophthalmic Solution",
+      "unit": null,
+      "page": 1,
+      "bbox": [
+        59.0,
+        596.573,
+        111.039,
+        610.104
+      ],
+      "rendered_text": "tropicamide",
+      "note": "value is the full chart product name; the form carries the common name"
+    },
+    {
+      "field_path": "medications[12].dose",
+      "status": "present",
+      "kind": "text",
+      "origin": "chart_derived",
+      "value": "5 MG/ML",
+      "unit": null,
+      "page": 1,
+      "bbox": [
+        262.0,
+        596.416,
+        304.404,
+        610.121
+      ],
+      "rendered_text": "5 MG/ML"
+    },
+    {
+      "field_path": "medications[12].frequency",
+      "status": "present",
+      "kind": "text",
+      "origin": "synthetic",
+      "value": "as needed",
+      "unit": null,
+      "page": 1,
+      "bbox": [
+        364.0,
+        596.451,
+        406.283,
+        610.143
+      ],
+      "rendered_text": "as needed",
+      "note": "frequency has no chart counterpart"
+    },
+    {
+      "field_path": "medications[13].name",
+      "status": "present",
+      "kind": "text",
+      "origin": "perturbed",
+      "value": "{21 (ethinyl estradiol 0.03 MG / levonorgestrel 0.15 MG Oral Tablet) / 7 (inert ingredients 1 MG Oral Tablet) } Pack [Levora 0.15/30 28 Day]",
+      "unit": null,
+      "page": 1,
+      "bbox": [
+        59.0,
+        617.545,
+        157.896,
+        631.155
+      ],
+      "rendered_text": "Levora 0.15/30 28 Day",
+      "note": "chart strength is 0.03 MG"
+    },
+    {
+      "field_path": "medications[13].dose",
+      "status": "present",
+      "kind": "text",
+      "origin": "perturbed",
+      "value": "0.12 MG",
+      "unit": null,
+      "page": 1,
+      "bbox": [
+        262.0,
+        617.631,
+        300.523,
+        631.175
+      ],
+      "rendered_text": "0.12 MG"
+    },
+    {
+      "field_path": "medications[13].frequency",
+      "status": "present",
+      "kind": "text",
+      "origin": "synthetic",
+      "value": "at bedtime",
+      "unit": null,
+      "page": 1,
+      "bbox": [
+        364.0,
+        617.42,
+        408.614,
+        631.161
+      ],
+      "rendered_text": "at bedtime",
+      "note": "frequency has no chart counterpart"
+    },
+    {
+      "field_path": "medications[14].name",
+      "status": "present",
+      "kind": "text",
+      "origin": "chart_derived",
+      "value": "1 ML medroxyprogesterone acetate 150 MG/ML Injection",
+      "unit": null,
+      "page": 1,
+      "bbox": [
+        59.0,
+        638.411,
+        186.486,
+        652.198
+      ],
+      "rendered_text": "medroxyprogesterone acetate",
+      "note": "value is the full chart product name; the form carries the common name"
+    },
+    {
+      "field_path": "medications[14].dose",
+      "status": "present",
+      "kind": "text",
+      "origin": "chart_derived",
+      "value": "1 ML",
+      "unit": null,
+      "page": 1,
+      "bbox": [
+        262.0,
+        639.015,
+        285.232,
+        651.991
+      ],
+      "rendered_text": "1 ML"
+    },
+    {
+      "field_path": "medications[14].frequency",
+      "status": "present",
+      "kind": "text",
+      "origin": "synthetic",
+      "value": "once daily",
+      "unit": null,
+      "page": 1,
+      "bbox": [
+        364.0,
+        638.6,
+        408.066,
+        652.142
+      ],
+      "rendered_text": "once daily",
+      "note": "frequency has no chart counterpart"
+    },
+    {
+      "field_path": "allergies.none_known",
+      "status": "present",
+      "kind": "checkbox",
+      "origin": "chart_derived",
+      "value": false,
+      "unit": null,
+      "page": 1,
+      "bbox": [
+        59.0,
+        690.0,
+        67.5,
+        698.5
+      ],
+      "rendered_text": "",
+      "note": "'No known drug allergies' box; checked only when the chart has no allergies"
+    },
+    {
+      "field_path": "allergies[0].allergen",
+      "status": "present",
+      "kind": "text",
+      "origin": "chart",
+      "value": "Allergic disposition (finding)",
+      "unit": null,
+      "page": 2,
+      "bbox": [
+        59.0,
+        98.378,
+        184.581,
+        112.277
+      ],
+      "rendered_text": "Allergic disposition (finding)"
+    },
+    {
+      "field_path": "allergies[0].reaction",
+      "status": "present",
+      "kind": "text",
+      "origin": "chart",
+      "value": "Moderate",
+      "unit": null,
+      "page": 2,
+      "bbox": [
+        282.0,
+        98.506,
+        324.434,
+        112.03
+      ],
+      "rendered_text": "Moderate"
+    },
+    {
+      "field_path": "allergies[1].allergen",
+      "status": "present",
+      "kind": "text",
+      "origin": "chart",
+      "value": "Bee venom (substance)",
+      "unit": null,
+      "page": 2,
+      "bbox": [
+        59.0,
+        119.404,
+        157.196,
+        133.291
+      ],
+      "rendered_text": "Bee venom (substance)"
+    },
+    {
+      "field_path": "allergies[1].reaction",
+      "status": "present",
+      "kind": "text",
+      "origin": "chart",
+      "value": "Moderate",
+      "unit": null,
+      "page": 2,
+      "bbox": [
+        282.0,
+        119.487,
+        323.623,
+        133.086
+      ],
+      "rendered_text": "Moderate"
+    },
+    {
+      "field_path": "allergies[2].allergen",
+      "status": "present",
+      "kind": "text",
+      "origin": "chart",
+      "value": "Mold (organism)",
+      "unit": null,
+      "page": 2,
+      "bbox": [
+        59.0,
+        140.508,
+        131.714,
+        154.196
+      ],
+      "rendered_text": "Mold (organism)"
+    },
+    {
+      "field_path": "allergies[2].reaction",
+      "status": "present",
+      "kind": "text",
+      "origin": "chart",
+      "value": "Moderate",
+      "unit": null,
+      "page": 2,
+      "bbox": [
+        282.0,
+        140.767,
+        323.57,
+        154.09
+      ],
+      "rendered_text": "Moderate"
+    },
+    {
+      "field_path": "allergies[3].allergen",
+      "status": "present",
+      "kind": "text",
+      "origin": "chart",
+      "value": "House dust mite (organism)",
+      "unit": null,
+      "page": 2,
+      "bbox": [
+        59.0,
+        161.376,
+        180.433,
+        175.25
+      ],
+      "rendered_text": "House dust mite (organism)"
+    },
+    {
+      "field_path": "allergies[3].reaction",
+      "status": "present",
+      "kind": "text",
+      "origin": "chart",
+      "value": "Moderate",
+      "unit": null,
+      "page": 2,
+      "bbox": [
+        282.0,
+        161.653,
+        324.125,
+        175.094
+      ],
+      "rendered_text": "Moderate"
+    },
+    {
+      "field_path": "allergies[4].allergen",
+      "status": "present",
+      "kind": "text",
+      "origin": "chart",
+      "value": "Animal dander (substance)",
+      "unit": null,
+      "page": 2,
+      "bbox": [
+        59.0,
+        182.519,
+        175.297,
+        196.208
+      ],
+      "rendered_text": "Animal dander (substance)"
+    },
+    {
+      "field_path": "allergies[4].reaction",
+      "status": "present",
+      "kind": "text",
+      "origin": "chart",
+      "value": "Mild",
+      "unit": null,
+      "page": 2,
+      "bbox": [
+        282.0,
+        182.684,
+        301.799,
+        196.019
+      ],
+      "rendered_text": "Mild"
+    },
+    {
+      "field_path": "allergies[5].allergen",
+      "status": "present",
+      "kind": "text",
+      "origin": "chart",
+      "value": "Eggs (edible) (substance)",
+      "unit": null,
+      "page": 2,
+      "bbox": [
+        59.0,
+        203.305,
+        168.925,
+        217.261
+      ],
+      "rendered_text": "Eggs (edible) (substance)"
+    },
+    {
+      "field_path": "allergies[5].reaction",
+      "status": "present",
+      "kind": "text",
+      "origin": "chart",
+      "value": "Moderate",
+      "unit": null,
+      "page": 2,
+      "bbox": [
+        282.0,
+        203.614,
+        323.413,
+        217.211
+      ],
+      "rendered_text": "Moderate"
+    },
+    {
+      "field_path": "allergies[6].allergen",
+      "status": "present",
+      "kind": "text",
+      "origin": "chart",
+      "value": "Peanut (substance)",
+      "unit": null,
+      "page": 2,
+      "bbox": [
+        59.0,
+        224.695,
+        140.971,
+        238.104
+      ],
+      "rendered_text": "Peanut (substance)"
+    },
+    {
+      "field_path": "allergies[6].reaction",
+      "status": "present",
+      "kind": "text",
+      "origin": "chart",
+      "value": "Mild",
+      "unit": null,
+      "page": 2,
+      "bbox": [
+        282.0,
+        224.434,
+        302.675,
+        238.038
+      ],
+      "rendered_text": "Mild"
+    },
+    {
+      "field_path": "family_history.diabetes",
+      "status": "present",
+      "kind": "checkbox",
+      "origin": "synthetic",
+      "value": true,
+      "unit": null,
+      "page": 2,
+      "bbox": [
+        56.0,
+        278.0,
+        64.5,
+        286.5
+      ],
+      "rendered_text": "X",
+      "note": "family history has no chart counterpart"
+    },
+    {
+      "field_path": "family_history.diabetes.relation",
+      "status": "present",
+      "kind": "text",
+      "origin": "synthetic",
+      "value": "sister",
+      "unit": null,
+      "page": 2,
+      "bbox": [
+        135.043,
+        275.889,
+        156.883,
+        288.346
+      ],
+      "rendered_text": "sister",
+      "note": "family history has no chart counterpart"
+    },
+    {
+      "field_path": "family_history.hypertension",
+      "status": "present",
+      "kind": "checkbox",
+      "origin": "synthetic",
+      "value": false,
+      "unit": null,
+      "page": 2,
+      "bbox": [
+        306.0,
+        278.0,
+        314.5,
+        286.5
+      ],
+      "rendered_text": "",
+      "note": "family history has no chart counterpart"
+    },
+    {
+      "field_path": "family_history.heart_disease",
+      "status": "present",
+      "kind": "checkbox",
+      "origin": "synthetic",
+      "value": false,
+      "unit": null,
+      "page": 2,
+      "bbox": [
+        56.0,
+        301.0,
+        64.5,
+        309.5
+      ],
+      "rendered_text": "",
+      "note": "family history has no chart counterpart"
+    },
+    {
+      "field_path": "family_history.cancer",
+      "status": "present",
+      "kind": "checkbox",
+      "origin": "synthetic",
+      "value": false,
+      "unit": null,
+      "page": 2,
+      "bbox": [
+        306.0,
+        301.0,
+        314.5,
+        309.5
+      ],
+      "rendered_text": "",
+      "note": "family history has no chart counterpart"
+    },
+    {
+      "field_path": "family_history.stroke",
+      "status": "present",
+      "kind": "checkbox",
+      "origin": "synthetic",
+      "value": false,
+      "unit": null,
+      "page": 2,
+      "bbox": [
+        56.0,
+        324.0,
+        64.5,
+        332.5
+      ],
+      "rendered_text": "",
+      "note": "family history has no chart counterpart"
+    },
+    {
+      "field_path": "family_history.asthma",
+      "status": "present",
+      "kind": "checkbox",
+      "origin": "synthetic",
+      "value": false,
+      "unit": null,
+      "page": 2,
+      "bbox": [
+        306.0,
+        324.0,
+        314.5,
+        332.5
+      ],
+      "rendered_text": "",
+      "note": "family history has no chart counterpart"
+    },
+    {
+      "field_path": "signature.name",
+      "status": "present",
+      "kind": "text",
+      "origin": "chart",
+      "value": "Clemmie560 Collier206",
+      "unit": null,
+      "page": 2,
+      "bbox": [
+        126.533,
+        378.867,
+        228.757,
+        392.51
+      ],
+      "rendered_text": "Clemmie560 Collier206"
+    },
+    {
+      "field_path": "signature.date",
+      "status": "present",
+      "kind": "text",
+      "origin": "synthetic",
+      "value": "09/14/2026",
+      "unit": null,
+      "page": 2,
+      "bbox": [
+        392.318,
+        378.983,
+        440.829,
+        392.419
+      ],
+      "rendered_text": "09/14/2026"
+    }
+  ]
+}

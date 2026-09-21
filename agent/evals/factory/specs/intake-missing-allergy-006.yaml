@@ -1,0 +1,15 @@
+# Two independent failures on one form: the date of birth was never filled in,
+# the city-state-ZIP line is scribbled out, and one charted allergy is missing.
+scenario_id: intake-missing-allergy-006
+seed: 4420913
+patient_ref: "47"
+doc_type: intake_form
+quality: clean
+note: Missing DOB, illegible city/state/ZIP, and one charted allergy omitted.
+perturbations:
+  - kind: missing_field
+    field: patient.dob
+  - kind: illegible_field
+    field: patient.city_state_zip
+  - kind: allergy_discrepancy
+    mode: omit

@@ -1,0 +1,528 @@
+{
+  "cache_schema_version": "doc-factory-chart-cache/0.1.0",
+  "record": {
+    "allergies": [],
+    "city": "Springfield",
+    "conditions": [
+      {
+        "code": "SNOMED-CT:105531004",
+        "name": "Housing unsatisfactory (finding)",
+        "onset": "1993-04-14"
+      },
+      {
+        "code": "SNOMED-CT:224295006",
+        "name": "Only received primary school education (finding)",
+        "onset": "1993-04-14"
+      },
+      {
+        "code": "SNOMED-CT:59621000",
+        "name": "Essential hypertension (disorder)",
+        "onset": "2002-08-13"
+      },
+      {
+        "code": "SNOMED-CT:714628002",
+        "name": "Prediabetes (finding)",
+        "onset": "2005-09-06"
+      },
+      {
+        "code": "SNOMED-CT:271737000",
+        "name": "Anemia (disorder)",
+        "onset": "2007-09-18"
+      },
+      {
+        "code": "SNOMED-CT:162864005",
+        "name": "Body mass index 30+ - obesity (finding)",
+        "onset": "2009-09-29"
+      },
+      {
+        "code": "SNOMED-CT:237602007",
+        "name": "Metabolic syndrome X (disorder)",
+        "onset": "2010-10-05"
+      },
+      {
+        "code": "SNOMED-CT:431856006",
+        "name": "Chronic kidney disease stage 2 (disorder)",
+        "onset": "2015-08-18"
+      },
+      {
+        "code": "SNOMED-CT:127013003",
+        "name": "Disorder of kidney due to diabetes mellitus (disorder)",
+        "onset": "2015-08-18"
+      },
+      {
+        "code": "SNOMED-CT:90781000119102",
+        "name": "Microalbuminuria due to type 2 diabetes mellitus (disorder)",
+        "onset": "2015-08-18"
+      },
+      {
+        "code": "SNOMED-CT:266948004",
+        "name": "Has a criminal record (finding)",
+        "onset": "2015-08-18"
+      },
+      {
+        "code": "SNOMED-CT:314529007",
+        "name": "Medication review due (situation)",
+        "onset": "2015-11-03"
+      },
+      {
+        "code": "SNOMED-CT:160904001",
+        "name": "Part-time employment (finding)",
+        "onset": "2016-05-18"
+      },
+      {
+        "code": "SNOMED-CT:73595000",
+        "name": "Stress (finding)",
+        "onset": "2016-05-18"
+      },
+      {
+        "code": "SNOMED-CT:160903007",
+        "name": "Full-time employment (finding)",
+        "onset": "2016-11-08"
+      },
+      {
+        "code": "SNOMED-CT:314529007",
+        "name": "Medication review due (situation)",
+        "onset": "2017-04-11"
+      },
+      {
+        "code": "SNOMED-CT:314529007",
+        "name": "Medication review due (situation)",
+        "onset": "2017-08-08"
+      },
+      {
+        "code": "SNOMED-CT:741062008",
+        "name": "Not in labor force (finding)",
+        "onset": "2017-08-08"
+      },
+      {
+        "code": "SNOMED-CT:73595000",
+        "name": "Stress (finding)",
+        "onset": "2017-08-08"
+      },
+      {
+        "code": "SNOMED-CT:314529007",
+        "name": "Medication review due (situation)",
+        "onset": "2017-11-07"
+      },
+      {
+        "code": "SNOMED-CT:427898007",
+        "name": "Infection of tooth (disorder)",
+        "onset": "2017-11-22"
+      },
+      {
+        "code": "SNOMED-CT:109570002",
+        "name": "Primary dental caries (disorder)",
+        "onset": "2017-11-22"
+      },
+      {
+        "code": "SNOMED-CT:314529007",
+        "name": "Medication review due (situation)",
+        "onset": "2018-04-03"
+      },
+      {
+        "code": "SNOMED-CT:160903007",
+        "name": "Full-time employment (finding)",
+        "onset": "2018-04-04"
+      },
+      {
+        "code": "SNOMED-CT:10509002",
+        "name": "Acute bronchitis (disorder)",
+        "onset": "2018-06-24"
+      },
+      {
+        "code": "SNOMED-CT:706893006",
+        "name": "Victim of intimate partner abuse (finding)",
+        "onset": "2018-07-04"
+      },
+      {
+        "code": "SNOMED-CT:66383009",
+        "name": "Gingivitis (disorder)",
+        "onset": "2018-07-04"
+      },
+      {
+        "code": "SNOMED-CT:314529007",
+        "name": "Medication review due (situation)",
+        "onset": "2018-11-20"
+      },
+      {
+        "code": "SNOMED-CT:109570002",
+        "name": "Primary dental caries (disorder)",
+        "onset": "2018-12-19"
+      },
+      {
+        "code": "SNOMED-CT:314529007",
+        "name": "Medication review due (situation)",
+        "onset": "2019-03-05"
+      },
+      {
+        "code": "SNOMED-CT:433144002",
+        "name": "Chronic kidney disease stage 3 (disorder)",
+        "onset": "2019-03-05"
+      },
+      {
+        "code": "SNOMED-CT:157141000119108",
+        "name": "Proteinuria due to type 2 diabetes mellitus (disorder)",
+        "onset": "2019-03-05"
+      },
+      {
+        "code": "SNOMED-CT:73595000",
+        "name": "Stress (finding)",
+        "onset": "2019-07-03"
+      },
+      {
+        "code": "SNOMED-CT:427898007",
+        "name": "Infection of tooth (disorder)",
+        "onset": "2019-07-17"
+      },
+      {
+        "code": "SNOMED-CT:37320007",
+        "name": "Loss of teeth (disorder)",
+        "onset": "2019-07-23"
+      },
+      {
+        "code": "SNOMED-CT:67787004",
+        "name": "Tongue tie (disorder)",
+        "onset": "2019-07-23"
+      },
+      {
+        "code": "SNOMED-CT:73438004",
+        "name": "Unemployed (finding)",
+        "onset": "2019-10-29"
+      },
+      {
+        "code": "SNOMED-CT:66383009",
+        "name": "Gingivitis (disorder)",
+        "onset": "2019-11-27"
+      },
+      {
+        "code": "SNOMED-CT:314529007",
+        "name": "Medication review due (situation)",
+        "onset": "2019-12-24"
+      },
+      {
+        "code": "SNOMED-CT:73595000",
+        "name": "Stress (finding)",
+        "onset": "2019-12-25"
+      },
+      {
+        "code": "SNOMED-CT:66383009",
+        "name": "Gingivitis (disorder)",
+        "onset": "2019-12-25"
+      },
+      {
+        "code": "SNOMED-CT:160903007",
+        "name": "Full-time employment (finding)",
+        "onset": "2020-01-28"
+      },
+      {
+        "code": "SNOMED-CT:18718003",
+        "name": "Gingival disease (disorder)",
+        "onset": "2020-03-11"
+      },
+      {
+        "code": "SNOMED-CT:314529007",
+        "name": "Medication review due (situation)",
+        "onset": "2020-03-24"
+      },
+      {
+        "code": "SNOMED-CT:741062008",
+        "name": "Not in labor force (finding)",
+        "onset": "2020-03-24"
+      },
+      {
+        "code": "SNOMED-CT:160903007",
+        "name": "Full-time employment (finding)",
+        "onset": "2020-04-29"
+      },
+      {
+        "code": "SNOMED-CT:73595000",
+        "name": "Stress (finding)",
+        "onset": "2020-04-29"
+      },
+      {
+        "code": "SNOMED-CT:314529007",
+        "name": "Medication review due (situation)",
+        "onset": "2020-05-26"
+      },
+      {
+        "code": "SNOMED-CT:314529007",
+        "name": "Medication review due (situation)",
+        "onset": "2020-10-20"
+      },
+      {
+        "code": "SNOMED-CT:73595000",
+        "name": "Stress (finding)",
+        "onset": "2020-10-21"
+      },
+      {
+        "code": "SNOMED-CT:706893006",
+        "name": "Victim of intimate partner abuse (finding)",
+        "onset": "2020-12-02"
+      },
+      {
+        "code": "SNOMED-CT:73595000",
+        "name": "Stress (finding)",
+        "onset": "2021-02-17"
+      },
+      {
+        "code": "SNOMED-CT:66383009",
+        "name": "Gingivitis (disorder)",
+        "onset": "2021-02-17"
+      },
+      {
+        "code": "SNOMED-CT:18718003",
+        "name": "Gingival disease (disorder)",
+        "onset": "2021-03-03"
+      },
+      {
+        "code": "SNOMED-CT:423315002",
+        "name": "Limited social contact (finding)",
+        "onset": "2021-08-18"
+      },
+      {
+        "code": "SNOMED-CT:314529007",
+        "name": "Medication review due (situation)",
+        "onset": "2021-09-14"
+      },
+      {
+        "code": "SNOMED-CT:314529007",
+        "name": "Medication review due (situation)",
+        "onset": "2021-10-19"
+      },
+      {
+        "code": "SNOMED-CT:160904001",
+        "name": "Part-time employment (finding)",
+        "onset": "2021-12-08"
+      },
+      {
+        "code": "SNOMED-CT:73595000",
+        "name": "Stress (finding)",
+        "onset": "2021-12-08"
+      },
+      {
+        "code": "SNOMED-CT:314529007",
+        "name": "Medication review due (situation)",
+        "onset": "2022-03-15"
+      },
+      {
+        "code": "SNOMED-CT:160903007",
+        "name": "Full-time employment (finding)",
+        "onset": "2022-03-16"
+      },
+      {
+        "code": "SNOMED-CT:278588009",
+        "name": "Fractured dental filling (finding)",
+        "onset": "2022-03-30"
+      },
+      {
+        "code": "SNOMED-CT:424393004",
+        "name": "Reports of violence in the environment (finding)",
+        "onset": "2022-06-15"
+      },
+      {
+        "code": "SNOMED-CT:160904001",
+        "name": "Part-time employment (finding)",
+        "onset": "2022-07-13"
+      },
+      {
+        "code": "SNOMED-CT:423315002",
+        "name": "Limited social contact (finding)",
+        "onset": "2022-07-13"
+      },
+      {
+        "code": "SNOMED-CT:431857002",
+        "name": "Chronic kidney disease stage 4 (disorder)",
+        "onset": "2022-09-13"
+      },
+      {
+        "code": "SNOMED-CT:160903007",
+        "name": "Full-time employment (finding)",
+        "onset": "2022-09-14"
+      },
+      {
+        "code": "SNOMED-CT:73595000",
+        "name": "Stress (finding)",
+        "onset": "2022-09-14"
+      },
+      {
+        "code": "SNOMED-CT:698306007",
+        "name": "Awaiting transplantation of kidney (situation)",
+        "onset": "2022-12-05"
+      },
+      {
+        "code": "SNOMED-CT:741062008",
+        "name": "Not in labor force (finding)",
+        "onset": "2022-12-13"
+      },
+      {
+        "code": "SNOMED-CT:160904001",
+        "name": "Part-time employment (finding)",
+        "onset": "2023-04-12"
+      },
+      {
+        "code": "SNOMED-CT:73595000",
+        "name": "Stress (finding)",
+        "onset": "2023-04-12"
+      },
+      {
+        "code": "SNOMED-CT:444814009",
+        "name": "Viral sinusitis (disorder)",
+        "onset": "2023-12-11"
+      },
+      {
+        "code": "SNOMED-CT:314529007",
+        "name": "Medication review due (situation)",
+        "onset": "2023-12-19"
+      },
+      {
+        "code": "SNOMED-CT:160903007",
+        "name": "Full-time employment (finding)",
+        "onset": "2023-12-19"
+      },
+      {
+        "code": "SNOMED-CT:314529007",
+        "name": "Medication review due (situation)",
+        "onset": "2023-12-26"
+      },
+      {
+        "code": "SNOMED-CT:314529007",
+        "name": "Medication review due (situation)",
+        "onset": "2024-01-09"
+      },
+      {
+        "code": "SNOMED-CT:49436004",
+        "name": "Atrial fibrillation (disorder)",
+        "onset": "2024-12-24"
+      },
+      {
+        "code": "SNOMED-CT:314529007",
+        "name": "Medication review due (situation)",
+        "onset": "2024-12-24"
+      },
+      {
+        "code": "SNOMED-CT:73438004",
+        "name": "Unemployed (finding)",
+        "onset": "2024-12-25"
+      },
+      {
+        "code": "SNOMED-CT:66383009",
+        "name": "Gingivitis (disorder)",
+        "onset": "2024-12-25"
+      },
+      {
+        "code": "SNOMED-CT:18718003",
+        "name": "Gingival disease (disorder)",
+        "onset": "2025-01-15"
+      },
+      {
+        "code": "SNOMED-CT:160904001",
+        "name": "Part-time employment (finding)",
+        "onset": "2025-12-31"
+      },
+      {
+        "code": "SNOMED-CT:422650009",
+        "name": "Social isolation (finding)",
+        "onset": "2025-12-31"
+      },
+      {
+        "code": "SNOMED-CT:73595000",
+        "name": "Stress (finding)",
+        "onset": "2025-12-31"
+      },
+      {
+        "code": "SNOMED-CT:46177005",
+        "name": "End-stage renal disease (disorder)",
+        "onset": "2026-03-24"
+      },
+      {
+        "code": "SNOMED-CT:160903007",
+        "name": "Full-time employment (finding)",
+        "onset": "2026-03-25"
+      },
+      {
+        "code": "SNOMED-CT:314529007",
+        "name": "Medication review due (situation)",
+        "onset": "2026-05-26"
+      },
+      {
+        "code": "SNOMED-CT:424393004",
+        "name": "Reports of violence in the environment (finding)",
+        "onset": "2026-05-27"
+      },
+      {
+        "code": "SNOMED-CT:314529007",
+        "name": "Medication review due (situation)",
+        "onset": "2026-07-21"
+      },
+      {
+        "code": "SNOMED-CT:423315002",
+        "name": "Limited social contact (finding)",
+        "onset": "2026-07-21"
+      },
+      {
+        "code": "SNOMED-CT:73595000",
+        "name": "Stress (finding)",
+        "onset": "2026-07-21"
+      }
+    ],
+    "dob": "1975-02-18",
+    "first_name": "Dee580",
+    "last_name": "Eichmann909",
+    "medications": [
+      {
+        "name": "insulin isophane, human 70 UNT/ML / insulin, regular, human 30 UNT/ML Injectable Suspension [Humulin]",
+        "started": "2016-05-17",
+        "strength": "70 UNT"
+      },
+      {
+        "name": "lisinopril 10 MG Oral Tablet",
+        "started": "2016-05-17",
+        "strength": "10 MG"
+      },
+      {
+        "name": "Acetaminophen 325 MG Oral Tablet",
+        "started": "2018-06-24",
+        "strength": "325 MG"
+      },
+      {
+        "name": "sodium fluoride 0.0272 MG/MG Oral Gel",
+        "started": "2019-07-17",
+        "strength": "0.0272 MG"
+      },
+      {
+        "name": "1 ML Epoetin Alfa 4000 UNT/ML Injection [Epogen]",
+        "started": "2022-09-21",
+        "strength": "1 ML"
+      },
+      {
+        "name": "Amoxicillin 250 MG / Clavulanate 125 MG Oral Tablet",
+        "started": "2023-12-11",
+        "strength": "250 MG"
+      },
+      {
+        "name": "verapamil hydrochloride 80 MG Oral Tablet [Calan]",
+        "started": "2024-12-24",
+        "strength": "80 MG"
+      },
+      {
+        "name": "Warfarin Sodium 5 MG Oral Tablet",
+        "started": "2024-12-24",
+        "strength": "5 MG"
+      },
+      {
+        "name": "Digoxin 0.125 MG Oral Tablet",
+        "started": "2024-12-24",
+        "strength": "0.125 MG"
+      }
+    ],
+    "middle_name": "",
+    "mrn": "20",
+    "patient_ref": "20",
+    "phone": "",
+    "postal_code": "01107",
+    "sex": "Male",
+    "state": "Massachusetts",
+    "street": "421 Howe Manor Suite 31"
+  },
+  "source": "local-openemr-mysql"
+}
