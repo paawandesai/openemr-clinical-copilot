@@ -17,7 +17,7 @@ from __future__ import annotations
 
 import json
 from collections.abc import Callable, Iterator
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from typing import Any
 from unittest import mock
 
@@ -913,3 +913,82 @@ def test_openapi_publishes_the_conversation_contract() -> None:
     assert set(schema["components"]["schemas"]["ConversationTurnRequest"]["properties"]) == {
         "patient_id", "session_id", "question",
     }
+
+
+# -- the trim is stated to the model, not only to the physician -----------------
+
+
+def _many_creatinine(total: int) -> list[Observation]:
+    return [
+        Observation(
+            source_id=f"a-obs-cr-bulk-{n}", value=1.0 + n / 100, unit="mg/dL",
+            loinc_code="2160-0", effective_date=_utc(2026, 4, 5) - timedelta(days=30 * n),
+        )
+        for n in range(total)
+    ]
+
+
+def _prompt_for(question: str, observations: list[Observation]) -> str:
+    """One real drafting call against a patched chart; returns the user content."""
+    calls: list[dict[str, Any]] = []
+    output = json.dumps({"claims": [], "coverage": "none", "gaps": ["lab_results"]})
+    with (
+        mock.patch.dict(CHARTS[PATIENT_A], {R.OBSERVATION: observations}),
+        mock.patch.object(graph, "draft_conversation_turn", drafting.draft_conversation_turn),
+        mock.patch.object(draft_follow_up, "_client", lambda: _fake_client(output, calls)),
+    ):
+        _turn(question)
+    return calls[0]["messages"][0]["content"]
+
+
+def test_a_trimmed_lab_set_tells_the_model_how_many_records_it_cannot_see(world: FakeWorld) -> None:
+    """
+    The defect this closes: with only <retrieved_records> in the prompt, the
+    model's input for a patient holding 83 creatinine results was identical
+    to one holding 8, so `coverage: "full"` was drafted on a question the
+    turn could not cover. The count is now in the prompt.
+    """
+    prompt = _prompt_for("What were her creatinine results?", _many_creatinine(83))
+
+    scope = prompt.split("<retrieval_scope>\n")[1].split("\n</retrieval_scope>")[0]
+    assert "8 of 83 lab results" in scope
+    assert "75 further Observation records are omitted" in scope
+    assert "LOINC 2160-0: the 8 most recent of 83 results are included; 75 older results are omitted." in scope
+
+
+def test_an_untrimmed_lab_set_says_so_rather_than_staying_silent(world: FakeWorld) -> None:
+    """
+    Silence would be ambiguous in the same direction as before: the model
+    must be able to tell a complete set from a cut one, so a complete set
+    is stated too.
+    """
+    prompt = _prompt_for("What were her creatinine results?", list(A_CREATININE))
+
+    scope = prompt.split("<retrieval_scope>\n")[1].split("\n</retrieval_scope>")[0]
+    assert "3 of 3 lab results" in scope
+    assert "omitted" not in scope
+
+
+def test_the_scope_block_carries_counts_only_and_no_chart_content(world: FakeWorld) -> None:
+    """Invariant 1: the disclosure adds no PHI to the prompt that the records don't already hold."""
+    observations = _many_creatinine(83)
+    prompt = _prompt_for("What were her creatinine results?", observations)
+
+    scope = prompt.split("<retrieval_scope>\n")[1].split("\n</retrieval_scope>")[0]
+    # No value, unit or source_id of any omitted record reaches the block.
+    for observation in observations[8:]:
+        assert observation.source_id not in scope
+        assert str(observation.value) not in scope
+
+
+def test_the_physician_and_the_model_are_told_the_same_cut(world: FakeWorld) -> None:
+    """
+    The closing line and <retrieval_scope> are rendered from one LabScope,
+    so the answer cannot claim completeness the prompt contradicts.
+    """
+    with mock.patch.dict(CHARTS[PATIENT_A], {R.OBSERVATION: _many_creatinine(83)}):
+        world.drafter = _answer(coverage=Coverage.NONE, gaps=[ConversationGap.LAB_RESULTS])
+        body = _turn("What were her creatinine results?")
+
+    assert "8 of 83 lab results" in body.answer
+    assert "Answered only from what was retrieved for this turn" in body.answer

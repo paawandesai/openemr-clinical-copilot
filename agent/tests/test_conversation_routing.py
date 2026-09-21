@@ -230,3 +230,86 @@ def test_an_absent_date_sorts_last() -> None:
     kept, _ = narrow_observations([undated, *_chart()], frozenset({"2160-0"}), frozenset())
 
     assert "obs-undated" not in [o.source_id for o in kept]
+
+
+# -- what the cut leaves out, and whether the model is told ---------------------
+#
+# The cap used to be stated only to the physician, in the answer's closing
+# line. The model's input was identical whether a set of 8 results was the
+# whole chart or 8 of 83, so `coverage: "full"` could be drafted on a
+# question the turn could not possibly cover. These cover the counts
+# LabScope now carries; test_conversation.py asserts they reach the prompt.
+
+
+def test_under_the_cap_nothing_is_reported_as_omitted() -> None:
+    chart = [_obs(n, "2160-0", days_ago=30 * n) for n in range(routing.LAB_RESULTS_PER_CODE - 3)]
+
+    kept, scope = narrow_observations(chart, frozenset({"2160-0"}), frozenset())
+
+    assert len(kept) == len(chart)
+    assert (scope.omitted, scope.truncated_codes) == (0, ())
+
+
+def test_at_the_cap_exactly_nothing_is_reported_as_omitted() -> None:
+    chart = [_obs(n, "2160-0", days_ago=30 * n) for n in range(routing.LAB_RESULTS_PER_CODE)]
+
+    kept, scope = narrow_observations(chart, frozenset({"2160-0"}), frozenset())
+
+    assert len(kept) == routing.LAB_RESULTS_PER_CODE
+    # The boundary is the one that matters: a set sitting exactly on the cap
+    # is complete, and saying "0 omitted" there is the difference between a
+    # disclosure and a false alarm on every full answer.
+    assert (scope.omitted, scope.truncated_codes) == (0, ())
+
+
+def test_over_the_cap_states_the_count_and_which_test_was_cut() -> None:
+    total = routing.LAB_RESULTS_PER_CODE + 75
+    chart = [_obs(n, "2160-0", days_ago=30 * n) for n in range(total)]
+
+    kept, scope = narrow_observations(chart, frozenset({"2160-0"}), frozenset())
+
+    assert len(kept) == routing.LAB_RESULTS_PER_CODE
+    assert scope.omitted == 75
+    assert scope.truncated_codes == (("2160-0", routing.LAB_RESULTS_PER_CODE, total),)
+
+
+def test_an_outlying_value_beyond_the_cap_is_cut_but_the_cut_is_disclosed() -> None:
+    """
+    The work order asks for abnormal results to be kept ahead of normal
+    ones. There is no abnormality signal to sort on: F-19 found zero
+    reference ranges and zero abnormal flags across 7,259 local /29,701
+    droplet `procedure_result` rows, re-verified 2026-09-21 against the
+    Vultr FHIR host — 0 of 14,848 lab Observations carry `interpretation`
+    or `referenceRange`. Observation deliberately has no such field
+    (app/models/fhir_resources.py:210-216).
+
+    So a result that is clinically extreme is ordered by date like every
+    other result, and one old enough falls outside the cap. What is
+    guaranteed instead is that it is never dropped silently: the count is
+    reported, so neither the model nor the physician is told the visible
+    results are all of them. See docs/w2/WEEK1_DEBT.md.
+    """
+    chart = [_obs(n, "2160-0", days_ago=30 * n) for n in range(routing.LAB_RESULTS_PER_CODE + 5)]
+    extreme = Observation(
+        source_id="obs-2160-0-extreme", value=11.4, unit="mg/dL", loinc_code="2160-0",
+        effective_date=_T0 - timedelta(days=30 * (routing.LAB_RESULTS_PER_CODE + 4)),
+    )
+
+    kept, scope = narrow_observations([extreme, *chart], frozenset({"2160-0"}), frozenset())
+
+    assert "obs-2160-0-extreme" not in [o.source_id for o in kept]
+    assert scope.omitted == 6
+    assert scope.truncated_codes == (
+        ("2160-0", routing.LAB_RESULTS_PER_CODE, routing.LAB_RESULTS_PER_CODE + 6),
+    )
+
+
+def test_a_general_question_over_the_cap_reports_what_it_left_out() -> None:
+    chart = _chart()
+
+    _, scope = narrow_observations(chart, frozenset(), frozenset())
+
+    assert scope.omitted == len(chart) - routing.LAB_RESULTS_GENERAL
+    # A general question narrows by recency across every test, not per
+    # code, so there is no per-code allowance to report against.
+    assert scope.truncated_codes == ()

@@ -43,6 +43,7 @@ from typing import Any
 from pydantic import BaseModel
 
 from app.conversation.lab_codes import loinc_name
+from app.conversation.routing import ENCOUNTER_COUNT, LabScope
 from app.conversation.state import VerifiedTurn
 from app.middleware.correlation import get_correlation_id
 from app.middleware.logging import log_event
@@ -90,6 +91,18 @@ The records in <retrieved_records> are the only source of information you may us
 - Cite only source_ids that appear in <retrieved_records>, character for character. Never invent, guess, complete, or alter a source_id.
 - Copy each value exactly as it appears in that record's field: same spelling, capitalization, punctuation, digits, and format, including dates. A number is copied digit for digit, never rounded. A field whose value is null is claimed with the value null.
 - Add nothing the records do not state: no inferred diagnoses, drug classes, indications, reasons, doses, interactions, contraindications, severity, trends, or interpretation.
+
+## What you were not shown
+
+<retrieval_scope> states, in counts, what <retrieved_records> leaves out. The chart holds more than you can see: lab results are capped per test and in total before you are called, so a set of eight results for a test can be eight of eighty-three.
+
+Treat it as binding on coverage:
+
+- Never read the absence of a record as evidence that it does not exist. If <retrieval_scope> reports omitted Observation records, the chart may hold results you were not given.
+- When the question asks about a test whose results <retrieval_scope> reports as truncated, and answering it fully would need results older than the ones you were given, set coverage "partial" and report the gap "lab_results". Cite the results you do have.
+- A question the records you were given answer completely is still "full". Truncation elsewhere in the chart does not make every answer partial — only an answer that needed the omitted records.
+- "the most recent" and "the latest" are answerable from a truncated set: the results are newest first, so the latest one for a test is present. That is "full".
+- <retrieval_scope> is counts about the chart, never chart data. Never claim a value from it, and never cite it as a source.
 
 Which record types were retrieved is decided by rule before you are called, and <retrieved_records> holds exactly those. Condition, MedicationRequest, and AllergyIntolerance records are always there, active or not. Observation records, when present, are lab results: the most recent results for the tests this conversation is about, newest first, not the whole chart. A lab result has a LOINC code and no name; <lab_code_names> gives the co-pilot's reference label for each code present. Use those labels to work out which results the question is about. They are not chart data and are never claimed. Encounter records, when present, are visit dates only, newest first. A record type that is absent was not retrieved this turn. Vitals, notes, procedures, immunizations, imaging, and family or social history are never retrieved, and neither is anything a record has no field for, such as why a medication was prescribed or stopped, who prescribed it, or how to take it.
 
@@ -233,12 +246,65 @@ def serialize_context(context: tuple[VerifiedTurn, ...]) -> str:
     )
 
 
+def serialize_retrieval_scope(
+    retrieved: dict[FhirResourceType, list[Any]], lab_scope: LabScope | None
+) -> str:
+    """
+    What <retrieved_records> does NOT hold, in counts. Without this the
+    model's input is identical for a patient with 40 lab results and a
+    patient with 2,203 of which it is shown 40, and it cannot set
+    `coverage` honestly on the second. Counts only — no names, values or
+    dates, so this adds no chart content to the prompt (invariant 1).
+
+    `lab_scope` is None when the turn retrieved no Observations; then the
+    labs line is omitted rather than reported as zero omissions, because
+    "nothing was left out" and "nothing was looked at" are different
+    facts.
+    """
+    lines: list[str] = []
+
+    if lab_scope is not None and lab_scope.retrieved:
+        lines.append(
+            f"Observation: {lab_scope.considered} of {lab_scope.retrieved} lab "
+            f"results on this patient's chart are included below, newest first."
+        )
+        if lab_scope.omitted:
+            lines.append(
+                f"{lab_scope.omitted} further Observation records are omitted "
+                f"from this turn and you cannot see them."
+            )
+        for code, kept, total in lab_scope.truncated_codes:
+            lines.append(
+                f"LOINC {code}: the {kept} most recent of {total} results are "
+                f"included; {total - kept} older results are omitted."
+            )
+
+    encounters = retrieved.get(FhirResourceType.ENCOUNTER)
+    if encounters is not None and len(encounters) >= ENCOUNTER_COUNT:
+        # get_encounters asks the server for ENCOUNTER_COUNT and no more, so
+        # a full set means older visits exist unread. The exact number is
+        # unknown — the chart was never asked for it — and is not guessed at.
+        lines.append(
+            f"Encounter: the {len(encounters)} most recent visit dates are "
+            f"included. This patient has older visits that were not retrieved; "
+            f"how many is unknown."
+        )
+
+    if not lines:
+        return "Every record retrieved for this turn is included below. Nothing was omitted."
+    return "\n".join(lines)
+
+
 def build_user_content(
     retrieved: dict[FhirResourceType, list[Any]],
     question: str,
     context: tuple[VerifiedTurn, ...],
+    lab_scope: LabScope | None = None,
 ) -> str:
     return (
+        "<retrieval_scope>\n"
+        f"{serialize_retrieval_scope(retrieved, lab_scope)}\n"
+        "</retrieval_scope>\n\n"
         "<retrieved_records>\n"
         f"{serialize_retrieved(retrieved)}\n"
         "</retrieved_records>\n\n"
@@ -280,12 +346,18 @@ async def draft_conversation_turn(
     context: tuple[VerifiedTurn, ...],
     *,
     patient_session_key: str,
+    lab_scope: LabScope | None = None,
 ) -> TurnDraft:
     """
     Drafts claims answering `question` from this turn's bounded set, with
     `context` available for resolving references. Claims come back
     unverified, including any that cite a source_id that wasn't provided,
     so the verifier can report them (§5).
+
+    `lab_scope` is the cut app/conversation/routing.py made to get that
+    bounded set. It is stated to the model in <retrieval_scope> so the
+    model knows what it was not shown; None means no Observation was
+    retrieved this turn.
 
     Logs llm_usage_event (or llm_call_failed) and claims_drafted, tagged
     follow_up_drilling and `patient_session_key`. Neither the question nor
@@ -295,7 +367,7 @@ async def draft_conversation_turn(
         raise ValueError("question must be a non-empty string")
     message = await draft_follow_up.stream_structured(
         system=SYSTEM_PROMPT,
-        user_content=build_user_content(retrieved, question, context),
+        user_content=build_user_content(retrieved, question, context, lab_scope),
         schema=output_schema(turn_resource_types(retrieved)),
         patient_session_key=patient_session_key,
     )
