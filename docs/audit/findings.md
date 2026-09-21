@@ -1995,6 +1995,8 @@ Pass-2 droplet database commands were run as
 ### F-58 — Allergy clinical status is discarded before drafting; a resolved allergy would render as current
 - **Category:** Data Quality
 - **Severity:** Medium (latent — no live allergy is resolved)
+- **Status:** **Fixed** 2026-09-21 (`fix/remaining-defects`), not yet
+  deployed. See Remediation and Before / after below.
 - **Claim:** OpenEMR's FHIR `AllergyIntolerance` carries `clinicalStatus`
   (`active`, `resolved`, `inactive`), but the agent's allergy model has no
   status field, so status never reaches the model or the renderer. A resolved
@@ -2023,11 +2025,52 @@ Pass-2 droplet database commands were run as
   - Live state (`first-hand`, droplet FHIR API, 2026-09-16 ~21:30Z): all 50
     AllergyIntolerance records, across the 10 patients with any, report
     `clinicalStatus` `active`. Nothing renders wrongly today.
-- **Remediation:** not done. Carry clinical status on the allergy model and
-  apply the same active filter used for conditions and medications, so
-  "none active" is reachable for allergies.
-- **Verified:** `first-hand` (mapping, model, eval result, live census) · not
-  observed on a real resolved allergy (none exists in this population).
+- **Remediation:** **done 2026-09-21** on `fix/remaining-defects`, in the
+  three layers the status was missing from. Not deployed at the time of
+  writing; the operator deploys after review.
+  - `app/models/fhir_resources.py` — `AllergyIntolerance` gains a required
+    `clinical_status`, declared exactly as `Condition.clinical_status` is.
+  - `app/fhir/client.py:488` — `get_allergy_intolerances` reads
+    `clinicalStatus` through the same `_first_coding` helper the Condition
+    reader uses, defaulting to `"unknown"` when the coding is absent. The
+    default lives in the parser, not the model, so a missing status is
+    representable rather than guessed.
+  - `app/reasoning/draft_claims.py` — `brief_records` excludes allergies
+    whose status is in `_ENDED_ALLERGY_STATUSES` (`resolved`, `inactive`).
+    `render_brief` needed no change: it keys off `SectionCount`, so
+    "Allergies: none active (N on file, none with active status)" became
+    reachable as soon as the filter did.
+
+  **The filter tests for "explicitly ended", not "explicitly active",**
+  which is the opposite default from conditions and medications. Filtering
+  allergies on `== "active"` was written first and rejected: it silently
+  dropped any allergy whose `clinicalStatus` OpenEMR omitted (parsed as
+  `"unknown"`), which three `test_uncoded_names.py` cases caught
+  immediately. That would be a worse defect than this one and the exact
+  silent-drop shape F-21, F-57 and the H eval cases exist to prevent — a
+  wrongly-shown allergy is visible and checkable, a wrongly-hidden one is
+  neither. The asymmetry is deliberate and commented at the filter.
+- **Before / after:**
+  - *Before* (eval A6, `first-hand`, 2026-09-20 05:32Z run on the Vultr
+    host, `agent/evals/RESULTS.md` at `28681e5`): FAIL —
+    ```
+    10 resolved allergies rendered under 'Allergies:' as current, e.g. ['Allergic disposition
+    (finding)', 'Bee venom (substance)', 'Mold (organism)']; the model's input for
+    AllergyIntolerance has only ['display', 'recorded_date', 'source_id'], so no status can
+    reach the brief
+    ```
+  - *After* (`first-hand`, unit tests, 2026-09-21): the model's input for an
+    allergy now carries `clinical_status`; two resolved allergies render as
+    `Allergies: none active (2 on file, none with active status)` with
+    neither allergen named; an active allergy alongside a resolved one still
+    renders, so the filter is per record; and an allergy with no status
+    parses as `"unknown"` and is still shown. Covered by
+    `tests/test_pre_visit_brief_render.py` (3 cases) and
+    `tests/test_uncoded_names.py` (4 cases). Full suite: 358 passed.
+    The live A6 re-run is recorded separately in `agent/evals/RESULTS.md`.
+- **Verified:** `first-hand` (mapping, model, eval result, live census, and
+  the fix's own tests) · not observed on a real resolved allergy (none
+  exists in this population, so A6 constructs one from a real Bundle).
 - **Implication for the agent:** The brief's "not recorded" / "none active"
   distinction (`ARCHITECTURE.md` §5) holds for conditions and medications
   only. For allergies it fails silently the first time a clinician records an

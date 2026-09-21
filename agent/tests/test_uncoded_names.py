@@ -393,3 +393,41 @@ def test_hostile_narratives_never_put_markup_in_the_brief() -> None:
         "script": False,
         "escaped": False,
     }
+
+
+# -- F-58: the allergy's clinical status survives parsing --------------------
+
+
+@pytest.mark.parametrize(
+    ("code", "expected"),
+    [("active", "active"), ("resolved", "resolved"), ("inactive", "inactive")],
+    ids=["active", "resolved", "inactive"],
+)
+def test_allergy_clinical_status_is_parsed_from_the_bundle(code: str, expected: str) -> None:
+    """
+    F-58: the status OpenEMR emits (FhirAllergyIntoleranceService.php:117-121)
+    has to reach the model, or a resolved allergy renders as a current one.
+    """
+    resource = _allergy("a", code=DATA_ABSENT, text=_div("penicillin"))
+    resource["clinicalStatus"] = {"coding": [{"code": code}]}
+
+    [record] = _fetch(fhir_client.get_allergy_intolerances, _bundle(resource))
+
+    assert record.clinical_status == expected
+
+
+def test_allergy_with_no_clinical_status_parses_as_unknown_not_as_active() -> None:
+    """
+    An absent status is not silently promoted to "active": it parses as
+    "unknown", and brief_records keeps it (F-21 — see the filter's comment
+    in draft_claims.py). Both halves matter, so both are asserted here.
+    """
+    [record] = _fetch(
+        fhir_client.get_allergy_intolerances,
+        _bundle(_allergy("a", code=DATA_ABSENT, text=_div("penicillin"))),
+    )
+
+    assert record.clinical_status == "unknown"
+    assert draft_claims.brief_records(
+        pvb.FhirResourceType.ALLERGY_INTOLERANCE, [record]
+    ) == [record]

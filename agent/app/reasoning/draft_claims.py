@@ -103,17 +103,38 @@ _BRIEF_RESOURCE_MODELS: dict[FhirResourceType, type[BaseModel]] = {
 }
 
 # USERS.md §3 Use Case 1: "active problem list", "current medications".
-# AllergyIntolerance has no status field, so every allergy record counts.
 _ACTIVE_STATUS: dict[FhirResourceType, tuple[str, str]] = {
     FhirResourceType.CONDITION: ("clinical_status", "active"),
     FhirResourceType.MEDICATION_REQUEST: ("status", "active"),
 }
+
+# Allergies are filtered the other way round (findings.md F-58, F-21).
+# OpenEMR marks an allergy resolved or inactive once the record carries an
+# end date (FhirAllergyIntoleranceService.php:117-121), and such a record
+# must not reach the physician as a current allergy — that is F-58.
+#
+# But the test is "explicitly ended", not "explicitly active", which is the
+# opposite default from conditions and medications above, and deliberately
+# so. An allergy whose status the chart does not state must still be shown:
+# F-21's whole point is that allergy data the record does not rule out is
+# never safe to treat as absent. Filtering on == "active" would silently
+# drop an allergy whose clinicalStatus OpenEMR omitted — a worse failure
+# than the one F-58 describes, and the exact silent-drop shape F-57 and the
+# H cases guard against. A wrongly-shown allergy is visible and checkable;
+# a wrongly-hidden one is neither.
+_ENDED_ALLERGY_STATUSES = frozenset({"resolved", "inactive"})
 
 
 def brief_records(
     resource_type: FhirResourceType, records: list[Any]
 ) -> list[Any]:
     """The subset of retrieved records the Pre-Visit Brief reports on."""
+    if resource_type is FhirResourceType.ALLERGY_INTOLERANCE:
+        return [
+            record
+            for record in records
+            if record.clinical_status not in _ENDED_ALLERGY_STATUSES
+        ]
     if resource_type not in _ACTIVE_STATUS:
         return records
     field, active_value = _ACTIVE_STATUS[resource_type]
