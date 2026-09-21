@@ -380,7 +380,7 @@
     <form id="briefForm">
       <div class="field">
         <label for="patientId">Patient ID</label>
-        <input id="patientId" type="text" placeholder="a2c0e096-23d5-4cf9-ad5b-4895597363a7" autocomplete="off" spellcheck="false" required>
+        <input id="patientId" type="text" placeholder="a2c36e54-af42-4c38-b86e-ade616ed5494" autocomplete="off" spellcheck="false" required>
         <p class="hint">The FHIR Patient id of the chart being opened.</p>
       </div>
 
@@ -1080,7 +1080,7 @@
     if (!PATIENT_ID_PATTERN.test(patientId)) {
       renderError(422, {
         error: "invalid_request",
-        message: "That doesn't look like a FHIR patient id — it should look like a2c0e096-23d5-4cf9-ad5b-4895597363a7.",
+        message: "That doesn't look like a FHIR patient id — it should look like a2c36e54-af42-4c38-b86e-ade616ed5494.",
       });
       return;
     }
