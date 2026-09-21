@@ -1,0 +1,656 @@
+# W2 Write-Back Spike — How the agent can write to OpenEMR 8.2
+
+**Status:** investigation complete. No production code changed. No design implemented.
+**Date:** 2026-09-21
+**Environment:** local docker stack (`docker/development-easy`), `https://localhost:9300`,
+OpenEMR `8.2.0-dev`, database version 541 (`GET /api/version`).
+**Patient used:** `pid=1`, Phil Belford, `uuid a2bed1c5-4018-4b47-9b77-e9c4f76811e4` (synthetic).
+**Vultr was not touched.** Nothing in this spike ran against `64.177.42.210`.
+
+> Note: `agent/.env` points `FHIR_BASE_URL` at the Vultr deployment. This spike deliberately
+> ignored that file and drove the local stack with a throwaway OAuth client (since deleted).
+
+---
+
+## 1. Headline answer
+
+| | |
+|---|---|
+| **Documents** | Writable. `POST /api/patient/:pid/document` (standard REST API). Verified end-to-end, byte-identical read-back. |
+| **Lab values** | **Not writable through any API.** No FHIR create, no standard-REST create, no scope that would authorize one. |
+
+The single most important finding: **OpenEMR 8.2 exposes no write path of any kind for
+Observation / DiagnosticReport / lab results.** This is not a permissions problem we can
+solve by adding a scope — the routes do not exist and the scopes are not defined. Any W2
+design that assumes "POST an Observation" is dead on arrival.
+
+The good news: a lab result written **directly into the `procedure_*` tables** round-trips
+perfectly through the FHIR `Observation` search our Week 1 agent already uses, **including a
+free-text field we can use for both provenance and an idempotency key** (verified, §5).
+
+---
+
+## 2. Capability matrix
+
+`supported?` = what actually happens when you call it, not what the CapabilityStatement claims.
+
+| Capability | Supported? | Path / endpoint | Evidence |
+|---|---|---|---|
+| DocumentReference `read` | ✅ | `GET /fhir/DocumentReference/:uuid` | route `_rest_routes_fhir_r4_us_core_3_1_0.inc.php:272` |
+| DocumentReference `search` | ✅ | `GET /fhir/DocumentReference` | route `:247`; live `?patient=…` → `total=2` |
+| DocumentReference `create` | ❌ **advertised but absent** | — | `POST /fhir/DocumentReference` → **404 `{"message":"Route not found"}`**. See §3. |
+| DocumentReference `$docref` | ✅ (read op) | `POST /fhir/DocumentReference/$docref` | route `:259`; returns documents, does not create |
+| Binary `read` | ✅ | `GET /fhir/Binary/:id` | route `:285`; accepts **numeric doc id or document uuid**, both verified |
+| Binary `create` | ❌ | — | `POST /fhir/Binary` → 404. No Binary write route exists anywhere in the route map. |
+| Observation `read` | ✅ | `GET /fhir/Observation/:uuid` | route `:498` |
+| Observation `search` | ✅ | `GET /fhir/Observation` | route `:493` |
+| Observation `create` | ❌ | — | `POST /fhir/Observation` → 404 |
+| Observation `update` | ❌ | — | `PUT /fhir/Observation/:uuid` → 404 |
+| DiagnosticReport `read`/`search` | ✅ | routes `:221`, `:234` | search returned `total=0` for our data — see §6 |
+| DiagnosticReport `create` | ❌ | — | `POST /fhir/DiagnosticReport` → 404 |
+| Provenance `read`/`search` | ✅ | routes `:757`, `:771` | live `?patient=…` → `total=0` |
+| Provenance `create` | ❌ | — | `POST /fhir/Provenance` → 404 |
+| **Document upload** | ✅ | `POST /api/patient/:pid/document?path=…` | route `_rest_routes_standard.inc.php:496`; live 200 |
+| **Document list (+hash)** | ✅ | `GET /api/patient/:pid/document?path=…` | route `:504`; live 200 |
+| **Document download** | ❌ **500, broken** | `GET /api/patient/:pid/document/:did` | route `:510`; live **500** — see §4 |
+| Procedure/lab create | ❌ | — | no `POST /api/procedure` route; no `create` scope (§8) |
+| `GET /api/procedure` | ⚠️ **broken** | — | returns HTTP 200 with an HTML SQL-error page — see §9 |
+
+### The complete set of FHIR write routes in OpenEMR 8.2
+
+```
+POST /fhir/Organization        PUT /fhir/Organization/:uuid
+POST /fhir/Patient             PUT /fhir/Patient/:uuid
+POST /fhir/Practitioner        PUT /fhir/Practitioner/:uuid
+```
+
+That is the entire list (`grep -nE "^\s*['\"](POST|PUT|PATCH|DELETE) /fhir/"` over
+`apis/routes/_rest_routes_fhir_r4_us_core_3_1_0.inc.php`). Corroborated independently by the
+server's own scope catalogue — `ServerScopeListEntity.php:104`:
+
+```php
+$fhirWriteResources = [
+    'Patient'
+    , 'Practitioner'
+    , 'Organization'
+];
+```
+
+There is no `user/Observation.write` scope for OpenEMR to grant, even in principle.
+
+---
+
+## 3. The CapabilityStatement over-reports (trap — do not trust it)
+
+`GET /fhir/metadata` advertises **`create` for DocumentReference**:
+
+```
+DocumentReference    interactions=['search-type', 'create', 'read']   operations=['$docref']
+Binary               interactions=['read']
+Observation          interactions=['search-type', 'read']
+DiagnosticReport     interactions=['search-type', 'read']
+Provenance           interactions=['read', 'search-type']
+Patient              interactions=['create', 'update', 'search-type', 'read']
+```
+
+That `create` is false. The statement is generated by walking the route map and mapping **any
+`POST` route to the `create` interaction** — `RestControllerHelper.php:458`:
+
+```php
+} elseif (strcmp($reqMethod, "POST") == 0) {
+    $code = "create";
+```
+
+The only `POST` route under `/fhir/DocumentReference` is the **`$docref` operation**, which
+*reads* documents. The generator has no notion of "POST that isn't a create", so the operation
+leaks into the interaction list.
+
+**Verified live.** All five write probes returned `404 Route not found`:
+
+```
+POST /fhir/DocumentReference  -> 404 {"error":"An error occurred","message":"Route not found","code":0}
+POST /fhir/Observation        -> 404 {"error":"An error occurred","message":"Route not found","code":0}
+POST /fhir/DiagnosticReport   -> 404 {"error":"An error occurred","message":"Route not found","code":0}
+POST /fhir/Provenance         -> 404 {"error":"An error occurred","message":"Route not found","code":0}
+POST /fhir/Binary             -> 404 {"error":"An error occurred","message":"Route not found","code":0}
+```
+
+**Positive control that rules out "this is just a missing scope":**
+
+```
+POST /fhir/Patient            -> 401 {"message":"Unauthorized"}
+   error log: "scope user/Patient.c not in access token"
+```
+
+A route that exists but lacks scope returns **401**. A route that does not exist returns **404**.
+All five resources above return 404. The absence is structural, not permissions.
+
+---
+
+## 4. Document storage
+
+### All the ways to store a document for a patient
+
+| # | Path | Usable by our agent? |
+|---|---|---|
+| 1 | `POST /api/patient/:pid/document?path=<category>` | ✅ **yes — the only API path** |
+| 2 | FHIR `POST /fhir/DocumentReference` | ❌ 404, does not exist (§3) |
+| 3 | CCDA/CCR import (`CdaTemplateImportDispose`) | ❌ Laminas UI controller in the `Carecoordination` zend module, session-based; no REST route. See §7. |
+| 4 | `C_Document` / `Document` PHP classes directly | ❌ in-process PHP only (a module), not reachable over HTTP |
+| 5 | Patient-portal upload | ❌ portal session, not our agent |
+| 6 | CouchDB storage backend (`documents.storagemethod=1`) | n/a — a storage backend for #1–#5, not a separate write path |
+
+### The working path, verified
+
+```
+POST /apis/default/api/patient/1/document?path=/Categories/Lab_Report
+Content-Type: multipart/form-data; name="document"
+Authorization: Bearer <REDACTED>
+
+-> HTTP 200
+   true
+```
+
+**The response body is literally `true`.** No document id, no uuid, no Location header. To learn
+what you just created you must re-query the listing. This is a real constraint on our design.
+
+**Category** is passed as `path`, a `/`-separated walk down the `categories` table with spaces
+replaced by `_` (`DocumentService::isValidPath`). For lab documents: **`/Categories/Lab_Report`**
+(category id 2, parent 1). The category surfaces in FHIR as `DocumentReference.category[0].text`:
+
+```json
+"category": [ { "text": "Lab Report" } ]
+```
+
+### Read-back: byte-identical? **Yes — via FHIR Binary.**
+
+| Read path | Result |
+|---|---|
+| `GET /fhir/Binary/2820` (numeric doc id) | **HTTP 200, 626 bytes, `application/pdf`, byte-identical** |
+| `GET /fhir/Binary/a2ccead0-f71c-…` (doc uuid) | **HTTP 200, 626 bytes, byte-identical** |
+| `GET /api/patient/1/document/2820` | **HTTP 500 — broken** |
+
+```
+original sha256 : d4d247f0e9f8bf0dd24487deb8ceff359b8ecc16580653a7a1d554722fc42e35
+Binary dl sha256: d4d247f0e9f8bf0dd24487deb8ceff359b8ecc16580653a7a1d554722fc42e35
+cmp -> BYTE-IDENTICAL
+```
+
+**The standard-API download is broken in this build.** `GET /api/patient/:pid/document/:did`
+returns:
+
+```json
+{"error":"An error occurred","message":"OpenEMR is potentially not secure because CSRF key is empty.","code":0}
+```
+
+Cause traced in the error log: `DocumentService::getFile()` (`src/Services/DocumentService.php:162`)
+constructs `C_Document`, whose constructor calls `CsrfUtils::collectCsrfToken($session)`
+(`controllers/C_Document.class.php:68`). An OAuth bearer request has no CSRF-bearing session, so
+it throws. **Design consequence: read documents back through `GET /fhir/Binary/:id`, never
+through the standard-API download route.**
+
+### Two gotchas that will bite us
+
+**(a) Upload is gated on libmagic sniffing, not file extension.** `DocumentService.php:130`:
+
+```php
+if (OEGlobalsBag::getInstance()->getBoolean('secure_upload') && !isWhiteFile($fileData["tmp_name"])) {
+```
+
+`isWhiteFile` (`library/sanitize.inc.php:113`) runs `mime_content_type()` and checks the result
+against the `files_white_list` list — on this instance: `image/gif, image/png, image/jpeg,
+text/plain, application/pdf, application/zip, application/dicom, application/dicom+zip`.
+
+My first upload attempt **failed** because a `.txt` file containing a few raw bytes
+(`\x01\x02\x03\xff`) sniffs as `application/octet-stream`. Log: `OpenEMR API Error: Attempt to
+upload insecure patient document was declined`.
+
+**(b) A rejected upload is indistinguishable from an empty result.** Both return an **empty
+HTTP 404**, because `RestControllerHelper::responseHandler` (line 166) collapses every falsy
+service return into one:
+
+```php
+} else {
+    $response = new Response('', Response::HTTP_NOT_FOUND);
+}
+```
+
+So `[]` (no documents), `false` (upload rejected), and a genuinely bad path all look the same
+from outside. Note this 404 has an **empty body**, whereas a real unrouted request returns a
+**JSON** 404 — that is the only way to tell them apart from the client side.
+
+**(c) Documents are encrypted at rest.** `documents.encrypted=1`; the on-disk file is ciphertext
+(a 626-byte PDF is stored as 943 bytes of base64-looking data). `documents.size` holds the
+**plaintext** length. We cannot read document bytes off the filesystem; the API decrypts on read.
+
+---
+
+## 5. Lab results — the write path, and the round-trip
+
+### There is no API. Tracing it in source.
+
+Only two places in the entire codebase insert into `procedure_result`:
+
+| Site | What it is |
+|---|---|
+| `interface/orders/orders_results.php:214` (report rows at `:133`, `:143`) | the **manual clinician UI**, "Procedure Results" form |
+| `src/Services/Cda/CdaTemplateImportDispose.php:1707` (report at `:1678`) | the **CCDA import**, reachable only from the `Carecoordination` zend module |
+
+`ProcedureService` — the class that backs the FHIR lab Observation read — exposes **no insert
+method at all**. Its only writers are `addDiagnosis`, `updateOrderCode`, `updateSpecimen`
+(`src/Services/ProcedureService.php:951, 1140, 1181`).
+
+The required chain is four tables:
+
+```
+procedure_order  ──<  procedure_order_code
+       │
+       └──<  procedure_report  ──<  procedure_result
+```
+
+`FhirObservationLaboratoryService` reads via `ProcedureService::search()`, and
+`parseDataRecordsIntoObservationRecords` only emits an Observation for rows that have
+**order → code → report → result** all present.
+
+### Round-trip: **verified working.**
+
+I inserted one chain for pid=1 directly via SQL (glucose 142 mg/dL, LOINC 2345-7, ref 70–99,
+abnormal `high`, `document_id=2820` pointing at the uploaded PDF, and an idempotency key in
+`comments`).
+
+**Before the write:**
+
+```
+GET /fhir/Observation?patient=a2bed1c5-4018-4b47-9b77-e9c4f76811e4&category=laboratory
+-> 200 {"resourceType":"Bundle","type":"collection","total":0, ...}
+```
+
+**After the write — same request, unchanged:**
+
+```json
+{
+  "id": "a2cceb69-4bfb-4d0a-8838-c9fe14c01e49",
+  "meta": {
+    "versionId": "1",
+    "lastUpdated": "2026-09-20T14:00:00+00:00",
+    "profile": ["http://hl7.org/fhir/us/core/StructureDefinition/us-core-observation-lab", "…"]
+  },
+  "resourceType": "Observation",
+  "status": "final",
+  "category": [{"coding":[{"system":"http://terminology.hl7.org/CodeSystem/observation-category",
+                           "code":"laboratory","display":"Laboratory"}]}],
+  "code": {"coding":[{"system":"http://loinc.org","code":"2345-7","display":"Glucose"}]},
+  "subject": {"reference":"Patient/a2bed1c5-4018-4b47-9b77-e9c4f76811e4","type":"Patient"},
+  "effectiveDateTime": "2026-09-20T14:00:00+00:00",
+  "valueQuantity": {"value":142,"unit":"mg/dL","system":"http://unitsofmeasure.org","code":"mg/dL"},
+  "interpretation": [{"coding":[{"system":"http://terminology.hl7.org/CodeSystem/v3-ObservationInterpretation",
+                                 "code":"H","display":"High"}]}],
+  "note": [{"text": "w2key=a27ac9417c2ce8a3…4d01:2345-7:2026-09-20"}],
+  "referenceRange": [{"low":{"value":70,"unit":"mg/dL",…},"high":{"value":99,"unit":"mg/dL",…}}]
+}
+```
+
+`total` went 0 → 1. Value, units, reference range, interpretation, LOINC code, US-Core lab
+profile — all correct, with **no application-side mapping work on our part**.
+
+Two mechanics worth knowing:
+
+- **UUIDs are backfilled for free.** I inserted no uuids. `ProcedureService::__construct` calls
+  `UuidRegistry::createMissingUuidsForTables([...procedure_report, procedure_result...])`
+  (`ProcedureService.php:46-56`), which runs on the next read. Confirmed in the DB afterwards.
+- **`abnormal='high'` → `interpretation H/High`** via a `list_options` join on `proc_res_abnormal`.
+  Use the list's option_ids (`no`, `yes`, `high`, `low`), not free text.
+
+### Search parameters that work on Observation
+
+| Query | Result |
+|---|---|
+| `?patient=…&category=laboratory` | `total=1` ✅ |
+| `?patient=…&code=2345-7` | `total=1` ✅ |
+| `?patient=…&code=http://loinc.org\|2345-7` | `total=1` ✅ |
+| `?patient=…&code=9999-9` | `total=0` ✅ (correctly filters) |
+| `?patient=…&date=ge2026-09-19&date=le2026-09-21` | `total=16` ✅ |
+| `GET /fhir/Observation/:uuid` | returns the resource ✅ |
+
+---
+
+## 6. Provenance — linking a lab result to its source document
+
+### What works: `procedure_result.comments` → `Observation.note[0].text`
+
+`FhirObservationLaboratoryService.php:283`:
+
+```php
+if (!empty($dataRecord['comments'])) {
+    $observation->addNote(['text' => $dataRecord['comments']]);
+}
+```
+
+**Verified:** the exact string I wrote into `comments` came back verbatim in `note[0].text`
+(see the JSON in §5). This is a free-text field we fully control, preserved end to end, readable
+over plain FHIR. It is the one provenance/idempotency carrier the FHIR read surface gives us.
+
+### What does NOT work: `derivedFrom`, despite the schema supporting the link
+
+`procedure_result` has a **first-class foreign key to `documents`** — `sql/database.sql:10507`:
+
+```sql
+`document_id`  bigint(20)  NOT NULL DEFAULT 0  COMMENT 'references documents.id if this result is a document',
+```
+
+`ProcedureService` even reads it and joins the document uuid (`ProcedureService.php:228`,
+`:271`, `:463`). **But it never reaches FHIR.** `FhirObservationLaboratoryService` overrides
+`parseOpenEMRRecord` and never emits it. The trait's `setObservationDerivedFrom`
+(`Observation/Trait/FhirObservationTrait.php:494`) only handles `parent_observation_uuid` —
+which the lab service does not populate — and the `QuestionnaireResponse` branch is commented out.
+
+**Verified:** I set `document_id=2820` on the result row. The returned Observation contains
+**no `derivedFrom`** (confirm by its absence in the §5 JSON), while `document_id=2820` was
+confirmed present in the DB.
+
+**Consequence:** the structural link exists in the database and is invisible over FHIR. If we
+want the agent to read "which document did this value come from", it must travel in
+`note[].text`. Populate `document_id` anyway — it is correct, costs nothing, and is what a future
+OpenEMR version (or our own direct query) would use.
+
+### Provenance resource
+
+`GET /fhir/Provenance?patient=…` → `total=0`. OpenEMR synthesizes Provenance from a resource's
+`performer` (`createProvenanceResource`, `FhirObservationLaboratoryService.php:378`); our row had
+no NPI-bearing provider, so nothing was produced. Provenance cannot be authored directly (no
+create route). Not a viable provenance carrier for us.
+
+---
+
+## 7. Idempotency
+
+### Does OpenEMR hash uploaded documents? **Yes — SHA3-512.**
+
+`library/classes/Document.class.php:1114`:
+
+```php
+$this->hash  = hash('sha3-512', $data);
+```
+
+Stored in `documents.hash` and **returned by the document listing endpoint**:
+
+```
+GET /api/patient/1/document?path=/Categories/Lab_Report
+-> [{"filename":"lab.txt","hash":"823857c2a34f9cf8…4dd03","id":2819,"mimetype":"text/plain","docdate":"2026-09-21"}, …]
+```
+
+Verified by independently computing it locally:
+
+```
+OpenEMR-stored : 823857c2a34f9cf8de5a66a3dde091c29adffac9d90128c83f76d82b15f867c0b1bffaf7cd5abfda324a8402dbdda134b984e219d5eb2993140097b32984dd03
+local sha3-512 : 823857c2a34f9cf8de5a66a3dde091c29adffac9d90128c83f76d82b15f867c0b1bffaf7cd5abfda324a8402dbdda134b984e219d5eb2993140097b32984dd03   ← match
+local sha512   : 375b86128775adf8c4680f4c68af44c02de003a9ef5398df9ecf2e2237f77fd9cc66879a995e7103f0b490d1e9fac32a0cbb5524c065202a2a59e150f48b6446   ← not this
+```
+
+**But OpenEMR does not deduplicate.** I uploaded the identical file twice and got two rows with
+the same hash:
+
+```
+2819 lab.txt text/plain hash=823857c2a34f9cf8...
+2820 lab.pdf application/pdf hash=a27ac9417c2ce8a3...
+2821 lab.txt text/plain hash=823857c2a34f9cf8...   ← duplicate, accepted
+```
+
+There is no unique constraint on `documents.hash` (`sql/database.sql:1391-1431`). **Dedup is our
+job:** list the category, compare SHA3-512, skip if present.
+
+### Can we store and query our own key for lab values?
+
+**Store: yes** — `procedure_result.comments` is `TEXT`, round-trips to `Observation.note[0].text`
+verbatim (§6). I used `w2key=<sha3-512 of source doc>:<test code>:<collection date>` and read it
+back intact.
+
+**Query: not server-side.** The Observation search parameters are exactly
+`patient, code, category, date, _id, _lastUpdated`
+(`FhirObservationLaboratoryService::loadSearchParameters`, line ~110). There is **no** `note`,
+`_text`, `_content` or `identifier` search. So:
+
+> **Duplicate detection = narrow server-side by `patient` + `code` (+ `date`), then match our key
+> in `note[].text` client-side.** Verified that `code=2345-7` filters correctly (`total=1`) and
+> `code=9999-9` returns `total=0`, so the candidate set stays small.
+
+---
+
+## 8. Auth — scopes required, and what our client registration needs
+
+| Write path | Required scope | Evidence |
+|---|---|---|
+| `POST /api/patient/:pid/document` | **`user/document.write`** | route ACL `_rest_routes_standard.inc.php:497`; **verified live** |
+| `GET /api/patient/:pid/document` | `user/document.read` | route `:505` |
+| `GET /fhir/Binary/:id` | `user/Binary.read` | route `:285` |
+| `GET /fhir/Observation` | `user/Observation.read` | already held by the agent |
+| Lab-value write | **none exists** | `'procedure' => ['r','s']` — `ServerScopeListEntity.php:287` |
+
+**Verified live.** A token holding `openid user/document.read user/Patient.read` — i.e. everything
+except `document.write` — was rejected on upload:
+
+```
+POST /apis/default/api/patient/1/document?path=/Categories/Lab_Report
+-> HTTP 403
+   {"message":"OpenEMR Error: API call failed due to insufficient permissions for the requested resource."}
+```
+
+The same request with `user/document.write` present returned 200. The scope is genuinely enforced.
+
+Note the standard API has no create scope for procedures at all — `ServerScopeListEntity.php:287`
+grants `procedure` only `['r','s']` (read, search). There is nothing to request.
+
+### Does our existing client registration need to change? **Yes — and it needs a NEW client.**
+
+The agent's client is registered read-only (`agent/scripts/smoke_test_fhir.py:79`):
+
+```
+openid user/Patient.read user/Condition.read user/MedicationRequest.read
+user/AllergyIntolerance.read user/Encounter.read user/Observation.read
+```
+
+W2 additionally needs **`user/document.write`** and **`user/document.read`** (for hash-based
+dedup), plus **`user/Binary.read`** if the agent reads documents back.
+
+**A client's scopes cannot be updated in place.** `ClientRepository`
+(`src/Common/Auth/OpenIDConnect/Repositories/ClientRepository.php`) exposes `insertNewClient`,
+`saveIsEnabled`, `saveSkipEHRLaunchFlow` and `remove` — **no scope-update method**. The RFC 7592
+client endpoint `/oauth2/default/client/:path` is read-only
+(`AuthorizationController::clientRegisteredDetails`, line 473 — it only ever returns details).
+`interface/smart/admin-client.php` has no scope field either.
+
+> **Register a second OAuth client for write-back.** This is also the cleaner security posture:
+> the read path keeps its minimal read-only client, and the write scope is isolated. I did not
+> modify the existing client, as instructed.
+
+Also confirmed: the token endpoint only grants scopes present on the client registration. I
+requested `api:fhir`/`api:oemr` and they were silently dropped from the grant; the granted set was
+exactly the registered intersection. Newly registered clients start `is_enabled=0` and must be
+enabled by an admin before any token will work.
+
+---
+
+## 9. Recommended write path
+
+### Documents — `POST /api/patient/:pid/document?path=/Categories/Lab_Report`
+
+The only API-reachable option, and it works cleanly. Read back with **`GET /fhir/Binary/:id`**.
+
+| Alternative | Why not |
+|---|---|
+| FHIR `DocumentReference` create | Does not exist (404), despite the CapabilityStatement advertising `create` — §3. |
+| CCDA import (`CdaTemplateImportDispose`) | Only reachable through the `Carecoordination` zend UI module with a session; no REST route, and it would force our extracted data into a CCDA document just to get it parsed back out. |
+| `C_Document` PHP class directly | In-process only; would mean shipping an OpenEMR module rather than calling an API. |
+
+### Lab values — direct write to `procedure_order` → `procedure_order_code` → `procedure_report` → `procedure_result`
+
+Since no API exists, the realistic options are a direct DB write or an OpenEMR module. **The
+four-table insert is the recommendation**, because the round-trip through FHIR is verified
+working (§5) and needs zero mapping code on our side.
+
+| Alternative | Why not |
+|---|---|
+| FHIR `Observation` create | Does not exist (404) and no `Observation.write` scope is even defined — §2. |
+| Standard REST `POST /api/procedure` | No such route; `procedure` scope is read/search only. |
+| CCDA import path | The only supported code path that writes `procedure_result` programmatically, but it is UI/session-bound (§7 table), and round-tripping structured values through a synthesized CCDA adds a lossy encode/parse step for no benefit. |
+| Drive the `orders_results.php` UI form | Screen-scraping a CSRF-protected legacy form. Brittle, and the CSRF/session problem is exactly what already breaks the document download route (§4). |
+| Write an OpenEMR module exposing our own endpoint | Cleanest long-term and the only path that keeps writes inside OpenEMR's own code, but it means shipping PHP into the fork — out of scope for W2's timebox. Worth revisiting if write-back outlives the demo. |
+
+**Field conventions for the insert** (all verified in §5):
+
+| Column | Value |
+|---|---|
+| `procedure_order.patient_id` | pid; `activity=1`, `order_status='completed'` |
+| `procedure_order_code.procedure_code` | LOINC code; `procedure_name` = test name |
+| `procedure_report.date_collected` / `date_report` | collection / report datetime — `date_report` becomes `effectiveDateTime` **and** `meta.lastUpdated` |
+| `procedure_result.result_code` / `result_text` | LOINC code / description — **both required**, or the code is dropped and replaced with a null-flavor |
+| `procedure_result.result` / `units` / `range` | value / units / `"low-high"` (parsed into `referenceRange`) |
+| `procedure_result.abnormal` | `no` \| `yes` \| `high` \| `low` (list `proc_res_abnormal`) → `interpretation` |
+| `procedure_result.result_status` | `final` (must be a valid FHIR status or it degrades to `unknown`) |
+| `procedure_result.comments` | **our idempotency key + provenance** → `Observation.note[0].text` |
+| `procedure_result.document_id` | `documents.id` of the source file — correct, but invisible over FHIR (§6) |
+
+---
+
+## 10. Constraints this imposes on our W2 design
+
+1. **Build a lab-write component that talks to the database, not to a FHIR client.** There is no
+   Observation create and there never will be in 8.2. This is the single largest design
+   consequence. Budget for it.
+2. **Writes and reads use different transports.** Documents: standard REST. Lab values: SQL.
+   Reads: FHIR. Three surfaces, one workflow — and the agent's existing FHIR client covers only
+   the read leg.
+3. **Provenance must ride in `note[].text`.** `Observation.derivedFrom` is not emitted even when
+   `procedure_result.document_id` is set. Design the note payload deliberately (it is
+   clinician-visible text, not a hidden field) — something parseable but not alarming in a chart.
+4. **Idempotency is a client-side responsibility, twice over.** OpenEMR dedups neither documents
+   (identical SHA3-512 accepted twice) nor lab results. For documents, compare `documents.hash`
+   from the listing. For labs, query `patient`+`code` then match our key in `note[].text`.
+5. **The upload API returns no identifier.** After `POST …/document` returns `true`, re-query the
+   listing and match on hash to learn the id. Two concurrent uploads of different files to the
+   same category need care.
+6. **Validate MIME by content before uploading.** `mime_content_type()` must land in
+   `files_white_list` or the upload is silently rejected as an empty 404. Check before sending and
+   surface a real error, because the API will not give you one.
+7. **Never read documents back via `/api/patient/:pid/document/:did`** — it 500s on the CSRF
+   check under bearer auth (§4). Use `GET /fhir/Binary/:id`.
+8. **A second OAuth client is required.** Scopes cannot be added to an existing registration, and
+   new clients start disabled pending admin approval — a deployment step for Vultr, not just a
+   code change.
+9. **Deletion is soft and has no API.** See §11 — cleanup/rollback tooling must go through SQL.
+10. **Two pre-existing bugs sit near our path.** `GET /api/procedure` and
+    `GET /api/patient/:pid/document/:did` are both broken in this build (§11). Neither is on the
+    recommended path, but do not build on either.
+
+---
+
+## 11. Cleanup and deletion
+
+**How to delete.** There is no REST or FHIR delete for documents or lab results. OpenEMR's own
+deletion is a **soft delete** — `interface/patient_file/deleter.php:187`:
+
+```php
+QueryUtils::sqlStatementThrowException("UPDATE `documents` SET `deleted` = 1 WHERE id = ?", [$document]);
+deleter_row_delete("categories_to_documents", "document_id = ?", [$document]);
+```
+
+For this spike's test records I hard-deleted rows, uuid_registry entries and the on-disk encrypted
+files, to leave the instance exactly as found.
+
+### Records created, and confirmation they were deleted
+
+| Record | Id(s) | Deleted |
+|---|---|---|
+| `documents` (lab.txt, lab.pdf, lab.txt dup) | 2819, 2820, 2821 | ✅ |
+| `categories_to_documents` rows | for the above | ✅ |
+| Encrypted files on disk (`sites/default/documents/1/`) | 3 files | ✅ directory now empty |
+| `procedure_order` | 7418 | ✅ |
+| `procedure_order_code` | (7418, seq 1) | ✅ |
+| `procedure_report` | 597 | ✅ |
+| `procedure_result` | 7260 | ✅ |
+| `uuid_registry` entries | for all of the above | ✅ |
+| OAuth client "W2 Writeback Spike (DELETE ME)" | 1 | ✅ |
+
+Verification query after cleanup:
+
+```
+t                     leftover
+documents             0
+cat_to_doc            0
+proc_order            0
+proc_order_code       0
+proc_report           0
+proc_result           0
+oauth_client          0
+W2SPIKE_orders        0
+proc_type_181_dirty   0
+lab_results_for_pid1  0
+docs_for_pid1         0
+```
+
+`oauth_clients` is back to its original 3 rows. The spike's access token is dead
+(`{"message":"Refresh Token revoked or logged out"}`).
+
+**One reversible edit, restored.** To test whether `procedure_type.standard_code` was what
+blocked the DiagnosticReport search (§12), I set `standard_code='LOINC:2345-7'` on
+`procedure_type_id=181` and reverted it to `''` in the same command. Confirmed restored above
+(`proc_type_181_dirty = 0`). All 261 rows on this instance have a blank `standard_code`, which is
+how I found it.
+
+---
+
+## 12. UNKNOWN / NOT DONE / UNVERIFIED
+
+Explicitly flagged rather than guessed.
+
+- **UNKNOWN — why DiagnosticReport search returns 0 for a complete procedure chain.** After
+  writing order+code+report+result, `GET /fhir/DiagnosticReport?patient=…` returned `total=0`.
+  Tried: bare `?patient=`, `&category=LAB`, `&category=<v2-0074 system>|LAB`, `&code=2345-7`; and
+  setting `procedure_type.standard_code` (the field `FhirDiagnosticReportLaboratoryService`
+  filters on, line 214) — still 0. Confirmed the report row *does* have a uuid, so the
+  `report_uuid:missing` filter at line 209-212 is not the cause. Root cause not isolated within
+  the timebox. **If our design needs DiagnosticReport (not just Observation), this must be
+  re-spiked.** Observation alone round-trips fine.
+- **NOT DONE — no test against Vultr.** By instruction. Everything here is local-stack behaviour.
+  The Vultr build may differ; the deployed commit is known to drift from local (see project
+  memory). **Re-verify §8's scope requirements there before relying on them.**
+- **NOT DONE — no concurrency testing.** Two agents uploading to the same patient/category at
+  once, or racing on the "upload then re-query by hash" sequence, is untested. Given the API
+  returns no id (§4), this is a real risk area for our design.
+- **UNVERIFIED — behaviour at scale.** One patient, one lab value, three small documents. Nothing
+  about large PDFs, multi-analyte panels, `hasMember` panel grouping, or multi-page documents.
+- **UNVERIFIED — whether the direct SQL write is safe against OpenEMR's own UI.** I did not open
+  the Procedure Results screen to confirm a row we insert renders and edits correctly for a
+  clinician, nor check audit-log/`sequences` implications. Worth 15 minutes before we commit to
+  the approach.
+- **NOT DONE — no DELETE/rollback path was exercised through OpenEMR's own code.** I hard-deleted
+  via SQL. The supported soft-delete (`deleted=1`) was read in source, not executed.
+- **Pre-existing bug, not ours, not on the recommended path:** `GET /api/procedure` returns
+  **HTTP 200 with an HTML SQL-error page**. `ProcedureService::getAll` builds a query with a
+  dangling `LEFT JOIN` immediately before `WHERE` (`src/Services/ProcedureService.php:648`,
+  executed at `:677`). `git log` shows `ProcedureService.php` has a single commit — *"chore:
+  initial import from OpenEMR master (pruned base)"* — so this came in with the import and is
+  **not a regression introduced by our team.** The FHIR lab read uses `search()`, a different
+  method, and is unaffected.
+- **Pre-existing bug:** `GET /api/patient/:pid/document/:did` → 500 (§4). Same provenance
+  assumption — not verified against upstream, but it is in imported code.
+
+---
+
+## 13. Reproduction notes
+
+```bash
+# stack
+cd docker/development-easy && docker compose up --detach --wait   # https://localhost:9300
+
+# throwaway client (starts disabled; enable, then password-grant)
+POST /oauth2/default/registration  {... "scope": "openid user/document.read user/document.write …"}
+UPDATE oauth_clients SET is_enabled=1 WHERE client_id='<REDACTED>';
+POST /oauth2/default/token  grant_type=password&user_role=users&username=admin&password=<REDACTED>
+
+# capability statement
+curl -sk https://localhost:9300/apis/default/fhir/metadata
+```
+
+All tokens, client ids and secrets are redacted throughout this document. The spike client was
+deleted (§11), so its credentials are dead.

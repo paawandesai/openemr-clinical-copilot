@@ -1,0 +1,11 @@
+# Dev tooling for the agent. Not needed to run the service.
+#   python -m pip install -r requirements-dev.txt
+#
+# Configuration for both lives in pyproject.toml.
+
+# Formatter + linter. Pinned to a minor line so a ruff release cannot turn a
+# green branch red on its own.
+ruff>=0.16,<0.17
+
+# Test runner. tests/ is offline; evals/ is live and costs model calls.
+pytest>=8.0

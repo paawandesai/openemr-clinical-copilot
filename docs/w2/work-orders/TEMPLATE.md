@@ -39,8 +39,9 @@ Bulleted, and specific. Name the adjacent things a reasonable session would be
 tempted to fix on the way past, and say not to. Include the standing ones that
 apply:
 
-- Eval rubrics, eval baseline, judge config, CI config — gate files, blocked
-  by hook (`CLAUDE.md` invariant 7).
+- Eval rubrics, eval cases, eval baseline, judge config, CI config — gate
+  files, blocked by hook (`CLAUDE.md` invariant 7). Generated cases go to
+  `agent/evals/w2/staging/`; promoting them into `cases/` is a human's call.
 - Week 1 files: do not move, rename, or restructure anything under `agent/`
   that this order does not name.
 

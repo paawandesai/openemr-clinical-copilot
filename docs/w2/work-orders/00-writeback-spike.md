@@ -1,10 +1,13 @@
 # WORK ORDER: Write-back spike — documents and lab values into OpenEMR
 
-> **DRAFT — awaiting the canonical text.** The scaffolding session was asked to
-> save the write-back spike work order here; no copy existed in the repo and
-> none was supplied, so this was drafted from `docs/w2/DECISIONS.md` D1 and from
-> what the OpenEMR routes actually expose (cited below). Replace this file
-> wholesale with the canonical order when it arrives — do not merge the two.
+> **SUPERSEDED.** This draft was not the executed work order. Results of the
+> executed spike: [`docs/w2/spikes/writeback.md`](../spikes/writeback.md).
+> The decision it produced is D1 (superseding) in
+> [`docs/w2/DECISIONS.md`](../DECISIONS.md).
+>
+> The body below is kept as written, unedited, for the record. Do not build
+> from it — it predates the findings and several of its assumptions were
+> answered differently by the spike.
 
 ## Goal
 

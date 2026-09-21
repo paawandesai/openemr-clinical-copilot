@@ -76,6 +76,8 @@ invariant, including:
   ID, say what pushed against it, and what you did instead of re-deciding it.
 - An invariant you could not satisfy — say which, and where.
 - A gate file you needed to change and did not (`CLAUDE.md` invariant 7).
+- Anything you left in `agent/evals/w2/staging/` that you believe belongs in
+  `cases/` — say which files and why, so a human can promote them.
 - A path in `CLAUDE.md` that turned out not to exist.
 
 Do not resolve a conflict silently. Reporting it is the whole point.

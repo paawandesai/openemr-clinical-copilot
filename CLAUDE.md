@@ -12,9 +12,12 @@ strict schema with page-located values; a **supervisor** routing between an
 guideline evidence; and an **eval-gated CI** pipeline that blocks merges on
 regression against a committed baseline.
 
-Note: the OpenEMR platform development guide (PHP, PHPStan, Docker, worktrees)
-now lives at [`docs/openemr-dev-guide.md`](docs/openemr-dev-guide.md). Read it
-before touching anything under `src/`, `library/`, `interface/`, or `sql/`.
+**For anything about the OpenEMR platform itself — PHP standards, PHPStan,
+Doctrine, Twig, the Docker dev stack, `openemr-cmd`, the PHP test suites — read
+[`docs/openemr-dev-guide.md`](docs/openemr-dev-guide.md).** That is the former
+root `CLAUDE.md`, unchanged. Read it before touching anything under `src/`,
+`library/`, `interface/`, `apis/`, `templates/` or `sql/` — which W2 does touch,
+because the lab-value write-back endpoint (D1) lives in the fork, not the agent.
 
 ## INVARIANTS — non-negotiable
 
@@ -35,9 +38,30 @@ before touching anything under `src/`, `library/`, `interface/`, or `sql/`.
    human to resolve.
 6. **Every write to OpenEMR carries an idempotency key.** No exceptions, no
    "this one is read-mostly".
-7. **Implementation sessions never edit eval rubrics, the eval baseline, judge
-   config, or CI config.** These are gate files; a hook blocks them. If a gate
-   file is wrong, say so in your report — do not route around it.
+7. **Implementation sessions never edit eval rubrics, eval cases, the eval
+   baseline, judge config, or CI config.** These are gate files; a hook blocks
+   them. Generating cases is *not* blocked — see "The staging rule" below. If a
+   gate file is wrong, say so in your report — do not route around it.
+
+### The staging rule
+
+Generated eval cases do not land in `cases/` by themselves.
+
+| Directory | Gated? | What goes there |
+|---|---|---|
+| `agent/evals/w2/factory/` | no | generator and factory code — write freely |
+| `agent/evals/w2/staging/` | no | everything a generator emits — write freely |
+| `agent/evals/w2/cases/` | **yes** | the committed case set the gate scores against |
+| `agent/evals/w2/rubrics/` | **yes** | per-category rubrics |
+| `agent/evals/w2/baseline.json` | **yes** | the committed scores a run is compared to |
+| `agent/evals/w2/judge_config.*` | **yes** | pinned judge model and settings |
+
+A normal session builds the factory, runs it, and writes as many cases as it
+likes into `staging/`. **Promoting a staged file into `cases/` is a gate
+change**, and only a session started with `W2_GATE_SESSION=1` can do it — a
+human sets that outside the session. This exists so that a branch cannot both
+fail on a case and delete the case in the same commit. Report what you staged
+and why it should be promoted; do not promote it yourself.
 
 ## Where things are
 
@@ -54,35 +78,65 @@ before touching anything under `src/`, `library/`, `interface/`, or `sql/`.
 | Week 1 eval suite (live, costs model calls) | `agent/evals/` — see `agent/evals/README.md` |
 | Week 1 eval harness / invariants / independent oracle | `agent/evals/{harness,invariants,oracle}.py` |
 | Week 1 unit tests (no network, no credentials) | `agent/tests/` |
-| Week 2 evals (factory, cases, rubrics — being built) | `evals/factory/`, `evals/cases/`, `evals/rubrics/` |
+| Week 2 evals (being built) | `agent/evals/w2/` — `factory/`, `staging/`, `cases/`, `rubrics/`, `baseline.json`, `judge_config.*` |
+| Python tooling config (ruff + pytest) | `agent/pyproject.toml`, `agent/requirements-dev.txt` |
+| Gate hook, and the merge check that reads its globs | `.claude/hooks/gate-guard.sh`, `scripts/gate-diff.sh` |
+| **OpenEMR platform guide** (PHP, Docker, PHPStan, `openemr-cmd`) | `docs/openemr-dev-guide.md` |
 | Week 2 decisions (read first) | `docs/w2/DECISIONS.md` |
 | Week 2 work orders | `docs/w2/work-orders/` |
-| Week 2 spikes | `docs/w2/spikes/` |
+| Week 2 spikes | `docs/w2/spikes/` — write-back findings in `writeback.md` |
 | Architecture / metrics / users / audit | `docs/ARCHITECTURE.md`, `docs/KEY_METRICS.md`, `docs/USERS.md`, `docs/AUDIT.md`, `docs/audit/findings.md` |
 | Deployment | `agent/deploy/docker-compose.agent.yml`, `agent/deploy/Caddyfile`, `agent/docs/deployment.md` |
 
 ## Commands
 
 ```bash
-# Unit tests — no network, no credentials. ALWAYS name the directory:
+# Dev tooling, once per environment:
+cd agent && python -m pip install -r requirements.txt -r requirements-dev.txt
+
+# Unit tests — no network, no credentials:
 cd agent && python -m pytest tests
-# A bare `pytest` in agent/ also collects evals/, which hits live FHIR and the
-# real model. Never run bare pytest there.
+# `testpaths` in agent/pyproject.toml means a bare `pytest` here now collects
+# tests/ only. It used to also collect evals/, which calls live FHIR and the
+# real model. Naming a path still overrides it — so `pytest evals` is live.
 
 # Week 1 eval suite — LIVE: deployed agent + OpenEMR FHIR + Anthropic API.
 # Costs real model calls (~36) and several minutes. Do not loop it.
 cd agent && python -m pytest evals
 cd agent && python -m pytest evals -k "test_d or test_e"   # auth/not-found only, no model calls
 
-# Week 2 eval gate — NOT IMPLEMENTED YET. The command will be added with the
-# factory under evals/. Do not invent one; report it as missing.
+# Format and lint (config: agent/pyproject.toml):
+cd agent && python -m ruff format --check .   # --check only; see the note below
+cd agent && python -m ruff check .            # add --fix for the safe fixes
+# Week 1 code is NOT formatted yet: 54 of 81 files would be reformatted, and
+# `ruff check` reports 29 findings. Reformatting is its own commit — do not
+# let `ruff format` rewrite Week 1 files as a side effect of your change.
+# Format the files you actually touch.
 
-# Lint — there is NO Python linter configured in this repo as of Week 1.
-# Adding one (ruff + mypy) is open work, not something to assume exists.
-# PHP side only (needs the OpenEMR container, see docs/openemr-dev-guide.md):
+# Pre-merge gate check — run this before EVERY merge:
+scripts/gate-diff.sh <branch>       # nonzero if the branch touches gate files
+scripts/check-claude-paths.sh       # every path named in this file still exists
+
+# Week 2 eval gate — NOT IMPLEMENTED YET. The command will be added with the
+# factory under agent/evals/w2/. Do not invent one; report it as missing.
+
+# PHP side (needs the OpenEMR container — see docs/openemr-dev-guide.md):
 composer phpstan
 composer phpcs
 ```
+
+### Before every merge
+
+`scripts/gate-diff.sh <branch>` lists the gate files a branch changes and exits
+nonzero if there are any. It reads the globs from
+`.claude/hooks/gate-guard.sh --check-path`, so the merge check and the
+edit-time hook cannot drift apart. A nonzero exit is not a veto — it means
+review the gate change on its own, before looking at the code.
+
+**Known relocation:** `feat/doc-factory` currently writes to a repo-root
+`evals/factory/`. That root `evals/` tree is gone; when `feat/doc-factory`
+merges, its factory moves to `agent/evals/w2/factory/`. Do not recreate a
+root-level `evals/`.
 
 ## Before you start
 

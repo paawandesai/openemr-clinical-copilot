@@ -1,0 +1,57 @@
+# Python tooling for the clinical co-pilot agent.
+#
+# Tool configuration only — the agent is not packaged or installed, it is run
+# from this directory (see README.md). Runtime deps are in requirements.txt,
+# dev tooling in requirements-dev.txt.
+#
+#   python -m ruff format --check .   # is it formatted?
+#   python -m ruff check .            # lint
+#   python -m pytest                  # unit tests only (see testpaths below)
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+extend-exclude = [".venv", "__pycache__", "load-test"]
+
+[tool.ruff.lint]
+# Conservative on purpose. These are the rule families that catch real defects
+# or keep diffs readable, without turning Week 1 into a rewrite:
+#   E/W  pycodestyle       F  pyflakes (undefined names, unused imports)
+#   I    import sorting    UP typing/syntax modernisation for the pinned 3.12
+#   B    bugbear (mutable defaults, shadowed loop vars, zip without strict)
+# Deliberately NOT enabled yet: ANN, D, S, PL, RUF. They each imply a large
+# retrofit of Week 1 code, which is its own commit, not a side effect of
+# adding the config.
+select = ["E", "W", "F", "I", "UP", "B"]
+
+ignore = [
+    # The formatter is what bounds line width. E501 additionally flags long
+    # strings, URLs and comments that the formatter cannot break, and Week 1
+    # has 776 such lines at line-length 100 — enabling it would bury every
+    # real finding. Revisit after Week 1 is formatted.
+    "E501",
+]
+
+[tool.ruff.lint.flake8-bugbear]
+# FastAPI's dependency-injection idiom is a call in an argument default. That
+# is the framework's documented usage, not the B008 bug it resembles.
+extend-immutable-calls = ["fastapi.Depends", "fastapi.Security", "fastapi.Query", "fastapi.Header"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["app", "evals", "tests"]
+
+[tool.ruff.format]
+docstring-code-format = true
+
+[tool.pytest.ini_options]
+# Bare `pytest` in agent/ used to collect evals/ as well, which calls live
+# OpenEMR FHIR and the real Anthropic API — real money, real latency, and a
+# surprise for anyone who just wanted the unit tests. testpaths makes the
+# no-argument run mean the offline suite only.
+#
+# The eval suites are still run by naming them explicitly, which overrides
+# testpaths:
+#   python -m pytest evals          # Week 1, live
+#   python -m pytest evals/w2       # Week 2 gate (not implemented yet)
+testpaths = ["tests"]
+addopts = "-q"
