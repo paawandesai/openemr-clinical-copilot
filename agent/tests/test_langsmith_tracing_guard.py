@@ -131,7 +131,7 @@ def _records() -> dict[FhirResourceType, list[Any]]:
             )
         ],
         FhirResourceType.ALLERGY_INTOLERANCE: [
-            AllergyIntolerance(source_id="allergy-1", display=CHART_MARKERS[2])
+            AllergyIntolerance(source_id="allergy-1", display=CHART_MARKERS[2], clinical_status="active")
         ],
     }
 

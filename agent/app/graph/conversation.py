@@ -111,6 +111,7 @@ from app.reasoning.draft_claims import SectionCount
 from app.reasoning.draft_conversation_turn import TurnDraft, draft_conversation_turn
 from app.reasoning.draft_follow_up import BOUNDED_RESOURCE_MODELS, Coverage
 from app.verification.checker import verify_claims
+from app.verification.disclosure import audit_disclosure
 
 _USE_CASE = UseCase.FOLLOW_UP_DRILLING
 
@@ -625,6 +626,15 @@ async def run_conversation_turn(
                 set(bounded),
                 _closing_line(section_counts, lab_scope, encounters),
             )
+        # After the render call, never inside it (findings.md F-59). A
+        # refusal renders no claims, so this is a no-op on that path.
+        audit_disclosure(
+            results,
+            text,
+            lambda result: _turn_claim_line(result, bounded, all_observations),
+            use_case=_USE_CASE,
+            patient_session_key=key,
+        )
         state_saved = store.commit(snapshot, results)
         rendered_ts = time.time()
         log_event(

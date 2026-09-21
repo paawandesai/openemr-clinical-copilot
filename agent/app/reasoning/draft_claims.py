@@ -17,8 +17,9 @@ What the model is given:
 
 - Records narrowed to what Use Case 1 covers — conditions with
   clinical_status "active", medication requests with status "active", and
-  every allergy record. That selection is a fixed rule, so it runs here
-  in code rather than being left to the model.
+  allergies the chart has not marked resolved or inactive (F-58; the
+  asymmetry is explained at _ENDED_ALLERGY_STATUSES). That selection is a
+  fixed rule, so it runs here in code rather than being left to the model.
 - Each record as its `model_dump(mode="json")`, so a claim's `value` is a
   verbatim copy of that serialization.
 - Only records the chart names (drafted_records). A record with no name
@@ -68,6 +69,7 @@ from app.models.fhir_resources import (
     MedicationRequest,
 )
 from app.models.metrics_events import UseCase
+from app.reasoning import provider_health
 
 MODEL = "claude-opus-5"
 
@@ -103,17 +105,38 @@ _BRIEF_RESOURCE_MODELS: dict[FhirResourceType, type[BaseModel]] = {
 }
 
 # USERS.md §3 Use Case 1: "active problem list", "current medications".
-# AllergyIntolerance has no status field, so every allergy record counts.
 _ACTIVE_STATUS: dict[FhirResourceType, tuple[str, str]] = {
     FhirResourceType.CONDITION: ("clinical_status", "active"),
     FhirResourceType.MEDICATION_REQUEST: ("status", "active"),
 }
+
+# Allergies are filtered the other way round (findings.md F-58, F-21).
+# OpenEMR marks an allergy resolved or inactive once the record carries an
+# end date (FhirAllergyIntoleranceService.php:117-121), and such a record
+# must not reach the physician as a current allergy — that is F-58.
+#
+# But the test is "explicitly ended", not "explicitly active", which is the
+# opposite default from conditions and medications above, and deliberately
+# so. An allergy whose status the chart does not state must still be shown:
+# F-21's whole point is that allergy data the record does not rule out is
+# never safe to treat as absent. Filtering on == "active" would silently
+# drop an allergy whose clinicalStatus OpenEMR omitted — a worse failure
+# than the one F-58 describes, and the exact silent-drop shape F-57 and the
+# H cases guard against. A wrongly-shown allergy is visible and checkable;
+# a wrongly-hidden one is neither.
+_ENDED_ALLERGY_STATUSES = frozenset({"resolved", "inactive"})
 
 
 def brief_records(
     resource_type: FhirResourceType, records: list[Any]
 ) -> list[Any]:
     """The subset of retrieved records the Pre-Visit Brief reports on."""
+    if resource_type is FhirResourceType.ALLERGY_INTOLERANCE:
+        return [
+            record
+            for record in records
+            if record.clinical_status not in _ENDED_ALLERGY_STATUSES
+        ]
     if resource_type not in _ACTIVE_STATUS:
         return records
     field, active_value = _ACTIVE_STATUS[resource_type]
@@ -414,8 +437,10 @@ async def draft_pre_visit_brief(
             message = await stream.get_final_message()
             request_id = stream.request_id
     except anthropic.APIError as exc:
-        # Logged so a failed call still counts toward Metrics 4 and 6,
-        # then re-raised: the caller decides how to recover.
+        # Logged so a failed call still counts toward Metrics 4 and 6, and
+        # recorded so /ready can see a provider outage a tokenless probe
+        # cannot (F-60). Then re-raised: the caller decides how to recover.
+        provider_health.record_failure()
         log_event(
             "llm_call_failed",
             event_data={
@@ -423,11 +448,13 @@ async def draft_pre_visit_brief(
                 "requested_model": MODEL,
                 "latency_ms": round((time.perf_counter() - started) * 1000),
                 "error_type": type(exc).__name__,
+                "consecutive_failures": provider_health.consecutive_failures(),
             },
             use_case=UseCase.PRE_VISIT_BRIEF,
             patient_session_key=patient_session_key,
         )
         raise
+    provider_health.record_success()
     latency_ms = round((time.perf_counter() - started) * 1000)
 
     usage = message.usage

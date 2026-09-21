@@ -213,11 +213,15 @@ uses. It is **not deployed**: the second host is an explicit v2,
 post-submission step.
 
 **Where the recorded numbers were measured.** The eval results are from the
-Vultr host: `agent/evals/RESULTS.md` (A–H: 29 PASS, 2 FAIL, both known
-defects, F-58 and F-59) and `agent/evals/RESULTS_CONVERSATION.md` (I: 8
-PASS) were re-recorded there on 2026-09-20, replacing the 2026-09-16 run on
-the DigitalOcean droplet (23 PASS, 4 FAIL; `agent/evals/README.md` keeps
-what it found). The measured conversation costs in `docs/COST_ANALYSIS.md`
+Vultr host: `agent/evals/RESULTS.md` (A–H: 31 PASS, 0 FAIL) and
+`agent/evals/RESULTS_CONVERSATION.md` (I: 12 PASS, 0 FAIL) were recorded
+there on 2026-09-21, after the fixes for F-58, F-59 and F-60. They replace
+the 2026-09-20 run on the same host (29 PASS, 2 FAIL — the two being F-58
+and F-59 before they were fixed) and the 2026-09-16 run on the DigitalOcean
+droplet (23 PASS, 4 FAIL); `agent/evals/README.md` keeps what each found.
+**The fixes are committed and not deployed**, so the in-process cases
+exercise them while the live-endpoint cases still run against the deployed
+build — `agent/evals/README.md` says which cases are which. The measured conversation costs in `docs/COST_ANALYSIS.md`
 §1.4 are from the same host and day. So is the load test:
 `agent/load-test/RESULTS.md` (the 10 and 50 virtual-user runs, the real
 end-to-end batch, and the CPU and memory baseline) was re-run on the Vultr

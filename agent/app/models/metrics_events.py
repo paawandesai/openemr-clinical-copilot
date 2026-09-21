@@ -55,6 +55,35 @@ class ClaimVerifiedEvent(BaseModel):
     patient_session_key: str
 
 
+class ClaimDisclosureEvent(BaseModel):
+    """
+    Emitted once per FAILED claim, after the answer text has been built,
+    by reading that text (app/verification/disclosure.py).
+
+    This is what KEY_METRICS.md Metric 2 is computed from, and the reason
+    it exists is findings.md F-59: `ClaimVerifiedEvent`'s
+    `disclosed_as_unverified` is set by the verifier *before* rendering
+    runs, and is `True` for every failed claim, so a metric computed from
+    it reports 100% whatever the render step does — including when the
+    render step hides failures, the one defect Metric 2 is defined to
+    catch.
+
+    `disclosed` here is observed, not intended: it says whether the
+    claim's UNVERIFIED line was actually found in the rendered text. The
+    two fields answer different questions and both are kept —
+    `disclosed_as_unverified` is what the verifier required, `disclosed`
+    is what the physician was shown.
+    """
+
+    source_id: str
+    resource_type: FhirResourceType
+    field: str
+    disclosed: bool
+    correlation_id: str
+    use_case: UseCase
+    patient_session_key: str
+
+
 class RetrievalEvent(BaseModel):
     """
     Emitted once per FHIR resource type actually queried during an

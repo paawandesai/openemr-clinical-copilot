@@ -219,8 +219,19 @@ def test_a6_resolved_allergy_not_presented_as_current(pipeline: Any, panel: Any,
     Drafting is replaced by a stand-in that does what the system prompt
     instructs (one display claim per record, value copied verbatim) from
     exactly the JSON the model would receive. The model cannot matter here:
-    the case also checks that the JSON it would receive carries no allergy
-    status at all.
+    the case checks the JSON it would receive, and the rendered section,
+    separately.
+
+    Three things have to hold, because the symptom could be produced by a
+    second defect as easily as by the fix (F-58):
+
+    1. the pipeline retrieved every allergy and carried none of them into
+       the brief — only reachable if the mutated status was parsed and
+       filtered on, which is the root cause the finding names;
+    2. the section renders as "none active", not as a list of current
+       allergens, and the model was handed no resolved record to copy;
+    3. "none active" still reports the chart's full count, so it was
+       reached by filtering and not by losing records (F-21, F-57).
     """
     from app.fhir import client as fhir_client
     from app.graph import pre_visit_brief as pvb
@@ -251,18 +262,53 @@ def test_a6_resolved_allergy_not_presented_as_current(pipeline: Any, panel: Any,
     result = pipeline.run(tokens.get("brief"), chart.patient_id, patches=patches).require_ok()
     section = parse_brief(result.text).section(ALLERGY)
     allergy_fields = sorted({k for rec in model_inputs[0][ALLERGY]["records"] for k in rec})
+    counts = result.section_counts[pvb.FhirResourceType.ALLERGY_INTOLERANCE]
     observe("patient", chart.patient_id)
     observe("allergy records (all set to resolved)", len(chart.searches[ALLERGY].records))
-    observe("allergy fields the model is given", allergy_fields)
+    observe("agent's allergy counts", f"retrieved {counts.retrieved}, carried into the brief {counts.in_brief}")
+    observe("allergy records the model was given to draft from", len(model_inputs[0][ALLERGY]["records"]))
+    observe("allergy fields the model is given", allergy_fields or "(no resolved record reaches the model)")
     observe(
         "allergy section as rendered",
-        json.dumps("\n".join([section.header, *(f"  - {b}" for b in section.bullets[:3]), "  ..."])),
+        json.dumps("\n".join([section.header, *(f"  - {b}" for b in section.bullets[:3])])),
     )
 
-    marked = [b for b in section.bullets if "resolved" in b.lower() or "inactive" in b.lower()]
-    if section.state != "none active" and len(marked) < len(chart.searches[ALLERGY].records):
-        pytest.fail(
-            f"{len(chart.searches[ALLERGY].records)} resolved allergies rendered under {section.header!r} "
-            f"as current, e.g. {section.shown_as_verified()[:3]}; the model's input for AllergyIntolerance "
-            f"has only {allergy_fields}, so no status can reach the brief"
+    on_chart = len(chart.searches[ALLERGY].records)
+    violations = []
+
+    # 1. The root cause: the status was parsed and acted on. Retrieving
+    #    every record while carrying none into the brief is only reachable
+    #    if the mutated 'resolved' reached the filter.
+    if counts.retrieved != on_chart:
+        violations.append(
+            f"agent retrieved {counts.retrieved} allergy record(s); the chart has {on_chart}"
         )
+    if counts.in_brief != 0:
+        violations.append(
+            f"{counts.in_brief} of {counts.retrieved} resolved allergies were carried into the "
+            "brief; no status reached the filter"
+        )
+
+    # 2. The symptom: nothing resolved is presented as current, and the
+    #    model is never handed a resolved record to copy a name from.
+    if allergy_fields:
+        violations.append(
+            f"the model was given {len(model_inputs[0][ALLERGY]['records'])} resolved allergy "
+            f"record(s) to draft from, with fields {allergy_fields}"
+        )
+    marked = [b for b in section.bullets if "resolved" in b.lower() or "inactive" in b.lower()]
+    if section.state != "none active" and len(marked) < on_chart:
+        violations.append(
+            f"{on_chart} resolved allergies rendered under {section.header!r} as current, "
+            f"e.g. {section.shown_as_verified()[:3]}"
+        )
+
+    # 3. "none active" must come from filtering, not from dropping records.
+    if section.state == "none active" and section.none_active_on_file != on_chart:
+        violations.append(
+            f"section reads {section.header!r} but the chart holds {on_chart} allergy record(s); "
+            "'none active' must report every record on file, not a reduced count"
+        )
+
+    if violations:
+        pytest.fail("\n".join(violations))

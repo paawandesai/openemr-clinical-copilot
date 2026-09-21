@@ -67,6 +67,7 @@ from app.models.metrics_events import LatencyEvent, UseCase
 from app.reasoning.draft_claims import SectionCount, brief_records
 from app.reasoning.draft_follow_up import Coverage, draft_follow_up
 from app.verification.checker import FailureReason, verify_claims
+from app.verification.disclosure import audit_disclosure
 
 _USE_CASE = UseCase.FOLLOW_UP_DRILLING
 
@@ -383,6 +384,14 @@ async def run_follow_up(
         status = answer_status(draft.coverage, draft.gaps, results)
         section_counts = _section_counts(retrieved)
         text = render_follow_up(status, draft.gaps, results, retrieved, section_counts)
+        # After the render call, never inside it (findings.md F-59).
+        audit_disclosure(
+            results,
+            text,
+            lambda result: _claim_line(result, retrieved),
+            use_case=_USE_CASE,
+            patient_session_key=patient_session_key,
+        )
         rendered_ts = time.time()
         log_event(
             LATENCY_EVENT,

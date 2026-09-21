@@ -69,7 +69,7 @@ NAPROXEN = MedicationRequest(
     source_id="med-2", display="Naproxen 500 MG Oral Tablet", status="active", authored_date=datetime.min
 )
 HTN = Condition(source_id="cond-1", display="Essential hypertension (disorder)", clinical_status="active")
-ASPIRIN = AllergyIntolerance(source_id="allergy-1", display="Aspirin")
+ASPIRIN = AllergyIntolerance(source_id="allergy-1", display="Aspirin", clinical_status="active")
 
 
 def _retrieved(allergies: list[AllergyIntolerance] | None = None) -> dict[R, list[Any]]:
@@ -191,7 +191,10 @@ def test_answer_contract_attribution_and_events() -> None:
 def test_record_with_no_name_is_labelled_as_such_and_its_null_name_never_verifies() -> None:
     """F-57: the model is shown display null; a null display claim fails, other fields still verify."""
     unnamed = AllergyIntolerance(
-        source_id="allergy-2", display=None, recorded_date=datetime(2020, 5, 1, tzinfo=timezone.utc)
+        source_id="allergy-2",
+        display=None,
+        clinical_status="active",
+        recorded_date=datetime(2020, 5, 1, tzinfo=timezone.utc),
     )
     pipeline = FakePipeline(
         FollowUpDraft(

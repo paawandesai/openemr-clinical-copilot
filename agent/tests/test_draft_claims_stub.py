@@ -28,9 +28,9 @@ RETRIEVED = {
         ),
     ],
     FhirResourceType.ALLERGY_INTOLERANCE: [
-        AllergyIntolerance(source_id="allergy-1", display="Penicillin"),
+        AllergyIntolerance(source_id="allergy-1", display="Penicillin", clinical_status="active"),
         # No name in the chart (F-57): withheld from drafting, stub included.
-        AllergyIntolerance(source_id="allergy-2", display=None),
+        AllergyIntolerance(source_id="allergy-2", display=None, clinical_status="active"),
     ],
 }
 

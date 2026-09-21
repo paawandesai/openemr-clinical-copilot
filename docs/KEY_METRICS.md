@@ -16,10 +16,11 @@ events, with no conversation state behind it. The multi-turn conversation
 under it (`ARCHITECTURE.md` §4). No new logging framework or infra decision
 is proposed here.
 
-**Status, stated per metric below:** Metrics 1, 4, 5 and 6 are computed
-from events the running agent emits. Metric 2 is computed, but from a field
-set before rendering, so it cannot yet see the render defect it exists to
-catch (F-59). Metric 3 cannot be computed from the agent's logs yet: its
+**Status, stated per metric below:** Metrics 1, 2, 4, 5 and 6 are computed
+from events the running agent emits. Metric 2 was computed from a field set
+before rendering, so it could not see the render defect it exists to catch;
+since 2026-09-21 it is computed from the rendered text itself (F-59).
+Metric 3 cannot be computed from the agent's logs yet: its
 event is never emitted, because the agent-side scope record it depends on
 is not built (`ARCHITECTURE.md` §2). Use-case segmentation covers the
 Pre-Visit Brief and the follow-up, single-turn or multi-turn: both emit the
@@ -81,13 +82,33 @@ it reproduces exactly the ambiguity USERS.md was written to eliminate.
 claim already has a disposition (rendered-as-unverified vs. not) decided by
 the render step. Log that disposition per failed claim, per interaction.
 
-**As built, it is not logged from the render step.** The logged field
-(`disclosed_as_unverified`) is set to `True` by the verifier for every
-failed claim before rendering runs. So the logged metric reads 100% whatever
-the renderer does, including when the renderer hides failures (F-59; eval
-case C5). Until disclosure is recorded after rendering, the evidence that
-failed claims reach the physician is the eval suite (B2, C1–C4), not this
-metric.
+**It is logged from the render step, since 2026-09-21.** It was not
+originally: the logged field (`disclosed_as_unverified`) is set to `True`
+by the verifier for every failed claim before rendering runs, so the metric
+read 100% whatever the renderer did — including when the renderer hid
+failures, the one defect it exists to catch (F-59; eval case C5).
+
+Now each of the three render paths — the brief, the single-turn follow-up
+and the conversation turn — calls `app/verification/disclosure.py` **after**
+its render function returns, and that audit emits one
+`claim_disclosure_event` per failed claim carrying `disclosed`: whether
+that claim's UNVERIFIED line was actually found in the rendered text.
+Metric 2 is computed from that field. Being outside the render function is
+what lets it survive a broken or replaced renderer; reading the text rather
+than the renderer's intent is what makes it measure the physician's view.
+If failed claims exist and the audit did not report on them, the metric
+prints `NOT COMPUTED` or `INCOMPLETE` and fails — a missing signal is not a
+clean bill of health.
+
+`disclosed_as_unverified` is still logged and still means something
+different: what the verifier *required*, against what the physician was
+*shown*.
+
+**What it still does not cover.** The audit reads the string this service
+produced. It does not see what a browser finally paints, so a display
+surface that hid an UNVERIFIED line — the chart embed's own JavaScript,
+say — would still be reported as disclosed. For that the evidence remains
+the eval suite (B2, C1–C4).
 
 **What a bad number means.** Anything under 100% here is a defect in the
 render step, not a tuning target — §5 states this as an absolute, not a

@@ -18,10 +18,12 @@ import httpx
 import httpx2
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
+from structlog.testing import capture_logs
 
 from app import health
 from app.fhir.exceptions import FhirServerError
 from app.middleware.langfuse_export import ObservabilityExportUnavailable
+from app.reasoning import provider_health
 
 _ANTHROPIC_REQUEST = httpx2.Request("GET", "https://api.anthropic.test/v1/models/claude-opus-5")
 
@@ -54,11 +56,69 @@ class _FakeAnthropic:
         return self
 
 
+class _FakeUsage:
+    input_tokens = 10
+    output_tokens = 5
+    cache_creation_input_tokens = 0
+    cache_read_input_tokens = 0
+    iterations: list[Any] = []
+
+
+class _FakeTextBlock:
+    type = "text"
+    text = '{"claims": []}'
+
+
+class _FakeMessage:
+    model = "claude-opus-5"
+    stop_reason = "end_turn"
+    stop_details = None
+    usage = _FakeUsage()
+    content = [_FakeTextBlock()]
+
+
+class _FakeStream:
+    request_id = "req_fake"
+
+    async def get_final_message(self) -> _FakeMessage:
+        return _FakeMessage()
+
+
+class _StreamingAnthropic:
+    """
+    Enough of AsyncAnthropic for draft_claims' one call:
+    `async with _client().beta.messages.stream(...) as stream`. Raises
+    `error` from the context manager when one is given, which is where a
+    credit-balance failure surfaces.
+    """
+
+    def __init__(self, error: BaseException | None) -> None:
+        self._error = error
+        self.beta = self
+
+    @property
+    def messages(self) -> _StreamingAnthropic:
+        return self
+
+    def stream(self, **_: Any) -> _StreamingAnthropic:
+        return self
+
+    async def __aenter__(self) -> _FakeStream:
+        if self._error is not None:
+            raise self._error
+        return _FakeStream()
+
+    async def __aexit__(self, *_: Any) -> bool:
+        return False
+
+
 class _ReadyBase(unittest.TestCase):
     def setUp(self) -> None:
         for probe in (health._FHIR, health._LLM_PROVIDER):
             probe.reset()
             self.addCleanup(probe.reset)
+        provider_health.reset()
+        self.addCleanup(provider_health.reset)
 
         env = mock.patch.dict(os.environ, {}, clear=False)
         env.start()
@@ -201,6 +261,134 @@ class ReadyTest(_ReadyBase):
 
         self.assertEqual(self.fhir.await_count, 2)
         self.assertEqual(self.anthropic.models.calls, 2)
+
+
+class ProviderOutageTest(_ReadyBase):
+    """
+    F-60: the credit balance ran out, every brief returned 502, and /ready
+    kept reporting llm_provider healthy — because models.retrieve spends no
+    tokens, so it cannot see a billing failure. In every test here the
+    tokenless probe SUCCEEDS, which is what made the outage invisible.
+    """
+
+    def _fail(self, times: int) -> None:
+        for _ in range(times):
+            provider_health.record_failure()
+
+    def test_ready_is_503_when_recent_model_calls_are_failing(self) -> None:
+        self._fail(provider_health._FAILURE_THRESHOLD)
+
+        status, body = self.checks()
+
+        self.assertEqual(status, 503)
+        self.assertEqual(body["status"], "not_ready")
+        self.assertEqual(
+            body["checks"]["llm_provider"],
+            {"status": "unhealthy", "required": True, "detail": "Recent model calls are failing"},
+        )
+        # The probe itself still passed: this is the F-60 blind spot.
+        self.assertEqual(self.anthropic.models.error, None)
+
+    def test_a_single_failed_call_does_not_make_the_service_unready(self) -> None:
+        """One bad request is that request's problem, not the provider's."""
+        self._fail(1)
+
+        status, body = self.checks()
+
+        self.assertEqual(status, 200)
+        self.assertEqual(body["checks"]["llm_provider"]["status"], "healthy")
+
+    def test_a_success_clears_the_run_of_failures(self) -> None:
+        self._fail(provider_health._FAILURE_THRESHOLD)
+        provider_health.record_success()
+
+        status, body = self.checks()
+
+        self.assertEqual(status, 200)
+        self.assertEqual(body["checks"]["llm_provider"]["status"], "healthy")
+
+    def test_the_run_goes_stale_so_readiness_can_recover_without_traffic(self) -> None:
+        """
+        Without this, readiness that gates traffic deadlocks: no traffic
+        means no model calls, so no success can ever clear the count.
+        """
+        self._fail(provider_health._FAILURE_THRESHOLD)
+        self.assertEqual(self.checks()[0], 503)
+
+        with mock.patch.object(provider_health, "_RECOVERY_SECONDS", -1.0):
+            status, body = self.checks()
+
+        self.assertEqual(status, 200)
+        self.assertEqual(body["checks"]["llm_provider"]["status"], "healthy")
+
+    def test_the_outage_is_reported_without_waiting_for_the_probe_cache(self) -> None:
+        """
+        The signal is read uncached. A readiness check that lagged an
+        outage by the cache TTL would reproduce F-60's blind window.
+        """
+        self.assertEqual(self.checks()[0], 200)  # caches a healthy probe result
+
+        self._fail(provider_health._FAILURE_THRESHOLD)
+        status, _ = self.checks()
+
+        self.assertEqual(status, 503)
+        self.assertEqual(self.anthropic.models.calls, 1)  # cache was not re-run
+
+
+class ProviderHealthWiringTest(unittest.TestCase):
+    """
+    The counter is only useful if the real drafting path feeds it. These
+    drive app/reasoning/draft_claims.py itself, not the module in isolation.
+    """
+
+    def setUp(self) -> None:
+        provider_health.reset()
+        self.addCleanup(provider_health.reset)
+
+    def _draft(self, error: BaseException | None) -> None:
+        """Run the real drafting call with the Anthropic client replaced."""
+        import asyncio
+
+        from app.models.fhir_resources import FhirResourceType as R
+        from app.reasoning import draft_claims
+
+        retrieved: dict[Any, list[Any]] = {
+            R.CONDITION: [],
+            R.MEDICATION_REQUEST: [],
+            R.ALLERGY_INTOLERANCE: [],
+        }
+        with mock.patch.object(draft_claims, "_client", lambda: _StreamingAnthropic(error)), \
+             mock.patch.object(draft_claims, "_STUB_LLM_DRAFTING", False), \
+             capture_logs():
+            asyncio.run(draft_claims.draft_pre_visit_brief(retrieved, patient_session_key="u:p:s"))
+
+    def test_a_credit_balance_error_is_recorded_against_readiness(self) -> None:
+        """The exact shape F-60 saw: a 400 invalid_request_error on billing."""
+        credit_error = anthropic.BadRequestError(
+            "Your credit balance is too low to access the Anthropic API.",
+            response=httpx2.Response(400, request=_ANTHROPIC_REQUEST),
+            body=None,
+        )
+
+        with self.assertRaises(anthropic.BadRequestError):
+            self._draft(credit_error)
+
+        self.assertEqual(provider_health.consecutive_failures(), 1)
+
+        for _ in range(provider_health._FAILURE_THRESHOLD - 1):
+            with self.assertRaises(anthropic.BadRequestError):
+                self._draft(credit_error)
+
+        self.assertTrue(provider_health.looks_down())
+
+    def test_a_successful_draft_clears_the_run(self) -> None:
+        provider_health.record_failure()
+        provider_health.record_failure()
+
+        self._draft(None)
+
+        self.assertEqual(provider_health.consecutive_failures(), 0)
+        self.assertFalse(provider_health.looks_down())
 
 
 if __name__ == "__main__":

@@ -54,9 +54,10 @@ How to see the agent:
 
 Audit, eval and load-test records each name the host they were run against.
 The **evals and the load test are current**, both measured on the Vultr host
-on 2026-09-20: the eval suites (cases A–H, 29 PASS / 2 FAIL of 31, the two
-failures being known documented defects F-58 and F-59, not regressions; the
-conversation cases, 8 PASS of 8), and the load and baseline performance test
+on the Vultr host: the eval suites on 2026-09-21 (**43 of 43 pass** — cases
+A–H 31 of 31, the conversation cases 12 of 12 — with no failures and nothing
+skipped, after the fixes for F-58, F-59 and F-60 landed), and the load and
+baseline performance test on 2026-09-20
 ([agent/load-test/RESULTS.md](agent/load-test/RESULTS.md)), which found
 OpenEMR's PHP tier — not the agent — to be what caps throughput. The
 **audit is pre-migration**, measured against the DigitalOcean droplet; that

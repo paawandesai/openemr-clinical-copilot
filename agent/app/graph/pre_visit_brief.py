@@ -86,6 +86,7 @@ from app.reasoning.draft_claims import (
     unnamed_record_claims,
 )
 from app.verification.checker import FailureReason, verify_claims
+from app.verification.disclosure import audit_disclosure
 
 _USE_CASE = UseCase.PRE_VISIT_BRIEF
 
@@ -297,6 +298,16 @@ async def _render(
     text = render_brief(
         state["results"], state["draft"].section_counts, state["retrieved"]
     )
+    # Deliberately here and not inside render_brief: the audit reads the
+    # text the render step produced, so replacing or breaking that step
+    # cannot remove the check with it (findings.md F-59).
+    audit_disclosure(
+        state["results"],
+        text,
+        unverified_line,
+        use_case=_USE_CASE,
+        patient_session_key=ctx.patient_session_key,
+    )
     rendered_ts = time.time()
     event = LatencyEvent(
         use_case=_USE_CASE,
@@ -311,6 +322,20 @@ async def _render(
         patient_session_key=ctx.patient_session_key,
     )
     return {"text": text, "rendered_ts": rendered_ts}
+
+
+def unverified_line(result: VerificationResult) -> str:
+    """
+    The one line a failed claim renders as. Split out of render_brief so
+    the post-render disclosure audit can look for exactly this line
+    without re-implementing its wording (app/verification/disclosure.py,
+    findings.md F-59).
+    """
+    value = result.claim.value
+    if value is None and result.claim.field == "display":
+        value = NAME_NOT_AVAILABLE
+    why = _UNVERIFIED_WHY[FailureReason(result.reason)]
+    return f'  - UNVERIFIED: "{value}" ({why})'
 
 
 def render_brief(
@@ -361,8 +386,7 @@ def render_brief(
                 value = NAME_NOT_AVAILABLE
             if not result.passed:
                 unverified += 1
-                why = _UNVERIFIED_WHY[FailureReason(result.reason)]
-                lines.append(f'  - UNVERIFIED: "{value}" ({why})')
+                lines.append(unverified_line(result))
             elif result.claim.source_id in brief_ids:
                 lines.append(f"  - {value}")
             else:

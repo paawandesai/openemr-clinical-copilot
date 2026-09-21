@@ -256,8 +256,13 @@ def completeness_violations(response: dict[str, Any], chart: PatientChart) -> li
             violations.append(
                 f"{heading}: agent retrieved {agent['retrieved']} record(s); the chart has {len(truth.records)}"
             )
-        reportable = truth.records if resource_type == "AllergyIntolerance" else truth.active
-        if resource_type != "AllergyIntolerance" and agent["in_brief"] != len(reportable):
+        # Allergies used to be exempt here, because the agent carried no
+        # allergy status and so reported every record (F-58). It now filters
+        # them like the other two types, so the same count check applies —
+        # the oracle decides "active" from the raw Bundle itself
+        # (oracle.py), never from the agent's own view.
+        reportable = truth.active
+        if agent["in_brief"] != len(reportable):
             violations.append(f"{heading}: agent counts {agent['in_brief']} active; the chart has {len(reportable)}")
 
         expected_state = "not recorded" if not truth.records else "none active" if not reportable else "listed"

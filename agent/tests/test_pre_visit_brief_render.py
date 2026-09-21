@@ -34,7 +34,7 @@ NORVASC = MedicationRequest(
 LISINOPRIL = MedicationRequest(
     source_id="med-2", display="Lisinopril", status="active", authored_date=datetime(2014, 2, 1)
 )
-PENICILLIN = AllergyIntolerance(source_id="allergy-1", display="Penicillin")
+PENICILLIN = AllergyIntolerance(source_id="allergy-1", display="Penicillin", clinical_status="active")
 
 
 def display_claim(resource_type: FhirResourceType, source_id: str, value: str) -> Claim:
@@ -126,7 +126,7 @@ def test_record_with_no_claim_is_counted_not_silently_missing() -> None:
 
 def test_record_with_no_name_is_unverified_not_a_placeholder() -> None:
     """F-57: the pipeline states it (unnamed_record_claims) and the verifier fails it."""
-    unnamed_allergy = AllergyIntolerance(source_id="allergy-2", display=None)
+    unnamed_allergy = AllergyIntolerance(source_id="allergy-2", display=None, clinical_status="active")
     unnamed_resolved = Condition(source_id="cond-3", display=None, clinical_status="resolved")
     retrieved: dict[FhirResourceType, list[Any]] = {
         R.CONDITION: [HTN, unnamed_resolved],
@@ -156,3 +156,76 @@ def test_record_with_no_name_is_unverified_not_a_placeholder() -> None:
         "\n"
         "1 item(s) above could not be verified against the chart and are marked UNVERIFIED."
     )
+
+
+# --- F-58: allergy clinical status reaches the brief ---------------------
+
+RESOLVED_PENICILLIN = AllergyIntolerance(
+    source_id="allergy-r", display="Penicillin", clinical_status="resolved"
+)
+INACTIVE_LATEX = AllergyIntolerance(
+    source_id="allergy-i", display="Latex", clinical_status="inactive"
+)
+UNKNOWN_STATUS_ALLERGY = AllergyIntolerance(
+    source_id="allergy-u", display="Shellfish", clinical_status="unknown"
+)
+
+
+def test_resolved_allergy_is_not_presented_as_a_current_one() -> None:
+    """
+    F-58: OpenEMR marks an allergy resolved once it carries an end date
+    (FhirAllergyIntoleranceService.php:117-121). Before the fix the status
+    never reached the model or the renderer, so a resolved allergy rendered
+    under "Allergies:" exactly like an active one.
+    """
+    text = render(
+        {
+            R.CONDITION: [HTN],
+            R.MEDICATION_REQUEST: [],
+            R.ALLERGY_INTOLERANCE: [RESOLVED_PENICILLIN, INACTIVE_LATEX],
+        },
+        [display_claim(R.CONDITION, "cond-1", "HTN")],
+    )
+
+    assert "Allergies: none active (2 on file, none with active status)" in text
+    assert "Penicillin" not in text
+    assert "Latex" not in text
+
+
+def test_an_active_allergy_still_shows_when_another_is_resolved() -> None:
+    """The filter is per record, not per section."""
+    text = render(
+        {
+            R.CONDITION: [],
+            R.MEDICATION_REQUEST: [],
+            R.ALLERGY_INTOLERANCE: [PENICILLIN, INACTIVE_LATEX],
+        },
+        [display_claim(R.ALLERGY_INTOLERANCE, "allergy-1", "Penicillin")],
+    )
+
+    assert "Allergies:\n  - Penicillin" in text
+    assert "Latex" not in text
+    assert "none active" not in text
+
+
+def test_an_allergy_whose_status_the_chart_does_not_state_is_still_shown() -> None:
+    """
+    The other half of F-58, and the reason the filter tests for "explicitly
+    ended" rather than "explicitly active" (F-21). An allergy OpenEMR sends
+    without a clinicalStatus parses as "unknown". Hiding it would be a worse
+    defect than the one F-58 describes: a wrongly-shown allergy is visible
+    and checkable, a wrongly-hidden one is neither.
+    """
+    retrieved: dict[FhirResourceType, list[Any]] = {
+        R.CONDITION: [],
+        R.MEDICATION_REQUEST: [],
+        R.ALLERGY_INTOLERANCE: [UNKNOWN_STATUS_ALLERGY],
+    }
+    assert brief_records(R.ALLERGY_INTOLERANCE, retrieved[R.ALLERGY_INTOLERANCE]) == [
+        UNKNOWN_STATUS_ALLERGY
+    ]
+
+    text = render(retrieved, [display_claim(R.ALLERGY_INTOLERANCE, "allergy-u", "Shellfish")])
+
+    assert "Allergies:\n  - Shellfish" in text
+    assert "none active" not in text

@@ -483,10 +483,12 @@ async def get_allergy_intolerances(
     bundle = await _get_bundle(token, "AllergyIntolerance", {"patient": patient_id})
     allergies = []
     for r in _resources_from_bundle(bundle):
+        clinical_status = _first_coding(r.get("clinicalStatus"))
         allergies.append(
             AllergyIntolerance(
                 source_id=r["id"],
                 display=_record_name(r, r.get("code")),
+                clinical_status=(clinical_status or {}).get("code", "unknown"),
                 recorded_date=_parse_datetime(r.get("recordedDate")),
             )
         )

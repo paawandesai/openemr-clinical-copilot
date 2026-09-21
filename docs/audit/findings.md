@@ -1342,6 +1342,9 @@ Pass-2 droplet database commands were run as
 ### F-59 — Logged Metric 2 cannot detect a render step that hides failed claims
 - **Category:** Compliance / Observability
 - **Severity:** Medium (monitoring gap, not a live bug)
+- **Status:** **Fixed** 2026-09-21 (`fix/remaining-defects`), not yet
+  deployed. Metric 2 is now computed from the rendered text. One boundary
+  remains and is stated under Remediation.
 - **Claim:** `KEY_METRICS.md` Metric 2 (Unverified-Claim Disclosure Rate) is the
   share of failed claims actually surfaced to the physician, and "anything
   under 100% here is a defect in the render step". As implemented it reads
@@ -1365,9 +1368,68 @@ Pass-2 droplet database commands were run as
   - The real renderer discloses correctly (`first-hand`, same run): B2
     (failed claims shown as UNVERIFIED across 5 live briefs) and C1–C4
     (injected failures shown as UNVERIFIED with their reason) pass.
-- **Remediation:** not done. Record disclosure from the render step — one
-  event per failed claim, emitted after the brief text is built, saying
-  whether its UNVERIFIED line is present — and compute Metric 2 from that.
+- **Remediation:** **done 2026-09-21**, as the entry above described.
+  `app/verification/disclosure.py` emits one `claim_disclosure_event` per
+  failed claim, carrying `disclosed` — observed, by looking for that
+  claim's UNVERIFIED line in the rendered text. `scripts/compute_metrics.py`
+  `metric_2` is computed from that field.
+  - *What makes the check independent of the bug it looks for.* It reads
+    the rendered text, the artifact the physician is shown, not the
+    renderer's intentions; and it is called by the graph node **after** the
+    render function returns, never from inside it, so replacing or breaking
+    the renderer does not remove the check — the substituted renderer's
+    output is what gets audited. A check that re-derived "did I write this
+    line?" from the same loop that writes the lines would share any bug in
+    that loop and prove nothing.
+  - *Presence is counted, not just tested.* Two failed claims can render
+    the same line (same value, same reason); if the renderer wrote it once,
+    exactly one of them was disclosed.
+  - *A missing signal no longer reads as success.* If failed claims exist
+    and no disclosure event does, `metric_2` prints `NOT COMPUTED` and
+    fails, rather than reporting 100%. If some failed claims were never
+    audited it prints `INCOMPLETE` and fails. Reporting a clean number from
+    absent evidence is the specific shape of this finding.
+  - *All three render paths are covered*, not only the brief: the brief
+    (`app/graph/pre_visit_brief.py`), the constrained single-turn follow-up
+    and the multi-turn conversation each call the audit after their own
+    render call, passing their own line builder. Metric 2 spans all three
+    use cases, so covering only the brief would have left the same gap for
+    the other two.
+  - *`ClaimVerifiedEvent.disclosed_as_unverified` is kept and no longer
+    feeds Metric 2.* The two fields answer different questions and both are
+    worth logging: that one is what the verifier **required**, the new one
+    is what the physician was **shown**. Eval C5 now asserts the divergence
+    directly — the verifier says every failed claim was disclosed while the
+    audit says none were.
+  - **The boundary, stated rather than fixed.** The audit runs in the same
+    process as the renderer and reads the string that process produced. It
+    catches a render step that drops, hides or softens a failed claim,
+    which is this finding's stated risk. It is **not** an end-to-end check
+    of what a browser finally paints: if the chart embed's own JavaScript
+    hid an UNVERIFIED line, this would still report it disclosed. That
+    would need a check at the display surface, which is a different
+    mechanism outside this service and is not built.
+- **Before / after:**
+  - *Before* (eval C5, `first-hand`, 2026-09-20 run on the Vultr host):
+    with the renderer replaced by one that drops failed claims, the suite's
+    text check found 5 violations while
+    `compute_metrics.py` reported `100.0% (4 disclosed of 4 failed claims)
+    — meets the 100% absolute`.
+  - *After* (`first-hand`, 2026-09-21, same mutation, live FHIR): C5
+    passes. The verifier's own events still report every failed claim as
+    `disclosed_as_unverified=True`, the render-step audit reports 0 of them
+    disclosed, and Metric 2 reports below the absolute and exits non-zero.
+    With the audit call removed as a control, C5 fails. Unit coverage in
+    `tests/test_compute_metrics.py` (5 cases, including the exact F-59
+    shape: `disclosed_as_unverified` true on every claim event while the
+    render step disclosed none). Full suite: 368 passed.
+  - *Confirmed live* (`first-hand`, 2026-09-21, Vultr): eval C5 passes. On
+    the same renderer mutation as the before run, the verifier still
+    reports 4 of 4 failed claims disclosed, the render-step audit reports
+    0 of 4, and `compute_metrics.py` reports `0.0% (0 disclosed of 4
+    failed claims) — BELOW the 100% absolute`. The day before it reported
+    `100.0% … meets the 100% absolute` on the identical mutation. Eval I10
+    is the same check on the conversation path.
 - **Verified:** `first-hand`
 - **Implication for the agent:** Metric 2 is the production monitor for §5's
   "never silently dropped" promise, and it would stay at 100% through exactly
@@ -1995,6 +2057,8 @@ Pass-2 droplet database commands were run as
 ### F-58 — Allergy clinical status is discarded before drafting; a resolved allergy would render as current
 - **Category:** Data Quality
 - **Severity:** Medium (latent — no live allergy is resolved)
+- **Status:** **Fixed** 2026-09-21 (`fix/remaining-defects`), not yet
+  deployed. See Remediation and Before / after below.
 - **Claim:** OpenEMR's FHIR `AllergyIntolerance` carries `clinicalStatus`
   (`active`, `resolved`, `inactive`), but the agent's allergy model has no
   status field, so status never reaches the model or the renderer. A resolved
@@ -2023,11 +2087,62 @@ Pass-2 droplet database commands were run as
   - Live state (`first-hand`, droplet FHIR API, 2026-09-16 ~21:30Z): all 50
     AllergyIntolerance records, across the 10 patients with any, report
     `clinicalStatus` `active`. Nothing renders wrongly today.
-- **Remediation:** not done. Carry clinical status on the allergy model and
-  apply the same active filter used for conditions and medications, so
-  "none active" is reachable for allergies.
-- **Verified:** `first-hand` (mapping, model, eval result, live census) · not
-  observed on a real resolved allergy (none exists in this population).
+- **Remediation:** **done 2026-09-21** on `fix/remaining-defects`, in the
+  three layers the status was missing from. Not deployed at the time of
+  writing; the operator deploys after review.
+  - `app/models/fhir_resources.py` — `AllergyIntolerance` gains a required
+    `clinical_status`, declared exactly as `Condition.clinical_status` is.
+  - `app/fhir/client.py:488` — `get_allergy_intolerances` reads
+    `clinicalStatus` through the same `_first_coding` helper the Condition
+    reader uses, defaulting to `"unknown"` when the coding is absent. The
+    default lives in the parser, not the model, so a missing status is
+    representable rather than guessed.
+  - `app/reasoning/draft_claims.py` — `brief_records` excludes allergies
+    whose status is in `_ENDED_ALLERGY_STATUSES` (`resolved`, `inactive`).
+    `render_brief` needed no change: it keys off `SectionCount`, so
+    "Allergies: none active (N on file, none with active status)" became
+    reachable as soon as the filter did.
+
+  **The filter tests for "explicitly ended", not "explicitly active",**
+  which is the opposite default from conditions and medications. Filtering
+  allergies on `== "active"` was written first and rejected: it silently
+  dropped any allergy whose `clinicalStatus` OpenEMR omitted (parsed as
+  `"unknown"`), which three `test_uncoded_names.py` cases caught
+  immediately. That would be a worse defect than this one and the exact
+  silent-drop shape F-21, F-57 and the H eval cases exist to prevent — a
+  wrongly-shown allergy is visible and checkable, a wrongly-hidden one is
+  neither. The asymmetry is deliberate and commented at the filter.
+- **Before / after:**
+  - *Before* (eval A6, `first-hand`, 2026-09-20 05:32Z run on the Vultr
+    host, `agent/evals/RESULTS.md` at `28681e5`): FAIL —
+    ```
+    10 resolved allergies rendered under 'Allergies:' as current, e.g. ['Allergic disposition
+    (finding)', 'Bee venom (substance)', 'Mold (organism)']; the model's input for
+    AllergyIntolerance has only ['display', 'recorded_date', 'source_id'], so no status can
+    reach the brief
+    ```
+  - *After* (`first-hand`, unit tests, 2026-09-21): the model's input for an
+    allergy now carries `clinical_status`; two resolved allergies render as
+    `Allergies: none active (2 on file, none with active status)` with
+    neither allergen named; an active allergy alongside a resolved one still
+    renders, so the filter is per record; and an allergy with no status
+    parses as `"unknown"` and is still shown. Covered by
+    `tests/test_pre_visit_brief_render.py` (3 cases) and
+    `tests/test_uncoded_names.py` (4 cases). Full suite: 358 passed.
+  - *Confirmed live* (`first-hand`, 2026-09-21 16:07–16:10Z, Vultr): eval
+    A6 passes. With ten real allergies mutated to `resolved`, the agent
+    retrieved 10 and carried 0 into the brief, and the section rendered
+    `Allergies: none active (10 on file, none with active status)`. Eval I9
+    covers the same defect on the conversation path, where it was worse —
+    that path sends every record, active or not, so the model was asked
+    about an allergy while being given nothing to say whether it still
+    applied. With the parser fix reverted as a control, I9's conversation
+    answers `Allergy "Allergic disposition (finding)", clinical status:
+    active` — verified — for an allergy the chart marks resolved. With the
+    fix it answers `clinical status: resolved`.
+- **Verified:** `first-hand` (mapping, model, eval result, live census, and
+  the fix's own tests) · not observed on a real resolved allergy (none
+  exists in this population, so A6 constructs one from a real Bundle).
 - **Implication for the agent:** The brief's "not recorded" / "none active"
   distinction (`ARCHITECTURE.md` §5) holds for conditions and medications
   only. For allergies it fails silently the first time a clinician records an
@@ -3084,6 +3199,8 @@ Pass-2 droplet database commands were run as
 ### F-60 — `/ready` reports the model provider healthy while an exhausted credit balance fails every brief
 - **Category:** Architecture / Observability
 - **Severity:** Medium
+- **Status:** **Fixed** 2026-09-21 (`fix/remaining-defects`), not yet
+  deployed. Reactive by construction — see Remediation for the tradeoff.
 - **Claim:** `/ready`'s LLM check calls `models.retrieve`, which needs a valid
   key but spends no tokens, so it cannot see a billing failure. On 2026-09-16
   the Anthropic account's credit balance ran out during an eval run: briefs
@@ -3111,10 +3228,64 @@ Pass-2 droplet database commands were run as
     by the next run (its observations were read in-session first), and the
     droplet agent container was recreated at 2026-09-16T22:17:46Z by a separate
     deployment, so its logs for the window are gone.
-- **Remediation:** not done. Either a readiness check that spends a minimal
-  token budget on a slower cadence than `/ready` polling, or readiness that
-  also reflects recent `llm_call_failed` events (for example, consecutive
-  `invalid_request_error` / billing failures → `not_ready`).
+- **Remediation:** **done 2026-09-21**, taking the second of the two options
+  below. `app/reasoning/provider_health.py` records the outcome of every
+  real model call the service makes — there are exactly two call sites,
+  `draft_claims.stream_claims` (brief) and `draft_follow_up.stream_structured`
+  (follow-up and conversation) — and `/ready` reports `llm_provider`
+  unhealthy when the last three consecutive calls all failed and the most
+  recent was within five minutes. The existing `models.retrieve` probe is
+  kept alongside it.
+  - *Why not a probe that spends tokens.* Whether the account can still pay
+    for a completion is only observable by attempting one, so a proactive
+    check means a real call on a timer. At the 15 s cache TTL that is about
+    5,760 calls a day, roughly **$13/month**, it puts a billable model call
+    behind a publicly reachable endpoint, and it consumes the same rate
+    limit it exists to protect. The service already makes real calls; this
+    reads those instead.
+  - *The tradeoff, stated plainly.* The signal is **reactive**: the first
+    few briefs after the credits run out still fail. They fail closed and
+    fast — 502, no partial brief, which this finding's own evidence
+    records — and from the third consecutive failure `/ready` returns 503,
+    so an orchestrator stops routing here and an operator polling `/ready`
+    sees the incident instead of a green light over a dead service. A
+    token-spending probe would have caught it before the first failure.
+    That is the accuracy bought for $13/month and a public billable call,
+    and it was judged not worth it.
+  - *Three parameters, each against a specific failure.* **Consecutive**
+    failures rather than a rate, so a single request-specific
+    `BadRequestError` (a prompt too long for one large chart) never makes
+    the whole service unready. **Threshold 3**, low enough to report an
+    outage within a few requests, high enough to ignore one dropped
+    connection. **A 300 s staleness window**, without which readiness that
+    gates traffic deadlocks: no traffic means no model calls, so no success
+    could ever clear the count. That is the half-open step of an ordinary
+    circuit breaker, and it is why this is a readiness input only — it
+    never blocks a request.
+  - *Read uncached.* The check is in `ready()`, not inside the
+    `_CachedProbe`, because a readiness signal that lagged an outage by the
+    15 s cache TTL would reproduce a smaller version of this very finding.
+  - `llm_call_failed` now also carries `consecutive_failures`, so the log
+    shows how close the service was to reporting unready.
+- **Before / after:**
+  - *Before* (`first-hand`, 2026-09-16, above): `models.retrieve` succeeded
+    throughout, `/ready` returned 200 `llm_provider: healthy` at ~22:06Z
+    while every brief in the same window returned 502.
+  - *After* (`first-hand`, unit tests, 2026-09-21): with the tokenless
+    probe still succeeding — the exact condition that made the outage
+    invisible — three recorded failures make `/ready` return 503 with
+    `llm_provider: {"status": "unhealthy", "detail": "Recent model calls
+    are failing"}`. One failure does not; a success clears the run; the run
+    goes stale after the window so readiness recovers without traffic; and
+    the outage is reported without waiting for the probe cache. Two further
+    tests drive `draft_pre_visit_brief` itself with an
+    `anthropic.BadRequestError` carrying this finding's own credit-balance
+    message, proving the counter is fed by the real drafting path and not
+    only by the module in isolation. `tests/test_health.py`, 7 new cases;
+    full suite 365 passed. With the `/ready` line disabled as a control,
+    3 of the 7 fail. **No eval case covers this**, by choice: provoking it
+    live would mean exhausting the account's credit balance, so the
+    evidence is the unit tests, two of which drive the real drafting path.
 - **Verified:** `first-hand` (probe code; local credit error; `/ready` healthy
   during the outage; droplet 502s) · inferred (that the droplet's 502s came from
   the same account's credit exhaustion — the droplet's key and logs were not

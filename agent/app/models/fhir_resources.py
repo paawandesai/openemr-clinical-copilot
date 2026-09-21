@@ -141,7 +141,9 @@ class AllergyIntolerance(BaseModel):
     tool-scope table. USERS.md §3 Use Case 1 requires the recorded/
     not-recorded distinction to be explicit; that is a property of whether
     any row exists for a patient at all (a collection-level fact), not a
-    field on a single resource, so it is not represented here.
+    field on a single resource, so it is not represented here. The
+    active/resolved distinction *is* per-record, and is `clinical_status`
+    below.
     """
 
     source_id: str = Field(..., description="Stable id a Claim can cite.")
@@ -153,6 +155,19 @@ class AllergyIntolerance(BaseModel):
             "the patient is allergic to (ARCHITECTURE.md §3)."
         )
         + _NO_NAME,
+    )
+
+    clinical_status: str = Field(
+        ...,
+        description=(
+            "e.g. 'active' / 'resolved' / 'inactive'. OpenEMR emits "
+            "'resolved' when the record has an end date and outcome 1, "
+            "'inactive' for any other end date, and 'active' otherwise "
+            "(FhirAllergyIntoleranceService.php:117-121). Required so a "
+            "resolved allergy is not presented as a current one, and so "
+            "'none active' is reachable for allergies exactly as it is "
+            "for conditions and medications (findings.md F-58)."
+        ),
     )
 
     recorded_date: datetime | None = Field(

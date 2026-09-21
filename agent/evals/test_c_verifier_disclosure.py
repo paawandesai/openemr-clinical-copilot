@@ -269,11 +269,31 @@ def test_c5_logged_metric_2_sees_a_render_drop(injection: Any, pipeline: Any, to
     result_line = next((ln.strip() for ln in printed.getvalue().splitlines() if "result:" in ln), "")
     observe("scripts/compute_metrics.py Metric 2 on the same run", result_line)
 
+    dropped = sum(1 for r in run.result.verification_results if not r.passed)
     if metric_ok:
-        dropped = sum(1 for r in run.result.verification_results if not r.passed)
         pytest.fail(
             f"the renderer hid {dropped} failed claim(s) from the physician, yet logged Metric 2 reports "
-            f"100% disclosure. disclosed_as_unverified is fixed to True by the verifier "
-            f"(app/verification/checker.py _failed) before the render step runs, and nothing after it "
-            f"records what was actually rendered, so this metric cannot detect a render-step defect"
+            f"clean. The metric is computed from claim_disclosure_event, which the render node emits "
+            f"after render_brief returns by reading the rendered text (app/verification/disclosure.py); "
+            f"if it cannot see this drop, that audit is not running or is not reading the output"
         )
+
+    # The verifier's own field still says every failed claim was disclosed —
+    # which is what made this undetectable before (F-59). The metric must be
+    # reading the rendered text, not this.
+    claim_events = run.events_of("claim_verified_event")
+    intended = [e["event_data"] for e in claim_events if not e["event_data"]["passed"]]
+    observe(
+        "verifier's disclosed_as_unverified on the same failed claims",
+        f"{sum(1 for e in intended if e['disclosed_as_unverified'])} of {len(intended)} say disclosed",
+    )
+    audited = [e["event_data"] for e in run.events_of("claim_disclosure_event")]
+    if len(audited) != dropped:
+        pytest.fail(
+            f"the render step audited {len(audited)} failed claim(s) but {dropped} failed verification; "
+            "every failed claim must be reported on, or the metric's denominator is wrong"
+        )
+    observe(
+        "render-step audit (claim_disclosure_event)",
+        f"{sum(1 for e in audited if e['disclosed'])} of {len(audited)} disclosed",
+    )

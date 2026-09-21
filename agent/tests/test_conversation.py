@@ -70,7 +70,7 @@ A_NAPROXEN = MedicationRequest(
     source_id="a-med-2", display="Naproxen 500 MG Oral Tablet", status="active", authored_date=datetime.min
 )
 A_CKD = Condition(source_id="a-cond-1", display="Chronic kidney disease stage 3 (disorder)", clinical_status="active")
-A_PENICILLIN = AllergyIntolerance(source_id="a-allergy-1", display="Penicillin V")
+A_PENICILLIN = AllergyIntolerance(source_id="a-allergy-1", display="Penicillin V", clinical_status="active")
 A_CREATININE = [
     Observation(source_id=f"a-obs-cr-{n}", value=value, unit="mg/dL", loinc_code="2160-0", effective_date=when)
     for n, (value, when) in enumerate(
