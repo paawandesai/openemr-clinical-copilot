@@ -2,18 +2,28 @@
   "id": "W2-K4",
   "category": "K",
   "critical": false,
-  "status": "pending_sut",
+  "status": "delegated",
   "inputs": {
     "kind": "not_built",
-    "note": "Proved, but not here. The write-back branch's WriteBackServiceTest::testAFailureAfterTheDocumentIsStoredWritesNothingAndLeavesNoOrphanFile asserts BOTH halves — zero ledger rows survive the rollback AND the stored ciphertext file is deleted — and ::testADocumentThatWasAlreadyStoredIsNeverDiscarded asserts the rollback does not delete bytes the call did not write. Those are PHPUnit tests against faked collaborators; this gate is Python and its CI image has no PHP. Activating this case would mean either a second CI job on a PHP image, or a recorded transcript fixture the Python side replays. Neither is built, and asserting a weaker Python-side property here while claiming the case is active would be worse than leaving it pending."
+    "note": "Enforced by the CI job `w2-writeback-php`, in the same pipeline. The gate scores whether that delegation is real — the job exists, it is not allow_failure, the named tests are still in the suite — and the job scores the behaviour. Measured locally with the same images: composer install 65s cold, then 143 tests / 294 assertions in 0.097s."
   },
   "expected": "A partial failure mid-write leaves no ledger row and no orphaned ciphertext file on disk. Both are asserted; the document and the whole procedure_order -> procedure_result chain commit together or not at all.",
   "assertions": [
     {
       "rubric": "idempotency",
       "tier": "det",
-      "check": "pending.w2_k4_idempotency"
+      "check": "chk.x_delegation_is_real"
     }
   ],
-  "guards_against": "Orphan rows: results pointing at a document that was never stored, or a document with results that never arrived."
+  "guards_against": "Orphan rows: results pointing at a document that was never stored, or a document with results that never arrived.",
+  "delegated_to": {
+    "job": "w2-writeback-php",
+    "suite": "interface/modules/custom_modules/oe-module-clinical-copilot/tests/WriteBackServiceTest.php",
+    "tests": [
+      "testAFailureAfterTheDocumentIsStoredWritesNothingAndLeavesNoOrphanFile",
+      "testADocumentThatWasAlreadyStoredIsNeverDiscarded",
+      "testADatabaseFailureBecomesAWriteBackFailedWithNothingWritten"
+    ],
+    "why_not_here": "The invariant is the fork module's, not the agent's: a rollback that leaves no ledger row AND deletes the ciphertext it had already written. Both halves are observable only from inside the transaction's own process. The gate runs on python:3.12-slim and the module's bootstrap needs Composer's autoloader; a Python reconstruction would be asserting over a fake nobody writes to."
+  }
 }

@@ -33,9 +33,10 @@
       "type": "string",
       "enum": [
         "active",
-        "pending_sut"
+        "pending_sut",
+        "delegated"
       ],
-      "description": "active: executes today against the contracts + doc factory. pending_sut: fully specified, waiting on the not-yet-built graph. A pending case never counts as a pass."
+      "description": "active: executes today against the contracts, the doc factory or a merged implementation. pending_sut: fully specified, waiting on something not built. delegated: the behaviour is enforced by a named job in the SAME pipeline that this gate cannot run itself — the gate scores whether that delegation is real, not the behaviour. None of the three ever counts as a passing behavioural case except `active`."
     },
     "inputs": {
       "type": "object",
@@ -141,6 +142,42 @@
       "type": "string",
       "minLength": 1,
       "description": "The failure mode this case exists to catch, in one line."
+    },
+    "delegated_to": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "job",
+        "suite",
+        "tests",
+        "why_not_here"
+      ],
+      "description": "Required for status=delegated, forbidden otherwise. The gate checks every field of this against the repository, so a delegation to a job that does not exist, that is allowed to fail, or to a test that has been deleted is a gate failure rather than a comment.",
+      "properties": {
+        "job": {
+          "type": "string",
+          "minLength": 1,
+          "description": "The CI job name in .gitlab-ci.yml."
+        },
+        "suite": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Repo-relative path of the test file that holds the assertions."
+        },
+        "tests": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "description": "Test method names that must exist in `suite`."
+        },
+        "why_not_here": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
     }
   }
 }

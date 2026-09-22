@@ -113,15 +113,24 @@ def load_cases() -> list[Case]:
 
         status = Status(raw["status"])
         pending_checks = [a.check for a in assertions if a.check.startswith("pending.")]
-        if status is Status.ACTIVE and pending_checks:
+        if status is not Status.PENDING_SUT and pending_checks:
             raise GateError(
-                f"{path.name}: an active case cannot carry pending checks {pending_checks}"
+                f"{path.name}: a {status.value} case cannot carry pending checks {pending_checks}"
             )
         if status is Status.PENDING_SUT and not pending_checks:
             raise GateError(
                 f"{path.name}: a pending_sut case names no pending check, so nothing records "
                 "that it is waiting on the graph"
             )
+
+        delegated_to = raw.get("delegated_to")
+        if status is Status.DELEGATED and delegated_to is None:
+            raise GateError(
+                f"{path.name}: a delegated case must name the job that enforces it; "
+                "without delegated_to the status is a claim with nothing behind it"
+            )
+        if status is not Status.DELEGATED and delegated_to is not None:
+            raise GateError(f"{path.name}: delegated_to is only meaningful on a delegated case")
 
         cases.append(
             Case(
@@ -134,6 +143,7 @@ def load_cases() -> list[Case]:
                 assertions=tuple(assertions),
                 guards_against=raw["guards_against"],
                 source_path=str(path.relative_to(CASES_DIR.parent.parent.parent.parent)),
+                delegated_to=delegated_to,
             )
         )
 

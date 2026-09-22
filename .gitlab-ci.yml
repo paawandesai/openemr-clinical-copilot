@@ -108,3 +108,57 @@ w2-eval-gate:
     name: "w2-gate-$CI_COMMIT_SHORT_SHA"
     paths:
       - w2-gate-run.json
+
+
+# ---------------------------------------------------------------------------
+# The PHP half of the write-back cases.
+#
+# W2-K4 is a critical case and its invariant — a failure mid-write leaves no
+# ledger row AND no orphaned ciphertext file — cannot be asserted from Python.
+# It lives in the fork's module, its proof is PHPUnit against faked
+# collaborators, and this image has no PHP. So it is enforced by this job
+# instead, and `agent/evals/w2/gate/checks_delegation.py` checks that the
+# delegation is real: that this job exists, that it is not allowed to fail,
+# and that the named test methods are still in the suite. A case marked
+# `delegated` whose job has been deleted or neutered fails the Python gate.
+#
+# No `allow_failure`. That is the whole point: this job's failure fails the
+# pipeline exactly as the eval gate's does, which is what "wired into the same
+# verdict" has to mean when the two halves cannot share a process.
+#
+# Measured locally with the same images and the same commands:
+# `composer install` 65 s cold, and the suite 143 tests / 294 assertions in
+# 0.097 s.
+w2-writeback-php:
+  stage: eval
+  image: php:8.3-cli
+  tags:
+    - w2-eval
+  interruptible: true
+  timeout: 20m
+  cache:
+    key:
+      files:
+        - composer.lock
+    paths:
+      - vendor/
+  before_script:
+    # --ignore-platform-reqs: OpenEMR's root composer.json requires extensions
+    # (gd, soap, mysqli, ...) that this module's tests never touch — its
+    # bootstrap loads the autoloader and nothing else, no database and no
+    # globals.php. Installing them into the image to satisfy a resolver check
+    # would add minutes for classes that are never loaded.
+    # --no-scripts: the post-install scripts are OpenEMR's asset pipeline.
+    - php -v
+    - curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer
+    - composer install --no-interaction --no-progress --ignore-platform-reqs --no-scripts
+  script:
+    - vendor/bin/phpunit -c interface/modules/custom_modules/oe-module-clinical-copilot/phpunit.xml --log-junit "$CI_PROJECT_DIR/w2-writeback-php.xml"
+  artifacts:
+    when: always
+    expire_in: 30 days
+    name: "w2-writeback-php-$CI_COMMIT_SHORT_SHA"
+    reports:
+      junit: w2-writeback-php.xml
+    paths:
+      - w2-writeback-php.xml

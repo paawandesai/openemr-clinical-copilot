@@ -2,18 +2,27 @@
   "id": "W2-K6",
   "category": "K",
   "critical": true,
-  "status": "pending_sut",
+  "status": "delegated",
   "inputs": {
     "kind": "not_built",
-    "note": "From the write-back branch's finding: OpenEMR audit entries do NOT roll back with the transaction they describe. That branch now audits AFTER commit and records a success=0 entry for an attempt that wrote nothing — WriteBackServiceTest asserts `audit.written == []` and a non-empty `audit.abandoned` on both the rollback path and the idempotency-race loser. Not executable here for the same reason as W2-K2 and W2-K4: the behaviour is PHP-side and its proof is PHPUnit. It is worse than those two, because the property is about a table that survives the rollback — a Python-side reconstruction would be asserting over a fake nobody writes to. Needs either a PHP CI job or a live DB; specced here so the gate records the invariant rather than losing it with the session that found it."
+    "note": "Enforced by the CI job `w2-writeback-php`. The write-back branch's finding — OpenEMR audit entries do NOT roll back with the transaction they describe — is asserted there as `audit.written == []` with a non-empty `audit.abandoned`, on both the rollback path and the idempotency-race loser."
   },
   "expected": "A rolled-back write-back attempt leaves no audit entry claiming rows that do not exist. The attempt is still audited — that is the point of auditing after commit — but as success=0 with no order or result id, never as a completed write naming ids its own rollback removed.",
   "assertions": [
     {
       "rubric": "provenance_roundtrip",
       "tier": "det",
-      "check": "pending.w2_k6_provenance_roundtrip"
+      "check": "chk.x_delegation_is_real"
     }
   ],
-  "guards_against": "An audit trail that disagrees with the database it describes. Audit entries outliving their transaction is the trap: the natural implementation audits inside the transaction, the rollback takes the rows and leaves the entry, and the chart's history then names a procedure_order_id that was never committed. Anyone reading that audit later — a clinician, an investigation — is reading a record of something that did not happen."
+  "guards_against": "An audit trail that disagrees with the database it describes. Audit entries outliving their transaction is the trap: the natural implementation audits inside the transaction, the rollback takes the rows and leaves the entry, and the chart's history then names a procedure_order_id that was never committed. Anyone reading that audit later — a clinician, an investigation — is reading a record of something that did not happen.",
+  "delegated_to": {
+    "job": "w2-writeback-php",
+    "suite": "interface/modules/custom_modules/oe-module-clinical-copilot/tests/WriteBackServiceTest.php",
+    "tests": [
+      "testAFailureAfterTheDocumentIsStoredWritesNothingAndLeavesNoOrphanFile",
+      "testTheLoserOfAnIdempotencyRaceReturnsTheWinnersIds"
+    ],
+    "why_not_here": "The property is about a table that SURVIVES the rollback, which is the whole reason it is dangerous. Only the service's own process can observe that the audit row written after commit names no order id its rollback removed."
+  }
 }

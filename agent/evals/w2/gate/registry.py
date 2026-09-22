@@ -48,6 +48,7 @@ def load_all_checks() -> None:
         checks_a,
         checks_c,
         checks_d,
+        checks_delegation,
         checks_e,
         checks_f,
         checks_g,

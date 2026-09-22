@@ -43,6 +43,7 @@ pre-push hook (`scripts/install-w2-pre-push-hook.sh`) runs
 | `fixtures/` | yes | PHI canary bundles and the frozen judge meta-check fixtures. |
 | `baseline.json` | yes | The committed scores a run is compared against. |
 | `gate/` | yes | The machinery: loader, checkers, judge, statistics, verdict, runner. |
+| `gate/checks_delegation.py` | yes | Checks that a `delegated` case's CI job really enforces it. |
 | `factory/` | **no** | The synthetic document factory. Any session may write here. |
 | `staging/` | **no** | Where a generator puts cases. Promotion into `cases/` needs `W2_GATE_SESSION=1`. |
 
@@ -64,11 +65,33 @@ D27.
 
 ## Case status
 
-`active` — executes today against the contracts and the doc-factory samples.
-`pending_sut` — fully specified, waiting on the supervisor graph. A pending
+`active` — executes today, against the contracts, the doc-factory samples or
+a merged implementation.
+
+`pending_sut` — fully specified, waiting on something not built. A pending
 case is **never** a pass. It is reported in its own block and it still counts
 towards `n_min`, so a branch cannot make room by deleting the ones it has not
 built yet.
+
+`delegated` — the behaviour is enforced by a named job in the **same
+pipeline** that this gate cannot run itself. W2-K4 is the case that forced
+it: "a failure mid-write leaves no ledger row and no orphaned ciphertext
+file" lives in the fork's PHP module, its proof is PHPUnit, and this gate
+runs on `python:3.12-slim`. Calling it `pending_sut` said nobody was checking
+it, which was true and is now avoidable; calling it `active` and asserting
+some weaker Python-side property would have been a lie.
+
+What the gate scores for a delegated case is that the **delegation is real** —
+`gate/checks_delegation.py` checks the job exists in `.gitlab-ci.yml`, is not
+`allow_failure`, names the suite on its script, and that every named test
+method is still in that file. That is what stops `delegated` becoming a way
+to park a case: two planted regressions in the harness prove it, one setting
+`allow_failure: true` and one renaming the test away. Neither is visible to
+the PHP job — it passes either way — so only the Python gate catches them.
+
+What it cannot prove is that the job passed: the gate runs in one job and
+cannot read another's result. The pipeline joins them, which is why the
+`allow_failure` check matters more than it looks.
 
 ## Adding a case
 

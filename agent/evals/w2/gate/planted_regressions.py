@@ -221,6 +221,46 @@ REGRESSIONS: tuple[Regression, ...] = (
         ),
     ),
     Regression(
+        key="delegated-job-allowed-to-fail",
+        coverage_row=(
+            "A delegated case quietly stops being enforced -> W2-K4, W2-K6 -> Det "
+            "(critical). Not in the design doc's map: `delegated` did not exist when "
+            "it was written."
+        ),
+        relative_path=".gitlab-ci.yml",
+        old="w2-writeback-php:\n  stage: eval",
+        new="w2-writeback-php:\n  allow_failure: true\n  stage: eval",
+        expected=("W2-K4", "W2-K6"),
+        why=(
+            "One line, and the PHP job stops failing the pipeline. This is the "
+            "obvious way to make a red build green without fixing anything, and it "
+            "would leave the strongest write-back invariant enforced by a job whose "
+            "result nobody acts on."
+        ),
+    ),
+    Regression(
+        key="delegated-test-renamed-away",
+        coverage_row=("A delegated case's proof is deleted or renamed -> W2-K4 -> Det (critical)"),
+        relative_path=(
+            "interface/modules/custom_modules/oe-module-clinical-copilot/tests/"
+            "WriteBackServiceTest.php"
+        ),
+        old="public function testAFailureAfterTheDocumentIsStoredWritesNothingAndLeavesNoOrphanFile",
+        new="public function skippedFailureAfterTheDocumentIsStoredWritesNothingAndLeavesNoOrphanFile",
+        expected=("W2-K4",),
+        why=(
+            "The test that proves a rollback leaves no orphaned ciphertext is renamed "
+            "so PHPUnit no longer collects it. The PHP job still passes — it just "
+            "runs one assertion fewer — so only the Python gate can notice, which is "
+            "the entire reason the delegation is checked rather than declared."
+        ),
+        notes=(
+            "Worth reading with the previous one. Together they are what makes "
+            "`delegated` a status rather than a way to park a case: the job must "
+            "exist, must fail the pipeline, and must still contain the named proof."
+        ),
+    ),
+    Regression(
         key="phi-scrubber-off",
         coverage_row="Turn off the PHI scrubber -> J1-J4 -> Det (critical)",
         relative_path="agent/evals/w2/gate/phi_scanner.py",
@@ -294,10 +334,19 @@ class RunResult:
         return self.exit_code == 1
 
 
+#: Paths outside agent/ that the gate reads. The delegation check reads the
+#: CI config and the delegated suites, so a scratch tree without them would
+#: fail every run including the control — and the two delegation regressions
+#: below could not be planted at all.
+_MODULE = "interface/modules/custom_modules/oe-module-clinical-copilot"
+
+
 def _scratch_tree(destination: Path) -> Path:
     """A copy of just enough of the tree for the gate to run in."""
     shutil.copytree(REPO_ROOT / "agent", destination / "agent", ignore=_IGNORE)
     shutil.copytree(REPO_ROOT / "docs" / "w2" / "schemas", destination / "docs" / "w2" / "schemas")
+    shutil.copyfile(REPO_ROOT / ".gitlab-ci.yml", destination / ".gitlab-ci.yml")
+    shutil.copytree(REPO_ROOT / _MODULE / "tests", destination / _MODULE / "tests", ignore=_IGNORE)
     return destination
 
 

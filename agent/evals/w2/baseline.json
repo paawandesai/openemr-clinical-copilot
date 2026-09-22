@@ -1,7 +1,7 @@
 {
   "schema_version": "w2-gate/baseline/1.0.0",
-  "generated_at": "2026-09-22T22:12:02+00:00",
-  "commit": "e6c5264b04b112c4b8b6b24e37a8ec2065fbfc83",
+  "generated_at": "2026-09-22T22:34:19+00:00",
+  "commit": "7b8d233d8dc939367cb38c000eb2bc8ab30a0f58",
   "judge": {
     "model": "claude-haiku-4-5",
     "model_version": "claude-haiku-4-5-20251001",
@@ -11,7 +11,7 @@
   "counts": {
     "specs": 93,
     "active": 54,
-    "pending": 39
+    "pending": 37
   },
   "cases": {
     "W2-A1": {
@@ -590,10 +590,10 @@
     },
     "W2-K4": {
       "category": "K",
-      "status": "pending_sut",
+      "status": "delegated",
       "tier": "det",
       "critical": false,
-      "verdict": "pending"
+      "verdict": "pass"
     },
     "W2-K5": {
       "category": "K",
@@ -604,10 +604,10 @@
     },
     "W2-K6": {
       "category": "K",
-      "status": "pending_sut",
+      "status": "delegated",
       "tier": "det",
       "critical": true,
-      "verdict": "pending"
+      "verdict": "pass"
     },
     "W2-M1": {
       "category": "M",
@@ -671,6 +671,7 @@
       "specs": 6,
       "active": 6,
       "pending": 0,
+      "delegated": 0,
       "det": {
         "scored": 6,
         "passed": 6,
@@ -689,6 +690,7 @@
       "specs": 10,
       "active": 0,
       "pending": 10,
+      "delegated": 0,
       "det": {
         "scored": 0,
         "passed": 0,
@@ -707,6 +709,7 @@
       "specs": 9,
       "active": 4,
       "pending": 5,
+      "delegated": 0,
       "det": {
         "scored": 4,
         "passed": 4,
@@ -725,6 +728,7 @@
       "specs": 7,
       "active": 7,
       "pending": 0,
+      "delegated": 0,
       "det": {
         "scored": 7,
         "passed": 7,
@@ -743,6 +747,7 @@
       "specs": 8,
       "active": 8,
       "pending": 0,
+      "delegated": 0,
       "det": {
         "scored": 8,
         "passed": 8,
@@ -761,6 +766,7 @@
       "specs": 10,
       "active": 9,
       "pending": 1,
+      "delegated": 0,
       "det": {
         "scored": 9,
         "passed": 9,
@@ -779,6 +785,7 @@
       "specs": 10,
       "active": 2,
       "pending": 8,
+      "delegated": 0,
       "det": {
         "scored": 2,
         "passed": 2,
@@ -797,6 +804,7 @@
       "specs": 9,
       "active": 0,
       "pending": 9,
+      "delegated": 0,
       "det": {
         "scored": 0,
         "passed": 0,
@@ -815,6 +823,7 @@
       "specs": 4,
       "active": 0,
       "pending": 4,
+      "delegated": 0,
       "det": {
         "scored": 0,
         "passed": 0,
@@ -833,6 +842,7 @@
       "specs": 6,
       "active": 6,
       "pending": 0,
+      "delegated": 0,
       "det": {
         "scored": 6,
         "passed": 6,
@@ -850,10 +860,11 @@
     "K": {
       "specs": 6,
       "active": 4,
-      "pending": 2,
+      "pending": 0,
+      "delegated": 2,
       "det": {
-        "scored": 4,
-        "passed": 4,
+        "scored": 6,
+        "passed": 6,
         "skipped": 0,
         "rate": 1.0
       },
@@ -869,6 +880,7 @@
       "specs": 8,
       "active": 8,
       "pending": 0,
+      "delegated": 0,
       "det": {
         "scored": 0,
         "passed": 0,
@@ -887,10 +899,11 @@
   "aggregate": {
     "specs": 93,
     "active": 54,
-    "pending": 39,
+    "pending": 37,
+    "delegated": 2,
     "det": {
-      "scored": 46,
-      "passed": 46,
+      "scored": 48,
+      "passed": 48,
       "skipped": 0,
       "rate": 1.0
     },

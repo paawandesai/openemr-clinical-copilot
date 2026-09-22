@@ -9,6 +9,11 @@ from enum import StrEnum
 class Status(StrEnum):
     ACTIVE = "active"
     PENDING_SUT = "pending_sut"
+    #: Enforced by a named job in the same pipeline that this gate cannot run
+    #: itself. The gate scores the integrity of the delegation — the job
+    #: exists, it is not allowed to fail, the named tests are still there —
+    #: and the job scores the behaviour.
+    DELEGATED = "delegated"
 
 
 class Tier(StrEnum):
@@ -34,10 +39,25 @@ class Case:
     assertions: tuple[Assertion, ...]
     guards_against: str
     source_path: str
+    #: Present only for status=delegated: the job, suite and test names the
+    #: gate checks against the repository.
+    delegated_to: dict[str, object] | None = None
 
     @property
     def is_active(self) -> bool:
         return self.status is Status.ACTIVE
+
+    @property
+    def is_delegated(self) -> bool:
+        return self.status is Status.DELEGATED
+
+    @property
+    def is_scored(self) -> bool:
+        """Whether this run executes anything for the case at all."""
+        return self.status in (Status.ACTIVE, Status.DELEGATED)
+
+    def delegation(self) -> dict[str, object]:
+        return dict(self.delegated_to or {})
 
     @property
     def tier(self) -> Tier:

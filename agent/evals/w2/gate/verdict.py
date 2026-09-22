@@ -57,6 +57,7 @@ class CategoryScore:
     specs: int = 0
     active: int = 0
     pending: int = 0
+    delegated: int = 0
     det: TierScore = field(default_factory=TierScore)
     judge: TierScore = field(default_factory=TierScore)
 
@@ -77,6 +78,7 @@ class CategoryScore:
             "specs": self.specs,
             "active": self.active,
             "pending": self.pending,
+            "delegated": self.delegated,
             "det": self.det.as_dict(),
             "judge": self.judge.as_dict(),
             "rate": self.rate,
@@ -92,7 +94,9 @@ def score(results: list[CaseResult]) -> tuple[dict[str, CategoryScore], Category
         score_for = categories.setdefault(case.category, CategoryScore(key=case.category))
         for bucket in (score_for, total):
             bucket.specs += 1
-            if case.is_active:
+            if case.is_delegated:
+                bucket.delegated += 1
+            elif case.is_active:
                 bucket.active += 1
             else:
                 bucket.pending += 1

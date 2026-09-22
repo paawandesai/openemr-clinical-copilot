@@ -69,7 +69,7 @@ def _run_case(case: Case) -> CaseResult:
 def execute(cases: list[Case], *, det_only: bool, judge_available: bool) -> list[CaseResult]:
     out: list[CaseResult] = []
     for case in cases:
-        if not case.is_active:
+        if not case.is_scored:
             out.append(CaseResult(case=case, results=(), skipped_reason=PENDING_REASON))
             continue
         if case.tier is Tier.JUDGE:
@@ -125,7 +125,7 @@ def build_baseline(
                 "critical": r.case.critical,
                 "verdict": (
                     "pending"
-                    if not r.case.is_active
+                    if not r.case.is_scored
                     else ("skipped" if not r.scored else ("pass" if r.passed else "fail"))
                 ),
             }
@@ -139,7 +139,7 @@ def build_baseline(
 def _print_table(scores: dict[str, CategoryScore], config: dict[str, Any]) -> None:
     declared = config["categories"]
     print(
-        f"{'cat':<4}{'specs':>6}{'nMin':>6}{'act':>5}{'pend':>6}"
+        f"{'cat':<4}{'specs':>6}{'nMin':>6}{'act':>5}{'pend':>6}{'dlg':>5}"
         f"{'det':>10}{'judge':>10}{'rate':>8}  name"
     )
     print("-" * 78)
@@ -153,7 +153,8 @@ def _print_table(scores: dict[str, CategoryScore], config: dict[str, Any]) -> No
         rate = "-" if category.rate is None else f"{category.rate:.3f}"
         print(
             f"{key:<4}{category.specs:>6}{spec.get('n_min', '?'):>6}{category.active:>5}"
-            f"{category.pending:>6}{det:>10}{jud:>10}{rate:>8}  {spec.get('name', '?')}"
+            f"{category.pending:>6}{category.delegated:>5}{det:>10}{jud:>10}{rate:>8}"
+            f"  {spec.get('name', '?')}"
         )
 
 
@@ -262,7 +263,7 @@ def main(argv: list[str] | None = None) -> int:
     all_rate = "-" if aggregate.rate is None else f"{aggregate.rate:.3f}"
     print(
         f"{'ALL':<4}{aggregate.specs:>6}{'':>6}{aggregate.active:>5}{aggregate.pending:>6}"
-        f"{all_det:>10}{all_judge:>10}{all_rate:>8}"
+        f"{aggregate.delegated:>5}{all_det:>10}{all_judge:>10}{all_rate:>8}"
     )
 
     if args.verbose:
@@ -278,8 +279,9 @@ def main(argv: list[str] | None = None) -> int:
                     f"/{entry.assertion.check}: {entry.outcome.detail}"
                 )
 
-    pending = [r for r in results if not r.case.is_active]
-    skipped = [r for r in results if r.case.is_active and not r.scored]
+    pending = [r for r in results if not r.case.is_scored]
+    delegated = [r for r in results if r.case.is_delegated]
+    skipped = [r for r in results if r.case.is_scored and not r.scored]
     print()
     print(f"Pending (specified, not executable yet): {len(pending)}")
     if pending:
@@ -288,6 +290,22 @@ def main(argv: list[str] | None = None) -> int:
             by_category.setdefault(result.case.category, []).append(result.case.id)
         for key, ids in sorted(by_category.items()):
             print(f"  {key}: {' '.join(ids)}")
+    if delegated:
+        print()
+        print(
+            f"Delegated to another job in this pipeline: {len(delegated)} — the "
+            "BEHAVIOUR is not scored here"
+        )
+        for result in delegated:
+            job = result.case.delegation().get("job", "?")
+            mark = "ok " if result.passed else "FAIL"
+            print(f"  [{mark}] {result.case.id} [{result.case.category}] -> {job}")
+        print("  What this gate scored for them is only that the delegation holds: the job exists,")
+        print(
+            "  it is not allow_failure, and the named tests are still in the suite. The job itself"
+        )
+        print("  fails the pipeline on its own if the behaviour regresses.")
+
     if skipped:
         print(f"Active but NOT SCORED this run: {len(skipped)} — not passes")
         for result in skipped:
