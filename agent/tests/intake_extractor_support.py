@@ -254,3 +254,56 @@ def chart_for(sample: str) -> ChartSnapshot:
         medications=medications,
         allergies=allergies,
     )
+
+
+# --------------------------------------------------------------------------
+# Recorded live transcriptions (evals/w2/factory/record_transcriptions.py)
+# --------------------------------------------------------------------------
+
+TRANSCRIPTIONS_DIR = AGENT_ROOT / "evals/w2/staging/transcriptions"
+
+
+def recorded_transcription(sample: str) -> dict[str, Any] | None:
+    path = TRANSCRIPTIONS_DIR / f"{sample}.transcription.json"
+    return json.loads(path.read_text()) if path.exists() else None
+
+
+def recorded_vision(sample: str):  # noqa: ANN201 - a VisionExtractor
+    """
+    A `VisionExtractor` that replays the sample's recorded real transcription.
+
+    Refuses a stale recording rather than replaying it: a different PDF
+    (the factory regenerated the sample) or a changed prompt or output
+    schema means the recorded output no longer answers the question the
+    worker would now ask.
+    """
+    import hashlib
+
+    from app.workers.intake_extractor.vision_schema import RAW_MODEL
+    from evals.w2.factory.record_transcriptions import prompt_fingerprint
+
+    recorded = recorded_transcription(sample)
+    if recorded is None:
+        raise FileNotFoundError(f"no recorded transcription for {sample}")
+    kind = DocumentKind(recorded["doc_type"])
+    if recorded["document_sha256"] != hashlib.sha256(pdf_bytes(sample)).hexdigest():
+        raise ValueError(f"{sample}: recorded against a different PDF; re-record it")
+    if recorded["prompt_fingerprint"] != prompt_fingerprint(kind):
+        raise ValueError(f"{sample}: prompt or schema changed since recording; re-record it")
+    raw = RAW_MODEL[kind].model_validate_json(json.dumps(recorded["raw"]))
+    usage = recorded["usage"]
+
+    async def extract(kind: DocumentKind, pdf: bytes, page_count: int) -> VisionResult:
+        return VisionResult(
+            raw=raw,
+            usage=VisionUsage(
+                calls=usage["calls"],
+                input_tokens=usage["input_tokens"],
+                output_tokens=usage["output_tokens"],
+                latency_ms=usage["latency_ms"],
+                served_models=list(recorded["served_models"]),
+                cost_usd=usage["cost_usd"],
+            ),
+        )
+
+    return extract
