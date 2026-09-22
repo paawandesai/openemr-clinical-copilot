@@ -34,15 +34,27 @@ langfuse>=4.15.3,<5
 # correlation_id to every log line for a request's lifetime
 structlog>=26.1.0
 
-# --- evals/w2/factory: the synthetic document factory (evals/w2/factory/README.md) ---
+# --- Document extraction (app/extraction/) — stages 1 and 3 of D3 ---
 
-# PDF rendering, rasterisation and text extraction. One engine does all three,
-# which is what lets the factory compute a field's bbox from font metrics while
-# drawing and have `validate` re-extract it independently afterwards.
+# Word boxes from a PDF's text layer, and page rasterisation for the OCR
+# path (app/extraction/words.py). The same engine draws, rasterises and
+# re-extracts for the document factory, which is what lets the factory
+# compute a field's bbox from font metrics while drawing and have
+# `validate` re-extract it independently afterwards.
 pymupdf>=1.28.2
 
-# Scan simulation: skew resampling and JPEG re-encoding in degrade.py.
+# The page image handed to Tesseract (app/extraction/words.py), and the
+# factory's scan simulation: skew resampling and JPEG re-encoding in degrade.py.
 pillow>=11.0.0
+
+# OCR for image-only pages. A thin subprocess wrapper around the `tesseract`
+# binary, which pip does NOT install: `brew install tesseract` on macOS,
+# `apt-get install tesseract-ocr` on Debian. app/extraction/words.py raises
+# OcrUnavailableError naming that step when it is missing, and the OCR tests
+# skip rather than fail. See that module for why Tesseract and not docTR.
+pytesseract>=0.3.13
+
+# --- The synthetic document factory (evals/w2/factory/README.md) ---
 
 # The lighting field, sensor noise and speckle in degrade.py.
 numpy>=2.1.0

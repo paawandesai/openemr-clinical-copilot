@@ -673,3 +673,93 @@ sufficient. Anything outside this repository that accepts a Week 2
 extraction — the API collection, a non-Python consumer, a future eval
 harness — checks shape with the schema and must still pass the payload
 through the models for the invariants, or state plainly that it has not.
+
+---
+
+## D24 — Numbers, units, dates and lab flags are never near-matched
+
+**Status:** DECIDED
+**Date:** 2026-09-22
+
+**Numbering:** the next free number **against `main`** is D23. D23 is
+already used by two unmerged branches — `feat/w2-retrieval` (local
+embeddings and hybrid RRF) and `feat/w2-writeback` (the write-back
+endpoint as a custom module) — so this entry takes D24 to collide with
+neither. Renumber at merge time if that order changes.
+
+**Decision:** the deterministic locate step (D3) matches a value in tiers —
+`exact`, `numeric`, `number_only`, then `fuzzy`. **The fuzzy tier is never
+used on a value that is a number, a unit, a date or a lab flag.** Those
+four classes are matched exactly or not at all; what cannot be matched is
+`unsupported` (invariant 4). The fuzzy tier stays available for **free
+text** — names, drug names, allergens, free-text answers — where an OCR
+slip is worth forgiving.
+
+**Every locate carries the tier that produced it and its match score.**
+`LocateResult.tier` is `exact | numeric | fuzzy` and `LocateResult.score`
+is 1.0 for every exact and numeric match and the similarity — always below
+1.0 — for a fuzzy one. A consumer is expected to hold a fuzzy locate at
+lower confidence than an exact one rather than treat the two alike.
+
+This is a policy, not a default: `FuzzyMode.ALWAYS` does not lift it.
+
+**Rationale:** a near match asserts that two strings are the same despite a
+difference. In free text the difference is usually the reader's error. In
+these four classes the difference **is** the value: `3.1` and `8.1` are one
+character apart and are a normal and a critical potassium; `mg/dL` and
+`mg/mL` are one character apart and a thousandfold apart; `2026-09-09` and
+`2026-09-08` are different collection days. There is no reading of "close
+enough" that is safe there.
+
+**Evidence** — `agent/tests/locate_measurement.py` over the six committed
+doc-factory samples; thresholds in `agent/tests/test_locate_measurement.py`:
+
+- One-character decoys of numeric, unit and date fields are located **0
+  times in 242** (numeric 165, unit 57, date 20), **under default settings**
+  rather than with the fuzzy tier switched off, and identically whether the
+  class is declared or inferred.
+- Flag fields contribute no decoys: a one-character value cannot be
+  perturbed into a one-character decoy that is still absent from the page.
+  The flag half of the policy therefore rests on the code path and its unit
+  tests, not on decoy evidence.
+- Every remaining false locate is on a **free-text** field — **57.1%**
+  (20/35) on `scanned_light`, **37.5%** (12/32) on `scanned_heavy`. That is
+  the cost the tier knowingly buys, on the one class where it still runs.
+- The policy removed **18 false locates** across the two scanned samples
+  (26 -> 20 and 24 -> 12 decoys located), all of them on numeric, unit or
+  date fields. Clean pages were already at 0%, because the tier is off on a
+  text layer regardless.
+- The recall cost falls on the heavy scan: page-wide located rate
+  **49.5% -> 44.9%**, while the share of located boxes actually over the
+  right ink (IoU >= 0.5) rose **65.6% -> 70.4%**. Fewer boxes, and a larger
+  fraction of the ones produced are right.
+
+**Known limit — declare the class, do not rely on inference.**
+`normalize.classify_value` infers the class from the value's characters. It
+is deliberately biased towards the four narrow classes, because calling a
+unit `free_text` lets a near match change a digit while the reverse only
+costs a value its near-match tier. The blind spot is that inference sees
+only what the model emitted, and a garbled value can stop looking like its
+own class:
+
+- OCR reading `mg/dL` as `md/gL` is still unit-shaped and stays `unit`;
+- OCR reading the unit `ratio` as `rtaio` is not, and classifies
+  `free_text`. That was the single disagreement between inference and
+  declaration across 136 scanned decoys.
+- A ratio written with a colon, `7.6:1.99`, classifies `free_text` for the
+  same reason. (`7.6/1.99` does **not** — a slash keeps it unit-shaped.)
+
+**So callers declare it.** `locate(value_class=...)` and
+`locate_in_row(value_class=...)` take the class explicitly, and an
+extractor filling a strict schema always knows which field it is filling.
+Inference is the fallback for a caller that genuinely does not know, not
+the intended path.
+
+**Relationship to D13.** `LocateStatus` is the locate step's own answer and
+has three values: `located`, `not_located`, `ambiguous`. It sits one layer
+below D13's `FieldStatus`. **`ambiguous` maps to `unlocated`, with
+`UnsupportedReason.not_located_on_page`** — the step found several places
+the value could be and refused to choose, which is a value that was not
+placed on a page, not a value the document lacks. `not_located` maps the
+same way. Neither ever becomes `missing` or `illegible`: those describe the
+document, and the locate step is not entitled to that judgement.
