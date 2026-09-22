@@ -15,10 +15,24 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 
 WORKDIR /app
 
+# OCR for image-only pages (app/extraction/words.py, D3 stage 1). pytesseract
+# is only a wrapper: the binary and its English language data come from the
+# OS, and pip installs neither. Without them a scanned page raises
+# OcrUnavailableError at request time, so the build checks for them below.
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends tesseract-ocr tesseract-ocr-eng \
+ && rm -rf /var/lib/apt/lists/*
+
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 COPY app ./app
+
+# Fail the build, not the first scanned upload, if the OCR stack or the PDF
+# and image libraries are missing: `eng` must be a listed language, and the
+# extraction module must see the binary through pytesseract.
+RUN tesseract --list-langs 2>/dev/null | grep -qx eng \
+ && python -c "import pymupdf, PIL; from app.extraction.words import tesseract_available; assert tesseract_available(), 'tesseract not usable from app.extraction.words'"
 
 # --- guideline retrieval: weights and vectors are baked in, not fetched ---
 #
