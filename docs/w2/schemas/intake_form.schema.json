@@ -1,0 +1,602 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://clinical-copilot.invalid/schemas/w2-contracts/intake_form/1.0.0",
+  "title": "IntakeFormExtraction",
+  "$defs": {
+    "BBox": {
+      "additionalProperties": false,
+      "description": "A rectangle on a page, in PDF points.\n\nCoordinate convention, matching the doc-factory's recorded convention\nexactly (`agent/evals/w2/factory/groundtruth.py` COORDINATE_CONVENTION)\nso that ground truth and extractor output are directly comparable:\norigin top-left, y increasing downward \u2014 PyMuPDF page space, on the\noriginal clean layout rather than on a degraded scan.\n\n`x1 >= x0` and `y1 >= y0`, not `>`: a zero-width box is real data. The\nfactory emits one for every unflagged lab result (an empty flag column\nrenders as `[306.0, 256.398, 306.0, 268.24]`), and rejecting it would\nmake the contract unable to describe a normal lab row.",
+      "properties": {
+        "page": {
+          "description": "1-based page number within the source document.",
+          "minimum": 1,
+          "title": "Page",
+          "type": "integer"
+        },
+        "x0": {
+          "description": "Left edge, PDF points from the page's left edge.",
+          "minimum": 0,
+          "title": "X0",
+          "type": "number"
+        },
+        "y0": {
+          "description": "Top edge, PDF points from the page's top edge (y down).",
+          "minimum": 0,
+          "title": "Y0",
+          "type": "number"
+        },
+        "x1": {
+          "description": "Right edge; >= x0.",
+          "minimum": 0,
+          "title": "X1",
+          "type": "number"
+        },
+        "y1": {
+          "description": "Bottom edge; >= y0.",
+          "minimum": 0,
+          "title": "Y1",
+          "type": "number"
+        }
+      },
+      "required": [
+        "page",
+        "x0",
+        "y0",
+        "x1",
+        "y1"
+      ],
+      "title": "BBox",
+      "type": "object"
+    },
+    "Citation": {
+      "additionalProperties": false,
+      "description": "One citation. CLAUDE.md invariant 2's five fields, plus the two the\ndocument case needs. See the module docstring for the rules.",
+      "properties": {
+        "source_type": {
+          "$ref": "#/$defs/SourceType",
+          "description": "Which kind of source this points at. Invariant 3: chart facts and guideline evidence are distinct kinds and never substitute for one another."
+        },
+        "source_id": {
+          "description": "chart: the FHIR resource id, exactly Week 1's Claim.source_id. document: the stored document's id. guideline: the guideline document's id.",
+          "minLength": 1,
+          "title": "Source Id",
+          "type": "string"
+        },
+        "page_or_section": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "chart: the tool-scope resource type this fact came from, one of CHART_SECTIONS \u2014 a chart has no pages, so its 'section' is which part of the record it is. document: the page, as a string; when it parses as an integer it must equal bbox.page. guideline: the section heading the chunk sits under. Required for document and guideline.",
+          "title": "Page Or Section"
+        },
+        "field_or_chunk_id": {
+          "description": "chart: the field name on the source resource (Week 1's Claim.field). document: the extracted field's path, in the doc-factory's field_path vocabulary. guideline: the retrieved chunk's id.",
+          "minLength": 1,
+          "title": "Field Or Chunk Id",
+          "type": "string"
+        },
+        "quote_or_value": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "integer"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "What the source holds. For a chart citation this is Week 1's Claim.value and may be None \u2014 findings.md F-57: a record with no usable name is cited as nameless and renders UNVERIFIED, never under a placeholder. For a document or guideline citation it is what is actually on the page, and may not be None: a citation that quotes nothing cites nothing.",
+          "title": "Quote Or Value"
+        },
+        "bbox": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/BBox"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Where on the page the quoted text sits. Document sources only \u2014 D3 makes the deterministic locate step the only source of a bbox, and neither a chart nor a guideline has pixels to point at. Present on an illegible field too, where it marks the ink region; a bbox alone does not make a value located (see ExtractedField)."
+        },
+        "extraction_id": {
+          "anyOf": [
+            {
+              "pattern": "^w2x-[0-9a-f]{32}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Which extraction run produced this value. Required for document sources and forbidden for the others. D1 puts this id, alone, into procedure_result.comments; the write-back ledger maps it to document id, page and bbox.",
+          "title": "Extraction Id"
+        }
+      },
+      "required": [
+        "source_type",
+        "source_id",
+        "field_or_chunk_id"
+      ],
+      "title": "Citation",
+      "type": "object"
+    },
+    "DocumentChecksums": {
+      "additionalProperties": false,
+      "description": "See the module docstring: two algorithms, two fields, never compared.",
+      "properties": {
+        "sha3_512": {
+          "anyOf": [
+            {
+              "pattern": "^[0-9a-f]{128}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "OpenEMR's digest of the stored file, lowercase hex. Required before anything can be written back: it is the document half of D1's idempotency key.",
+          "title": "Sha3 512"
+        },
+        "sha256": {
+          "anyOf": [
+            {
+              "pattern": "^[0-9a-f]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "The doc-factory's digest (`document.sha256` in a ground truth file), lowercase hex. Evaluation provenance only; never used for deduplication.",
+          "title": "Sha256"
+        }
+      },
+      "title": "DocumentChecksums",
+      "type": "object"
+    },
+    "DocumentKind": {
+      "description": "The two document kinds Week 2 extracts. Closed, because the supervisor\nroutes on it and the write-back path accepts exactly one of them: D2\nforbids intake data reaching the chart, and the type is where that is\nenforced (`LabWriteBackRequest` takes LAB_PDF and nothing else).",
+      "enum": [
+        "lab_pdf",
+        "intake_form"
+      ],
+      "title": "DocumentKind",
+      "type": "string"
+    },
+    "DocumentPatientHeader": {
+      "additionalProperties": false,
+      "description": "Who the document says it is about.\n\nEvery field is an `ExtractedField`, including the name: a scanned intake\nform can have an illegible patient name, and the schema has to be able\nto say so rather than emit a plausible one. The doc-factory exercises\nexactly this \u2014 `intake-missing-allergy-006` omits `patient.dob`\nentirely and renders `patient.city_state_zip` as an unreadable smudge.\n\n**This header is not an identity assertion.** It is what the page says,\nand matching it to a chart is a discrepancy check\n(app/models/w2/intake_form.py), never a merge. Which patient a document\nbelongs to is decided by the upload, not by reading the paper.",
+      "properties": {
+        "name": {
+          "$ref": "#/$defs/ExtractedField_str_"
+        },
+        "date_of_birth": {
+          "$ref": "#/$defs/ExtractedField_str_",
+          "description": "As written on the page, not parsed. Intake forms and lab reports disagree about format (the factory emits `1959-12-28` on one and `09/10/2026` on the other) and normalising here would put a parser between the page and the citation's quote."
+        },
+        "sex": {
+          "$ref": "#/$defs/ExtractedField_str_"
+        },
+        "address": {
+          "$ref": "#/$defs/ExtractedField_str_"
+        },
+        "city_state_zip": {
+          "$ref": "#/$defs/ExtractedField_str_"
+        },
+        "mrn": {
+          "$ref": "#/$defs/ExtractedField_str_",
+          "description": "Lab reports print one; intake forms generally do not."
+        }
+      },
+      "required": [
+        "name",
+        "date_of_birth",
+        "sex",
+        "address",
+        "city_state_zip"
+      ],
+      "title": "DocumentPatientHeader",
+      "type": "object"
+    },
+    "ExtractedField_bool_": {
+      "additionalProperties": false,
+      "properties": {
+        "status": {
+          "$ref": "#/$defs/FieldStatus"
+        },
+        "value": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "What the document says. Non-None for located and unlocated; None for missing and illegible, where nothing was read. Read it through as_presented_fact(), not directly.",
+          "title": "Value"
+        },
+        "citation": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Citation"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "The document citation supporting `value`; see the status rules."
+        },
+        "confidence": {
+          "anyOf": [
+            {
+              "maximum": 1.0,
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "The extractor's confidence in `value`, when it reports one. Must be None where `value` is None: a confidence about nothing is a number that invites being compared to a threshold.",
+          "title": "Confidence"
+        }
+      },
+      "required": [
+        "status"
+      ],
+      "title": "ExtractedField[bool]",
+      "type": "object"
+    },
+    "ExtractedField_date_": {
+      "additionalProperties": false,
+      "properties": {
+        "status": {
+          "$ref": "#/$defs/FieldStatus"
+        },
+        "value": {
+          "anyOf": [
+            {
+              "format": "date",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "What the document says. Non-None for located and unlocated; None for missing and illegible, where nothing was read. Read it through as_presented_fact(), not directly.",
+          "title": "Value"
+        },
+        "citation": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Citation"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "The document citation supporting `value`; see the status rules."
+        },
+        "confidence": {
+          "anyOf": [
+            {
+              "maximum": 1.0,
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "The extractor's confidence in `value`, when it reports one. Must be None where `value` is None: a confidence about nothing is a number that invites being compared to a threshold.",
+          "title": "Confidence"
+        }
+      },
+      "required": [
+        "status"
+      ],
+      "title": "ExtractedField[date]",
+      "type": "object"
+    },
+    "ExtractedField_str_": {
+      "additionalProperties": false,
+      "properties": {
+        "status": {
+          "$ref": "#/$defs/FieldStatus"
+        },
+        "value": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "What the document says. Non-None for located and unlocated; None for missing and illegible, where nothing was read. Read it through as_presented_fact(), not directly.",
+          "title": "Value"
+        },
+        "citation": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Citation"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "The document citation supporting `value`; see the status rules."
+        },
+        "confidence": {
+          "anyOf": [
+            {
+              "maximum": 1.0,
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "The extractor's confidence in `value`, when it reports one. Must be None where `value` is None: a confidence about nothing is a number that invites being compared to a threshold.",
+          "title": "Confidence"
+        }
+      },
+      "required": [
+        "status"
+      ],
+      "title": "ExtractedField[str]",
+      "type": "object"
+    },
+    "FamilyHistoryEntry": {
+      "additionalProperties": false,
+      "description": "One condition on the family-history grid: a checkbox, and the relation\nwritten beside it when the box is ticked.\n\n`present` is `ExtractedField[bool]` rather than a bare bool because an\nunticked box and an unreadable box are different things, and a scanned\nform gives you both.",
+      "properties": {
+        "condition": {
+          "description": "The condition the row is for, e.g. `diabetes` \u2014 the form's own label.",
+          "minLength": 1,
+          "title": "Condition",
+          "type": "string"
+        },
+        "present": {
+          "$ref": "#/$defs/ExtractedField_bool_"
+        },
+        "relation": {
+          "$ref": "#/$defs/ExtractedField_str_"
+        }
+      },
+      "required": [
+        "condition",
+        "present"
+      ],
+      "title": "FamilyHistoryEntry",
+      "type": "object"
+    },
+    "FieldStatus": {
+      "description": "What the three-stage extraction (D3) concluded about one field.",
+      "enum": [
+        "located",
+        "unlocated",
+        "missing",
+        "illegible"
+      ],
+      "title": "FieldStatus",
+      "type": "string"
+    },
+    "IntakeAllergy": {
+      "additionalProperties": false,
+      "description": "One allergy row. `substance` and `reaction`, both as written.",
+      "properties": {
+        "row_index": {
+          "minimum": 0,
+          "title": "Row Index",
+          "type": "integer"
+        },
+        "substance": {
+          "$ref": "#/$defs/ExtractedField_str_"
+        },
+        "reaction": {
+          "$ref": "#/$defs/ExtractedField_str_",
+          "description": "What the patient wrote in the reaction column. On the local Synthea data this column is severity (`Mild`, `Severe`) rather than a reaction; the field keeps whatever the page says and does not reinterpret it."
+        }
+      },
+      "required": [
+        "row_index",
+        "substance"
+      ],
+      "title": "IntakeAllergy",
+      "type": "object"
+    },
+    "IntakeMedication": {
+      "additionalProperties": false,
+      "description": "One medication row as the patient wrote it.\n\n`route` has no counterpart in the doc-factory's forms and is optional\nhere; it is in the schema because real intake forms ask for it and a\ncontract that could not hold it would force the first branch that met\none to change the schema. See `factory_mapping.SCHEMA_FIELDS_WITHOUT_\nFACTORY_PATH`.\n\nNote what is *not* here: no RxNorm code, no normalised drug name, no\nmatch to a chart medication. Those are reconciliation, and\nreconciliation is a discrepancy, not a field on the document.",
+      "properties": {
+        "row_index": {
+          "description": "Which row of the form this is.",
+          "minimum": 0,
+          "title": "Row Index",
+          "type": "integer"
+        },
+        "name": {
+          "$ref": "#/$defs/ExtractedField_str_"
+        },
+        "dose": {
+          "$ref": "#/$defs/ExtractedField_str_",
+          "description": "As written \u2014 `10 MG`, `half a tablet`. Not parsed into a quantity."
+        },
+        "frequency": {
+          "$ref": "#/$defs/ExtractedField_str_",
+          "description": "As written \u2014 `once daily`, `prn`."
+        },
+        "route": {
+          "$ref": "#/$defs/ExtractedField_str_"
+        }
+      },
+      "required": [
+        "row_index",
+        "name"
+      ],
+      "title": "IntakeMedication",
+      "type": "object"
+    },
+    "SourceDocument": {
+      "additionalProperties": false,
+      "description": "The file an extraction is about. Identifiers and counts only \u2014 no page\ntext, no extracted values (CLAUDE.md invariant 1 governs what may be\nlogged, and this model is the thing most likely to end up in a log\nline, so it holds nothing that could not).",
+      "properties": {
+        "document_id": {
+          "description": "Our id for the stored document. Where OpenEMR holds it this is the stringified `documents.id`, which the custom write-back endpoint returns (D1) because the standard upload API returns only `true` (spike \u00a79).",
+          "minLength": 1,
+          "title": "Document Id",
+          "type": "string"
+        },
+        "kind": {
+          "$ref": "#/$defs/DocumentKind"
+        },
+        "filename": {
+          "minLength": 1,
+          "title": "Filename",
+          "type": "string"
+        },
+        "mime_type": {
+          "description": "Validate by content before upload: OpenEMR silently rejects a type outside `files_white_list` as an empty 404 (spike \u00a710.6).",
+          "minLength": 1,
+          "title": "Mime Type",
+          "type": "string"
+        },
+        "page_count": {
+          "minimum": 1,
+          "title": "Page Count",
+          "type": "integer"
+        },
+        "byte_length": {
+          "minimum": 1,
+          "title": "Byte Length",
+          "type": "integer"
+        },
+        "checksums": {
+          "$ref": "#/$defs/DocumentChecksums"
+        },
+        "has_text_layer": {
+          "description": "Whether stage 1 of D3 found a text layer (PyMuPDF) or had to OCR. Recorded because it is the single best predictor of `unlocated` fields, and a run's unlocated rate is meaningless without it.",
+          "title": "Has Text Layer",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "document_id",
+        "kind",
+        "filename",
+        "mime_type",
+        "page_count",
+        "byte_length",
+        "checksums",
+        "has_text_layer"
+      ],
+      "title": "SourceDocument",
+      "type": "object"
+    },
+    "SourceType": {
+      "description": "The three kinds of source a Week 2 claim can cite. Disjoint by\nconstruction \u2014 CLAUDE.md invariant 3: \"Patient-record facts and\nguideline evidence are distinct source_types. Never let a guideline\ncitation stand in for a chart fact, or the reverse.\"",
+      "enum": [
+        "chart",
+        "document",
+        "guideline"
+      ],
+      "title": "SourceType",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "description": "A whole intake form, extracted. Nothing here reaches the chart (D2).",
+  "properties": {
+    "schema_version": {
+      "const": "w2-contracts/intake_form/1.0.0",
+      "default": "w2-contracts/intake_form/1.0.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "extraction_id": {
+      "title": "Extraction Id",
+      "type": "string"
+    },
+    "document": {
+      "$ref": "#/$defs/SourceDocument"
+    },
+    "demographics": {
+      "$ref": "#/$defs/DocumentPatientHeader"
+    },
+    "visit_date": {
+      "$ref": "#/$defs/ExtractedField_date_"
+    },
+    "chief_concern": {
+      "$ref": "#/$defs/ExtractedField_str_"
+    },
+    "medications": {
+      "items": {
+        "$ref": "#/$defs/IntakeMedication"
+      },
+      "title": "Medications",
+      "type": "array"
+    },
+    "no_known_drug_allergies": {
+      "$ref": "#/$defs/ExtractedField_bool_",
+      "description": "The 'no known drug allergies' box. Its own field rather than an empty allergy list, because a ticked box is an assertion and an empty list is an absence, and a clinician needs to tell them apart."
+    },
+    "allergies": {
+      "items": {
+        "$ref": "#/$defs/IntakeAllergy"
+      },
+      "title": "Allergies",
+      "type": "array"
+    },
+    "family_history": {
+      "items": {
+        "$ref": "#/$defs/FamilyHistoryEntry"
+      },
+      "title": "Family History",
+      "type": "array"
+    },
+    "signature_name": {
+      "$ref": "#/$defs/ExtractedField_str_"
+    },
+    "signature_date": {
+      "$ref": "#/$defs/ExtractedField_date_"
+    }
+  },
+  "required": [
+    "extraction_id",
+    "document",
+    "demographics"
+  ],
+  "type": "object"
+}

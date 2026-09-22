@@ -257,3 +257,419 @@ that directory does not exist on that branch. Corrected here as a statement of
 fact; the decision above is unchanged.) `agent/evals/factory/` is gated, since
 `agent/evals/*` is. It relocates to the ungated `agent/evals/w2/factory/` when
 it merges.
+
+---
+
+## D9 — Week 2 contracts live in `agent/app/models/w2/`
+
+**Status:** DECIDED
+**Date:** 2026-09-21
+**Work order:** `docs/w2/work-orders/03-w2-contracts.md`
+
+**Decision:** The Week 2 contract models are a `w2/` subpackage under
+`agent/app/models/`, beside Week 1's flat `claims.py`, `api.py`,
+`conversation.py`, `fhir_resources.py`, `follow_up.py` and
+`metrics_events.py`. Nothing in Week 1 moves. Every model inherits
+`app/models/w2/base.py:W2Contract`, which is
+`ConfigDict(extra="forbid", strict=True, frozen=True)` — Week 1's own
+`_Contract` rule from `app/models/api.py`, with `frozen` now load-bearing
+rather than merely tidy.
+
+**Rationale:** "Put it where Week 1 contracts live" is `app/models/`; a
+subpackage because there are eleven modules against Week 1's six, and
+interleaving them would make it unclear which contract a Phase 3 branch is
+supposed to build against. `frozen=True` matters more here than it did in
+Week 1: a mutable `ExtractedField` could be moved from `unlocated` to
+`located` after validation, without ever passing the validator that
+requires a bbox, which would defeat invariant 4.
+
+**Consequence:** contracts hold no I/O, no model calls and no FastAPI. The
+only executable code in the package is deterministic and pure — the
+abnormal-flag rule, the idempotency-key composition and the doc-factory
+adapter — because each is a place where two branches would otherwise invent
+their own version and disagree in production.
+
+---
+
+## D10 — A lab value is a tagged union, not `float | str`
+
+**Status:** DECIDED
+**Date:** 2026-09-21
+
+**Decision:** `LabValue` is a discriminated union of `NumericLabValue`
+(a float plus an optional `Comparator`: `<`, `<=`, `>`, `>=`) and
+`QualitativeLabValue` (text). The discriminator is `kind`.
+
+**Rationale:** A result is a number, a censored number (`<5`), or a term
+(`positive`). `float | str` holds all three and tells a consumer nothing:
+`"<5"` arrives as a string and every consumer that wants to compare it to a
+reference range re-parses it, each getting the censoring wrong differently.
+Under `strict=True` a `float | str` union also silently accepts `"89"` as a
+qualitative value when the extractor forgets to parse. FHIR draws the line
+in the same place (`valueQuantity.comparator` versus `valueString`), which
+matters because a written-back result lands in `procedure_result` and comes
+back out as an Observation (D1).
+
+---
+
+## D11 — Censored lab values are compared as intervals and refuse to guess
+
+**Status:** DECIDED
+**Date:** 2026-09-21
+
+**Decision:** `compute_abnormal_flag` turns a value into an interval and
+compares containment against the reference interval:
+
+- value interval entirely inside `[low, high]` -> `normal`
+- entirely above `high` -> `high`; entirely below `low` -> `low`
+- straddling a bound -> `indeterminate`
+
+`AbnormalFlag` therefore has five members, not four. Two adjustments keep
+`indeterminate` from over-firing: an absent reference bound constrains
+nothing (`89` against `< 200` is normal), and a reference range whose floor
+is at or above zero describes a non-negative quantity, so `<0.01` against
+`0.00 - 0.04` is `[0, 0.01)` and normal — while a range that admits
+negatives (a base excess of `-2 - 2`) gets no such assumption.
+`openemr_abnormal_code()` maps the four decidable flags onto OpenEMR's
+`proc_res_abnormal` list (`no | yes | high | low`) and **raises on
+`indeterminate`**.
+
+**Rationale:** `<5` does not mean 5. A result of `<5` against a range of
+`0 - 3` genuinely does not determine whether the patient is in range, and
+the contract says so rather than picking the reassuring answer.
+`procedure_result.abnormal` has no value meaning "we could not tell", and
+writing `no` would put a false normal in a chart.
+
+---
+
+## D12 — A blank flag column means `normal`; an unknown glyph means nothing
+
+**Status:** SUPERSEDED by D20
+**Date:** 2026-09-21
+
+**Decision:** `parse_reported_flag("")` is `AbnormalFlag.NORMAL`.
+`parse_reported_flag("?")` is `None`. A `FlagCrossCheck` treats a computed
+flag that disagrees with a reported one as a **verification failure**, and
+treats `not_reported` (unknown glyph) and `not_computable` (indeterminate
+computation) as neither agreement nor failure.
+
+**Rationale:** Lab reports print a blank flag on in-range rows — the
+doc-factory does exactly this — so a blank column is an assertion of
+normality and must be cross-checked like any other. An unrecognised glyph
+is a different failure: the document asserted something we cannot read, and
+reading it as agreement would invent a confirmation. A check that cried
+wolf on correct data (a censored value against an overlapping range) would
+be switched off, which is why `not_computable` is not a failure.
+
+---
+
+## D13 — Locate-status vocabulary, and where "located requires bbox" is enforced
+
+**Status:** DECIDED
+**Date:** 2026-09-21
+
+**Decision:** `FieldStatus` is `located | unlocated | missing | illegible`.
+Invariant 4's `unsupported` is the *outcome* for the latter three and is
+carried by `UnsupportedReason` (`not_located_on_page`,
+`not_present_in_document`, `illegible_on_page`). Only `located` is
+presentable; the only route from an `ExtractedField` to a non-optional
+value is `as_presented_fact()`, which returns `None` for everything else,
+and `PresentedFact` re-validates the invariant so it cannot be forged by
+hand.
+
+"A document citation for a located value requires bbox" is enforced on
+`ExtractedField`, **not** on `Citation`. `Citation` additionally offers
+`located_document()`, a constructor with no bbox default.
+
+`UnsupportedField` has no field called `value`; what the model read is
+`unverified_value`, populated for `not_located_on_page` only.
+
+**Rationale:** Locatedness is a property of the extracted field, not of the
+citation — the same `Citation` shape describes the ink region of an
+illegible field, which has a bbox and is emphatically not a located value.
+Putting the rule on `Citation` would either reject that legitimate case or
+be unenforceable. The status names the cause rather than the outcome
+because the three non-fact statuses are presented the same way and debugged
+completely differently.
+
+---
+
+## D14 — A chart citation's `page_or_section` is its FHIR resource type
+
+**Status:** DECIDED
+**Date:** 2026-09-21
+
+**Decision:** For `source_type=chart`, `Citation.page_or_section` holds one
+of the five tool-scope resource types (ARCHITECTURE.md §3), validated
+against that closed set. `citation_from_claim` / `claim_from_citation`
+round-trip a Week 1 `Claim` through `Citation` losslessly, including
+`value=None` (findings.md F-57). `quote_or_value` is typed
+`str | bool | int | float | None` and may be `None` only for chart
+citations. `claim_from_citation` refuses a boolean, because `bool` is an
+`int` subclass and would otherwise become 0/1 silently.
+
+**Rationale:** Invariant 2 fixes the citation at five fields plus `bbox`
+and `extraction_id`. A sixth field for `resource_type` would break that;
+`page_or_section` is honestly "which part of the source this came from",
+and for a chart that is the resource type. Week 1's `ClaimOutcome` maps one
+way only: its `verified` / `unverified_reason` are verification state, and
+a citation that could assert its own verification is exactly what
+ARCHITECTURE.md §5 keeps in a separate step.
+
+---
+
+## D15 — The lab extraction id is a pure function of the idempotency key
+
+**Status:** DECIDED
+**Date:** 2026-09-21
+
+**Decision:** `lab_result_idempotency_key(document_sha3_512, test_code,
+collection_date)` composes D1's UNIQUE key canonically as
+`<digest lowercased>:<test code stripped and upper-cased>:<YYYY-MM-DD>`.
+`lab_result_extraction_id(...)` is `w2x-` plus the first 128 bits of
+`sha3-256` of that key string, and is what goes in
+`procedure_result.comments`. `document_extraction_id(document_sha3_512,
+extractor_version)` is the analogous id for an extraction *run*, and is
+what a document citation's `extraction_id` carries.
+
+**Rationale:** D1 gives the ledger a UNIQUE key over three things and gives
+`procedure_result.comments` an extraction id. Left independent those are
+two identifiers for one row and a class of bug where they disagree.
+Deriving one from the other means the duplicate the ledger refuses is the
+same duplicate already visible in `Observation.note[0].text` — which is the
+only place a client can match it, since the Observation search has no
+`note`, `_text` or `identifier` parameter (spike §7). The id is short and
+opaque because spike §10.3 requires that field to be "parseable but not
+alarming" in a chart; the raw 128-character digest is neither. The UNIQUE
+constraint, not the id, is what enforces idempotency.
+
+---
+
+## D16 — SHA-256 and SHA3-512 are separate fields and are never compared
+
+**Status:** DECIDED
+**Date:** 2026-09-21
+
+**Decision:** `DocumentChecksums` carries `sha3_512` and `sha256` as
+distinct, separately-patterned, individually-optional fields, with at least
+one required. `document_idempotency_key()` reads only `sha3_512` and raises
+on anything that is not 128 hex characters.
+
+**Rationale:** OpenEMR hashes with SHA3-512 and that digest is D1's
+document-level dedup key; the doc-factory records a SHA-256 in every ground
+truth. One field holding "the hash" eventually means comparing a SHA-256 to
+a SHA3-512 and concluding a document is new, which would write a duplicate
+chain into a chart.
+
+---
+
+## D17 — A single claim draws on one source type
+
+**Status:** DECIDED
+**Date:** 2026-09-21
+
+**Decision:** `FinalAnswer` keeps `patient_facts` and `guideline_evidence`
+in separate lists. `GuidelineClaim` accepts `guideline` citations only.
+`PatientFactClaim` accepts `chart` and `document` citations — and all of a
+single claim's citations must share one of those two. Unsupported values
+ride along in a third list that nothing counts as a claim.
+
+**Rationale:** The work order requires that a claim cannot mix patient
+facts with guideline evidence (invariant 3). This goes one step further and
+forbids mixing chart with document inside one claim, because a sentence
+supported partly by the chart and partly by an uploaded PDF reads as one
+fact with one provenance — and D2 is exactly about the intake list and the
+chart list never blurring together. Two sources means two claims, or a
+`Discrepancy` when the point is that they differ.
+
+---
+
+## D18 — The doc-factory adapter reads `rendered_text`, never `value`
+
+**Status:** DECIDED
+**Date:** 2026-09-21
+
+**Decision:** `app/models/w2/factory_mapping.py` derives every
+`ExtractedField.value` from a ground-truth record's `rendered_text`. The
+record's `value` — which for `absent` and `illegible` fields is the chart
+truth the document fails to convey — is returned separately as
+`GroundTruthConversion.chart_truth`. Ground-truth `present` maps to
+`located`, `absent` to `missing`, `illegible` to `illegible`; `unlocated`
+has no ground-truth counterpart because it is a runtime conclusion of the
+D3 locate step, not a property of a document.
+
+The adapter reports anything it cannot place in `unmapped_field_paths`
+rather than dropping it; for the six committed samples that list is empty.
+The mapping table is exported to `docs/w2/factory-field-mapping.md` by
+`agent/scripts/export_w2_schemas.py`, and both directions are listed.
+
+**Rationale:** Copying `value` across would present chart truth as document
+content — invariant 4 broken by the adapter, silently, on precisely the
+cases the factory was built to catch (`intake-missing-allergy-006`'s own
+expected discrepancy is "An extractor must report it as absent, not infer
+it"). Three `present` fields also legitimately draw less than the chart
+holds (`lab.name` upper-cased, `lab.director` with its label,
+`medications[i].name` as the common name); those are the page being the
+page, and the difference is recorded in `chart_truth`.
+
+---
+
+## D19 — Week 2 contract files are ruff-clean, including `StrEnum` and PEP 695
+
+**Status:** DECIDED
+**Date:** 2026-09-21
+
+**Decision:** New Week 2 files pass `ruff format --check` and `ruff check`
+with no findings, which required `enum.StrEnum` instead of `(str, Enum)`
+(UP042) and PEP 695 type parameters instead of `Generic[T]` (UP046). Week 1
+files are untouched and keep their existing baseline findings.
+
+**Rationale:** Work order 03 makes "ruff clean on new files" an acceptance
+criterion, and CLAUDE.md is explicit that reformatting Week 1 is its own
+commit. Both migrations were verified to be behaviour-preserving under
+`strict=True`: a plain string is still rejected where an enum member is
+required, and a parametrised generic still enforces its type argument.
+Every enum interpolation in Week 2 code already uses `.value`, so
+`StrEnum`'s different `__str__` changes no message.
+
+**Consequence:** Week 2 and Week 1 differ in enum idiom until the Week 1
+reformatting commit lands. That is visible and intentional, not drift.
+
+---
+
+## D20 — A blank flag column reports nothing; it never means `normal`
+
+**Status:** DECIDED — supersedes D12, whose body is left unedited for the
+record; only its status line was flipped, as the header of this file
+prescribes.
+**Date:** 2026-09-21
+**Raised by:** review of work order 03.
+
+**Decision:** `parse_reported_flag` returns a `ReportedFlag`, a closed set
+that includes the two ways a flag column says nothing comparable:
+
+- `not_reported` — the column is blank. **This is what D12 got wrong.**
+- `unrecognised` — the column carries a glyph not in the table.
+- `normal | high | low | abnormal` — a flag the laboratory actually printed.
+  `N` and `WNL` are `normal`: those are printed assertions.
+
+`cross_check_abnormal_flag` compares **only** when the reported flag is one
+of the four comparable members. Otherwise the computed flag stands alone and
+the outcome is `not_reported` — never `agree`. `FlagCrossCheck.reported` is
+a `ReportedFlag` and is no longer nullable, so "nothing was reported" is a
+value rather than the absence of one, and the model validator rejects an
+`agree` outcome over a non-comparable reported flag. The cause stays
+distinguishable in a log line: same outcome, different `reported`.
+
+`LabResult.reported_flag` is `ExtractedField[ReportedFlag]`, and
+`LabResult.cross_check_flag()` now reads it through `as_presented_fact()`
+rather than off `.value`: a flag the locate step could not place is not
+something the document reported (invariant 4), and letting it into a
+verification comparison would allow an unlocated value to confirm a fact.
+
+**Rationale, and why D12 was wrong.** D12 reasoned that a lab report prints
+a blank flag on in-range rows, so a blank column asserts normality. The
+premise is true and the conclusion does not follow: the *report* leaves it
+blank, but what this contract observes is an extractor's reading of a
+column, and a blank reading has two causes that D12 could not tell apart —
+the row is normal, or the flag was not found.
+
+That matters in the direction a safety check must not fail. An extractor
+that loses the flag column entirely — an unfamiliar layout, a scan where
+the column is illegible — yields blanks on every row. Under D12 every one
+of those became a printed `normal` and scored as agreement with the
+computed flag. The check would have been loudest, and most reassuring,
+exactly when the misread was total. It would also have recorded agreement
+with a flag no laboratory ever printed, which is manufactured evidence in a
+contract whose whole purpose is that claims trace to a source.
+
+The cost is that the cross-check now compares far less often — across all
+six doc-factory samples it compares on three rows, the three deliberately
+abnormal ones, and reports `not_reported` on the rest. That is the honest
+count. A check that ran on every row by inventing an observation for it was
+not doing more work; it was doing different work, badly.
+
+**Consequence for the eval gate:** flag-agreement rate is no longer a
+proxy for "the extractor read the flags". A report with no abnormal rows
+offers nothing to check. Any future gate metric over this must be computed
+over `reported in COMPARABLE_REPORTED_FLAGS`, and its denominator reported
+alongside it — a category scoring 100% on three rows is not the same claim
+as one scoring 100% on three hundred.
+
+---
+
+## D21 — The factory adapter reads ground-truth 0.2.0 only, and checks it
+
+**Status:** DECIDED
+**Date:** 2026-09-21
+**Records:** a change already committed on this branch (`fix(w2): read
+doc-factory ground truth 0.2.0, and check its rendering claim`), written up
+here afterwards so this file stays append-ordered behind D20.
+
+**Decision:** `factory_mapping.SUPPORTED_GROUND_TRUTH_SCHEMA_VERSION` is
+`doc-factory-groundtruth/0.2.0` and nothing else. 0.1.0 is not supported.
+
+0.2.0 adds `rendering` to every text field — `verbatim`, `derived`,
+`wrapped`, `truncated` — declaring how `rendered_text` relates to `value`.
+`GroundTruthConversion.chart_truth` keys on that declaration instead of
+inferring divergence by comparing parsed values, which could not distinguish
+"the document says something else on purpose" from "the document lost the
+rest". The comparison is kept as a **check on** the declaration:
+`same_meaning()` (public, was about to be dead code) plus a test asserting
+that every field the factory calls `verbatim` parses back to its own
+`value`.
+
+All four renderings map to `located` — each is genuinely on the page — and
+everything but `verbatim` also produces a `ChartTruthNote`. A `truncated`
+field is located: the ellipsised string is what the page says, and a
+citation quoting it is honest; the unrecoverable remainder goes to
+`chart_truth`, not into the value.
+
+**Rationale:** the version pin exists to fail loudly rather than read old
+files under new meanings, and supporting a superseded format doubles the
+surface for files that no longer exist on any branch. Trusting the new
+declaration without checking it would make the conversion proof a
+restatement of the factory's opinion of itself.
+
+**Known limitation, recorded rather than fixed:** `Citation` carries one
+`bbox`, so a `wrapped` field is located by the union of its line boxes and
+the per-line `line_bboxes` are dropped (with `origin` and `kind`, for
+different reasons — see `GROUND_TRUTH_ATTRIBUTES_NOT_CARRIED`). No Week 2
+consumer needs per-line boxes; a UI that highlights exact glyphs on a page
+would, and that is a Phase 3 contract change, not a guess to make now. No
+committed sample wraps or truncates today, and a test fails if one starts
+to.
+
+---
+
+## D22 — The published JSON Schemas are a wire contract, and do not carry the invariants
+
+**Status:** DECIDED
+**Date:** 2026-09-22
+
+**Decision:** `docs/w2/schemas/*.schema.json` describe the **JSON on the
+wire**. The door into the contracts from that JSON is
+`model_validate_json`, not `model_validate` on an already-parsed dict.
+Both facts are pinned by tests in `agent/tests/test_w2_schema_validation.py`.
+
+**Why the door matters.** Under `strict=True` (D9) Pydantic refuses a
+Python `str` where an enum member is declared — which is the point, and is
+what stops a stringly typed value drifting in from Python code. JSON has no
+enum type, so `model_validate_json` still reads `"located"` as
+`FieldStatus.LOCATED` while `model_validate` on the same payload as a dict
+fails on every enum in it. A consumer who parses the JSON first and then
+hands over the dict sees what looks like a schema mismatch and is not one.
+
+**What the schemas do not carry.** JSON Schema describes shape: types,
+enums, required keys, bounds, `additionalProperties: false`. It cannot
+express the cross-field rules that make these contracts safe. An instance
+can satisfy every published schema while breaking invariant 4 (a `located`
+field with no citation), D1 (an idempotency key that is not the composition
+of its own components) and D17 (a claim whose citations mix source types).
+Those live in model validators and nowhere else.
+
+**Consequence:** validating against `docs/w2/schemas/` is necessary and not
+sufficient. Anything outside this repository that accepts a Week 2
+extraction — the API collection, a non-Python consumer, a future eval
+harness — checks shape with the schema and must still pass the payload
+through the models for the invariants, or state plainly that it has not.

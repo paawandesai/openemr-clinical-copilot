@@ -1,0 +1,936 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://clinical-copilot.invalid/schemas/w2-contracts/lab_pdf/1.0.0",
+  "title": "LabPdfExtraction",
+  "$defs": {
+    "BBox": {
+      "additionalProperties": false,
+      "description": "A rectangle on a page, in PDF points.\n\nCoordinate convention, matching the doc-factory's recorded convention\nexactly (`agent/evals/w2/factory/groundtruth.py` COORDINATE_CONVENTION)\nso that ground truth and extractor output are directly comparable:\norigin top-left, y increasing downward \u2014 PyMuPDF page space, on the\noriginal clean layout rather than on a degraded scan.\n\n`x1 >= x0` and `y1 >= y0`, not `>`: a zero-width box is real data. The\nfactory emits one for every unflagged lab result (an empty flag column\nrenders as `[306.0, 256.398, 306.0, 268.24]`), and rejecting it would\nmake the contract unable to describe a normal lab row.",
+      "properties": {
+        "page": {
+          "description": "1-based page number within the source document.",
+          "minimum": 1,
+          "title": "Page",
+          "type": "integer"
+        },
+        "x0": {
+          "description": "Left edge, PDF points from the page's left edge.",
+          "minimum": 0,
+          "title": "X0",
+          "type": "number"
+        },
+        "y0": {
+          "description": "Top edge, PDF points from the page's top edge (y down).",
+          "minimum": 0,
+          "title": "Y0",
+          "type": "number"
+        },
+        "x1": {
+          "description": "Right edge; >= x0.",
+          "minimum": 0,
+          "title": "X1",
+          "type": "number"
+        },
+        "y1": {
+          "description": "Bottom edge; >= y0.",
+          "minimum": 0,
+          "title": "Y1",
+          "type": "number"
+        }
+      },
+      "required": [
+        "page",
+        "x0",
+        "y0",
+        "x1",
+        "y1"
+      ],
+      "title": "BBox",
+      "type": "object"
+    },
+    "Citation": {
+      "additionalProperties": false,
+      "description": "One citation. CLAUDE.md invariant 2's five fields, plus the two the\ndocument case needs. See the module docstring for the rules.",
+      "properties": {
+        "source_type": {
+          "$ref": "#/$defs/SourceType",
+          "description": "Which kind of source this points at. Invariant 3: chart facts and guideline evidence are distinct kinds and never substitute for one another."
+        },
+        "source_id": {
+          "description": "chart: the FHIR resource id, exactly Week 1's Claim.source_id. document: the stored document's id. guideline: the guideline document's id.",
+          "minLength": 1,
+          "title": "Source Id",
+          "type": "string"
+        },
+        "page_or_section": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "chart: the tool-scope resource type this fact came from, one of CHART_SECTIONS \u2014 a chart has no pages, so its 'section' is which part of the record it is. document: the page, as a string; when it parses as an integer it must equal bbox.page. guideline: the section heading the chunk sits under. Required for document and guideline.",
+          "title": "Page Or Section"
+        },
+        "field_or_chunk_id": {
+          "description": "chart: the field name on the source resource (Week 1's Claim.field). document: the extracted field's path, in the doc-factory's field_path vocabulary. guideline: the retrieved chunk's id.",
+          "minLength": 1,
+          "title": "Field Or Chunk Id",
+          "type": "string"
+        },
+        "quote_or_value": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "integer"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "What the source holds. For a chart citation this is Week 1's Claim.value and may be None \u2014 findings.md F-57: a record with no usable name is cited as nameless and renders UNVERIFIED, never under a placeholder. For a document or guideline citation it is what is actually on the page, and may not be None: a citation that quotes nothing cites nothing.",
+          "title": "Quote Or Value"
+        },
+        "bbox": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/BBox"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Where on the page the quoted text sits. Document sources only \u2014 D3 makes the deterministic locate step the only source of a bbox, and neither a chart nor a guideline has pixels to point at. Present on an illegible field too, where it marks the ink region; a bbox alone does not make a value located (see ExtractedField)."
+        },
+        "extraction_id": {
+          "anyOf": [
+            {
+              "pattern": "^w2x-[0-9a-f]{32}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Which extraction run produced this value. Required for document sources and forbidden for the others. D1 puts this id, alone, into procedure_result.comments; the write-back ledger maps it to document id, page and bbox.",
+          "title": "Extraction Id"
+        }
+      },
+      "required": [
+        "source_type",
+        "source_id",
+        "field_or_chunk_id"
+      ],
+      "title": "Citation",
+      "type": "object"
+    },
+    "Comparator": {
+      "description": "The censoring a lab report prints in front of a number. Values match\nFHIR's `Quantity.comparator` value set, because a written-back result\nsurfaces as `Observation.valueQuantity` (D1, spike \u00a75).",
+      "enum": [
+        "<",
+        "<=",
+        ">",
+        ">="
+      ],
+      "title": "Comparator",
+      "type": "string"
+    },
+    "DocumentChecksums": {
+      "additionalProperties": false,
+      "description": "See the module docstring: two algorithms, two fields, never compared.",
+      "properties": {
+        "sha3_512": {
+          "anyOf": [
+            {
+              "pattern": "^[0-9a-f]{128}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "OpenEMR's digest of the stored file, lowercase hex. Required before anything can be written back: it is the document half of D1's idempotency key.",
+          "title": "Sha3 512"
+        },
+        "sha256": {
+          "anyOf": [
+            {
+              "pattern": "^[0-9a-f]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "The doc-factory's digest (`document.sha256` in a ground truth file), lowercase hex. Evaluation provenance only; never used for deduplication.",
+          "title": "Sha256"
+        }
+      },
+      "title": "DocumentChecksums",
+      "type": "object"
+    },
+    "DocumentKind": {
+      "description": "The two document kinds Week 2 extracts. Closed, because the supervisor\nroutes on it and the write-back path accepts exactly one of them: D2\nforbids intake data reaching the chart, and the type is where that is\nenforced (`LabWriteBackRequest` takes LAB_PDF and nothing else).",
+      "enum": [
+        "lab_pdf",
+        "intake_form"
+      ],
+      "title": "DocumentKind",
+      "type": "string"
+    },
+    "DocumentPatientHeader": {
+      "additionalProperties": false,
+      "description": "Who the document says it is about.\n\nEvery field is an `ExtractedField`, including the name: a scanned intake\nform can have an illegible patient name, and the schema has to be able\nto say so rather than emit a plausible one. The doc-factory exercises\nexactly this \u2014 `intake-missing-allergy-006` omits `patient.dob`\nentirely and renders `patient.city_state_zip` as an unreadable smudge.\n\n**This header is not an identity assertion.** It is what the page says,\nand matching it to a chart is a discrepancy check\n(app/models/w2/intake_form.py), never a merge. Which patient a document\nbelongs to is decided by the upload, not by reading the paper.",
+      "properties": {
+        "name": {
+          "$ref": "#/$defs/ExtractedField_str_"
+        },
+        "date_of_birth": {
+          "$ref": "#/$defs/ExtractedField_str_",
+          "description": "As written on the page, not parsed. Intake forms and lab reports disagree about format (the factory emits `1959-12-28` on one and `09/10/2026` on the other) and normalising here would put a parser between the page and the citation's quote."
+        },
+        "sex": {
+          "$ref": "#/$defs/ExtractedField_str_"
+        },
+        "address": {
+          "$ref": "#/$defs/ExtractedField_str_"
+        },
+        "city_state_zip": {
+          "$ref": "#/$defs/ExtractedField_str_"
+        },
+        "mrn": {
+          "$ref": "#/$defs/ExtractedField_str_",
+          "description": "Lab reports print one; intake forms generally do not."
+        }
+      },
+      "required": [
+        "name",
+        "date_of_birth",
+        "sex",
+        "address",
+        "city_state_zip"
+      ],
+      "title": "DocumentPatientHeader",
+      "type": "object"
+    },
+    "ExtractedField_LabValue_": {
+      "additionalProperties": false,
+      "properties": {
+        "status": {
+          "$ref": "#/$defs/FieldStatus"
+        },
+        "value": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/LabValue"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "What the document says. Non-None for located and unlocated; None for missing and illegible, where nothing was read. Read it through as_presented_fact(), not directly."
+        },
+        "citation": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Citation"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "The document citation supporting `value`; see the status rules."
+        },
+        "confidence": {
+          "anyOf": [
+            {
+              "maximum": 1.0,
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "The extractor's confidence in `value`, when it reports one. Must be None where `value` is None: a confidence about nothing is a number that invites being compared to a threshold.",
+          "title": "Confidence"
+        }
+      },
+      "required": [
+        "status"
+      ],
+      "title": "ExtractedField[LabValue]",
+      "type": "object"
+    },
+    "ExtractedField_ReferenceRange_": {
+      "additionalProperties": false,
+      "properties": {
+        "status": {
+          "$ref": "#/$defs/FieldStatus"
+        },
+        "value": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ReferenceRange"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "What the document says. Non-None for located and unlocated; None for missing and illegible, where nothing was read. Read it through as_presented_fact(), not directly."
+        },
+        "citation": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Citation"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "The document citation supporting `value`; see the status rules."
+        },
+        "confidence": {
+          "anyOf": [
+            {
+              "maximum": 1.0,
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "The extractor's confidence in `value`, when it reports one. Must be None where `value` is None: a confidence about nothing is a number that invites being compared to a threshold.",
+          "title": "Confidence"
+        }
+      },
+      "required": [
+        "status"
+      ],
+      "title": "ExtractedField[ReferenceRange]",
+      "type": "object"
+    },
+    "ExtractedField_ReportedFlag_": {
+      "additionalProperties": false,
+      "properties": {
+        "status": {
+          "$ref": "#/$defs/FieldStatus"
+        },
+        "value": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ReportedFlag"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "What the document says. Non-None for located and unlocated; None for missing and illegible, where nothing was read. Read it through as_presented_fact(), not directly."
+        },
+        "citation": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Citation"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "The document citation supporting `value`; see the status rules."
+        },
+        "confidence": {
+          "anyOf": [
+            {
+              "maximum": 1.0,
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "The extractor's confidence in `value`, when it reports one. Must be None where `value` is None: a confidence about nothing is a number that invites being compared to a threshold.",
+          "title": "Confidence"
+        }
+      },
+      "required": [
+        "status"
+      ],
+      "title": "ExtractedField[ReportedFlag]",
+      "type": "object"
+    },
+    "ExtractedField_date_": {
+      "additionalProperties": false,
+      "properties": {
+        "status": {
+          "$ref": "#/$defs/FieldStatus"
+        },
+        "value": {
+          "anyOf": [
+            {
+              "format": "date",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "What the document says. Non-None for located and unlocated; None for missing and illegible, where nothing was read. Read it through as_presented_fact(), not directly.",
+          "title": "Value"
+        },
+        "citation": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Citation"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "The document citation supporting `value`; see the status rules."
+        },
+        "confidence": {
+          "anyOf": [
+            {
+              "maximum": 1.0,
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "The extractor's confidence in `value`, when it reports one. Must be None where `value` is None: a confidence about nothing is a number that invites being compared to a threshold.",
+          "title": "Confidence"
+        }
+      },
+      "required": [
+        "status"
+      ],
+      "title": "ExtractedField[date]",
+      "type": "object"
+    },
+    "ExtractedField_datetime_": {
+      "additionalProperties": false,
+      "properties": {
+        "status": {
+          "$ref": "#/$defs/FieldStatus"
+        },
+        "value": {
+          "anyOf": [
+            {
+              "format": "date-time",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "What the document says. Non-None for located and unlocated; None for missing and illegible, where nothing was read. Read it through as_presented_fact(), not directly.",
+          "title": "Value"
+        },
+        "citation": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Citation"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "The document citation supporting `value`; see the status rules."
+        },
+        "confidence": {
+          "anyOf": [
+            {
+              "maximum": 1.0,
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "The extractor's confidence in `value`, when it reports one. Must be None where `value` is None: a confidence about nothing is a number that invites being compared to a threshold.",
+          "title": "Confidence"
+        }
+      },
+      "required": [
+        "status"
+      ],
+      "title": "ExtractedField[datetime]",
+      "type": "object"
+    },
+    "ExtractedField_str_": {
+      "additionalProperties": false,
+      "properties": {
+        "status": {
+          "$ref": "#/$defs/FieldStatus"
+        },
+        "value": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "What the document says. Non-None for located and unlocated; None for missing and illegible, where nothing was read. Read it through as_presented_fact(), not directly.",
+          "title": "Value"
+        },
+        "citation": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Citation"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "The document citation supporting `value`; see the status rules."
+        },
+        "confidence": {
+          "anyOf": [
+            {
+              "maximum": 1.0,
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "The extractor's confidence in `value`, when it reports one. Must be None where `value` is None: a confidence about nothing is a number that invites being compared to a threshold.",
+          "title": "Confidence"
+        }
+      },
+      "required": [
+        "status"
+      ],
+      "title": "ExtractedField[str]",
+      "type": "object"
+    },
+    "FieldStatus": {
+      "description": "What the three-stage extraction (D3) concluded about one field.",
+      "enum": [
+        "located",
+        "unlocated",
+        "missing",
+        "illegible"
+      ],
+      "title": "FieldStatus",
+      "type": "string"
+    },
+    "LabOrderHeader": {
+      "additionalProperties": false,
+      "description": "The order block \u2014 factory paths `order.*`.\n\nTimestamps are `ExtractedField[datetime]` and parsed by the extractor,\nnot by this schema: a date that could not be parsed is `unlocated`, not\na silently shifted one. `LabResult.collection_date` carries the date the\nidempotency key uses, at day resolution, because that is what D1's\nUNIQUE key is over.",
+      "properties": {
+        "accession": {
+          "$ref": "#/$defs/ExtractedField_str_"
+        },
+        "specimen": {
+          "$ref": "#/$defs/ExtractedField_str_"
+        },
+        "collected_at": {
+          "$ref": "#/$defs/ExtractedField_datetime_"
+        },
+        "received_at": {
+          "$ref": "#/$defs/ExtractedField_datetime_"
+        },
+        "reported_at": {
+          "$ref": "#/$defs/ExtractedField_datetime_"
+        },
+        "ordering_provider": {
+          "$ref": "#/$defs/ExtractedField_str_"
+        }
+      },
+      "title": "LabOrderHeader",
+      "type": "object"
+    },
+    "LabResult": {
+      "additionalProperties": false,
+      "description": "One row of a lab report.\n\n`test_key` and `panel` come from where the row sits on the page (the\nfactory encodes both in its field paths, `results.<panel>.<test>.*`) and\nare the schema's stable handle on the row. `test_name` is what was\nprinted, which is a different thing and can itself be illegible.\n\n`loinc_code` is optional and is *not* extracted from the page: lab PDFs\nrarely print one, and the write-back path needs it\n(`procedure_order_code.procedure_code`, spike \u00a79). Whatever assigns it\nis a coding step outside this contract; a result without one simply\ncannot be written back, which `LabWriteBackResult` enforces by requiring\nit.",
+      "properties": {
+        "panel": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Panel the row sits under, e.g. `cmp`, `lipid`, `a1c`. None when ungrouped.",
+          "title": "Panel"
+        },
+        "test_key": {
+          "description": "Stable handle for the row within this document, e.g. `glucose`.",
+          "minLength": 1,
+          "title": "Test Key",
+          "type": "string"
+        },
+        "test_name": {
+          "$ref": "#/$defs/ExtractedField_str_",
+          "description": "The test name as printed."
+        },
+        "value": {
+          "$ref": "#/$defs/ExtractedField_LabValue_"
+        },
+        "unit": {
+          "$ref": "#/$defs/ExtractedField_str_"
+        },
+        "reference_range": {
+          "$ref": "#/$defs/ExtractedField_ReferenceRange_"
+        },
+        "collection_date": {
+          "$ref": "#/$defs/ExtractedField_date_",
+          "description": "The date this specimen was collected \u2014 the third component of D1's idempotency key. Usually copied from the order header; on reports that date rows individually, from the row."
+        },
+        "reported_flag": {
+          "$ref": "#/$defs/ExtractedField_ReportedFlag_",
+          "description": "What the document's flag column says, parsed by `lab_values.parse_reported_flag`. A `ReportedFlag`, not an `AbnormalFlag`: a blank column is `not_reported`, never `normal` (D20). Never the computed flag \u2014 keeping the two apart is the whole point of the cross-check."
+        },
+        "loinc_code": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Assigned, not extracted. See the class docstring.",
+          "title": "Loinc Code"
+        }
+      },
+      "required": [
+        "test_key",
+        "test_name",
+        "value"
+      ],
+      "title": "LabResult",
+      "type": "object"
+    },
+    "LabValue": {
+      "discriminator": {
+        "mapping": {
+          "numeric": "#/$defs/NumericLabValue",
+          "qualitative": "#/$defs/QualitativeLabValue"
+        },
+        "propertyName": "kind"
+      },
+      "oneOf": [
+        {
+          "$ref": "#/$defs/NumericLabValue"
+        },
+        {
+          "$ref": "#/$defs/QualitativeLabValue"
+        }
+      ]
+    },
+    "NumericLabValue": {
+      "additionalProperties": false,
+      "description": "A number, possibly censored: `89`, `<5`, `>1000`.",
+      "properties": {
+        "kind": {
+          "const": "numeric",
+          "default": "numeric",
+          "title": "Kind",
+          "type": "string"
+        },
+        "value": {
+          "title": "Value",
+          "type": "number"
+        },
+        "comparator": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Comparator"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "None for an exact reading; set for a censored one such as `<5`."
+        }
+      },
+      "required": [
+        "value"
+      ],
+      "title": "NumericLabValue",
+      "type": "object"
+    },
+    "PerformingLab": {
+      "additionalProperties": false,
+      "description": "The laboratory letterhead \u2014 factory paths `lab.*`.",
+      "properties": {
+        "name": {
+          "$ref": "#/$defs/ExtractedField_str_"
+        },
+        "address": {
+          "$ref": "#/$defs/ExtractedField_str_"
+        },
+        "clia": {
+          "$ref": "#/$defs/ExtractedField_str_",
+          "description": "CLIA certificate number, as printed."
+        },
+        "director": {
+          "$ref": "#/$defs/ExtractedField_str_"
+        }
+      },
+      "required": [
+        "name"
+      ],
+      "title": "PerformingLab",
+      "type": "object"
+    },
+    "QualitativeLabValue": {
+      "additionalProperties": false,
+      "description": "A term rather than a number: `positive`, `not detected`, `trace`.",
+      "properties": {
+        "kind": {
+          "const": "qualitative",
+          "default": "qualitative",
+          "title": "Kind",
+          "type": "string"
+        },
+        "text": {
+          "minLength": 1,
+          "title": "Text",
+          "type": "string"
+        }
+      },
+      "required": [
+        "text"
+      ],
+      "title": "QualitativeLabValue",
+      "type": "object"
+    },
+    "ReferenceRange": {
+      "additionalProperties": false,
+      "description": "The interval a result is judged against.\n\n`low`/`high` are the machine-comparable form; `text` is what the report\nactually printed, kept verbatim because it is what a citation quotes and\nbecause plenty of ranges (`Negative`, `See note`) have no numeric form\nat all. At least one of the three is required \u2014 an all-None reference\nrange is an extraction bug wearing a valid object's clothes.",
+      "properties": {
+        "low": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Inclusive lower bound.",
+          "title": "Low"
+        },
+        "high": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Inclusive upper bound.",
+          "title": "High"
+        },
+        "text": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "The range exactly as printed, e.g. `70 - 99` or `Negative`.",
+          "title": "Text"
+        },
+        "unit": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "The unit the bounds are in.",
+          "title": "Unit"
+        }
+      },
+      "title": "ReferenceRange",
+      "type": "object"
+    },
+    "ReportedFlag": {
+      "description": "What a lab report's flag column says \u2014 including the two ways it says\nnothing this contract can compare against.\n\nSeparate from `AbnormalFlag` on purpose. `AbnormalFlag` is a conclusion\nabout a result; `ReportedFlag` is an observation about a column on a\npage, and a column can be blank or illegible in ways a conclusion\ncannot. Collapsing them is what let a blank column become an assertion\nof normality (D12, superseded by D20).",
+      "enum": [
+        "normal",
+        "high",
+        "low",
+        "abnormal",
+        "not_reported",
+        "unrecognised"
+      ],
+      "title": "ReportedFlag",
+      "type": "string"
+    },
+    "SourceDocument": {
+      "additionalProperties": false,
+      "description": "The file an extraction is about. Identifiers and counts only \u2014 no page\ntext, no extracted values (CLAUDE.md invariant 1 governs what may be\nlogged, and this model is the thing most likely to end up in a log\nline, so it holds nothing that could not).",
+      "properties": {
+        "document_id": {
+          "description": "Our id for the stored document. Where OpenEMR holds it this is the stringified `documents.id`, which the custom write-back endpoint returns (D1) because the standard upload API returns only `true` (spike \u00a79).",
+          "minLength": 1,
+          "title": "Document Id",
+          "type": "string"
+        },
+        "kind": {
+          "$ref": "#/$defs/DocumentKind"
+        },
+        "filename": {
+          "minLength": 1,
+          "title": "Filename",
+          "type": "string"
+        },
+        "mime_type": {
+          "description": "Validate by content before upload: OpenEMR silently rejects a type outside `files_white_list` as an empty 404 (spike \u00a710.6).",
+          "minLength": 1,
+          "title": "Mime Type",
+          "type": "string"
+        },
+        "page_count": {
+          "minimum": 1,
+          "title": "Page Count",
+          "type": "integer"
+        },
+        "byte_length": {
+          "minimum": 1,
+          "title": "Byte Length",
+          "type": "integer"
+        },
+        "checksums": {
+          "$ref": "#/$defs/DocumentChecksums"
+        },
+        "has_text_layer": {
+          "description": "Whether stage 1 of D3 found a text layer (PyMuPDF) or had to OCR. Recorded because it is the single best predictor of `unlocated` fields, and a run's unlocated rate is meaningless without it.",
+          "title": "Has Text Layer",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "document_id",
+        "kind",
+        "filename",
+        "mime_type",
+        "page_count",
+        "byte_length",
+        "checksums",
+        "has_text_layer"
+      ],
+      "title": "SourceDocument",
+      "type": "object"
+    },
+    "SourceType": {
+      "description": "The three kinds of source a Week 2 claim can cite. Disjoint by\nconstruction \u2014 CLAUDE.md invariant 3: \"Patient-record facts and\nguideline evidence are distinct source_types. Never let a guideline\ncitation stand in for a chart fact, or the reverse.\"",
+      "enum": [
+        "chart",
+        "document",
+        "guideline"
+      ],
+      "title": "SourceType",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "description": "A whole lab report, extracted.\n\n`results` may be empty. An extraction that found no rows is a real\noutcome \u2014 a scan too degraded to read is exactly the `scanned_heavy`\ncase the doc-factory generates \u2014 and the contract represents it as zero\npresentable facts rather than refusing to exist, so the \"still\nprocessing / nothing found\" states stay distinguishable (D7).",
+  "properties": {
+    "schema_version": {
+      "const": "w2-contracts/lab_pdf/1.0.0",
+      "default": "w2-contracts/lab_pdf/1.0.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "extraction_id": {
+      "description": "The run that produced this. Every citation below repeats it, so a value carries its provenance even after it is separated from the extraction it came from (D1).",
+      "title": "Extraction Id",
+      "type": "string"
+    },
+    "document": {
+      "$ref": "#/$defs/SourceDocument"
+    },
+    "patient_header": {
+      "$ref": "#/$defs/DocumentPatientHeader"
+    },
+    "performing_lab": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/PerformingLab"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "order": {
+      "$ref": "#/$defs/LabOrderHeader"
+    },
+    "results": {
+      "items": {
+        "$ref": "#/$defs/LabResult"
+      },
+      "title": "Results",
+      "type": "array"
+    }
+  },
+  "required": [
+    "extraction_id",
+    "document",
+    "patient_header"
+  ],
+  "type": "object"
+}
