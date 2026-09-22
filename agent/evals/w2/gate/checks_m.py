@@ -24,20 +24,34 @@ What it does NOT catch: a judge that was wrong from the start. That needs
 result the gate prints says UNCALIBRATED for that reason.
 
 Both rubrics are covered, and the fixtures were chosen by measurement rather
-than by argument. A fixture earns a place only if five independent best-of-3
-gradings under the committed prompt all agree with its label AND a generic
-one-line rubric grades it the other way: the first condition keeps it from
-becoming the flake that gets the category deleted, the second is the only
-thing that makes it a drift detector rather than an alive-check.
+than by argument — see D-NEXT (g). Every fixture is stable: five independent
+best-of-3 gradings under the committed prompt all agreeing with its label.
+Each rubric additionally has at least one *discriminating* fixture, one a
+generic one-line rubric grades the other way on all five rounds. Stability is
+what stops a critical fixture becoming the flake that gets the category
+deleted; discrimination is the only thing that makes the set a drift detector
+rather than an alive-check.
 
-Two candidates were rejected under that rule and are worth knowing about. A
-claim citing a chunk that does not contain it is stable (15/15) but a generic
-rubric fails it too, so it detects nothing a loosening would do. And
-"the laboratory reported the potassium as normal" over a row with a blank
-flag column was graded PASS by the committed prompt, 12/15 — the fc rubric
-does not enforce D20 at the prose level. That one is a finding, not a
-fixture: blank-is-not-normal is held by W2-D2 deterministically, which is
-where it belongs.
+    discriminating (fc)  fc_fail_guideline_as_patient_fact
+                         fc_fail_added_clinical_judgement
+    discriminating (sr)  sr_fail, sr_fail_over_refusal
+    alive-checks         fc_pass, sr_pass, fc_fail,
+                         fc_fail_invented_unit_conversion
+
+Both properties have to be measured over five rounds, and neither can be
+assumed from the other. Three votes wrongly rejected two of the fixtures above
+on a first pass, and wrongly admitted fc_fail_invented_unit_conversion as a
+detector on a second — a generic rubric grades that one fail on two rounds in
+five, which the planted-regression harness found by failing to flip it.
+
+Two candidates were rejected outright. A claim citing a chunk that does not
+contain it is stable (15/15) but a generic rubric fails it too, so it would
+have added a third alive-check and no coverage. And "the laboratory reported
+the potassium as normal" over a row with a blank flag column was graded PASS
+by the committed prompt, 12/15 — the fc rubric does not enforce D20 at the
+prose level. That is a finding, not a fixture: blank-is-not-normal is held
+deterministically by W2-D2, which is where a safety rule a type can hold
+belongs.
 """
 
 from __future__ import annotations

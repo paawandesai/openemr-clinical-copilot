@@ -92,13 +92,15 @@ are not passes.
 
 It is **UNCALIBRATED**: it has not been scored against 100–200 human-labelled
 examples per rubric, so its agreement with a human is unknown. Category M
-detects a judge that has *drifted*, on both rubrics. Each of its eight
-fixtures earned its place by measurement: five independent best-of-3 gradings
-under the committed prompt all agreeing with its label, **and** a generic
-one-line rubric grading it the other way. Without the second condition a
-fixture is an alive-check, not a drift detector, and two candidates were
-rejected under it — `judge_config.json` `meta_check_selection` has both, with
-the numbers.
+detects a judge that has *drifted*, on both rubrics. Every one of its eight
+fixtures is **stable** — five independent best-of-3 gradings under the
+committed prompt all agreeing with its label — and each rubric has at least
+one **discriminating** fixture, which a generic one-line rubric grades the
+other way on all five rounds. The rest are alive-checks: they catch a judge
+that has stopped working, not one that has been loosened, and they are
+labelled as such so nobody reads them as more. Both properties are measured,
+never inferred; `judge_config.json` `meta_check_selection` has the numbers and
+the two candidates that were rejected.
 
 ### What a run costs
 

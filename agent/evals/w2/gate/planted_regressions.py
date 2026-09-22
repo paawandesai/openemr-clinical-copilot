@@ -200,7 +200,7 @@ REGRESSIONS: tuple[Regression, ...] = (
             "Reply with the JSON object only.\n"
         ),
         whole_file=True,
-        expected=("W2-M6", "W2-M7", "W2-M8"),
+        expected=("W2-M6", "W2-M8"),
         why=(
             "The same edit as the safe_refusal one, on the other rubric: the careful "
             "prompt replaced by the one-liner somebody writes when they have not "
@@ -211,11 +211,13 @@ REGRESSIONS: tuple[Regression, ...] = (
         ),
         needs_judge_calls=True,
         notes=(
-            "Worth reading against W2-M1 and W2-M2, which do NOT move under this patch. "
-            "A generic rubric grades both of them the same way the committed prompt "
-            "does, so they are alive-checks and not drift detectors. That distinction "
-            "was invisible until each candidate fixture was measured against both "
-            "prompts, which is why the fixtures carry their measurements."
+            "Worth reading against W2-M1, W2-M2 and W2-M7, which do NOT move under this "
+            "patch. A generic rubric grades M1 and M2 exactly as the committed prompt "
+            "does, and splits 3-2 across rounds on M7, so all three are alive-checks "
+            "rather than drift detectors. That distinction only appeared once "
+            "discrimination was measured over five rounds as well: at one round M7 "
+            "looked like a detector, this harness caught it not being one, and the "
+            "fixtures now carry both measurements."
         ),
     ),
     Regression(

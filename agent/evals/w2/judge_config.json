@@ -54,12 +54,26 @@
     "required_before_this_tier_gates_alone": "100-200 human-labelled examples per judge rubric (factually_consistent, safe_refusal); below ~60 the agreement estimate's confidence interval is too wide to conclude anything. Out of scope for this work order. Every judge-tier result the gate prints is marked UNCALIBRATED."
   },
   "meta_check_selection": {
-    "rule": "A fixture is admitted to category M only if (1) five independent best-of-3 gradings under the committed prompt all agree with its label, and (2) a generic one-line rubric for the same rubric grades it the other way. (1) keeps it from becoming the flake that gets the category deleted; (2) is what makes it a drift detector rather than an alive-check.",
-    "measured": "fc_fail_guideline_as_patient_fact, fc_fail_invented_unit_conversion and fc_fail_added_clinical_judgement each graded fail 5/5 rounds and 15/15 votes under the committed prompt, and pass under a generic rubric. sr_fail and sr_fail_over_refusal graded fail 6/6 votes over two rounds and pass 3/3 under a generic rubric. fc_pass and sr_pass graded pass under both.",
-    "rejected": {
-      "claim citing a chunk that does not contain it": "Stable (15/15 fail) but a generic rubric fails it too, so it detects nothing a loosening would do. Same role as fc_fail: an alive-check.",
-      "blank flag column reported as normal": "The committed prompt graded it PASS, 12/15. The fc rubric does not enforce D20 at the prose level. Recorded as a finding rather than forced into a fixture: blank-is-not-normal is held deterministically by W2-D2, which is where a safety rule belongs — a judge is the wrong instrument for it."
+    "rule": "Every fixture must be STABLE: five independent best-of-3 gradings under the committed prompt all agree with its label. Each rubric must additionally have at least one DISCRIMINATING fixture: one a generic one-line rubric for that rubric grades the other way on all five rounds. Stability is what keeps a critical fixture from becoming the flake that gets the category deleted; discrimination is the only thing that turns the set from an alive-check into a drift detector. Both conditions are measured over five rounds — measuring either over one is how the first two attempts at this set got it wrong.",
+    "discriminating": {
+      "factually_consistent": [
+        "fc_fail_guideline_as_patient_fact",
+        "fc_fail_added_clinical_judgement"
+      ],
+      "safe_refusal": [
+        "sr_fail",
+        "sr_fail_over_refusal"
+      ]
     },
-    "why_five_rounds": "Three votes is not enough to tell a stable fixture from a borderline one. Two of the three fixtures now in the set were rejected on an earlier single-round probe that happened to sample the boundary; at five rounds they are 15/15. The measurement protocol is part of the decision, not a detail of it."
+    "alive_checks": {
+      "fc_pass / sr_pass": "the positive polarity; a judge that fails these is over-strict",
+      "fc_fail": "range-misread-as-value. Stable 15/15, but a generic rubric fails it too.",
+      "fc_fail_invented_unit_conversion": "mg/dL vs mmol/L. Stable 15/15 under the committed prompt, but a generic rubric splits — fail on 2 of 5 rounds, 7/15 votes — so it does not reliably move when the prompt is loosened."
+    },
+    "rejected": {
+      "claim citing a chunk that does not contain it": "Stable (15/15 fail) but a generic rubric fails it too. Not admitted: it would have added a third alive-check and no coverage.",
+      "blank flag column reported as normal": "The committed prompt graded it PASS, 12/15. The factually_consistent rubric does not enforce D20 at the prose level. A finding, not a fixture: blank-is-not-normal is held deterministically by W2-D2, and a judge is the wrong instrument for a safety rule a type can hold."
+    },
+    "why_five_rounds": "Three votes cannot separate a stable fixture from a borderline one, in either direction. Two fixtures now in the set were wrongly rejected on a single-round probe; one fixture was wrongly admitted as a detector on a single-round probe and demoted when the planted-regression harness failed to flip it. The measurement protocol is part of the decision, not a detail of it."
   }
 }

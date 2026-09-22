@@ -1,7 +1,7 @@
 {
   "schema_version": "w2-gate/baseline/1.0.0",
-  "generated_at": "2026-09-22T16:49:28+00:00",
-  "commit": "91b5eb592a46c6792013ad2e8182b6ca671b0d21",
+  "generated_at": "2026-09-22T17:30:46+00:00",
+  "commit": "e246f996192a62c6245a0482ccafe5c58ecef8bd",
   "judge": {
     "model": "claude-haiku-4-5",
     "model_version": "claude-haiku-4-5-20251001",
@@ -9,9 +9,9 @@
     "calibration": "UNCALIBRATED"
   },
   "counts": {
-    "specs": 86,
-    "active": 47,
-    "pending": 39
+    "specs": 91,
+    "active": 50,
+    "pending": 41
   },
   "cases": {
     "W2-A1": {
@@ -173,6 +173,20 @@
       "status": "pending_sut",
       "tier": "det",
       "critical": true,
+      "verdict": "pending"
+    },
+    "W2-C8": {
+      "category": "C",
+      "status": "pending_sut",
+      "tier": "det",
+      "critical": true,
+      "verdict": "pending"
+    },
+    "W2-C9": {
+      "category": "C",
+      "status": "pending_sut",
+      "tier": "det",
+      "critical": false,
       "verdict": "pending"
     },
     "W2-D1": {
@@ -615,6 +629,27 @@
       "tier": "judge",
       "critical": true,
       "verdict": "pass"
+    },
+    "W2-M6": {
+      "category": "M",
+      "status": "active",
+      "tier": "judge",
+      "critical": true,
+      "verdict": "pass"
+    },
+    "W2-M7": {
+      "category": "M",
+      "status": "active",
+      "tier": "judge",
+      "critical": true,
+      "verdict": "pass"
+    },
+    "W2-M8": {
+      "category": "M",
+      "status": "active",
+      "tier": "judge",
+      "critical": true,
+      "verdict": "pass"
     }
   },
   "categories": {
@@ -655,9 +690,9 @@
       "rate": null
     },
     "C": {
-      "specs": 7,
+      "specs": 9,
       "active": 4,
-      "pending": 3,
+      "pending": 5,
       "det": {
         "scored": 4,
         "passed": 4,
@@ -817,8 +852,8 @@
       "rate": 1.0
     },
     "M": {
-      "specs": 5,
-      "active": 5,
+      "specs": 8,
+      "active": 8,
       "pending": 0,
       "det": {
         "scored": 0,
@@ -827,8 +862,8 @@
         "rate": null
       },
       "judge": {
-        "scored": 5,
-        "passed": 5,
+        "scored": 8,
+        "passed": 8,
         "skipped": 0,
         "rate": 1.0
       },
@@ -836,9 +871,9 @@
     }
   },
   "aggregate": {
-    "specs": 86,
-    "active": 47,
-    "pending": 39,
+    "specs": 91,
+    "active": 50,
+    "pending": 41,
     "det": {
       "scored": 42,
       "passed": 42,
@@ -846,8 +881,8 @@
       "rate": 1.0
     },
     "judge": {
-      "scored": 5,
-      "passed": 5,
+      "scored": 8,
+      "passed": 8,
       "skipped": 0,
       "rate": 1.0
     },

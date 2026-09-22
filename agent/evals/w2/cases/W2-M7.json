@@ -8,7 +8,7 @@
     "fixtures": [
       "judge_meta/fc_fail_invented_unit_conversion.json"
     ],
-    "note": "Frozen fixture: its text is part of the judge cache key, so editing it is a visible change to a committed file. Chosen by measurement, not by argument — five independent best-of-3 gradings under the committed prompt, all five fail, and a generic one-line rubric passes it."
+    "note": "Frozen fixture: its text is part of the judge cache key, so editing it is a visible change to a committed file. Measured both ways over five rounds: stable under the committed prompt (5/5, 15/15), but a generic rubric splits 3-2 across rounds, so this one does not reliably detect a loosened prompt. It is here as an alive-check on a project-specific failure mode. W2-M6 and W2-M8 are the factually_consistent drift detectors."
   },
   "expected": "The judge grades a value the source did not print, reached by converting the value it did print, as a fail.",
   "assertions": [
@@ -18,5 +18,5 @@
       "check": "judge.m_factually_consistent_known_fail_invented_unit_conversion"
     }
   ],
-  "guards_against": "A loosened factually_consistent prompt. W2-M1 and W2-M2 cannot see one — a generic rubric grades both of them the same way the committed prompt does — so before these three the fc half of the meta-check set detected only a judge that had stopped working, not one that had been weakened."
+  "guards_against": "A judge that has stopped working, on the mg/dL vs mmol/L misread this suite exists to catch — a value that is arithmetically right and is not what the page says. It does NOT guard against a loosened prompt: a generic rubric grades it fail on two rounds in five. W2-M6 and W2-M8 are the fixtures that do."
 }

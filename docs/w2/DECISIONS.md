@@ -2233,7 +2233,7 @@ reads, not buried in a config file.
 
 ## D-NEXT (e) — A meta-check fixture is admitted by measurement, over five rounds
 
-**Status:** DECIDED
+**Status:** DECIDED — its admission rule is SUPERSEDED by D-NEXT (g)
 **Date:** 2026-09-22
 **Supersedes:** the `known_limitation` paragraph of D-NEXT (b), and only that
 paragraph. The rest of (b) — the judge tier, the version pin, the cache key,
@@ -2312,3 +2312,51 @@ or the reverse — is the abnormality signal itself, and on Synthea data the lab
 PDF is the only place that signal exists. In every case the damage is not the
 misread but the bbox that follows it: a located fact with a citation a
 reviewer can click and confirm, built on a value that is not on the page.
+
+---
+
+## D-NEXT (g) — Stability and discrimination are measured separately, both over five rounds
+
+**Status:** DECIDED
+**Date:** 2026-09-22
+**Supersedes:** the admission rule in D-NEXT (e). The fixture list and the
+rejected candidates recorded there stand, with one correction noted below.
+**Number assigned at merge.**
+
+**Decision:** a meta-check fixture is admitted on one condition, and the *set*
+must satisfy a second:
+
+1. **Every fixture is stable** — five independent best-of-3 gradings under the
+   committed prompt all agree with its label.
+2. **Each rubric has at least one discriminating fixture** — one that a
+   generic one-line rubric for that rubric grades the other way on all five
+   rounds.
+
+A stable fixture that does not discriminate is still admitted, as an
+**alive-check**: it catches a judge that has stopped working, a model rotated
+to something incompetent, a broken output path. It does not catch a loosened
+prompt, and it is labelled so that nobody reads it as if it did.
+
+| fixture | role |
+|---|---|
+| `fc_fail_guideline_as_patient_fact`, `fc_fail_added_clinical_judgement` | discriminating (fc) |
+| `sr_fail`, `sr_fail_over_refusal` | discriminating (sr) |
+| `fc_pass`, `sr_pass`, `fc_fail`, `fc_fail_invented_unit_conversion` | alive-checks |
+
+**What D-NEXT (e) got wrong.** (e) stated a single two-part admission rule and
+claimed three discriminating `factually_consistent` fixtures. It measured
+*stability* over five rounds and *discrimination* over one — the same error it
+was written to correct, made on the other axis.
+`fc_fail_invented_unit_conversion` passed that one-round test and does not
+hold up: a generic rubric grades it fail on two rounds in five, 7/15 votes. It
+stays in the set as an alive-check, because it is stable and because mg/dL vs
+mmol/L is a documented misread this suite exists to catch, but it is not a
+drift detector and the planted-regression harness no longer expects it to move.
+
+**How it was found, which is the point.** Not by review. The planted
+regression that replaces the `factually_consistent` prompt with a generic one
+was declared to expect W2-M6, W2-M7 and W2-M8; the harness blocked the gate,
+reported that only M6 and M8 moved, and failed on the mismatch. A claim about
+a fixture's behaviour is worth what the run that checks it is worth, and this
+is the second finding in this work order that came from the harness rather
+than from reading — the first two being the vacuous arms in W2-E1 and W2-K1.
