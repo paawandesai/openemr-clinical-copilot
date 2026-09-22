@@ -595,3 +595,81 @@ offers nothing to check. Any future gate metric over this must be computed
 over `reported in COMPARABLE_REPORTED_FLAGS`, and its denominator reported
 alongside it — a category scoring 100% on three rows is not the same claim
 as one scoring 100% on three hundred.
+
+---
+
+## D21 — The factory adapter reads ground-truth 0.2.0 only, and checks it
+
+**Status:** DECIDED
+**Date:** 2026-09-21
+**Records:** a change already committed on this branch (`fix(w2): read
+doc-factory ground truth 0.2.0, and check its rendering claim`), written up
+here afterwards so this file stays append-ordered behind D20.
+
+**Decision:** `factory_mapping.SUPPORTED_GROUND_TRUTH_SCHEMA_VERSION` is
+`doc-factory-groundtruth/0.2.0` and nothing else. 0.1.0 is not supported.
+
+0.2.0 adds `rendering` to every text field — `verbatim`, `derived`,
+`wrapped`, `truncated` — declaring how `rendered_text` relates to `value`.
+`GroundTruthConversion.chart_truth` keys on that declaration instead of
+inferring divergence by comparing parsed values, which could not distinguish
+"the document says something else on purpose" from "the document lost the
+rest". The comparison is kept as a **check on** the declaration:
+`same_meaning()` (public, was about to be dead code) plus a test asserting
+that every field the factory calls `verbatim` parses back to its own
+`value`.
+
+All four renderings map to `located` — each is genuinely on the page — and
+everything but `verbatim` also produces a `ChartTruthNote`. A `truncated`
+field is located: the ellipsised string is what the page says, and a
+citation quoting it is honest; the unrecoverable remainder goes to
+`chart_truth`, not into the value.
+
+**Rationale:** the version pin exists to fail loudly rather than read old
+files under new meanings, and supporting a superseded format doubles the
+surface for files that no longer exist on any branch. Trusting the new
+declaration without checking it would make the conversion proof a
+restatement of the factory's opinion of itself.
+
+**Known limitation, recorded rather than fixed:** `Citation` carries one
+`bbox`, so a `wrapped` field is located by the union of its line boxes and
+the per-line `line_bboxes` are dropped (with `origin` and `kind`, for
+different reasons — see `GROUND_TRUTH_ATTRIBUTES_NOT_CARRIED`). No Week 2
+consumer needs per-line boxes; a UI that highlights exact glyphs on a page
+would, and that is a Phase 3 contract change, not a guess to make now. No
+committed sample wraps or truncates today, and a test fails if one starts
+to.
+
+---
+
+## D22 — The published JSON Schemas are a wire contract, and do not carry the invariants
+
+**Status:** DECIDED
+**Date:** 2026-09-22
+
+**Decision:** `docs/w2/schemas/*.schema.json` describe the **JSON on the
+wire**. The door into the contracts from that JSON is
+`model_validate_json`, not `model_validate` on an already-parsed dict.
+Both facts are pinned by tests in `agent/tests/test_w2_schema_validation.py`.
+
+**Why the door matters.** Under `strict=True` (D9) Pydantic refuses a
+Python `str` where an enum member is declared — which is the point, and is
+what stops a stringly typed value drifting in from Python code. JSON has no
+enum type, so `model_validate_json` still reads `"located"` as
+`FieldStatus.LOCATED` while `model_validate` on the same payload as a dict
+fails on every enum in it. A consumer who parses the JSON first and then
+hands over the dict sees what looks like a schema mismatch and is not one.
+
+**What the schemas do not carry.** JSON Schema describes shape: types,
+enums, required keys, bounds, `additionalProperties: false`. It cannot
+express the cross-field rules that make these contracts safe. An instance
+can satisfy every published schema while breaking invariant 4 (a `located`
+field with no citation), D1 (an idempotency key that is not the composition
+of its own components) and D17 (a claim whose citations mix source types).
+Those live in model validators and nowhere else.
+
+**Consequence:** validating against `docs/w2/schemas/` is necessary and not
+sufficient. Anything outside this repository that accepts a Week 2
+extraction — the API collection, a non-Python consumer, a future eval
+harness — checks shape with the schema and must still pass the payload
+through the models for the invariants, or state plainly that it has not.
