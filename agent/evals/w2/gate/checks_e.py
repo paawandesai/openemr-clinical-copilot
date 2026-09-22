@@ -149,6 +149,7 @@ def e_added_is_surfaced_and_never_merged(case: Case) -> CheckOutcome:
             extraction_id=document_extraction_id(
                 document_sha3_512=_SHA3, extractor_version="w2-extractor/1.0.0"
             ),
+            extractor_version="w2-extractor/1.0.0",
             correlation_id="4c547101-195d-47b2-bc4b-0db614573052",
         )
 

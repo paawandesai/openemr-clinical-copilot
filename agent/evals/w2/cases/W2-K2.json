@@ -2,17 +2,17 @@
   "id": "W2-K2",
   "category": "K",
   "critical": true,
-  "status": "pending_sut",
+  "status": "active",
   "inputs": {
-    "kind": "not_built",
-    "note": "Needs the custom endpoint (D1) and a real ledger: two concurrent submissions of the same key."
+    "kind": "contract",
+    "note": "The agent's write-back client over httpx.MockTransport — no endpoint, no database. PENDING, and NOT asserted here: that two concurrent requests commit exactly one chain. That is the endpoint's invariant. It is proved on the write-back branch by WriteBackServiceTest::testTheChainRanOnceEvenThoughBothRequestsTried and ::testTheLoserOfAnIdempotencyRaceReturnsTheWinnersIds, which are PHPUnit tests with faked collaborators, and by that branch's live-stack run. This Python gate cannot execute PHPUnit: the CI image is python:3.12-slim and the module's test bootstrap needs OpenEMR's autoloader. The bridge is a second CI job on a PHP image running that suite, or a recorded transcript of it — specced, not built."
   },
-  "expected": "Concurrent duplicate submits commit exactly one row; the second receives the first's ids rather than creating its own.",
+  "expected": "A replayed duplicate is read as a duplicate and not as an error: zero results counted as created, the winning write's procedure_report_id and procedure_result_id returned unchanged, the same idempotency key, one request sent.",
   "assertions": [
     {
       "rubric": "idempotency",
       "tier": "det",
-      "check": "pending.w2_k2_idempotency"
+      "check": "chk.k_replayed_duplicate_returns_the_winners_ids"
     }
   ],
   "guards_against": "The race between the initial lookup and the durable write — where idempotency defects actually live, and which a replayed 200 does not detect."

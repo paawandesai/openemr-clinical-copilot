@@ -260,3 +260,72 @@ def a_published_schemas_accept_and_reject(case: Case) -> CheckOutcome:
             "is no longer false and the wire contract is open"
         )
     return CheckOutcome.ok(f"{accepted} samples validate; both schemas reject an undeclared key")
+
+
+@check("chk.a_guideline_citation_carries_all_five_fields")
+def a_guideline_citation_carries_all_five_fields(case: Case) -> CheckOutcome:
+    """
+    A3 on the guideline side. The document side proves the five fields are
+    load-bearing by removing them one at a time; here the same five are
+    checked on citations a real retriever actually produced, and the two
+    fields that are document-only are checked to be absent.
+    """
+    del case
+    from app.retrieval.worker import citation_for
+
+    base = {
+        "source_type": SourceType.GUIDELINE,
+        "source_id": "ada-2026",
+        "page_or_section": "Section 6: Glycemic Goals",
+        "field_or_chunk_id": "ada-2026-s6-0004",
+        "quote_or_value": "An A1C goal of less than 7% is appropriate for many adults.",
+    }
+    Citation(**base)
+    survived: list[str] = []
+    for field_name, blank in (
+        ("source_id", ""),
+        ("page_or_section", None),
+        ("field_or_chunk_id", ""),
+        ("quote_or_value", None),
+    ):
+        try:
+            Citation(**{**base, field_name: blank})
+        except ValidationError:
+            continue
+        survived.append(field_name)
+    if survived:
+        return CheckOutcome.failed(f"a guideline citation was accepted without {survived}")
+
+    for chunk in samples.retrieved_chunks():
+        citation = citation_for(chunk)
+        if not citation.source_id or not citation.field_or_chunk_id:
+            return CheckOutcome.failed(f"{chunk.chunk_id}: minted citation is incomplete")
+    return CheckOutcome.ok(
+        "all four nullable-looking citation fields are load-bearing on the guideline "
+        "side too, and real retrieval output carries every one"
+    )
+
+
+@check("chk.a_retrieved_chunks_have_unique_ids")
+def a_retrieved_chunks_have_unique_ids(case: Case) -> CheckOutcome:
+    """
+    A4 on the guideline side: no two retrieved chunks share a
+    `field_or_chunk_id`, which is what a deduplication bug or a fusion step
+    emitting the same chunk twice would look like.
+    """
+    del case
+    from app.retrieval.worker import citation_for
+
+    chunks = samples.retrieved_chunks()
+    ids = [chunk.chunk_id for chunk in chunks]
+    if len(set(ids)) != len(ids):
+        duplicated = sorted({i for i in ids if ids.count(i) > 1})
+        return CheckOutcome.failed(
+            f"a retrieval returned the same chunk more than once: {duplicated}"
+        )
+    cited = [citation_for(chunk).field_or_chunk_id for chunk in chunks]
+    if len(set(cited)) != len(cited):
+        return CheckOutcome.failed("two citations share a field_or_chunk_id")
+    if set(cited) != set(ids):
+        return CheckOutcome.failed("a citation's field_or_chunk_id is not its chunk id")
+    return CheckOutcome.ok(f"{len(ids)} retrieved chunks, {len(set(ids))} distinct ids")

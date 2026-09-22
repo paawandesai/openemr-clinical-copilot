@@ -356,3 +356,112 @@ def f_week1_claims_round_trip(case: Case) -> CheckOutcome:
         "a document citation was converted into a Week 1 chart Claim; that invents a "
         "resource_type and is exactly the invariant-3 confusion the bridge forbids"
     )
+
+
+# --------------------------------------------------------------------------
+# Against the merged evidence-retriever, not against a mock of it.
+# --------------------------------------------------------------------------
+
+
+@check("chk.f_quote_is_a_substring_of_the_retrieved_chunk")
+def f_quote_is_a_substring_of_the_retrieved_chunk(case: Case) -> CheckOutcome:
+    """
+    F6 against the real implementation. `app.retrieval.worker.citation_for`
+    raises `ExcerptNotInChunkError` for a quote that is not literally in the
+    chunk, so the substring rule is enforced where citations are minted
+    rather than only checked afterwards by this gate.
+    """
+    del case
+    from app.retrieval.worker import ExcerptNotInChunkError, citation_for
+
+    chunks = samples.retrieved_chunks()
+    checked = 0
+    for chunk in chunks:
+        whole = citation_for(chunk)
+        if str(whole.quote_or_value) != chunk.text:
+            return CheckOutcome.failed(
+                f"{chunk.chunk_id}: the default citation does not quote the whole chunk"
+            )
+        excerpt = chunk.text[: max(20, len(chunk.text) // 3)]
+        partial = citation_for(chunk, excerpt)
+        if str(partial.quote_or_value) not in chunk.text:
+            return CheckOutcome.failed(
+                f"{chunk.chunk_id}: an excerpt citation quotes text not in its chunk"
+            )
+        checked += 1
+
+    chunk = chunks[0]
+    for label, bad in (
+        ("a paraphrase", "This guidance recommends an A1c target of roughly seven percent."),
+        ("an empty excerpt", "   "),
+        ("a near-miss", chunk.text[:40].replace("a", "@", 1) + "ZZZ"),
+    ):
+        try:
+            citation_for(chunk, bad)
+        except ExcerptNotInChunkError:
+            continue
+        return CheckOutcome.failed(
+            f"citation_for accepted {label} as a quote; the reranker could return the "
+            "right chunk while the quote drifted off it and nothing would notice"
+        )
+
+    try:
+        citation_for(chunk, "not in the chunk at all")
+    except ExcerptNotInChunkError as exc:
+        message = str(exc)
+        if "not in the chunk at all" in message:
+            return CheckOutcome.failed(
+                "ExcerptNotInChunkError prints the failing excerpt; the habit of "
+                "printing the value that failed is how chart content reaches a log "
+                "(invariant 1)"
+            )
+    return CheckOutcome.ok(
+        f"{checked} real chunks: the whole-chunk and excerpt citations both quote the "
+        "source, a paraphrase, an empty excerpt and a near-miss are all refused, and "
+        "the error carries neither the excerpt nor the chunk"
+    )
+
+
+@check("chk.f_real_guideline_citation_is_complete")
+def f_real_guideline_citation_is_complete(case: Case) -> CheckOutcome:
+    """
+    F1's deterministic half, over real retrieval output: every citation the
+    retriever mints is `source_type=guideline` and carries all five of
+    invariant 2's fields, with the section as `page_or_section`.
+
+    Not asserted here, and pending: that the cited section entails the claim.
+    That needs an answer step to produce a claim.
+    """
+    del case
+    from app.retrieval.worker import citation_for
+
+    chunks = samples.retrieved_chunks()
+    for chunk in chunks:
+        citation = citation_for(chunk)
+        if citation.source_type is not SourceType.GUIDELINE:
+            return CheckOutcome.failed(
+                f"{chunk.chunk_id} minted a {citation.source_type.value} citation"
+            )
+        missing = [
+            name
+            for name, value in (
+                ("source_id", citation.source_id),
+                ("page_or_section", citation.page_or_section),
+                ("field_or_chunk_id", citation.field_or_chunk_id),
+                ("quote_or_value", citation.quote_or_value),
+            )
+            if value is None or (isinstance(value, str) and not value.strip())
+        ]
+        if missing:
+            return CheckOutcome.failed(f"{chunk.chunk_id}: citation missing {missing}")
+        if citation.page_or_section != chunk.source.section:
+            return CheckOutcome.failed(f"{chunk.chunk_id}: page_or_section is not the section")
+        if citation.bbox is not None or citation.extraction_id is not None:
+            return CheckOutcome.failed(
+                f"{chunk.chunk_id}: a guideline citation carries a document-only field"
+            )
+        GuidelineClaim(statement="Guidance states a target.", citations=[citation])
+    return CheckOutcome.ok(
+        f"{len(chunks)} real guideline citations, each complete and typed guideline "
+        "[the entails-the-claim half is pending an answer step]"
+    )

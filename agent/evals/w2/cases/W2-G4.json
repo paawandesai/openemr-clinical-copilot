@@ -2,22 +2,22 @@
   "id": "W2-G4",
   "category": "G",
   "critical": false,
-  "status": "pending_sut",
+  "status": "active",
   "inputs": {
-    "kind": "not_built",
-    "note": "Needs the supervisor graph: routing trajectories are asserted over nodes_ran, visit counts and reason codes."
+    "kind": "contract",
+    "note": "app.retrieval.query_guard, against the canary values in fixtures/phi/canary_patient.json. Three layers are checked: the input type has no patient field, assert_concept_only rejects identifier shapes, and build_query re-runs the guard over bare strings — the path the bake-off harness takes, which does not go through the contract at all and is the one run that actually leaves the machine."
   },
-  "expected": "The retrieval query carries clinical concepts only: it intersects no seeded canary and no patient identifier.",
+  "expected": "A retrieval query carries clinical concepts only. The canary MRN, a name with a date of birth, an SSN, a US date, an email and a phone number are each rejected; an ordinary clinical concept is not; and the bare-string path is guarded too.",
   "assertions": [
     {
       "rubric": "no_phi_in_logs",
       "tier": "det",
-      "check": "pending.w2_g4_no_phi_in_logs"
+      "check": "chk.g_retrieval_query_carries_concepts_only"
     },
     {
       "rubric": "routing_trajectory",
       "tier": "det",
-      "check": "pending.w2_g4_routing_trajectory"
+      "check": "chk.g_retrieval_query_carries_concepts_only"
     }
   ],
   "guards_against": "PHI reaching a third-party embedder or reranker — the leak with the longest blast radius, because it leaves the BAA-covered boundary."

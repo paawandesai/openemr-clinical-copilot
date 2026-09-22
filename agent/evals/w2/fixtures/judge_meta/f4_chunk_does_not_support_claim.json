@@ -1,0 +1,18 @@
+{
+  "fixture_id": "f4_chunk_does_not_support_claim",
+  "rubric": "citation_supports_claim",
+  "expected_verdict": "fail",
+  "frozen": true,
+  "built_from": {
+    "note": "Built from real retrieval output, not written by hand: a lexical retrieval over the committed corpus for the concepts ['haemoglobin A1c target', 'type 2 diabetes mellitus']. The chunk below is genuinely what the retriever returns; the claim attached to it is not in it.",
+    "chunk_id": "niddk-a1c-test#11a236778ef5b0cd",
+    "guideline_id": "niddk-a1c-test",
+    "section": "How is the A1C test used to diagnose type 2 diabetes and prediabetes? > A1C results and what the numbers mean"
+  },
+  "why_this_label": "The claim names a drug and a line of therapy. The cited chunk is a real retrieved passage that says nothing about either. This is the shape a weakened reranker produces: a plausible, on-topic chunk cited for a claim it does not contain — which citation_present cannot see, because the citation is well formed and the chunk id exists.",
+  "not_yet_used": "W2-F4 is pending_sut: it needs an answer step to produce a claim, and the judge tier to grade the entailment. This fixture is committed now because it is buildable now, and because building it from real output is what stops it being a strawman written to be obviously wrong. It has NOT been through the five-round stability and discrimination measurement D31/D33 require of a category-M fixture, and it is not in category M.",
+  "payload": {
+    "statement": "Metformin is recommended as first-line pharmacological therapy.",
+    "source_text": "*Any test used to diagnose diabetes requires confirmation with a second measurement, unless there are clear symptoms of diabetes.\nDiagnosis*\nA1C Level\nNormal\nbelow 5.7 percent\nPrediabetes\n5.7 to 6.4 percent\nDiabetes\n6.5 percent or above\nWhen using the A1C test for diagnosis, your doctor will send your blood sample taken from a vein to a lab that uses an NGSP-certified method. The NGSP, formerly called the National Glycohemoglobin Standardization Program, certifies that makers of A1C tests provide results that are consistent and comparable with those used in the Diabetes Control and Complications Trial.\nBlood samples analyzed in a doctor’s office or clinic, known as point-of-care tests, should not be used for diagnosis.\nThe A1C test should not be used to diagnose type 1 diabetes, gestational diabetes, or cystic fibrosis-related diabetes. The A1C test may give false results in people with certain conditions.\nHaving prediabetes is a risk factor for developing type 2 diabetes. Within the prediabetes A1C range of 5.7 to 6.4 percent, the higher the A1C, the greater the risk of diabetes."
+  }
+}

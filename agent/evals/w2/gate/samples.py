@@ -89,3 +89,105 @@ def page_text(scenario_id: str) -> str:
         for record in field_records(scenario_id)
         if record.get("status") == "present"
     )
+
+
+# --------------------------------------------------------------------------
+# Real retrieval output, offline.
+# --------------------------------------------------------------------------
+#
+# The guideline corpus is committed (`app/retrieval/corpus/chunks.json`) and
+# BM25 is pure Python, so a real retrieval runs here in well under a second
+# with no model download and no network. That matters for D6: these are
+# recorded-fixture runs in the sense that counts, no credential, no service.
+#
+# Dense and rerank are deliberately not used. Both need fastembed and an ONNX
+# model fetched at first use, which is a download inside a CI job and a cache
+# that would have to be warmed — and neither adds anything to what these
+# cases assert, which is the shape of a citation and of a log line. The one
+# assertion that genuinely needs a reranked result set builds it from real
+# chunks rather than pretending to have run a cross-encoder.
+
+_RETRIEVAL_CONCEPTS = ("haemoglobin A1c target", "type 2 diabetes mellitus")
+RETRIEVAL_CORRELATION_ID = "4c547101-195d-47b2-bc4b-0db614573052"
+
+
+@functools.cache
+def retrieval_output() -> object:
+    """
+    One real lexical retrieval over the committed corpus.
+
+    Cached for the run: the corpus parse dominates and every case that needs
+    evidence wants the same result set, so scoring a dozen cases costs one
+    retrieval.
+    """
+    from app.models.w2.workers import (
+        ClinicalConcept,
+        EvidenceRetrieverInput,
+        RetrievalMethod,
+    )
+    from app.retrieval.retriever import GuidelineRetriever
+    from app.retrieval.worker import run_evidence_retriever
+
+    request = EvidenceRetrieverInput(
+        concepts=[ClinicalConcept(text=text) for text in _RETRIEVAL_CONCEPTS],
+        top_k=5,
+        rerank=False,
+        method=RetrievalMethod.LEXICAL,
+        correlation_id=RETRIEVAL_CORRELATION_ID,
+    )
+    output = run_evidence_retriever(request, GuidelineRetriever.load())
+    if not output.chunks:
+        raise GateError(
+            "a lexical retrieval for "
+            f"{_RETRIEVAL_CONCEPTS} returned nothing; the committed corpus has "
+            "changed and every guideline-side case is now asserting over an empty set"
+        )
+    return output
+
+
+def retrieved_chunks() -> list[object]:
+    return list(retrieval_output().chunks)  # type: ignore[attr-defined]
+
+
+def retrieval_log_event() -> dict[str, Any]:
+    """
+    The real RETRIEVAL_EVENT payload, captured rather than reconstructed.
+
+    Runs a second, uncached retrieval with `log_event` intercepted, so what
+    W2-J3 scans is the dict the middleware would have shipped — not a copy of
+    it written here, which would pass for ever after somebody added a field.
+    """
+    from unittest.mock import patch
+
+    from app.models.w2.workers import (
+        ClinicalConcept,
+        EvidenceRetrieverInput,
+        RetrievalMethod,
+    )
+    from app.retrieval.retriever import GuidelineRetriever
+    from app.retrieval.worker import run_evidence_retriever
+
+    captured: list[tuple[str, dict[str, Any]]] = []
+
+    def _capture(event_type: str, event_data: dict[str, Any] | None = None, **_: Any) -> None:
+        captured.append((event_type, dict(event_data or {})))
+
+    request = EvidenceRetrieverInput(
+        concepts=[ClinicalConcept(text=text) for text in _RETRIEVAL_CONCEPTS],
+        top_k=5,
+        rerank=False,
+        method=RetrievalMethod.LEXICAL,
+        correlation_id=RETRIEVAL_CORRELATION_ID,
+    )
+    with patch("app.retrieval.worker.log_event", _capture):
+        run_evidence_retriever(request, GuidelineRetriever.load())
+
+    from app.retrieval.worker import RETRIEVAL_EVENT
+
+    for event_type, event_data in captured:
+        if event_type == RETRIEVAL_EVENT:
+            return event_data
+    raise GateError(
+        f"a retrieval emitted {[e for e, _ in captured]} and no {RETRIEVAL_EVENT}; the "
+        "one line that proves a query left this system carrying no identifier is gone"
+    )

@@ -9,7 +9,7 @@
       "lab-scanned-heavy-abnormal-002",
       "intake-scanned-light-med-005"
     ],
-    "note": "Needs the OCR locate path. Tolerance rule, D30 (the locate work measured it): the factory's boxes are computed from font metrics while drawing and Tesseract's are ink-tight, so raw IoU is the wrong comparison on a scan — measured IoU median ~0.64 against horizontal IoU ~0.95. On a scanned page, map the candidate box back through transform.pages[i].pdf_points_to_image_px and assert the box CENTRE falls inside the ground-truth box (or, equivalently, horizontal IoU >= 0.9). Raw IoU >= 0.5 is kept for clean pages only, where both boxes come from the same font metrics."
+    "note": "Needs the OCR locate path. Tolerance rule, D29 (the locate work measured it): the factory's boxes are computed from font metrics while drawing and Tesseract's are ink-tight, so raw IoU is the wrong comparison on a scan — measured IoU median ~0.64 against horizontal IoU ~0.95. On a scanned page, map the candidate box back through transform.pages[i].pdf_points_to_image_px and assert the box CENTRE falls inside the ground-truth box (or, equivalently, horizontal IoU >= 0.9). Raw IoU >= 0.5 is kept for clean pages only, where both boxes come from the same font metrics."
   },
   "expected": "A value that exists only in a raster page is located via the OCR path and comes back with a box in the clean layout's coordinate space, agreeing with ground truth under the scanned-page tolerance rule (centre-inside after the recorded transform, or horizontal IoU >= 0.9) rather than under raw IoU.",
   "assertions": [

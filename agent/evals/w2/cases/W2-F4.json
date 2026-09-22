@@ -4,8 +4,11 @@
   "critical": false,
   "status": "pending_sut",
   "inputs": {
-    "kind": "not_built",
-    "note": "Needs the retrieval graph: a planted answer whose cited chunk does not support it."
+    "kind": "fixture",
+    "fixtures": [
+      "judge_meta/f4_chunk_does_not_support_claim.json"
+    ],
+    "note": "Fixture built from real retrieval output and committed; the case stays pending_sut. What is still missing is an answer step to produce the claim and the judge tier to grade the entailment. The deterministic half of this regression — a reranker silently off — no longer waits on either: W2-F10 catches it at the contract."
   },
   "expected": "Where a claim's cited chunk does not entail it, the judge marks it unfaithful. This case is should-fail-if-shipped.",
   "assertions": [

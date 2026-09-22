@@ -2,17 +2,17 @@
   "id": "W2-G3",
   "category": "G",
   "critical": false,
-  "status": "pending_sut",
+  "status": "active",
   "inputs": {
-    "kind": "not_built",
-    "note": "Needs the supervisor graph: routing trajectories are asserted over nodes_ran, visit counts and reason codes."
+    "kind": "contract",
+    "note": "A real lexical retrieval over the committed corpus (BM25 is pure Python and the corpus is committed, so this runs offline in milliseconds). Dense and rerank are not exercised: both need fastembed and an ONNX model fetched at first use, which is a download inside a CI job, and neither changes what is asserted. PENDING, and not asserted here: that the retrieve node ran exactly once. That needs the supervisor."
   },
-  "expected": "A guideline question calls the retriever exactly once with rerank on and returns a non-empty chunk set.",
+  "expected": "A retrieval returns hits, and the result set says truthfully whether it was reranked: reranked=False carries no rerank_score anywhere, and a reranked set carries one on every chunk.",
   "assertions": [
     {
       "rubric": "routing_trajectory",
       "tier": "det",
-      "check": "pending.w2_g3_routing_trajectory"
+      "check": "chk.g_result_set_declares_whether_it_was_reranked"
     }
   ],
   "guards_against": "The retriever or the reranker switched off, which shows up as a quality drop everywhere and as a failure nowhere."

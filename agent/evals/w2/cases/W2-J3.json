@@ -7,14 +7,20 @@
     "kind": "fixture",
     "fixtures": [
       "phi/trace_retrieval.json"
-    ]
+    ],
+    "note": "Two sources. The recorded trace bundle in fixtures/phi/, and the RETRIEVAL_EVENT payload captured from a real retrieval with log_event intercepted — seventeen fields, all counts, scores, durations and ids. Captured rather than copied into a fixture: a copy would go on passing after somebody added a field to the real one."
   },
-  "expected": "The retrieval query that leaves this system carries clinical concepts only: no canary hit, no patient field on the input type, and concept text that refuses a date or an SSN-shaped number.",
+  "expected": "The retrieval query that leaves this system carries clinical concepts only: no canary hit, no patient field on the input type, concept text that refuses a date or an SSN-shaped number, and a real log line whose seventeen fields carry no concept text, no chunk text and no nested structures.",
   "assertions": [
     {
       "rubric": "no_phi_in_logs",
       "tier": "det",
       "check": "chk.j_retrieval_query_carries_no_identifier"
+    },
+    {
+      "rubric": "no_phi_in_logs",
+      "tier": "det",
+      "check": "chk.j_real_retrieval_log_line_has_no_identifier"
     }
   ],
   "guards_against": "PHI sent to a third-party embedder or reranker, outside the BAA-covered boundary the architecture claims (D5)."

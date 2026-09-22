@@ -60,7 +60,7 @@ pre-push hook (`scripts/install-w2-pre-push-hook.sh`) runs
 Rule 3 is the detector and rule 5 is the backstop, not the other way round: on
 a 4-to-10-case category one case is worth 10 to 25 percentage points, so a 5%
 band is below the resolution of a single case. See `docs/w2/DECISIONS.md`
-D28.
+D27.
 
 ## Case status
 

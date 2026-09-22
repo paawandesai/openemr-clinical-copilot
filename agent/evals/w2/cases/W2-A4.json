@@ -8,7 +8,8 @@
     "scenario_ids": [
       "lab-clean-001",
       "lab-multipage-003"
-    ]
+    ],
+    "note": "Multi-analyte lab samples for the document side; a real lexical retrieval for the guideline side, where a fusion step emitting the same chunk twice is the equivalent failure."
   },
   "expected": "In a multi-analyte report every row cites its own field_or_chunk_id and every test_key is unique; no two rows share a citation.",
   "assertions": [
@@ -16,6 +17,11 @@
       "rubric": "citation_present",
       "tier": "det",
       "check": "chk.a_each_value_cites_its_own_field_id"
+    },
+    {
+      "rubric": "citation_present",
+      "tier": "det",
+      "check": "chk.a_retrieved_chunks_have_unique_ids"
     }
   ],
   "guards_against": "Repeated-entity collapse on a dense table: 44 rows that all cite row 1 look complete and are not."

@@ -2026,69 +2026,36 @@ metabolic panel is 14 analytes.
 
 ---
 
-## D28 — The gate's rule order, and a Wilson floor that is a function of n
+## D27 — The gate's rule order, and a Wilson floor that is a function of n
 
 **Status:** DECIDED
 **Date:** 2026-09-22
 **Recorded from** work order 10 (`feat/w2-eval-gate`).
 
-**Numbering, for this entry and D29-D34.** The next free number against
-`main` after D24 is D25. D25, D26 and D27 are taken by unmerged branches —
-`feat/w2-retrieval` (D23-D25) and `feat/w2-ui` (D23-D27) — so this branch
-takes the block **D28-D34** and collides with none of them. Same convention
-D24 used and the same caveat: renumber at merge time if that order changes.
+**Numbering, for this entry and D28-D33.** Taken against `main` at
+`aa52e7b`, after the retrieval and write-back merges. The highest number
+there is D26, so this branch takes the contiguous block **D27-D33**.
 
-**Decision:** `python -m evals.w2.gate` applies five rules in this fixed
-order, and the exit code is the verdict (0 pass, 1 blocked, 2 the gate could
-not run):
-
-1. **per-category minimum-n**, counted over ACTIVE **plus** PENDING specs;
-2. **deterministic tier at 100%** of active cases;
-3. **critical-case override** — a critical case the baseline records as
-   passing that now fails, regardless of any aggregate;
-4. **judge tier** — category threshold plus a 95% Wilson lower-bound floor;
-5. the assignment's literal rule — **>5% regression against the committed
-   baseline, or below threshold**, per category and on aggregate.
-
-The judge floor is **not a committed constant**. A category passes rule 4
-when its 95% Wilson lower bound is at least `n / (n + 1.96²) − slack`, i.e.
-when it is statistically indistinguishable from all-pass at 95%. `slack` is
-0.02 per category.
-
-Rule 3 applies only to cases the run **scored**. A case that was not executed
-has not regressed — it has not been measured. Unscored critical cases are
-printed in a block of their own, are never counted as passes, and the verdict
-line names which tiers ran.
-
-**Rationale.** The order is the argument. Rule 1 runs first because every
-rate below it is a rate over a set somebody chose, and a branch that deletes
-the case it fails has to be stopped before its scores are read at all — which
-is also why `n_min` counts pending specs: deleting a case that is not yet
-executable is still deleting a case. Rule 3 runs before the aggregates
-because on a 4-to-10-case category one case is 10 to 25 percentage points and
-a 5% band is below the resolution of a single case; the severity rule is the
-detector and the percentage is the backstop, not the other way round.
-
-The floor is a function of `n` because no single number is right across the
-range: an all-pass bound is 0.510 at n=4 and 0.723 at n=10, so a constant
-floor either passes a category with a failure in it or fails a category with
-none. With the slack at 0.02 a single failure always drops below the floor at
-every category size in this suite — that is the property being bought.
-Wilson rather than the normal approximation because the Wald interval's
-coverage collapses near p=1, which is where a healthy category sits.
-
-Rule 3's restriction to scored cases is what makes `--det-only` usable: the
-pre-push hook deliberately leaves the judge tier unscored, and a rule that
-blocked on that would make the hook impossible to pass and therefore
-impossible to keep.
+Two things a later reader will want. First, `main` currently carries
+**duplicate** D23, D24 and D25: the retrieval merge brought D23/D25/D26, the
+write-back merge brought D23/D24/D25, and the locate merge had already taken
+D24. Those collisions are not this branch's to fix, and they are why "the
+next free number" is read off the highest entry rather than off the count.
+Second, no block was reserved for the two branches still unmerged
+(`feat/w2-ui`, which uses D23-D27, and `feat/w2-extractor`, which uses D24):
+every one of those numbers already collides with something merged, so both
+must renumber whatever this branch does, and a reservation that guesses how
+many entries they will end up with buys nothing and leaves permanent gaps.
+Renumber at merge time if that order changes.
 
 ---
 
-## D29 — The judge is a different Claude tier; `temperature 0` is not expressible
+## D28 — The judge is a different Claude tier; `temperature 0` is not expressible
 
-**Status:** DECIDED — its `known_limitation` paragraph is SUPERSEDED by D32
+**Status:** DECIDED — its `known_limitation` paragraph is SUPERSEDED by D31
 **Date:** 2026-09-22
 **Recorded from** work order 10.
+**Numbering:** D27-D33 taken as a contiguous block against `main` at `aa52e7b`, whose highest entry is D26. Basis and the duplicate-number situation on `main`: see D27.
 
 **Decision:** the judge tier runs `claude-haiku-4-5`, pinned to served version
 `claude-haiku-4-5-20251001`, with thinking off, a schema-constrained
@@ -2141,11 +2108,12 @@ begin with.
 
 ---
 
-## D30 — Box agreement is compared differently by page quality
+## D29 — Box agreement is compared differently by page quality
 
 **Status:** DECIDED
 **Date:** 2026-09-22
 **Raised by:** the locate spike (07), during work order 10.
+**Numbering:** D27-D33 taken as a contiguous block against `main` at `aa52e7b`, whose highest entry is D26. Basis and the duplicate-number situation on `main`: see D27.
 
 **Scope:** this is an **eval-side tolerance**, not a locate policy. What
 counts as a correct match is D24 (numbers, units, dates and lab flags are
@@ -2181,11 +2149,12 @@ W2-C2/W2-C9 (scanned).
 
 ---
 
-## D31 — The gate has a fourth exit code, and `0` no longer means "nothing was checked"
+## D30 — The gate has a fourth exit code, and `0` no longer means "nothing was checked"
 
 **Status:** DECIDED
 **Date:** 2026-09-22
 **Recorded from** work order 10, follow-up 2.
+**Numbering:** D27-D33 taken as a contiguous block against `main` at `aa52e7b`, whose highest entry is D26. Basis and the duplicate-number situation on `main`: see D27.
 
 **Decision:** `python -m evals.w2.gate` exits:
 
@@ -2232,13 +2201,14 @@ reads, not buried in a config file.
 
 ---
 
-## D32 — A meta-check fixture is admitted by measurement, over five rounds
+## D31 — A meta-check fixture is admitted by measurement, over five rounds
 
-**Status:** DECIDED — its admission rule is SUPERSEDED by D34
+**Status:** DECIDED — its admission rule is SUPERSEDED by D33
 **Date:** 2026-09-22
-**Supersedes:** the `known_limitation` paragraph of D29, and only that
-paragraph. The rest of D29 — the judge tier, the version pin, the cache key,
+**Supersedes:** the `known_limitation` paragraph of D28, and only that
+paragraph. The rest of D28 — the judge tier, the version pin, the cache key,
 the unavailability of `temperature 0` — stands unchanged.
+**Numbering:** D27-D33 taken as a contiguous block against `main` at `aa52e7b`, whose highest entry is D26. Basis and the duplicate-number situation on `main`: see D27.
 
 **Decision:** a fixture enters category M only if both hold:
 
@@ -2256,7 +2226,7 @@ On that rule the set is eight: `fc_pass`, `fc_fail`, `sr_pass`, `sr_fail`,
 `fc_fail_added_clinical_judgement`, each measured at 5/5 rounds and 15/15
 votes under the committed prompt and `pass` under a generic rubric.
 
-**What D29 got wrong, and why.** It recorded that the
+**What D28 got wrong, and why.** It recorded that the
 `factually_consistent` half of the meta-check could not be closed: every
 candidate that discriminated appeared to sit on the model's decision boundary
 and to be unstable there. That conclusion was drawn from **single rounds of
@@ -2281,10 +2251,11 @@ informative:**
 
 ---
 
-## D33 — What the gate asserts about D24, and where
+## D32 — What the gate asserts about D24, and where
 
 **Status:** DECIDED
 **Date:** 2026-09-22
+**Numbering:** D27-D33 taken as a contiguous block against `main` at `aa52e7b`, whose highest entry is D26. Basis and the duplicate-number situation on `main`: see D27.
 
 **Scope:** **D24 on `main` is the authoritative exact-only value-class
 policy.** This entry does not restate it, extend it, or vary it. It records
@@ -2303,7 +2274,7 @@ an extractor, because the tier order is where the policy would be
 re-introduced and a test that only exercises the default path would not see
 it. It is `critical`.
 
-**W2-C9** asserts D30's scanned-page box tolerance: centre-inside after the
+**W2-C9** asserts D29's scanned-page box tolerance: centre-inside after the
 recorded transform, or horizontal `IoU >= 0.9`. Not `critical` — a
 tolerance that is too tight is a false alarm, not a missed leak.
 
@@ -2327,12 +2298,13 @@ weaken.
 
 ---
 
-## D34 — Stability and discrimination are measured separately, both over five rounds
+## D33 — Stability and discrimination are measured separately, both over five rounds
 
 **Status:** DECIDED
 **Date:** 2026-09-22
-**Supersedes:** the admission rule in D32. The fixture list and the rejected
+**Supersedes:** the admission rule in D31. The fixture list and the rejected
 candidates recorded there stand, with one correction noted below.
+**Numbering:** D27-D33 taken as a contiguous block against `main` at `aa52e7b`, whose highest entry is D26. Basis and the duplicate-number situation on `main`: see D27.
 
 **Decision:** a meta-check fixture is admitted on one condition, and the *set*
 must satisfy a second:
@@ -2354,7 +2326,7 @@ prompt, and it is labelled so that nobody reads it as if it did.
 | `sr_fail`, `sr_fail_over_refusal` | discriminating (sr) |
 | `fc_pass`, `sr_pass`, `fc_fail`, `fc_fail_invented_unit_conversion` | alive-checks |
 
-**What D32 got wrong.** D32 stated a single two-part admission rule and
+**What D31 got wrong.** D31 stated a single two-part admission rule and
 claimed three discriminating `factually_consistent` fixtures. It measured
 *stability* over five rounds and *discrimination* over one — the same error it was
 written to correct, made on the other axis. `fc_fail_invented_unit_conversion` passed that one-round test and does not

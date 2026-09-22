@@ -37,6 +37,10 @@ _SHA3 = "9c2a41be" + "0" * 120
 _TEST_CODE = "2345-7"
 _COLLECTED = date(2026, 3, 2)
 _CORRELATION_ID = "4c547101-195d-47b2-bc4b-0db614573052"
+#: The write-back merge made this required, and made the request prove
+#: its extraction_id is derived from it. A fixed value here keeps the
+#: derived ids stable across runs.
+_EXTRACTOR_VERSION = "w2-extractor/1.0.0"
 _BBOX = BBox(page=1, x0=230.0, y0=396.3, x1=275.6, y1=407.2)
 
 
@@ -74,8 +78,9 @@ def _request(results: list[LabWriteBackResult]) -> LabWriteBackRequest:
         },
         results=results,
         extraction_id=document_extraction_id(
-            document_sha3_512=_SHA3, extractor_version="w2-extractor/1.0.0"
+            document_sha3_512=_SHA3, extractor_version=_EXTRACTOR_VERSION
         ),
+        extractor_version=_EXTRACTOR_VERSION,
         correlation_id=_CORRELATION_ID,
     )
 
@@ -273,4 +278,89 @@ def k_reused_key_with_a_changed_payload_is_rejected(case: Case) -> CheckOutcome:
     return CheckOutcome.failed(
         "a result's extraction id was not derived from its own key; the id in "
         "procedure_result.comments would point at a different row"
+    )
+
+
+@check("chk.k_replayed_duplicate_returns_the_winners_ids")
+def k_replayed_duplicate_returns_the_winners_ids(case: Case) -> CheckOutcome:
+    """
+    W2-K2's client-side half, and only that half — see the case file.
+
+    What is asserted: the agent's write-back client reads a replayed
+    `duplicate_ignored` as a duplicate rather than as an error, keeps the
+    ids the first write produced, and counts nothing as created. Run over
+    `httpx.MockTransport`, so no endpoint and no database.
+
+    What is NOT asserted here: that two concurrent requests commit exactly
+    one chain. That is the endpoint's invariant, it is proved in
+    `WriteBackServiceTest::testTheChainRanOnceEvenThoughBothRequestsTried`
+    and `::testTheLoserOfAnIdempotencyRaceReturnsTheWinnersIds`, and those
+    are PHPUnit tests this Python gate cannot execute. The bridge is named
+    in the case file.
+    """
+    del case
+    import asyncio
+
+    import httpx
+
+    from app.models.w2 import WriteOutcome
+    from app.writeback.client import write_lab_results
+
+    request = _request([_result()])
+    winner_ids = {"procedure_report_id": 4011, "procedure_result_id": 9022}
+    body = {
+        "patient_uuid": request.patient_uuid,
+        "document_id": 771,
+        "document_outcome": "duplicate_ignored",
+        "procedure_order_id": 3001,
+        "results": [
+            {
+                "test_code": _TEST_CODE,
+                "idempotency_key": request.results[0].idempotency_key,
+                "extraction_id": request.results[0].extraction_id,
+                "outcome": "duplicate_ignored",
+                **winner_ids,
+            }
+        ],
+        "correlation_id": _CORRELATION_ID,
+    }
+
+    seen: list[httpx.Request] = []
+
+    def handler(sent: httpx.Request) -> httpx.Response:
+        seen.append(sent)
+        return httpx.Response(200, json=body)
+
+    async def _run() -> object:
+        transport = httpx.MockTransport(handler)
+        async with httpx.AsyncClient(transport=transport, base_url="http://writeback") as client:
+            return await write_lab_results("test-token", request, client=client)
+
+    written = asyncio.run(_run())
+
+    if len(seen) != 1:
+        return CheckOutcome.failed(f"the client sent {len(seen)} requests, expected 1")
+    created = [r for r in written.results if r.outcome is WriteOutcome.CREATED]
+    if created:
+        return CheckOutcome.failed(
+            f"{len(created)} result(s) counted as created on a replayed duplicate; a "
+            "retry would read as a second write"
+        )
+    replayed = written.results[0]
+    if replayed.outcome is not WriteOutcome.DUPLICATE_IGNORED:
+        return CheckOutcome.failed(f"outcome was {replayed.outcome.value}")
+    if (replayed.procedure_report_id, replayed.procedure_result_id) != (
+        winner_ids["procedure_report_id"],
+        winner_ids["procedure_result_id"],
+    ):
+        return CheckOutcome.failed(
+            "the replay did not return the ids the winning write produced; the caller "
+            "cannot find the row that actually exists"
+        )
+    if replayed.idempotency_key != request.results[0].idempotency_key:
+        return CheckOutcome.failed("the replayed result came back under a different key")
+    return CheckOutcome.ok(
+        "a replayed duplicate_ignored is read as a duplicate, not an error: zero "
+        "created, the winner's report and result ids preserved, one request sent "
+        "[the exactly-one-chain half is the endpoint's and is pending]"
     )

@@ -31,7 +31,7 @@ from app.models.w2 import (
     RoutingReasonCode,
 )
 from app.models.w2.workers import FORBIDDEN_RETRIEVAL_FIELD_NAMES
-from evals.w2.gate import phi_scanner
+from evals.w2.gate import phi_scanner, samples
 from evals.w2.gate.models import Case, CheckOutcome, GateError
 from evals.w2.gate.paths import FIXTURES_DIR
 from evals.w2.gate.registry import check
@@ -256,4 +256,82 @@ def j_positive_control_is_detected(case: Case) -> CheckOutcome:
     return CheckOutcome.ok(
         f"{len(hits)} hits over {len(by_field)} planted fields; canary and pattern "
         "detectors both fired"
+    )
+
+
+@check("chk.j_real_retrieval_log_line_has_no_identifier")
+def j_real_retrieval_log_line_has_no_identifier(case: Case) -> CheckOutcome:
+    """
+    J3 against the line the middleware would actually ship.
+
+    Captured from a real retrieval with `log_event` intercepted, not copied
+    into a fixture here — a copy would go on passing for ever after somebody
+    added a field to the real one. Seventeen fields: counts, scores,
+    milliseconds, ids. No query text, no chunk text, no patient anything.
+    """
+    del case
+    event = samples.retrieval_log_event()
+
+    expected = {
+        "correlation_id",
+        "method",
+        "concept_count",
+        "hit_count",
+        "retrieval_scores",
+        "rerank_scores",
+        "reranked",
+        "rerank_candidates",
+        "rerank_over_budget",
+        "rerank_unavailable",
+        "lexical_ms",
+        "dense_ms",
+        "fusion_ms",
+        "rerank_ms",
+        "total_ms",
+        "guideline_ids",
+        "dated_hit_count",
+    }
+    added = set(event) - expected
+    if added:
+        return CheckOutcome.failed(
+            f"the retrieval log line has grown {sorted(added)}. Every field in it is "
+            "a count, a score, a duration or an id; a new one has to be shown to be "
+            "one of those before this case is updated."
+        )
+    removed = expected - set(event)
+    if removed:
+        return CheckOutcome.failed(f"the retrieval log line lost {sorted(removed)}")
+
+    hits = phi_scanner.scan(event, _canaries())
+    if hits:
+        return CheckOutcome.failed(
+            f"{len(hits)} hit(s) in the real retrieval log line: "
+            + "; ".join(str(h) for h in hits[:5])
+        )
+
+    # The query itself must not be in the line, under any field name.
+    chunks = samples.retrieved_chunks()
+    flat = json.dumps(event, default=str)
+    for concept in samples._RETRIEVAL_CONCEPTS:
+        if concept in flat:
+            return CheckOutcome.failed(
+                f"the log line carries the concept text {concept!r}; concepts are what "
+                "a query is made of and the line is meant to carry counts of them"
+            )
+    for chunk in chunks:
+        if chunk.text[:60] in flat:
+            return CheckOutcome.failed(
+                f"{chunk.chunk_id}: guideline chunk text reached the log line"
+            )
+
+    non_scalar = {
+        key: type(value).__name__
+        for key, value in event.items()
+        if not isinstance(value, (str, int, float, bool, list))
+    }
+    if non_scalar:
+        return CheckOutcome.failed(f"the log line carries nested structures {non_scalar}")
+    return CheckOutcome.ok(
+        f"{len(event)} fields, all counts/scores/durations/ids; zero canary and zero "
+        "pattern hits; neither the concept text nor any chunk text is present"
     )

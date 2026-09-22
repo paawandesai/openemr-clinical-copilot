@@ -5,7 +5,7 @@
   "status": "active",
   "inputs": {
     "kind": "contract",
-    "note": "A document citation built field by field, with each of invariant 2's five fields blanked in turn."
+    "note": "A document citation built field by field, with each of invariant 2's five fields blanked in turn; plus the same five checked on the guideline side, over citations a real retrieval actually produced."
   },
   "expected": "Invariant 2's five fields plus bbox are all load-bearing: a document citation missing source_id, page_or_section, field_or_chunk_id or quote_or_value is rejected, and one without a bbox is not a located citation.",
   "assertions": [
@@ -13,6 +13,11 @@
       "rubric": "citation_present",
       "tier": "det",
       "check": "chk.a_citation_carries_all_five_fields"
+    },
+    {
+      "rubric": "citation_present",
+      "tier": "det",
+      "check": "chk.a_guideline_citation_carries_all_five_fields"
     }
   ],
   "guards_against": "Citation-shape regression: a field made optional, defaulted or blankable, which is what stripping a citation looks like in a diff."

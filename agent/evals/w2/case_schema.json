@@ -31,32 +31,55 @@
     },
     "status": {
       "type": "string",
-      "enum": ["active", "pending_sut"],
+      "enum": [
+        "active",
+        "pending_sut"
+      ],
       "description": "active: executes today against the contracts + doc factory. pending_sut: fully specified, waiting on the not-yet-built graph. A pending case never counts as a pass."
     },
     "inputs": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["kind"],
+      "required": [
+        "kind"
+      ],
       "properties": {
         "kind": {
           "type": "string",
-          "enum": ["factory_scenario", "fixture", "contract", "question", "not_built"]
+          "enum": [
+            "factory_scenario",
+            "fixture",
+            "contract",
+            "question",
+            "not_built"
+          ]
         },
         "scenario_ids": {
           "type": "array",
-          "items": { "type": "string", "minLength": 1 },
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
           "minItems": 1,
           "description": "doc-factory scenario ids under agent/evals/w2/factory/output/samples/."
         },
         "fixtures": {
           "type": "array",
-          "items": { "type": "string", "minLength": 1 },
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
           "minItems": 1,
           "description": "Paths under agent/evals/w2/fixtures/."
         },
-        "question": { "type": "string", "minLength": 1 },
-        "note": { "type": "string", "minLength": 1 }
+        "question": {
+          "type": "string",
+          "minLength": 1
+        },
+        "note": {
+          "type": "string",
+          "minLength": 1
+        }
       }
     },
     "expected": {
@@ -70,7 +93,11 @@
       "items": {
         "type": "object",
         "additionalProperties": false,
-        "required": ["rubric", "tier", "check"],
+        "required": [
+          "rubric",
+          "tier",
+          "check"
+        ],
         "properties": {
           "rubric": {
             "type": "string",
@@ -87,6 +114,7 @@
               "abnormal_flag_crosscheck",
               "discrepancy_kind",
               "no_auto_merge",
+              "rerank_declared",
               "routing_trajectory",
               "idempotency",
               "provenance_roundtrip",
@@ -94,7 +122,13 @@
               "judge_meta"
             ]
           },
-          "tier": { "type": "string", "enum": ["det", "judge"] },
+          "tier": {
+            "type": "string",
+            "enum": [
+              "det",
+              "judge"
+            ]
+          },
           "check": {
             "type": "string",
             "pattern": "^(chk|judge|pending)\\.[a-z0-9_]+$",

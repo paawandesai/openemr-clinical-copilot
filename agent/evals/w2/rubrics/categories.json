@@ -45,7 +45,7 @@
     },
     "F": {
       "name": "Citation faithfulness & source_type separation",
-      "n_min": 9,
+      "n_min": 10,
       "det_threshold": 1.0,
       "judge_threshold": 0.9,
       "judge_wilson_slack": 0.02
@@ -80,7 +80,7 @@
     },
     "K": {
       "name": "Write-back idempotency & provenance",
-      "n_min": 5,
+      "n_min": 6,
       "det_threshold": 1.0,
       "judge_threshold": 1.0,
       "judge_wilson_slack": 0.02

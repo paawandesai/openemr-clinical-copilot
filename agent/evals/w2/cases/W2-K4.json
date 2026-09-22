@@ -5,9 +5,9 @@
   "status": "pending_sut",
   "inputs": {
     "kind": "not_built",
-    "note": "Needs the custom endpoint: a forced failure between the document insert and the procedure_result insert."
+    "note": "Proved, but not here. The write-back branch's WriteBackServiceTest::testAFailureAfterTheDocumentIsStoredWritesNothingAndLeavesNoOrphanFile asserts BOTH halves — zero ledger rows survive the rollback AND the stored ciphertext file is deleted — and ::testADocumentThatWasAlreadyStoredIsNeverDiscarded asserts the rollback does not delete bytes the call did not write. Those are PHPUnit tests against faked collaborators; this gate is Python and its CI image has no PHP. Activating this case would mean either a second CI job on a PHP image, or a recorded transcript fixture the Python side replays. Neither is built, and asserting a weaker Python-side property here while claiming the case is active would be worse than leaving it pending."
   },
-  "expected": "A partial failure mid-write leaves no orphan rows: the document and the whole procedure_order -> procedure_result chain commit together or not at all.",
+  "expected": "A partial failure mid-write leaves no ledger row and no orphaned ciphertext file on disk. Both are asserted; the document and the whole procedure_order -> procedure_result chain commit together or not at all.",
   "assertions": [
     {
       "rubric": "idempotency",

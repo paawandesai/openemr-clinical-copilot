@@ -8,7 +8,8 @@
     "scenario_ids": [
       "lab-clean-001",
       "lab-multipage-003"
-    ]
+    ],
+    "note": "Document side: the doc-factory samples, where a citation's quote must be on the page it names. Guideline side: real chunks from a lexical retrieval over the committed corpus, where app.retrieval.worker.citation_for raises ExcerptNotInChunkError for anything that is not literally in the chunk — so the rule is enforced where citations are minted, not only checked here afterwards."
   },
   "expected": "A citation's quote_or_value occurs verbatim in the source it names: in the retrieved chunk for a guideline, and in the drawn page text for a document field.",
   "assertions": [
@@ -16,6 +17,11 @@
       "rubric": "quote_is_substring",
       "tier": "det",
       "check": "chk.f_quote_is_a_substring_of_its_source"
+    },
+    {
+      "rubric": "quote_is_substring",
+      "tier": "det",
+      "check": "chk.f_quote_is_a_substring_of_the_retrieved_chunk"
     }
   ],
   "guards_against": "The work order's F6 gap: the right chunk retrieved while the quote drifts off it, which citation_present cannot see because the citation is well formed and the chunk id exists."
