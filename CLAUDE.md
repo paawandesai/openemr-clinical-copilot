@@ -128,6 +128,7 @@ cd agent && python -m pip install -r requirements.txt -r requirements-dev.txt
 
 # Unit tests — no network, no credentials:
 cd agent && python -m pytest tests
+# ModuleNotFoundError at collection = stale venv; re-run the pip line above.
 # `testpaths` in agent/pyproject.toml means a bare `pytest` here now collects
 # tests/ only. It used to also collect evals/, which calls live FHIR and the
 # real model. Naming a path still overrides it — so `pytest evals` is live.
