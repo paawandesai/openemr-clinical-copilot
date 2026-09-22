@@ -109,8 +109,7 @@ LOINC_NAMES: dict[str, str] = {
     "789-8": "Erythrocytes [#/volume] in Blood by Automated count",
     "82667-7": "Total score [DAST-10]",
     "89204-2": (
-        "Patient Health Questionnaire-9: Modified for Teens total score "
-        "[Reported.PHQ.Teen]"
+        "Patient Health Questionnaire-9: Modified for Teens total score [Reported.PHQ.Teen]"
     ),
     "89579-7": "Troponin I.cardiac [Mass/volume] in Serum or Plasma by High sensitivity method",
     # Not seen on the host (no patient there has one); LOINC's own long
@@ -121,19 +120,55 @@ LOINC_NAMES: dict[str, str] = {
 }
 
 _BMP = (
-    "2339-0", "2345-7", "6299-2", "3094-0", "38483-4", "2160-0", "49765-1", "17861-6",
-    "2947-0", "2951-2", "6298-4", "2823-3", "2069-3", "2075-0", "20565-8", "2028-9",
+    "2339-0",
+    "2345-7",
+    "6299-2",
+    "3094-0",
+    "38483-4",
+    "2160-0",
+    "49765-1",
+    "17861-6",
+    "2947-0",
+    "2951-2",
+    "6298-4",
+    "2823-3",
+    "2069-3",
+    "2075-0",
+    "20565-8",
+    "2028-9",
 )
 _KIDNEY = ("33914-3", "38483-4", "2160-0", "6299-2", "3094-0")
 _LIPIDS = ("2093-3", "18262-6", "2085-9", "2571-8")
 _CBC = (
-    "6690-2", "789-8", "718-7", "4544-3", "20570-8", "787-2", "785-6", "786-4", "788-0",
-    "777-3", "32207-3", "32623-1",
+    "6690-2",
+    "789-8",
+    "718-7",
+    "4544-3",
+    "20570-8",
+    "787-2",
+    "785-6",
+    "786-4",
+    "788-0",
+    "777-3",
+    "32207-3",
+    "32623-1",
 )
 _LIVER = ("1742-6", "1920-8", "6768-6", "1975-2", "1751-7", "2885-2", "10834-0")
 _URINALYSIS = (
-    "2514-8", "5811-5", "5803-2", "5802-4", "5792-7", "5804-0", "25428-4",
-    "5770-3", "20454-5", "20505-4", "5797-6", "13945-1", "5787-7", "5821-4",
+    "2514-8",
+    "5811-5",
+    "5803-2",
+    "5802-4",
+    "5792-7",
+    "5804-0",
+    "25428-4",
+    "5770-3",
+    "20454-5",
+    "20505-4",
+    "5797-6",
+    "13945-1",
+    "5787-7",
+    "5821-4",
 )
 
 # (rule id, wording, codes). Rule ids are logged; the wording never is.
@@ -142,17 +177,33 @@ _URINALYSIS = (
 ANALYTE_RULES: tuple[tuple[str, re.Pattern[str], tuple[str, ...]], ...] = tuple(
     (rule_id, re.compile(pattern, re.IGNORECASE), codes)
     for rule_id, pattern, codes in (
-        ("hemoglobin_a1c", r"\b(hb\s?a1c|a1c|glycated|glycosylated|h(a?e)moglobin a1c)\b", ("4548-4", "17856-6")),
+        (
+            "hemoglobin_a1c",
+            r"\b(hb\s?a1c|a1c|glycated|glycosylated|h(a?e)moglobin a1c)\b",
+            ("4548-4", "17856-6"),
+        ),
         ("glucose", r"\b(glucose|blood sugars?|sugars?)\b", ("2339-0", "2345-7")),
         ("creatinine", r"\bcreatinine\b", ("38483-4", "2160-0")),
-        ("kidney_function", r"\b(e?gfr|glomerular|(kidney|renal) (function|labs?|panel))\b", _KIDNEY),
+        (
+            "kidney_function",
+            r"\b(e?gfr|glomerular|(kidney|renal) (function|labs?|panel))\b",
+            _KIDNEY,
+        ),
         ("urea_nitrogen", r"\b(bun|urea)\b", ("6299-2", "3094-0")),
         ("sodium", r"\bsodium\b", ("2947-0", "2951-2")),
         ("potassium", r"\bpotassium\b", ("6298-4", "2823-3")),
         ("chloride", r"\bchloride\b", ("2069-3", "2075-0")),
         ("calcium", r"\bcalcium\b", ("49765-1", "17861-6")),
-        ("carbon_dioxide", r"\b(co2|bicarb(onate)?|carbon dioxide)\b", ("20565-8", "2028-9", "2027-1", "14627-4", "1960-4")),
-        ("metabolic_panel", r"\b(electrolytes?|bmp|cmp|(basic|comprehensive) metabolic|metabolic panel|chem(istry)?\s?(7|panel)?)\b", _BMP),
+        (
+            "carbon_dioxide",
+            r"\b(co2|bicarb(onate)?|carbon dioxide)\b",
+            ("20565-8", "2028-9", "2027-1", "14627-4", "1960-4"),
+        ),
+        (
+            "metabolic_panel",
+            r"\b(electrolytes?|bmp|cmp|(basic|comprehensive) metabolic|metabolic panel|chem(istry)?\s?(7|panel)?)\b",
+            _BMP,
+        ),
         ("lipids", r"\b(lipids?|lipid panel|cholesterol)\b", _LIPIDS),
         ("ldl", r"\bldl\b", ("18262-6",)),
         ("hdl", r"\bhdl\b", ("2085-9",)),
@@ -225,7 +276,5 @@ def loinc_name(code: str) -> str | None:
 def analyte_matches(question: str) -> list[tuple[str, tuple[str, ...]]]:
     """Every analyte rule the question's wording fires, in table order."""
     return [
-        (rule_id, codes)
-        for rule_id, pattern, codes in ANALYTE_RULES
-        if pattern.search(question)
+        (rule_id, codes) for rule_id, pattern, codes in ANALYTE_RULES if pattern.search(question)
     ]

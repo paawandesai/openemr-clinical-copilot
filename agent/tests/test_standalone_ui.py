@@ -8,7 +8,9 @@ from __future__ import annotations
 
 from pathlib import Path
 
-PAGE = (Path(__file__).resolve().parent.parent / "deploy" / "ui" / "index.html").read_text(encoding="utf-8")
+PAGE = (Path(__file__).resolve().parent.parent / "deploy" / "ui" / "index.html").read_text(
+    encoding="utf-8"
+)
 
 
 def _render_turn() -> str:

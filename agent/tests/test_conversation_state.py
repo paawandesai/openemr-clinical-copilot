@@ -35,13 +35,19 @@ class Clock:
 
 
 def _passed(source_id: str, value: str = "lisinopril 10 MG Oral Tablet") -> VerificationResult:
-    claim = Claim(source_id=source_id, field="display", value=value, resource_type=R.MEDICATION_REQUEST)
+    claim = Claim(
+        source_id=source_id, field="display", value=value, resource_type=R.MEDICATION_REQUEST
+    )
     return VerificationResult(claim=claim, passed=True, reason=None, disclosed_as_unverified=False)
 
 
 def _failed(source_id: str, value: str = "Warfarin 5 MG") -> VerificationResult:
-    claim = Claim(source_id=source_id, field="display", value=value, resource_type=R.MEDICATION_REQUEST)
-    return VerificationResult(claim=claim, passed=False, reason="value does not match", disclosed_as_unverified=True)
+    claim = Claim(
+        source_id=source_id, field="display", value=value, resource_type=R.MEDICATION_REQUEST
+    )
+    return VerificationResult(
+        claim=claim, passed=False, reason="value does not match", disclosed_as_unverified=True
+    )
 
 
 def _store(clock: Clock | None = None, **kwargs: object) -> ConversationStore:
@@ -60,7 +66,8 @@ def test_a_conversation_keeps_verified_claims_only_and_nothing_else() -> None:
     (turn,) = second.context
     assert turn.turn == 1
     assert [(c.source_id, c.value) for c in turn.claims] == [
-        ("med-1", "lisinopril 10 MG Oral Tablet"), ("med-2", "Naproxen"),
+        ("med-1", "lisinopril 10 MG Oral Tablet"),
+        ("med-2", "Naproxen"),
     ]
     assert second.context_resource_types == {R.MEDICATION_REQUEST}
     # The stored shape has nowhere to put a question or an answer.
@@ -84,11 +91,19 @@ def test_patient_switch_discards_everything_and_going_back_does_not_bring_it_bac
 
     switched = store.open(USER, SESSION, PATIENT_B)
 
-    assert (switched.turn, switched.transition, switched.context) == (1, T.RESET_PATIENT_CHANGED, ())
+    assert (switched.turn, switched.transition, switched.context) == (
+        1,
+        T.RESET_PATIENT_CHANGED,
+        (),
+    )
     assert switched.patient_id == PATIENT_B
     dropped = switched.invalidation
     assert dropped is not None
-    assert (dropped.previous_patient_id, dropped.turns_discarded, dropped.claims_discarded) == (PATIENT_A, 2, 3)
+    assert (dropped.previous_patient_id, dropped.turns_discarded, dropped.claims_discarded) == (
+        PATIENT_A,
+        2,
+        3,
+    )
     assert len(store) == 1
 
     back = store.open(USER, SESSION, PATIENT_A)

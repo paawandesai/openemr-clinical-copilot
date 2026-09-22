@@ -29,9 +29,7 @@ CORRELATION_ID_HEADER = "X-Correlation-ID"
 # task can read the current correlation_id without it being passed as a
 # function argument. Correctly isolated per request: each ASGI request
 # runs in its own asyncio Task, and contextvars are task-local.
-_correlation_id_var: ContextVar[str | None] = ContextVar(
-    "correlation_id", default=None
-)
+_correlation_id_var: ContextVar[str | None] = ContextVar("correlation_id", default=None)
 
 
 def get_correlation_id() -> str | None:
@@ -79,12 +77,8 @@ class CorrelationIdMiddleware(BaseHTTPMiddleware):
     and echoes it back on the response.
     """
 
-    async def dispatch(
-        self, request: Request, call_next: RequestResponseEndpoint
-    ) -> Response:
-        correlation_id = request.headers.get(CORRELATION_ID_HEADER) or str(
-            uuid.uuid4()
-        )
+    async def dispatch(self, request: Request, call_next: RequestResponseEndpoint) -> Response:
+        correlation_id = request.headers.get(CORRELATION_ID_HEADER) or str(uuid.uuid4())
 
         token = _correlation_id_var.set(correlation_id)
         # Bind into structlog's context so every log line emitted anywhere

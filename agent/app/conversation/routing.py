@@ -61,17 +61,19 @@ LAB_RESULTS_GENERAL = 40
 # most recent are enough to answer "when was she last seen".
 ENCOUNTER_COUNT = 10
 
-OUT_OF_SCOPE = frozenset({
-    RefusalCategory.VITALS,
-    RefusalCategory.CLINICAL_NOTES,
-    RefusalCategory.PROCEDURES,
-    RefusalCategory.IMMUNIZATIONS,
-    RefusalCategory.IMAGING,
-    RefusalCategory.FAMILY_SOCIAL_HISTORY,
-    RefusalCategory.SCHEDULING,
-    RefusalCategory.DEMOGRAPHICS_BILLING,
-    RefusalCategory.OTHER_PATIENTS,
-})
+OUT_OF_SCOPE = frozenset(
+    {
+        RefusalCategory.VITALS,
+        RefusalCategory.CLINICAL_NOTES,
+        RefusalCategory.PROCEDURES,
+        RefusalCategory.IMMUNIZATIONS,
+        RefusalCategory.IMAGING,
+        RefusalCategory.FAMILY_SOCIAL_HISTORY,
+        RefusalCategory.SCHEDULING,
+        RefusalCategory.DEMOGRAPHICS_BILLING,
+        RefusalCategory.OTHER_PATIENTS,
+    }
+)
 
 
 def _rule(pattern: str) -> re.Pattern[str]:
@@ -91,8 +93,12 @@ _REFUSAL_RULES: tuple[tuple[RefusalCategory, re.Pattern[str]], ...] = (
     (
         RefusalCategory.VITALS,
         _rule(
-            r"\b(vitals?( signs?)?|blood pressure" + _NOT_A_DRUG + r"|bp" + _NOT_A_DRUG
-            + r"|heart rate|pulse|resp(iratory)? rate|temperature|weight" + _NOT_A_DRUG
+            r"\b(vitals?( signs?)?|blood pressure"
+            + _NOT_A_DRUG
+            + r"|bp"
+            + _NOT_A_DRUG
+            + r"|heart rate|pulse|resp(iratory)? rate|temperature|weight"
+            + _NOT_A_DRUG
             + r"|bmi|body mass|height|spo2|pulse ox(imetry)?)\b"
         ),
     ),
@@ -105,7 +111,9 @@ _REFUSAL_RULES: tuple[tuple[RefusalCategory, re.Pattern[str]], ...] = (
     ),
     (
         RefusalCategory.PROCEDURES,
-        _rule(r"\b(procedures?|surger(y|ies)|surgical|operations?|colonoscop(y|ies)|biops(y|ies))\b"),
+        _rule(
+            r"\b(procedures?|surger(y|ies)|surgical|operations?|colonoscop(y|ies)|biops(y|ies))\b"
+        ),
     ),
     (
         RefusalCategory.IMMUNIZATIONS,
@@ -221,9 +229,7 @@ def route(question: str, context_types: frozenset[FhirResourceType]) -> RoutingD
     verified claims on (app/conversation/state.py).
     """
     refusals = tuple(
-        dict.fromkeys(
-            category for category, pattern in _REFUSAL_RULES if pattern.search(question)
-        )
+        dict.fromkeys(category for category, pattern in _REFUSAL_RULES if pattern.search(question))
     )
     if refusals:
         return RoutingDecision(

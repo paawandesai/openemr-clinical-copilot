@@ -232,9 +232,9 @@ class ConversationStore:
             or current.patient_id != snapshot.patient_id
         ):
             return False
-        verified = tuple(
-            result.claim.model_copy() for result in results if result.passed
-        )[:MAX_CLAIMS_PER_TURN]
+        verified = tuple(result.claim.model_copy() for result in results if result.passed)[
+            :MAX_CLAIMS_PER_TURN
+        ]
         if verified:
             current.turns.append(VerifiedTurn(turn=snapshot.turn, claims=verified))
             current.turns.sort(key=lambda turn: turn.turn)

@@ -46,8 +46,15 @@ def agent_event(event_type: str, event_data: dict[str, Any], use_case: str | Non
 def claim(passed: bool, disclosed: bool) -> str:
     return agent_event(
         "claim_verified_event",
-        {"source_id": "x", "resource_type": "Condition", "passed": passed, "disclosed_as_unverified": disclosed,
-         "correlation_id": "c1", "use_case": "pre_visit_brief", "patient_session_key": SESSION},
+        {
+            "source_id": "x",
+            "resource_type": "Condition",
+            "passed": passed,
+            "disclosed_as_unverified": disclosed,
+            "correlation_id": "c1",
+            "use_case": "pre_visit_brief",
+            "patient_session_key": SESSION,
+        },
         "pre_visit_brief",
     )
 
@@ -56,9 +63,15 @@ def disclosure(disclosed: bool, source_id: str = "x") -> str:
     """The post-render audit's event — what Metric 2 is computed from (F-59)."""
     return agent_event(
         "claim_disclosure_event",
-        {"source_id": source_id, "resource_type": "Condition", "field": "display",
-         "disclosed": disclosed, "correlation_id": "c1", "use_case": "pre_visit_brief",
-         "patient_session_key": SESSION},
+        {
+            "source_id": source_id,
+            "resource_type": "Condition",
+            "field": "display",
+            "disclosed": disclosed,
+            "correlation_id": "c1",
+            "use_case": "pre_visit_brief",
+            "patient_session_key": SESSION,
+        },
         "pre_visit_brief",
     )
 
@@ -66,7 +79,12 @@ def disclosure(disclosed: bool, source_id: str = "x") -> str:
 def auth(requested: str, outcome: str) -> str:
     return agent_event(
         "authorization_check_event",
-        {"requested_scope": requested, "held_scopes": ["user/Patient.read"], "outcome": outcome, "correlation_id": "c1"},
+        {
+            "requested_scope": requested,
+            "held_scopes": ["user/Patient.read"],
+            "outcome": outcome,
+            "correlation_id": "c1",
+        },
     )
 
 
@@ -76,15 +94,33 @@ class ComputeMetricsTest(unittest.TestCase):
             log = Path(tmp) / "log.jsonl"
             log.write_text("\n".join(lines) + "\n")
             out = io.StringIO()
-            with mock.patch("sys.argv", ["compute_metrics.py", "--log-file", str(log), *extra]), contextlib.redirect_stdout(out):
+            with (
+                mock.patch("sys.argv", ["compute_metrics.py", "--log-file", str(log), *extra]),
+                contextlib.redirect_stdout(out),
+            ):
                 code = compute_metrics.main()
         return code, out.getvalue()
 
     def test_no_events_is_insufficient_data_never_a_fake_percentage(self) -> None:
-        code, out = self.run_script(["INFO:     127.0.0.1 - GET /health 200", '{"event": "observability_export_enabled"}', "0.5"])
+        code, out = self.run_script(
+            [
+                "INFO:     127.0.0.1 - GET /health 200",
+                '{"event": "observability_export_enabled"}',
+                "0.5",
+            ]
+        )
         self.assertEqual(code, 0)
-        self.assertIn("lines: 3 | agent_event lines: 0 | other structured log lines: 1 | non-log lines skipped: 2", out)
-        for event_type in ("claim_verified_event", "authorization_check_event", "latency_event", "retrieval_event", "llm_usage_event"):
+        self.assertIn(
+            "lines: 3 | agent_event lines: 0 | other structured log lines: 1 | non-log lines skipped: 2",
+            out,
+        )
+        for event_type in (
+            "claim_verified_event",
+            "authorization_check_event",
+            "latency_event",
+            "retrieval_event",
+            "llm_usage_event",
+        ):
             self.assertIn(f"insufficient data — 0 events of type {event_type}", out)
         self.assertNotIn("0.0%", out)
         self.assertNotIn("100.0%", out)
@@ -130,7 +166,13 @@ class ComputeMetricsTest(unittest.TestCase):
         self.assertIn("only 1 were reported on by the render step", out)
 
     def test_accepted_out_of_scope_request_violates_invariant(self) -> None:
-        code, out = self.run_script([auth("user/Patient.read", "accepted"), auth("user/Observation.read", "rejected"), auth("user/Observation.read", "accepted")])
+        code, out = self.run_script(
+            [
+                auth("user/Patient.read", "accepted"),
+                auth("user/Observation.read", "rejected"),
+                auth("user/Observation.read", "accepted"),
+            ]
+        )
         self.assertEqual(code, 1)
         self.assertIn("INVARIANT VIOLATED", out)
         self.assertIn("1 of 2 out-of-scope requests rejected (50.0%)", out)
@@ -140,21 +182,40 @@ class ComputeMetricsTest(unittest.TestCase):
     def test_only_in_scope_requests_is_insufficient_not_holding(self) -> None:
         code, out = self.run_script([auth("user/Patient.read", "accepted")])
         self.assertEqual(code, 0)
-        self.assertIn("insufficient data — 0 events of type authorization_check_event with requested_scope not in held_scopes found", out)
+        self.assertIn(
+            "insufficient data — 0 events of type authorization_check_event with requested_scope not in held_scopes found",
+            out,
+        )
         self.assertNotIn("INVARIANT HOLDS", out)
 
     def test_latency_is_per_use_case_with_nearest_rank(self) -> None:
         lines = [
-            agent_event("latency_event", {"use_case": "change_detection", "trigger_ts": 0, "rendered_ts": s, "correlation_id": "c1"}, "change_detection")
+            agent_event(
+                "latency_event",
+                {
+                    "use_case": "change_detection",
+                    "trigger_ts": 0,
+                    "rendered_ts": s,
+                    "correlation_id": "c1",
+                },
+                "change_detection",
+            )
             for s in (10, 20, 30, 40, 100)
         ]
         _, out = self.run_script(lines)
         self.assertIn("change_detection: n=5  p50=30.0s  p95=100.0s  over budget: 1", out)
-        self.assertIn("pre_visit_brief: insufficient data — 0 events of type latency_event with use_case=pre_visit_brief found", out)
+        self.assertIn(
+            "pre_visit_brief: insufficient data — 0 events of type latency_event with use_case=pre_visit_brief found",
+            out,
+        )
 
     def test_retrieval_coverage_names_the_missing_type(self) -> None:
         lines = [
-            agent_event("retrieval_event", {"resource_type": t, "correlation_id": "c1", "use_case": "change_detection"}, "change_detection")
+            agent_event(
+                "retrieval_event",
+                {"resource_type": t, "correlation_id": "c1", "use_case": "change_detection"},
+                "change_detection",
+            )
             for t in ("Encounter", "Condition", "MedicationRequest")
         ]
         _, out = self.run_script(lines)
@@ -165,15 +226,22 @@ class ComputeMetricsTest(unittest.TestCase):
     def test_llm_call_alias_and_explicit_prices(self) -> None:
         line = agent_event(
             "llm_call",
-            {"served_model": "m", "input_tokens": 1_000_000, "output_tokens": 100_000,
-             "cache_creation_input_tokens": 0, "cache_read_input_tokens": 500_000},
+            {
+                "served_model": "m",
+                "input_tokens": 1_000_000,
+                "output_tokens": 100_000,
+                "cache_creation_input_tokens": 0,
+                "cache_read_input_tokens": 500_000,
+            },
             "pre_visit_brief",
         )
         _, unpriced = self.run_script([line])
         self.assertIn("pricing: none — no pricing constant exists in this codebase", unpriced)
         self.assertIn("→ USD not computed", unpriced)
         with tempfile.NamedTemporaryFile("w", suffix=".json", delete=False) as prices:
-            json.dump({"m": {"input": 2.0, "output": 10.0, "cache_read": 0.2, "cache_write": 2.5}}, prices)
+            json.dump(
+                {"m": {"input": 2.0, "output": 10.0, "cache_read": 0.2, "cache_write": 2.5}}, prices
+            )
         _, priced = self.run_script([line], "--prices", prices.name)
         Path(prices.name).unlink()
         # 1.0M × $2 + 0.1M × $10 + 0.5M × $0.2 = $3.10

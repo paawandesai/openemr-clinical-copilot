@@ -166,7 +166,9 @@ async def pre_visit_brief(
             "OpenEMR's FHIR API could not be reached or returned an error. Check GET /ready.",
         ) from None
     except (ClaimDraftingError, anthropic.APIError) as exc:
-        log.error("pre_visit_brief_failed", error=ErrorCode.BRIEF_GENERATION_FAILED.value, exc_info=exc)
+        log.error(
+            "pre_visit_brief_failed", error=ErrorCode.BRIEF_GENERATION_FAILED.value, exc_info=exc
+        )
         raise ApiError(
             502,
             ErrorCode.BRIEF_GENERATION_FAILED,

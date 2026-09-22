@@ -278,7 +278,9 @@ def test_query_style_source_id_fails_as_not_found_without_special_casing() -> No
     not-found path. If this test starts failing, "query:" ids have become
     resolvable somewhere — that is a deliberate behavior change, not a fix.
     """
-    second_allergy = AllergyIntolerance(source_id="allergy-2", display="Latex", clinical_status="active")
+    second_allergy = AllergyIntolerance(
+        source_id="allergy-2", display="Latex", clinical_status="active"
+    )
     retrieved = {FhirResourceType.ALLERGY_INTOLERANCE: [ALLERGY, second_allergy]}
     c = claim(
         FhirResourceType.ALLERGY_INTOLERANCE,
@@ -467,7 +469,9 @@ def test_null_claim_against_present_source_value_fails() -> None:
 
 # --- F-57: a record with no name --------------------------------------------
 
-UNNAMED_ALLERGY = AllergyIntolerance(source_id="allergy-unnamed", display=None, clinical_status="active")
+UNNAMED_ALLERGY = AllergyIntolerance(
+    source_id="allergy-unnamed", display=None, clinical_status="active"
+)
 UNNAMED_CONDITION = Condition(source_id="cond-unnamed", display=None, clinical_status="active")
 UNNAMED_MEDICATION = MedicationRequest(
     source_id="med-unnamed", display=None, status="active", authored_date=datetime(2024, 3, 15)
@@ -504,7 +508,9 @@ def test_other_fields_of_a_record_with_no_name_still_verify() -> None:
     results = verify(
         [
             claim(FhirResourceType.CONDITION, "cond-unnamed", "clinical_status", "active"),
-            claim(FhirResourceType.MEDICATION_REQUEST, "med-unnamed", "authored_date", "2024-03-15"),
+            claim(
+                FhirResourceType.MEDICATION_REQUEST, "med-unnamed", "authored_date", "2024-03-15"
+            ),
             claim(FhirResourceType.ALLERGY_INTOLERANCE, "allergy-unnamed", "recorded_date", None),
         ],
         UNNAMED_RETRIEVED,
@@ -515,9 +521,14 @@ def test_other_fields_of_a_record_with_no_name_still_verify() -> None:
 
 
 def test_a_named_copy_does_not_rescue_an_unnamed_copy_of_the_same_record() -> None:
-    named = AllergyIntolerance(source_id="allergy-unnamed", display="Penicillin", clinical_status="active")
+    named = AllergyIntolerance(
+        source_id="allergy-unnamed", display="Penicillin", clinical_status="active"
+    )
     retrieved = {FhirResourceType.ALLERGY_INTOLERANCE: [named, UNNAMED_ALLERGY]}
 
-    [result] = verify([claim(FhirResourceType.ALLERGY_INTOLERANCE, "allergy-unnamed", "display", "Penicillin")], retrieved)
+    [result] = verify(
+        [claim(FhirResourceType.ALLERGY_INTOLERANCE, "allergy-unnamed", "display", "Penicillin")],
+        retrieved,
+    )
 
     assert_failed(result, FailureReason.NO_NAME_ON_SOURCE)

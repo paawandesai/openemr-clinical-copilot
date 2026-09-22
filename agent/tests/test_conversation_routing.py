@@ -7,7 +7,7 @@ refuses, retrieves and narrows, by rule. No network, no model.
 
 from __future__ import annotations
 
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 import pytest
 
@@ -112,7 +112,9 @@ def test_a_condition_name_containing_a_judgment_word_is_not_a_judgment() -> None
         ("Any recent results?", set()),
     ],
 )
-def test_lab_wording_retrieves_observation_narrowed_to_the_named_tests(question: str, codes: set[str]) -> None:
+def test_lab_wording_retrieves_observation_narrowed_to_the_named_tests(
+    question: str, codes: set[str]
+) -> None:
     decision = route(question, NO_CONTEXT)
 
     assert decision.expansions == {R.OBSERVATION: RetrievalRule.QUESTION_RULE}
@@ -122,7 +124,11 @@ def test_lab_wording_retrieves_observation_narrowed_to_the_named_tests(question:
 
 @pytest.mark.parametrize(
     "question",
-    ["When was she last seen?", "What did we try last time for this?", "Has she started anything since January?"],
+    [
+        "When was she last seen?",
+        "What did we try last time for this?",
+        "Has she started anything since January?",
+    ],
 )
 def test_visit_wording_retrieves_encounter(question: str) -> None:
     decision = route(question, NO_CONTEXT)
@@ -133,7 +139,8 @@ def test_visit_wording_retrieves_encounter(question: str) -> None:
 def test_both_rules_can_fire_and_context_types_are_carried() -> None:
     both = route("Any lab results since her last visit?", NO_CONTEXT)
     assert both.expansions == {
-        R.OBSERVATION: RetrievalRule.QUESTION_RULE, R.ENCOUNTER: RetrievalRule.QUESTION_RULE,
+        R.OBSERVATION: RetrievalRule.QUESTION_RULE,
+        R.ENCOUNTER: RetrievalRule.QUESTION_RULE,
     }
 
     carried = route("When was that taken?", frozenset({R.OBSERVATION, R.MEDICATION_REQUEST}))
@@ -168,19 +175,30 @@ def test_same_test_sets_are_disjoint_labelled_and_never_a_panel() -> None:
         assert not codes & seen
         seen |= codes
         # One analyte: every member's LOINC name starts with the same component.
-        assert len({lab_codes.LOINC_NAMES[code].split(" [")[0].split(" in ")[0].casefold() for code in codes}) == 1, codes
+        assert (
+            len(
+                {
+                    lab_codes.LOINC_NAMES[code].split(" [")[0].split(" in ")[0].casefold()
+                    for code in codes
+                }
+            )
+            == 1
+        ), codes
     assert lab_codes.same_test_codes("2160-0") == {"2160-0", "38483-4"}
     assert lab_codes.same_test_codes("33914-3") == {"33914-3"}
 
 
 # -- narrowing -----------------------------------------------------------------
 
-_T0 = datetime(2026, 4, 1, tzinfo=timezone.utc)
+_T0 = datetime(2026, 4, 1, tzinfo=UTC)
 
 
 def _obs(n: int, code: str, days_ago: int) -> Observation:
     return Observation(
-        source_id=f"obs-{code}-{n}", value=float(n), unit="mg/dL", loinc_code=code,
+        source_id=f"obs-{code}-{n}",
+        value=float(n),
+        unit="mg/dL",
+        loinc_code=code,
         effective_date=_T0 - timedelta(days=days_ago),
     )
 
@@ -194,7 +212,9 @@ def _chart() -> list[Observation]:
 def test_named_tests_keep_the_most_recent_results_per_code() -> None:
     kept, scope = narrow_observations(_chart(), frozenset({"2160-0", "38483-4"}), frozenset())
 
-    assert [o.source_id for o in kept] == [f"obs-2160-0-{n}" for n in range(routing.LAB_RESULTS_PER_CODE)]
+    assert [o.source_id for o in kept] == [
+        f"obs-2160-0-{n}" for n in range(routing.LAB_RESULTS_PER_CODE)
+    ]
     assert (scope.retrieved, scope.considered, scope.codes) == (80, 8, ("2160-0", "38483-4"))
 
 
@@ -226,7 +246,9 @@ def test_no_matching_result_is_an_empty_set_not_a_fallback_to_other_tests() -> N
 
 
 def test_an_absent_date_sorts_last() -> None:
-    undated = Observation(source_id="obs-undated", value=1.0, loinc_code="2160-0", effective_date=datetime.min)
+    undated = Observation(
+        source_id="obs-undated", value=1.0, loinc_code="2160-0", effective_date=datetime.min
+    )
     kept, _ = narrow_observations([undated, *_chart()], frozenset({"2160-0"}), frozenset())
 
     assert "obs-undated" not in [o.source_id for o in kept]
@@ -291,7 +313,10 @@ def test_an_outlying_value_beyond_the_cap_is_cut_but_the_cut_is_disclosed() -> N
     """
     chart = [_obs(n, "2160-0", days_ago=30 * n) for n in range(routing.LAB_RESULTS_PER_CODE + 5)]
     extreme = Observation(
-        source_id="obs-2160-0-extreme", value=11.4, unit="mg/dL", loinc_code="2160-0",
+        source_id="obs-2160-0-extreme",
+        value=11.4,
+        unit="mg/dL",
+        loinc_code="2160-0",
         effective_date=_T0 - timedelta(days=30 * (routing.LAB_RESULTS_PER_CODE + 4)),
     )
 

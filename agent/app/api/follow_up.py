@@ -108,7 +108,9 @@ async def follow_up(
             "OpenEMR's FHIR API could not be reached or returned an error. Check GET /ready.",
         ) from None
     except (ClaimDraftingError, anthropic.APIError) as exc:
-        log.error("follow_up_failed", error=ErrorCode.FOLLOW_UP_GENERATION_FAILED.value, exc_info=exc)
+        log.error(
+            "follow_up_failed", error=ErrorCode.FOLLOW_UP_GENERATION_FAILED.value, exc_info=exc
+        )
         raise ApiError(
             502,
             ErrorCode.FOLLOW_UP_GENERATION_FAILED,

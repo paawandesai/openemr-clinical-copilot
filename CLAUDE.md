@@ -1,23 +1,20 @@
 # Clinical Co-pilot — Week 2
 
 Week 1 shipped a clinical co-pilot on this OpenEMR fork: a **Pre-Visit Brief**
-and a **multi-turn follow-up chat** that read a patient's chart through
-OpenEMR's FHIR R4 API under the requesting clinician's own OAuth2 token, draft
-structured claims bound to `source_id` + field + value, and pass every claim
-through a **deterministic code verifier** before anything renders — claims that
-fail render as UNVERIFIED, never silently dropped. Week 2 adds document
-ingestion: **lab PDFs and intake forms**, extracted at upload time into a
-strict schema with page-located values; a **supervisor** routing between an
-**intake-extractor** and an **evidence-retriever**; **hybrid RAG** over
-guideline evidence; and an **eval-gated CI** pipeline that blocks merges on
-regression against a committed baseline.
+and a **multi-turn follow-up chat** that read a patient's chart over OpenEMR's
+FHIR R4 API under the clinician's own OAuth2 token, draft claims bound to
+`source_id` + field + value, and pass each one through a **deterministic code
+verifier** before it renders — a claim that fails renders as UNVERIFIED, never
+silently dropped. Week 2 adds **lab-PDF and intake-form ingestion** into a strict
+schema with page-located values, a **supervisor** over an **intake-extractor**
+and an **evidence-retriever**, **hybrid RAG** over guideline evidence, and
+**eval-gated CI** that blocks merges on regression against a committed baseline.
 
-**For anything about the OpenEMR platform itself — PHP standards, PHPStan,
-Doctrine, Twig, the Docker dev stack, `openemr-cmd`, the PHP test suites — read
-[`docs/openemr-dev-guide.md`](docs/openemr-dev-guide.md).** That is the former
-root `CLAUDE.md`, unchanged. Read it before touching anything under `src/`,
-`library/`, `interface/`, `apis/`, `templates/` or `sql/` — which W2 does touch,
-because the lab-value write-back endpoint (D1) lives in the fork, not the agent.
+**For the OpenEMR platform itself — PHP standards, PHPStan, Doctrine, Twig, the
+Docker dev stack, `openemr-cmd`, the PHP test suites — read
+[`docs/openemr-dev-guide.md`](docs/openemr-dev-guide.md)** (the former root
+`CLAUDE.md`, unchanged) before touching `src/`, `library/`, `interface/`,
+`apis/`, `templates/` or `sql/` — W2 touches them: write-back (D1) lives there.
 
 ## INVARIANTS — non-negotiable
 
@@ -45,55 +42,21 @@ because the lab-value write-back endpoint (D1) lives in the fork, not the agent.
 
 ### The staging rule
 
-Generated eval cases do not land in `cases/` by themselves.
+Generated eval cases do not land in `cases/` by themselves. Generator and
+factory code goes in `agent/evals/w2/factory/`, generator output in
+`agent/evals/w2/staging/` — neither is gated, write freely. Gated:
+`agent/evals/w2/cases/`, `agent/evals/w2/rubrics/`,
+`agent/evals/w2/baseline.json`, `agent/evals/w2/judge_config.*`.
 
-| Directory | Gated? | What goes there |
-|---|---|---|
-| `agent/evals/w2/factory/` | no | generator and factory code — write freely |
-| `agent/evals/w2/staging/` | no | everything a generator emits — write freely |
-| `agent/evals/w2/cases/` | **yes** | the committed case set the gate scores against |
-| `agent/evals/w2/rubrics/` | **yes** | per-category rubrics |
-| `agent/evals/w2/baseline.json` | **yes** | the committed scores a run is compared to |
-| `agent/evals/w2/judge_config.*` | **yes** | pinned judge model and settings |
+**Promoting a staged file into `cases/` is a gate change**, and only a session
+started with `W2_GATE_SESSION=1` can do it — a human sets that outside the
+session, so that a branch cannot both fail on a case and delete the case in the
+same commit. Report what you staged and why it should be promoted; do not
+promote it yourself.
 
-A normal session builds the factory, runs it, and writes as many cases as it
-likes into `staging/`. **Promoting a staged file into `cases/` is a gate
-change**, and only a session started with `W2_GATE_SESSION=1` can do it — a
-human sets that outside the session. This exists so that a branch cannot both
-fail on a case and delete the case in the same commit. Report what you staged
-and why it should be promoted; do not promote it yourself.
-
-Two hooks enforce this. `gate-guard.sh` runs **before** a tool call and matches
-on the resolved path, so `staging/../cases/x.json` and a write through a
-symlinked directory are blocked the same as a direct write. **Do not create
-symlinks anywhere under `agent/evals/`** — they are refused on both the link
-and the target side, exempt directories included.
-
-`gate-effect-check.sh` runs **after every tool call** — not just Bash — and does
-not read the command at all: it asks git what changed and restores any
-protected path that moved. A `cd` into the directory, a path held in a
-variable, a script that does the writing, and an MCP tool `gate-guard.sh` has
-never heard of are all caught the same way. It reverts *any* uncommitted change
-to a protected path, not only the last call's — so a session that is
-deliberately editing gate files must be started with `W2_GATE_SESSION=1`, or it
-will lose those edits on its next tool call.
-
-**Known limit — hook timeout.** Both hooks fail *closed* on every error they
-can observe: bad input, an unresolvable path, a crash inside the script all
-exit 2. What they cannot cover is not running. A hook cancelled at its timeout
-(`.claude/settings.json`: 30s for `gate-guard.sh`, 120s for
-`gate-effect-check.sh`) is a hook that returned no decision, and the tool call
-proceeds. On this repo the effect check takes ~130 ms on a clean tree and
-~240 ms when it restores, so the margin is large — but the gate is not a
-sandbox, and a machine under heavy load, a slow filesystem or a very dirty tree
-could in principle push it past the limit and let a call through unchecked.
-Treat the hooks as a guard against mistakes and drift, not as a security
-boundary against a determined bypass.
-
-Two more surfaces the hooks do not cover: a process started earlier that keeps
-writing in the background, and another session or editor working in the same
-worktree. The effect check notices those only incidentally, on the next tool
-call.
+Two hooks enforce this, one before and one after every tool call, and **no
+symlinks anywhere under `agent/evals/`**. Gated paths, how the hooks work, what
+they miss, and the merge check: [`docs/w2/GATE.md`](docs/w2/GATE.md).
 
 ## Where things are
 
@@ -103,22 +66,19 @@ call.
 | Graphs | `agent/app/graph/{pre_visit_brief,conversation,follow_up}.py` |
 | **Tracing wrapper** `UntracedGraph` + `_untraced` node guard | `agent/app/graph/pre_visit_brief.py:211` and `:199` |
 | **Verifier** (deterministic, no LLM, no network) | `agent/app/verification/checker.py` |
-| Unverified-claim disclosure | `agent/app/verification/disclosure.py` |
-| Claim / VerificationResult contract | `agent/app/models/claims.py` |
-| FHIR resource models | `agent/app/models/fhir_resources.py` |
+| Disclosure, claim contract, FHIR models | `agent/app/verification/disclosure.py`, `agent/app/models/claims.py`, `agent/app/models/fhir_resources.py` |
 | Structured logging + correlation id | `agent/app/middleware/{logging,correlation}.py` |
-| Week 1 eval suite (live, costs model calls) | `agent/evals/` — see `agent/evals/README.md` |
-| Week 1 eval harness / invariants / independent oracle | `agent/evals/{harness,invariants,oracle}.py` |
+| Week 1 eval suite (live, costs model calls) | `agent/evals/` — see `agent/evals/README.md`, harness in `agent/evals/{harness,invariants,oracle}.py` |
 | Week 1 unit tests (no network, no credentials) | `agent/tests/` |
 | Week 2 evals (being built) | `agent/evals/w2/` — `factory/`, `staging/`, `cases/`, `rubrics/`, `baseline.json`, `judge_config.*` |
 | Python tooling config (ruff + pytest) | `agent/pyproject.toml`, `agent/requirements-dev.txt` |
 | Gate hook, and the merge check that reads its globs | `.claude/hooks/gate-guard.sh`, `scripts/gate-diff.sh` |
+| **The gate in full** — gated paths, both hooks, their limits | `docs/w2/GATE.md` |
 | **OpenEMR platform guide** (PHP, Docker, PHPStan, `openemr-cmd`) | `docs/openemr-dev-guide.md` |
-| Week 2 decisions (read first) | `docs/w2/DECISIONS.md` |
-| Week 2 work orders | `docs/w2/work-orders/` |
-| Week 2 spikes | `docs/w2/spikes/` — write-back findings in `writeback.md` |
+| Week 2 decisions (read first), work orders, spikes | `docs/w2/DECISIONS.md`, `docs/w2/work-orders/`, `docs/w2/spikes/` (write-back findings in `writeback.md`) |
 | Architecture / metrics / users / audit | `docs/ARCHITECTURE.md`, `docs/KEY_METRICS.md`, `docs/USERS.md`, `docs/AUDIT.md`, `docs/audit/findings.md` |
 | Deployment | `agent/deploy/docker-compose.agent.yml`, `agent/deploy/Caddyfile`, `agent/docs/deployment.md` |
+| New worktree for a work order | `scripts/new-worktree.sh` — creates `agent/.venv` and installs requirements |
 
 ## Commands
 
@@ -128,29 +88,23 @@ cd agent && python -m pip install -r requirements.txt -r requirements-dev.txt
 
 # Unit tests — no network, no credentials:
 cd agent && python -m pytest tests
-# `testpaths` in agent/pyproject.toml means a bare `pytest` here now collects
-# tests/ only. It used to also collect evals/, which calls live FHIR and the
-# real model. Naming a path still overrides it — so `pytest evals` is live.
-
-# Week 1 eval suite — LIVE: deployed agent + OpenEMR FHIR + Anthropic API.
-# Costs real model calls (~36) and several minutes. Do not loop it.
+# ModuleNotFoundError at collection = stale venv; re-run the pip line above.
+# `testpaths` pins a bare `pytest` to tests/; naming a path overrides it, so
+# `pytest evals` is LIVE: real FHIR + Anthropic, ~36 model calls. Do not loop it.
 cd agent && python -m pytest evals
 cd agent && python -m pytest evals -k "test_d or test_e"   # auth/not-found only, no model calls
 
 # Format and lint (config: agent/pyproject.toml):
-cd agent && python -m ruff format --check .   # --check only; see the note below
+cd agent && python -m ruff format --check .   # --check only
 cd agent && python -m ruff check .            # add --fix for the safe fixes
-# Week 1 code is NOT formatted yet: 54 of 81 files would be reformatted, and
-# `ruff check` reports 29 findings. Reformatting is its own commit — do not
-# let `ruff format` rewrite Week 1 files as a side effect of your change.
-# Format the files you actually touch.
+# Week 1 was reformatted in one mechanical commit (.git-blame-ignore-revs); here
+# format --check is clean and check reports 21 known findings — add none.
 
 # Pre-merge gate check — run this before EVERY merge:
 scripts/gate-diff.sh <branch>       # nonzero if the branch touches gate files
 scripts/check-claude-paths.sh       # every path named in this file still exists
 
-# Week 2 eval gate — NOT IMPLEMENTED YET. The command will be added with the
-# factory under agent/evals/w2/. Do not invent one; report it as missing.
+# Week 2 eval gate — NOT IMPLEMENTED YET. Do not invent one; report it missing.
 
 # PHP side (needs the OpenEMR container — see docs/openemr-dev-guide.md):
 composer phpstan
@@ -159,33 +113,23 @@ composer phpcs
 
 ### Before every merge
 
-`scripts/gate-diff.sh <branch>` lists the gate files a branch changes and exits
-nonzero if there are any. It reads the globs from
-`.claude/hooks/gate-guard.sh --check-path`, so the merge check and the
-edit-time hook cannot drift apart. A nonzero exit is not a veto — it means
-review the gate change on its own, before looking at the code.
-
-**Relocation, done:** `feat/doc-factory` now writes to
-`agent/evals/w2/factory/`, which is ungated, and
-`scripts/gate-diff.sh feat/doc-factory` passes. It used to write one level up,
-directly under agent/evals/, which the gate protects. Do not put a factory
-there, and do not create a repo-root evals/ directory.
+`scripts/gate-diff.sh <branch>` exits nonzero if the branch touches gate files —
+not a veto, but review that change on its own, before the code. The rest of the
+rules, and what the hooks miss: [`docs/w2/GATE.md`](docs/w2/GATE.md).
 
 ## Before you start
 
-**Read [`docs/w2/DECISIONS.md`](docs/w2/DECISIONS.md) before starting. Do not
-re-decide anything marked DECIDED; raise conflicts in your report.** Entries
-marked OPEN are yours to propose on, not to silently settle. Entries marked
-PENDING-SPIKE are blocked on a spike — build against the stated constraint and
-flag the dependency.
+**Read [`docs/w2/DECISIONS.md`](docs/w2/DECISIONS.md) first. Do not re-decide
+anything marked DECIDED; raise conflicts in your report.** OPEN entries are
+yours to propose on, not to silently settle; PENDING-SPIKE entries are blocked
+on a spike — build against the stated constraint and flag the dependency.
 
 ## Commit messages
 
 [Conventional Commits](https://www.conventionalcommits.org/): `<type>(<scope>): <description>`.
 **No AI-attribution trailers of any kind** — no `Co-Authored-By:`,
-`Claude-Session:`, `Assisted-by:`, `Generated-By:`, or anything of that shape,
-in any capitalization. Hard rule. If tooling appends one, remove it before
-committing.
+`Claude-Session:`, `Assisted-by:`, `Generated-By:`, or anything of that shape in
+any capitalization. Hard rule; if tooling appends one, remove it before committing.
 
 ## Required session report
 

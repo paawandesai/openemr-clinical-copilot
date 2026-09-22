@@ -21,7 +21,6 @@ from enum import Enum
 
 from pydantic import BaseModel, Field
 
-
 # The three models a brief line names share one rule for `display`.
 _NO_NAME = (
     " None when the chart record names nothing usable: no code text, no "
@@ -228,10 +227,7 @@ class Observation(BaseModel):
 
     unit: str | None = Field(
         default=None,
-        description=(
-            "Result units. ARCHITECTURE.md §5: 'cite a lab value, unit, "
-            "and date.'"
-        ),
+        description=("Result units. ARCHITECTURE.md §5: 'cite a lab value, unit, and date.'"),
     )
 
     loinc_code: str = Field(
@@ -247,7 +243,6 @@ class Observation(BaseModel):
     effective_date: datetime = Field(
         ...,
         description=(
-            "When the result was recorded. ARCHITECTURE.md §5: 'cite a "
-            "lab value, unit, and date.'"
+            "When the result was recorded. ARCHITECTURE.md §5: 'cite a lab value, unit, and date.'"
         ),
     )

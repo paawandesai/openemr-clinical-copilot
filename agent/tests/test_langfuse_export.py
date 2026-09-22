@@ -157,9 +157,7 @@ class ConfigurationTest(_Base):
         os.environ["LANGFUSE_BASE_URL"] = "http://localhost:3000"
         lines = self._configure_capturing_stdout()
         self.assertEqual(lines[0]["level"], "error")
-        self.assertEqual(
-            lines[0]["missing"], ["LANGFUSE_PUBLIC_KEY", "LANGFUSE_SECRET_KEY"]
-        )
+        self.assertEqual(lines[0]["missing"], ["LANGFUSE_PUBLIC_KEY", "LANGFUSE_SECRET_KEY"])
         self.assertIsNone(langfuse_export._exporter)
 
     def test_stdout_line_is_still_written_when_export_enabled(self) -> None:
@@ -223,8 +221,12 @@ class MetricDerivationTest(_Base):
             "use_case": "pre_visit_brief",
             "patient_session_key": "u|p|s",
         }
-        self.export("claim_verified_event", {**base, "passed": True, "disclosed_as_unverified": False})
-        self.export("claim_verified_event", {**base, "passed": False, "disclosed_as_unverified": True})
+        self.export(
+            "claim_verified_event", {**base, "passed": True, "disclosed_as_unverified": False}
+        )
+        self.export(
+            "claim_verified_event", {**base, "passed": False, "disclosed_as_unverified": True}
+        )
         self.assertEqual(
             [(s["name"], s["value"], s["data_type"]) for s in client.scores],
             [
@@ -238,10 +240,42 @@ class MetricDerivationTest(_Base):
     def test_metric_3_scores_only_out_of_scope_requests(self) -> None:
         client = self.install_fake()
         held = ["user/Patient.read"]
-        self.export("authorization_check_event", {"requested_scope": "user/Patient.read", "held_scopes": held, "outcome": "accepted", "correlation_id": "c"})
-        self.export("authorization_check_event", {"requested_scope": "user/Observation.read", "held_scopes": held, "outcome": "rejected", "correlation_id": "c"})
-        self.export("authorization_check_event", {"requested_scope": "user/Observation.read", "held_scopes": held, "outcome": "accepted", "correlation_id": "c"})
-        self.export("authorization_check_event", {"requested_scope": "user/Observation.read", "held_scopes": held, "outcome": "timeout", "correlation_id": "c"})
+        self.export(
+            "authorization_check_event",
+            {
+                "requested_scope": "user/Patient.read",
+                "held_scopes": held,
+                "outcome": "accepted",
+                "correlation_id": "c",
+            },
+        )
+        self.export(
+            "authorization_check_event",
+            {
+                "requested_scope": "user/Observation.read",
+                "held_scopes": held,
+                "outcome": "rejected",
+                "correlation_id": "c",
+            },
+        )
+        self.export(
+            "authorization_check_event",
+            {
+                "requested_scope": "user/Observation.read",
+                "held_scopes": held,
+                "outcome": "accepted",
+                "correlation_id": "c",
+            },
+        )
+        self.export(
+            "authorization_check_event",
+            {
+                "requested_scope": "user/Observation.read",
+                "held_scopes": held,
+                "outcome": "timeout",
+                "correlation_id": "c",
+            },
+        )
         self.assertEqual(
             [(s["name"], s["value"]) for s in client.scores],
             [("out_of_scope_request_rejected", 1.0), ("out_of_scope_request_rejected", 0.0)],
@@ -252,8 +286,24 @@ class MetricDerivationTest(_Base):
 
     def test_metric_4_latency_score(self) -> None:
         client = self.install_fake()
-        self.export("latency_event", {"use_case": "pre_visit_brief", "trigger_ts": 100.0, "rendered_ts": 142.5, "correlation_id": "c"})
-        self.export("latency_event", {"use_case": "pre_visit_brief", "trigger_ts": 100.0, "rendered_ts": 99.0, "correlation_id": "c"})
+        self.export(
+            "latency_event",
+            {
+                "use_case": "pre_visit_brief",
+                "trigger_ts": 100.0,
+                "rendered_ts": 142.5,
+                "correlation_id": "c",
+            },
+        )
+        self.export(
+            "latency_event",
+            {
+                "use_case": "pre_visit_brief",
+                "trigger_ts": 100.0,
+                "rendered_ts": 99.0,
+                "correlation_id": "c",
+            },
+        )
         self.assertEqual(
             [(s["name"], s["value"], s["data_type"]) for s in client.scores],
             [("response_latency_seconds", 42.5, "NUMERIC")],
@@ -264,7 +314,11 @@ class MetricDerivationTest(_Base):
         self.install_fake()
         self.export(
             "retrieval_event",
-            {"resource_type": "AllergyIntolerance", "correlation_id": "c", "use_case": "pre_visit_brief"},
+            {
+                "resource_type": "AllergyIntolerance",
+                "correlation_id": "c",
+                "use_case": "pre_visit_brief",
+            },
             use_case=UseCase.PRE_VISIT_BRIEF,
         )
         self.assertEqual(
@@ -276,7 +330,12 @@ class MetricDerivationTest(_Base):
         client = self.install_fake()
         self.export(
             "llm_usage_event",
-            {"model": "claude-sonnet-5", "input_tokens": 1200, "output_tokens": 300, "cache_read_input_tokens": 800},
+            {
+                "model": "claude-sonnet-5",
+                "input_tokens": 1200,
+                "output_tokens": 300,
+                "cache_read_input_tokens": 800,
+            },
         )
         self.assertEqual(client.events, [])
         generation = client.generations[0]
@@ -325,7 +384,9 @@ class HealthTest(_Base):
 
     def test_health_is_non_blocking_then_reflects_background_check(self) -> None:
         self.install_fake(auth=True)
-        with self.assertRaisesRegex(langfuse_export.ObservabilityExportUnavailable, "not yet confirmed"):
+        with self.assertRaisesRegex(
+            langfuse_export.ObservabilityExportUnavailable, "not yet confirmed"
+        ):
             langfuse_export.check_export_health()
         self.assertIsNone(self._wait_for_message(None))
 
@@ -349,9 +410,13 @@ class HealthTest(_Base):
         exporter = langfuse_export._exporter
         assert exporter is not None
         exporter._auth_result = "ok"
-        exporter._auth_checked_at = time.monotonic() - langfuse_export._AUTH_CHECK_MAX_STALENESS_SECONDS - 1
+        exporter._auth_checked_at = (
+            time.monotonic() - langfuse_export._AUTH_CHECK_MAX_STALENESS_SECONDS - 1
+        )
         exporter._auth_check_running = True  # hold the refresh so the stale result is what's read
-        with self.assertRaisesRegex(langfuse_export.ObservabilityExportUnavailable, "not yet confirmed"):
+        with self.assertRaisesRegex(
+            langfuse_export.ObservabilityExportUnavailable, "not yet confirmed"
+        ):
             langfuse_export.check_export_health()
 
     def test_result_within_ttl_is_reported_without_a_new_check(self) -> None:

@@ -13,7 +13,12 @@ from unittest import mock
 import pytest
 from structlog.testing import capture_logs
 
-from app.models.fhir_resources import AllergyIntolerance, Condition, FhirResourceType, MedicationRequest
+from app.models.fhir_resources import (
+    AllergyIntolerance,
+    Condition,
+    FhirResourceType,
+    MedicationRequest,
+)
 from app.reasoning import draft_claims
 
 RETRIEVED = {
@@ -23,7 +28,9 @@ RETRIEVED = {
     ],
     FhirResourceType.MEDICATION_REQUEST: [
         MedicationRequest(
-            source_id="med-1", display="Metformin 500 MG Oral Tablet", status="active",
+            source_id="med-1",
+            display="Metformin 500 MG Oral Tablet",
+            status="active",
             authored_date=datetime(2020, 1, 1),
         ),
     ],
@@ -36,8 +43,14 @@ RETRIEVED = {
 
 
 def test_stub_drafts_claims_without_calling_anthropic() -> None:
-    with mock.patch.object(draft_claims, "_STUB_LLM_DRAFTING", True), \
-         mock.patch.object(draft_claims, "_client", side_effect=AssertionError("Anthropic client must not be built")):
+    with (
+        mock.patch.object(draft_claims, "_STUB_LLM_DRAFTING", True),
+        mock.patch.object(
+            draft_claims,
+            "_client",
+            side_effect=AssertionError("Anthropic client must not be built"),
+        ),
+    ):
         with capture_logs() as logs:
             draft = asyncio.run(
                 draft_claims.draft_pre_visit_brief(RETRIEVED, patient_session_key="user:pt:sess")

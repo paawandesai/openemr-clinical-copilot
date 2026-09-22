@@ -131,7 +131,9 @@ def _records() -> dict[FhirResourceType, list[Any]]:
             )
         ],
         FhirResourceType.ALLERGY_INTOLERANCE: [
-            AllergyIntolerance(source_id="allergy-1", display=CHART_MARKERS[2], clinical_status="active")
+            AllergyIntolerance(
+                source_id="allergy-1", display=CHART_MARKERS[2], clinical_status="active"
+            )
         ],
     }
 
@@ -185,13 +187,18 @@ class _TracingEnabled(unittest.TestCase):
 
             return fetch
 
-        async def fake_draft(retrieved: dict[FhirResourceType, list[Any]], **_: Any) -> PreVisitBriefDraft:
+        async def fake_draft(
+            retrieved: dict[FhirResourceType, list[Any]], **_: Any
+        ) -> PreVisitBriefDraft:
             claims = [
                 Claim(source_id=r.source_id, field="display", value=r.display, resource_type=rt)
                 for rt, rs in retrieved.items()
                 for r in rs
             ]
-            counts = {rt: SectionCount(retrieved=len(rs), in_brief=len(rs)) for rt, rs in retrieved.items()}
+            counts = {
+                rt: SectionCount(retrieved=len(rs), in_brief=len(rs))
+                for rt, rs in retrieved.items()
+            }
             return PreVisitBriefDraft(claims=claims, section_counts=counts)
 
         async def fake_patient_read(token: str, patient_id: str) -> None:
@@ -268,7 +275,9 @@ class TracingGuardTest(_TracingEnabled):
 
         self.assertEqual(self.fhir_calls, 0)
         wait_for_all_tracers()
-        self.assertNotEqual(self.recorder.requests, [], "expected the refused run itself to be traced")
+        self.assertNotEqual(
+            self.recorder.requests, [], "expected the refused run itself to be traced"
+        )
         payload = self.recorder.payload()
         for secret in (TOKEN, *CHART_MARKERS):
             with self.subTest(absent=secret):

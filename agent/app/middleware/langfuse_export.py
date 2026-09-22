@@ -223,8 +223,7 @@ class LangfuseExporter:
                     else:
                         level = "WARNING"
                         status_message = (
-                            f"Unrecognized outcome {auth.outcome!r}; "
-                            "Metric 3 score not derived"
+                            f"Unrecognized outcome {auth.outcome!r}; Metric 3 score not derived"
                         )
             elif event_type == LATENCY_EVENT:
                 latency = LatencyEvent.model_validate(event_data)
@@ -249,7 +248,9 @@ class LangfuseExporter:
                 f"({exc.error_count()} validation errors); no metric derived"
             )
 
-        pinned = int(self._client.create_trace_id(seed=correlation_id), 16) if correlation_id else None
+        pinned = (
+            int(self._client.create_trace_id(seed=correlation_id), 16) if correlation_id else None
+        )
 
         # Start from an EMPTY OpenTelemetry context so the observation is a
         # true root even if some other instrumentation has a span active in
@@ -269,7 +270,9 @@ class LangfuseExporter:
                             "output": llm_usage.output_tokens,
                         }
                         if llm_usage.cache_creation_input_tokens is not None:
-                            usage_details["input_cache_creation"] = llm_usage.cache_creation_input_tokens
+                            usage_details["input_cache_creation"] = (
+                                llm_usage.cache_creation_input_tokens
+                            )
                         if llm_usage.cache_read_input_tokens is not None:
                             usage_details["input_cache_read"] = llm_usage.cache_read_input_tokens
                         observation = self._client.start_observation(
@@ -414,7 +417,9 @@ def init_exporter() -> None:
 
     _exporter = LangfuseExporter(client)
     _disabled_reason = None
-    log.info("observability_export_enabled", backend="langfuse", base_url=os.environ["LANGFUSE_BASE_URL"])
+    log.info(
+        "observability_export_enabled", backend="langfuse", base_url=os.environ["LANGFUSE_BASE_URL"]
+    )
     # Kick off the first reachability check now so /ready has an answer
     # soon after startup; the result is ignored here.
     try:

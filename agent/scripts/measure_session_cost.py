@@ -60,13 +60,22 @@ def measure(patient_ids: list[str]) -> None:
         auth = {"Authorization": f"Bearer {token}"}
         calls = []
         for patient_id in patient_ids:
-            brief = http.post(f"{agent}/pre-visit-brief", json={"patient_id": patient_id}, headers=auth).json()
-            calls.append({
-                "patient_id": patient_id, "kind": "brief", "label": "brief",
-                "correlation_id": brief.get("correlation_id"), "claims": len(brief.get("claims") or []),
-                "records": {s["resource_type"]: s["retrieved"] for s in brief.get("sections") or []},
-                "total_seconds": (brief.get("timing") or {}).get("total_seconds"),
-            })
+            brief = http.post(
+                f"{agent}/pre-visit-brief", json={"patient_id": patient_id}, headers=auth
+            ).json()
+            calls.append(
+                {
+                    "patient_id": patient_id,
+                    "kind": "brief",
+                    "label": "brief",
+                    "correlation_id": brief.get("correlation_id"),
+                    "claims": len(brief.get("claims") or []),
+                    "records": {
+                        s["resource_type"]: s["retrieved"] for s in brief.get("sections") or []
+                    },
+                    "total_seconds": (brief.get("timing") or {}).get("total_seconds"),
+                }
+            )
             session_id = f"cost-{uuid.uuid4().hex[:16]}"
             for label, question in QUESTIONS:
                 turn = http.post(
@@ -74,17 +83,26 @@ def measure(patient_ids: list[str]) -> None:
                     json={"patient_id": patient_id, "session_id": session_id, "question": question},
                     headers=auth,
                 ).json()
-                calls.append({
-                    "patient_id": patient_id, "kind": "turn", "label": label,
-                    "correlation_id": turn.get("correlation_id"), "turn_status": turn.get("turn_status"),
-                    "claims": len(turn.get("claims") or []),
-                    "context_claims": (turn.get("conversation") or {}).get("context_claims"),
-                    "retrieved": {r["resource_type"]: [r["considered"], r["retrieved"]] for r in turn.get("retrieval") or []},
-                    "total_seconds": (turn.get("timing") or {}).get("total_seconds"),
-                })
+                calls.append(
+                    {
+                        "patient_id": patient_id,
+                        "kind": "turn",
+                        "label": label,
+                        "correlation_id": turn.get("correlation_id"),
+                        "turn_status": turn.get("turn_status"),
+                        "claims": len(turn.get("claims") or []),
+                        "context_claims": (turn.get("conversation") or {}).get("context_claims"),
+                        "retrieved": {
+                            r["resource_type"]: [r["considered"], r["retrieved"]]
+                            for r in turn.get("retrieval") or []
+                        },
+                        "total_seconds": (turn.get("timing") or {}).get("total_seconds"),
+                    }
+                )
             http.post(
                 f"{agent}/pre-visit-brief/conversation/end",
-                json={"patient_id": patient_id, "session_id": session_id}, headers=auth,
+                json={"patient_id": patient_id, "session_id": session_id},
+                headers=auth,
             )
     json.dump(calls, sys.stdout, indent=1)
 
@@ -101,9 +119,14 @@ def join(calls_path: str, usage_path: str) -> None:
     for call in json.loads(Path(calls_path).read_text()):
         data = usage.get(call["correlation_id"])
         if data is None:
-            print(f"{call['patient_id'][:13]}  {call['label']:<30} no model call logged ({call.get('turn_status')})")
+            print(
+                f"{call['patient_id'][:13]}  {call['label']:<30} no model call logged ({call.get('turn_status')})"
+            )
             continue
-        cost = data["input_tokens"] * INPUT_PER_MTOK / 1e6 + data["output_tokens"] * OUTPUT_PER_MTOK / 1e6
+        cost = (
+            data["input_tokens"] * INPUT_PER_MTOK / 1e6
+            + data["output_tokens"] * OUTPUT_PER_MTOK / 1e6
+        )
         detail = call.get("records") or call.get("retrieved")
         print(
             f"{call['patient_id'][:13]}  {call['label']:<30} in {data['input_tokens']:>6}  out {data['output_tokens']:>5}  "

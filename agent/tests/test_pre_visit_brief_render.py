@@ -34,7 +34,9 @@ NORVASC = MedicationRequest(
 LISINOPRIL = MedicationRequest(
     source_id="med-2", display="Lisinopril", status="active", authored_date=datetime(2014, 2, 1)
 )
-PENICILLIN = AllergyIntolerance(source_id="allergy-1", display="Penicillin", clinical_status="active")
+PENICILLIN = AllergyIntolerance(
+    source_id="allergy-1", display="Penicillin", clinical_status="active"
+)
 
 
 def display_claim(resource_type: FhirResourceType, source_id: str, value: str) -> Claim:
@@ -56,7 +58,11 @@ def render(retrieved: dict[FhirResourceType, list[Any]], claims: list[Claim]) ->
 
 def test_verified_claims_render_plainly_in_drafted_order() -> None:
     text = render(
-        {R.CONDITION: [HTN], R.MEDICATION_REQUEST: [NORVASC, LISINOPRIL], R.ALLERGY_INTOLERANCE: [PENICILLIN]},
+        {
+            R.CONDITION: [HTN],
+            R.MEDICATION_REQUEST: [NORVASC, LISINOPRIL],
+            R.ALLERGY_INTOLERANCE: [PENICILLIN],
+        },
         [
             display_claim(R.CONDITION, "cond-1", "HTN"),
             display_claim(R.MEDICATION_REQUEST, "med-1", "Norvasc"),
@@ -106,13 +112,19 @@ def test_failed_claims_are_marked_unverified_never_dropped() -> None:
     assert '  - UNVERIFIED: "Norvasc 10 MG" (does not match the chart record)' in text
     assert "Allergies: not recorded\n" in text
     assert '  - UNVERIFIED: "Sulfa" (no matching record in the chart)' in text
-    assert text.endswith("2 item(s) above could not be verified against the chart and are marked UNVERIFIED.")
+    assert text.endswith(
+        "2 item(s) above could not be verified against the chart and are marked UNVERIFIED."
+    )
     assert "  - HTN" in text
 
 
 def test_record_with_no_claim_is_counted_not_silently_missing() -> None:
     text = render(
-        {R.CONDITION: [HTN], R.MEDICATION_REQUEST: [NORVASC, LISINOPRIL], R.ALLERGY_INTOLERANCE: [PENICILLIN]},
+        {
+            R.CONDITION: [HTN],
+            R.MEDICATION_REQUEST: [NORVASC, LISINOPRIL],
+            R.ALLERGY_INTOLERANCE: [PENICILLIN],
+        },
         [
             display_claim(R.CONDITION, "cond-1", "HTN"),
             display_claim(R.MEDICATION_REQUEST, "med-1", "Norvasc"),
@@ -126,7 +138,9 @@ def test_record_with_no_claim_is_counted_not_silently_missing() -> None:
 
 def test_record_with_no_name_is_unverified_not_a_placeholder() -> None:
     """F-57: the pipeline states it (unnamed_record_claims) and the verifier fails it."""
-    unnamed_allergy = AllergyIntolerance(source_id="allergy-2", display=None, clinical_status="active")
+    unnamed_allergy = AllergyIntolerance(
+        source_id="allergy-2", display=None, clinical_status="active"
+    )
     unnamed_resolved = Condition(source_id="cond-3", display=None, clinical_status="resolved")
     retrieved: dict[FhirResourceType, list[Any]] = {
         R.CONDITION: [HTN, unnamed_resolved],

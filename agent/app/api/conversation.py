@@ -180,7 +180,10 @@ async def conversation_turn(
         ),
         retrieval=[
             RetrievalOutcome(
-                resource_type=r.resource_type, rule=r.rule, retrieved=r.retrieved, considered=r.considered
+                resource_type=r.resource_type,
+                rule=r.rule,
+                retrieved=r.retrieved,
+                considered=r.considered,
             )
             for r in result.retrieval
         ],

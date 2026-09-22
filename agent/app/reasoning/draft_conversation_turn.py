@@ -185,7 +185,9 @@ def output_schema(resource_types: tuple[FhirResourceType, ...]) -> dict[str, Any
     }
 
 
-def turn_resource_types(retrieved: dict[FhirResourceType, list[Any]]) -> tuple[FhirResourceType, ...]:
+def turn_resource_types(
+    retrieved: dict[FhirResourceType, list[Any]],
+) -> tuple[FhirResourceType, ...]:
     """
     Raises rather than guessing when a base type is missing, as
     draft_follow_up.py does: a type that was never queried must not look

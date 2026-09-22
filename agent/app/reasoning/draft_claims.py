@@ -127,15 +127,11 @@ _ACTIVE_STATUS: dict[FhirResourceType, tuple[str, str]] = {
 _ENDED_ALLERGY_STATUSES = frozenset({"resolved", "inactive"})
 
 
-def brief_records(
-    resource_type: FhirResourceType, records: list[Any]
-) -> list[Any]:
+def brief_records(resource_type: FhirResourceType, records: list[Any]) -> list[Any]:
     """The subset of retrieved records the Pre-Visit Brief reports on."""
     if resource_type is FhirResourceType.ALLERGY_INTOLERANCE:
         return [
-            record
-            for record in records
-            if record.clinical_status not in _ENDED_ALLERGY_STATUSES
+            record for record in records if record.clinical_status not in _ENDED_ALLERGY_STATUSES
         ]
     if resource_type not in _ACTIVE_STATUS:
         return records
@@ -143,9 +139,7 @@ def brief_records(
     return [record for record in records if getattr(record, field) == active_value]
 
 
-def drafted_records(
-    resource_type: FhirResourceType, records: list[Any]
-) -> list[Any]:
+def drafted_records(resource_type: FhirResourceType, records: list[Any]) -> list[Any]:
     """
     The brief records the model is given to draft claims for: every one
     the chart names. A record with no name (display None, F-57) holds
@@ -153,9 +147,7 @@ def drafted_records(
     states it instead.
     """
     return [
-        record
-        for record in brief_records(resource_type, records)
-        if record.display is not None
+        record for record in brief_records(resource_type, records) if record.display is not None
     ]
 
 
@@ -289,8 +281,7 @@ def _serialize_retrieved(retrieved: dict[FhirResourceType, list[Any]]) -> str:
                 )
         sections[resource_type.value] = {
             "records": [
-                record.model_dump(mode="json")
-                for record in drafted_records(resource_type, records)
+                record.model_dump(mode="json") for record in drafted_records(resource_type, records)
             ]
         }
     return json.dumps(sections, indent=2)
@@ -458,9 +449,7 @@ async def draft_pre_visit_brief(
     latency_ms = round((time.perf_counter() - started) * 1000)
 
     usage = message.usage
-    fallback_ran = any(
-        iteration.type == "fallback_message" for iteration in usage.iterations or []
-    )
+    fallback_ran = any(iteration.type == "fallback_message" for iteration in usage.iterations or [])
     # KEY_METRICS.md Metric 6 (cost per interaction) is computed from the
     # token counts and served model. latency_ms is this call's share of
     # Metric 4's trigger-to-render interval, not the whole interval.
@@ -489,9 +478,7 @@ async def draft_pre_visit_brief(
 
     if message.stop_reason == "refusal":
         category = message.stop_details.category if message.stop_details else None
-        raise ClaimDraftingError(
-            f"Model declined to draft claims (refusal category: {category})"
-        )
+        raise ClaimDraftingError(f"Model declined to draft claims (refusal category: {category})")
     if message.stop_reason == "max_tokens":
         raise ClaimDraftingError(f"Claim output truncated at max_tokens={_MAX_TOKENS}")
 

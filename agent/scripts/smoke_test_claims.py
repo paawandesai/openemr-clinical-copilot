@@ -65,12 +65,8 @@ _ALLERGY = FhirResourceType.ALLERGY_INTOLERANCE
 async def _retrieve(token: str, patient_id: str) -> dict[FhirResourceType, list]:
     conditions, medications, allergies = await asyncio.gather(
         fhir_client.get_conditions(token, patient_id, use_case=UseCase.PRE_VISIT_BRIEF),
-        fhir_client.get_medication_requests(
-            token, patient_id, use_case=UseCase.PRE_VISIT_BRIEF
-        ),
-        fhir_client.get_allergy_intolerances(
-            token, patient_id, use_case=UseCase.PRE_VISIT_BRIEF
-        ),
+        fhir_client.get_medication_requests(token, patient_id, use_case=UseCase.PRE_VISIT_BRIEF),
+        fhir_client.get_allergy_intolerances(token, patient_id, use_case=UseCase.PRE_VISIT_BRIEF),
     )
     return {
         FhirResourceType.CONDITION: conditions,
@@ -129,9 +125,7 @@ async def _run_brief(label: str, token: str, patient_id: str) -> PreVisitBriefDr
     # A quick look at whether each claim points at something that was
     # actually provided. Not the §5 verifier — just enough to tell a
     # fabricated source_id apart from a real one in this output.
-    retrieved_ids = {
-        record.source_id for records in retrieved.values() for record in records
-    }
+    retrieved_ids = {record.source_id for records in retrieved.values() for record in records}
     unknown = [c for c in draft.claims if c.source_id not in retrieved_ids]
     print(f"\n  claims citing a source_id that was never retrieved: {len(unknown)}")
     for claim in unknown:
@@ -161,9 +155,7 @@ async def main() -> None:
     default_patient = await _discover_a_patient_id(token)
     empty_allergy_patient = await _find_empty_allergy_patient(token, exclude=default_patient)
 
-    default_draft = await _run_brief(
-        "Case 1: smoke_test_fhir.py's patient", token, default_patient
-    )
+    default_draft = await _run_brief("Case 1: smoke_test_fhir.py's patient", token, default_patient)
     empty_draft = await _run_brief(
         "Case 2: zero AllergyIntolerance records", token, empty_allergy_patient
     )

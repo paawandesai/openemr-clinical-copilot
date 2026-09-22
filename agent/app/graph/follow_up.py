@@ -95,8 +95,7 @@ GAP_WORDING: dict[RecordGap, str] = {
         "medication was started or stopped)."
     ),
     RecordGap.INTERPRETATION: (
-        "The co-pilot reports what the chart states; it does not interpret, "
-        "compare or trend it."
+        "The co-pilot reports what the chart states; it does not interpret, compare or trend it."
     ),
 }
 
@@ -223,9 +222,7 @@ def _display_value(value: str | float | int | None) -> str:
     return "not recorded" if value is None else str(value)
 
 
-def _claim_line(
-    result: VerificationResult, retrieved: dict[FhirResourceType, list[Any]]
-) -> str:
+def _claim_line(result: VerificationResult, retrieved: dict[FhirResourceType, list[Any]]) -> str:
     claim = result.claim
     record_label = _RECORD_LABEL.get(claim.resource_type, claim.resource_type.value)
     if not result.passed:
@@ -237,17 +234,14 @@ def _claim_line(
             return f'  - UNVERIFIED: {record_label} "{name}" ({why})'
         field_label = _FIELD_LABEL.get(claim.field, claim.field)
         return (
-            f'  - UNVERIFIED: {record_label} {field_label} '
-            f'"{_display_value(claim.value)}" ({why})'
+            f'  - UNVERIFIED: {record_label} {field_label} "{_display_value(claim.value)}" ({why})'
         )
     if claim.field == "display":
         return f"  - {record_label}: {claim.value}"
     # A verified claim's source is in `retrieved` by definition; its
     # display names which record the value belongs to. Read from the
     # chart record itself, not from anything the model wrote.
-    record = next(
-        r for r in retrieved[claim.resource_type] if r.source_id == claim.source_id
-    )
+    record = next(r for r in retrieved[claim.resource_type] if r.source_id == claim.source_id)
     field_label = _FIELD_LABEL.get(claim.field, claim.field)
     name = NAME_NOT_AVAILABLE if record.display is None else f'"{record.display}"'
     return f"  - {record_label} {name}, {field_label}: {_display_value(claim.value)}"
@@ -308,7 +302,9 @@ def render_follow_up(
 
     if status is not AnswerStatus.ANSWERED and gaps:
         if status is AnswerStatus.PARTIALLY_ANSWERED:
-            lines.extend(["", "The rest of that information isn't in the retrieved record for this visit."])
+            lines.extend(
+                ["", "The rest of that information isn't in the retrieved record for this visit."]
+            )
         elif results:
             # Keep gap sentences apart from the UNVERIFIED lines above them.
             lines.extend(["", "Not in the retrieved record:"])
@@ -365,9 +361,7 @@ async def run_follow_up(
         step_seconds["retrieve"] = time.perf_counter() - started
 
         started = time.perf_counter()
-        draft = await draft_follow_up(
-            retrieved, question, patient_session_key=patient_session_key
-        )
+        draft = await draft_follow_up(retrieved, question, patient_session_key=patient_session_key)
         step_seconds["draft"] = time.perf_counter() - started
 
         # The same verifier, over the same mapping the draft step saw.
