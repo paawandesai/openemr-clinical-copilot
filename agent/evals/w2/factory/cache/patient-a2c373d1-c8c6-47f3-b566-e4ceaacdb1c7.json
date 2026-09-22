@@ -1,0 +1,250 @@
+{
+  "cache_schema_version": "doc-factory-chart-cache/0.2.0",
+  "record": {
+    "allergies": [
+      {
+        "allergen": "Allergic disposition (finding)",
+        "reaction": "Severe",
+        "severity": null
+      },
+      {
+        "allergen": "Latex (substance)",
+        "reaction": "Mild",
+        "severity": null
+      },
+      {
+        "allergen": "Mold (organism)",
+        "reaction": "Severe",
+        "severity": null
+      },
+      {
+        "allergen": "House dust mite (organism)",
+        "reaction": "Severe",
+        "severity": null
+      },
+      {
+        "allergen": "Animal dander (substance)",
+        "reaction": "Mild",
+        "severity": null
+      },
+      {
+        "allergen": "Grass pollen (substance)",
+        "reaction": "Severe",
+        "severity": null
+      },
+      {
+        "allergen": "Tree pollen (substance)",
+        "reaction": "Severe",
+        "severity": null
+      },
+      {
+        "allergen": "Cow's milk (substance)",
+        "reaction": "Mild",
+        "severity": null
+      },
+      {
+        "allergen": "Tree nut (substance)",
+        "reaction": "Moderate",
+        "severity": null
+      }
+    ],
+    "city": "Methuen",
+    "conditions": [
+      {
+        "code": "SNOMED-CT:473461003",
+        "name": "Educated to high school level (finding)",
+        "onset": "1978-02-20"
+      },
+      {
+        "code": "SNOMED-CT:162864005",
+        "name": "Body mass index 30+ - obesity (finding)",
+        "onset": "1988-03-07"
+      },
+      {
+        "code": "SNOMED-CT:160903007",
+        "name": "Full-time employment (finding)",
+        "onset": "2016-02-01"
+      },
+      {
+        "code": "SNOMED-CT:73595000",
+        "name": "Stress (finding)",
+        "onset": "2016-02-01"
+      },
+      {
+        "code": "SNOMED-CT:444814009",
+        "name": "Viral sinusitis (disorder)",
+        "onset": "2016-12-20"
+      },
+      {
+        "code": "SNOMED-CT:314529007",
+        "name": "Medication review due (situation)",
+        "onset": "2017-02-06"
+      },
+      {
+        "code": "SNOMED-CT:422650009",
+        "name": "Social isolation (finding)",
+        "onset": "2017-02-06"
+      },
+      {
+        "code": "SNOMED-CT:423315002",
+        "name": "Limited social contact (finding)",
+        "onset": "2018-02-12"
+      },
+      {
+        "code": "SNOMED-CT:73595000",
+        "name": "Stress (finding)",
+        "onset": "2018-02-12"
+      },
+      {
+        "code": "SNOMED-CT:314529007",
+        "name": "Medication review due (situation)",
+        "onset": "2019-02-18"
+      },
+      {
+        "code": "SNOMED-CT:55822004",
+        "name": "Hyperlipidemia (disorder)",
+        "onset": "2019-02-18"
+      },
+      {
+        "code": "SNOMED-CT:278588009",
+        "name": "Fractured dental filling (finding)",
+        "onset": "2019-03-04"
+      },
+      {
+        "code": "SNOMED-CT:314529007",
+        "name": "Medication review due (situation)",
+        "onset": "2019-07-15"
+      },
+      {
+        "code": "SNOMED-CT:66383009",
+        "name": "Gingivitis (disorder)",
+        "onset": "2019-07-15"
+      },
+      {
+        "code": "SNOMED-CT:314529007",
+        "name": "Medication review due (situation)",
+        "onset": "2019-07-22"
+      },
+      {
+        "code": "SNOMED-CT:361055000",
+        "name": "Misuses drugs (finding)",
+        "onset": "2019-07-29"
+      },
+      {
+        "code": "SNOMED-CT:741062008",
+        "name": "Not in labor force (finding)",
+        "onset": "2019-08-12"
+      },
+      {
+        "code": "SNOMED-CT:10509002",
+        "name": "Acute bronchitis (disorder)",
+        "onset": "2019-08-26"
+      },
+      {
+        "code": "SNOMED-CT:444814009",
+        "name": "Viral sinusitis (disorder)",
+        "onset": "2019-09-09"
+      },
+      {
+        "code": "SNOMED-CT:160903007",
+        "name": "Full-time employment (finding)",
+        "onset": "2020-02-24"
+      },
+      {
+        "code": "SNOMED-CT:73595000",
+        "name": "Stress (finding)",
+        "onset": "2020-02-24"
+      },
+      {
+        "code": "SNOMED-CT:160904001",
+        "name": "Part-time employment (finding)",
+        "onset": "2021-03-01"
+      },
+      {
+        "code": "SNOMED-CT:160903007",
+        "name": "Full-time employment (finding)",
+        "onset": "2022-03-07"
+      },
+      {
+        "code": "SNOMED-CT:706893006",
+        "name": "Victim of intimate partner abuse (finding)",
+        "onset": "2022-03-07"
+      },
+      {
+        "code": "SNOMED-CT:314529007",
+        "name": "Medication review due (situation)",
+        "onset": "2023-03-13"
+      },
+      {
+        "code": "SNOMED-CT:73438004",
+        "name": "Unemployed (finding)",
+        "onset": "2023-03-13"
+      },
+      {
+        "code": "SNOMED-CT:160903007",
+        "name": "Full-time employment (finding)",
+        "onset": "2024-03-18"
+      },
+      {
+        "code": "SNOMED-CT:73595000",
+        "name": "Stress (finding)",
+        "onset": "2024-03-18"
+      },
+      {
+        "code": "SNOMED-CT:314529007",
+        "name": "Medication review due (situation)",
+        "onset": "2025-03-24"
+      },
+      {
+        "code": "SNOMED-CT:66383009",
+        "name": "Gingivitis (disorder)",
+        "onset": "2025-03-24"
+      },
+      {
+        "code": "SNOMED-CT:314529007",
+        "name": "Medication review due (situation)",
+        "onset": "2026-03-30"
+      },
+      {
+        "code": "SNOMED-CT:66383009",
+        "name": "Gingivitis (disorder)",
+        "onset": "2026-03-30"
+      }
+    ],
+    "dob": "1959-12-28",
+    "first_name": "Jae222",
+    "last_name": "Dach178",
+    "medications": [
+      {
+        "name": "diphenhydrAMINE Hydrochloride 25 MG Oral Tablet",
+        "started": "1962-11-14",
+        "strength": "25 MG"
+      },
+      {
+        "name": "sodium fluoride 0.0272 MG/MG Oral Gel",
+        "started": "2017-02-20",
+        "strength": "0.0272 MG"
+      },
+      {
+        "name": "Simvastatin 10 MG Oral Tablet",
+        "started": "2019-03-11",
+        "strength": "10 MG"
+      },
+      {
+        "name": "Acetaminophen 21.7 MG/ML / Dextromethorphan Hydrobromide 1 MG/ML / doxylamine succinate 0.417 MG/ML Oral Solution",
+        "started": "2019-08-26",
+        "strength": "21.7 MG/ML"
+      }
+    ],
+    "middle_name": "",
+    "mrn": "31",
+    "patient_ref": "a2c373d1-c8c6-47f3-b566-e4ceaacdb1c7",
+    "phone": "",
+    "postal_code": "01841",
+    "sex": "Male",
+    "state": "Massachusetts",
+    "street": "566 Labadie Station Suite 85",
+    "uuid": "a2c373d1-c8c6-47f3-b566-e4ceaacdb1c7"
+  },
+  "source": "local-openemr-mysql"
+}

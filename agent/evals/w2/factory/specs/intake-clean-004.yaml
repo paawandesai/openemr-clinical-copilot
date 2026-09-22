@@ -1,0 +1,8 @@
+# Baseline intake form: printed form, handwritten answers, text layer intact.
+# Medications and allergies match the chart exactly.
+scenario_id: intake-clean-004
+seed: 306190
+doc_type: intake_form
+patient_ref: "a2c373d1-c8c6-47f3-b566-e4ceaacdb1c7"
+quality: clean
+note: Clean intake form, no perturbations.

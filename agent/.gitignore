@@ -2,3 +2,11 @@ __pycache__/
 *.pyc
 .venv/
 venv/
+
+# evals/w2/factory writes generated documents here; the six committed sample
+# scenarios under output/samples/ are the exception (evals/w2/factory/README.md).
+evals/w2/factory/output/*
+!evals/w2/factory/output/samples/
+
+# Local-only compose override for the agent stack (docs/w2/LOCAL_ENV.md).
+deploy/docker-compose.override.yml

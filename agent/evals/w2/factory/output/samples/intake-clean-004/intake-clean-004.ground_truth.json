@@ -1,0 +1,908 @@
+{
+  "schema_version": "doc-factory-groundtruth/0.2.0",
+  "scenario": {
+    "scenario_id": "intake-clean-004",
+    "seed": 306190,
+    "patient_ref": "a2c373d1-c8c6-47f3-b566-e4ceaacdb1c7",
+    "doc_type": "intake_form",
+    "quality": "clean",
+    "perturbations": [],
+    "note": "Clean intake form, no perturbations."
+  },
+  "chart_source": {
+    "system": "local-openemr",
+    "patient_ref": "a2c373d1-c8c6-47f3-b566-e4ceaacdb1c7",
+    "patient_uuid": "a2c373d1-c8c6-47f3-b566-e4ceaacdb1c7",
+    "medications_on_chart": 4,
+    "allergies_on_chart": 9,
+    "conditions_on_chart": 32
+  },
+  "coordinates": {
+    "space": "clean_pdf",
+    "units": "pt",
+    "origin": "top-left",
+    "y_axis": "down",
+    "note": "bbox is [x0, y0, x1, y1] on the original clean layout (<scenario_id>.clean.pdf), in PyMuPDF page space. For scanned variants map through transform.pdf_points_to_image_px."
+  },
+  "document": {
+    "path": "intake-clean-004.pdf",
+    "sha256": "2d9d58763b3f091ca9f046a3edfd0ab54147905b1bbae52ec0f46812ab01be05",
+    "bytes": 124606,
+    "page_count": 2,
+    "has_text_layer": true
+  },
+  "clean_reference": {
+    "path": "intake-clean-004.pdf",
+    "sha256": "2d9d58763b3f091ca9f046a3edfd0ab54147905b1bbae52ec0f46812ab01be05",
+    "bytes": 124606,
+    "page_count": 2,
+    "has_text_layer": true
+  },
+  "transform": null,
+  "pages": [
+    {
+      "number": 1,
+      "width": 612.0,
+      "height": 792.0
+    },
+    {
+      "number": 2,
+      "width": 612.0,
+      "height": 792.0
+    }
+  ],
+  "perturbations": [],
+  "fields": [
+    {
+      "field_path": "patient.name",
+      "status": "present",
+      "kind": "text",
+      "origin": "chart",
+      "value": "Jae222 Dach178",
+      "unit": null,
+      "page": 1,
+      "bbox": [
+        86.869,
+        127.089,
+        157.597,
+        140.572
+      ],
+      "rendered_text": "Jae222 Dach178",
+      "rendering": "verbatim"
+    },
+    {
+      "field_path": "patient.dob",
+      "status": "present",
+      "kind": "text",
+      "origin": "chart",
+      "value": "1959-12-28",
+      "unit": null,
+      "page": 1,
+      "bbox": [
+        419.665,
+        126.965,
+        469.448,
+        140.56
+      ],
+      "rendered_text": "1959-12-28",
+      "rendering": "verbatim"
+    },
+    {
+      "field_path": "patient.address",
+      "status": "present",
+      "kind": "text",
+      "origin": "chart",
+      "value": "566 Labadie Station Suite 85",
+      "unit": null,
+      "page": 1,
+      "bbox": [
+        95.078,
+        150.816,
+        219.287,
+        164.606
+      ],
+      "rendered_text": "566 Labadie Station Suite 85",
+      "rendering": "verbatim"
+    },
+    {
+      "field_path": "patient.sex",
+      "status": "present",
+      "kind": "text",
+      "origin": "chart",
+      "value": "Male",
+      "unit": null,
+      "page": 1,
+      "bbox": [
+        389.129,
+        151.32,
+        410.501,
+        164.397
+      ],
+      "rendered_text": "Male",
+      "rendering": "verbatim"
+    },
+    {
+      "field_path": "patient.city_state_zip",
+      "status": "present",
+      "kind": "text",
+      "origin": "chart",
+      "value": "Methuen, Massachusetts 01841",
+      "unit": null,
+      "page": 1,
+      "bbox": [
+        124.704,
+        174.952,
+        257.962,
+        188.531
+      ],
+      "rendered_text": "Methuen, Massachusetts 01841",
+      "rendering": "verbatim"
+    },
+    {
+      "field_path": "visit.date",
+      "status": "present",
+      "kind": "text",
+      "origin": "synthetic",
+      "value": "09/10/2026",
+      "unit": null,
+      "page": 1,
+      "bbox": [
+        107.837,
+        198.869,
+        157.861,
+        212.598
+      ],
+      "rendered_text": "09/10/2026",
+      "rendering": "verbatim"
+    },
+    {
+      "field_path": "chief_concern",
+      "status": "present",
+      "kind": "text",
+      "origin": "chart_derived",
+      "value": "gingivitis - recheck and medication review",
+      "unit": null,
+      "page": 1,
+      "bbox": [
+        60.0,
+        250.854,
+        242.49,
+        264.59
+      ],
+      "rendered_text": "gingivitis - recheck and medication review",
+      "rendering": "verbatim"
+    },
+    {
+      "field_path": "medications[0].name",
+      "status": "present",
+      "kind": "text",
+      "origin": "chart_derived",
+      "value": "diphenhydrAMINE Hydrochloride 25 MG Oral Tablet",
+      "unit": null,
+      "page": 1,
+      "bbox": [
+        59.0,
+        344.337,
+        206.464,
+        357.962
+      ],
+      "rendered_text": "diphenhydrAMINE Hydrochloride",
+      "rendering": "derived",
+      "note": "rendering=derived, not a perturbation and not a truncation: a patient writes the common name, so the form carries short_drug_name(value) while value keeps the chart's full RxNorm product string"
+    },
+    {
+      "field_path": "medications[0].dose",
+      "status": "present",
+      "kind": "text",
+      "origin": "chart_derived",
+      "value": "25 MG",
+      "unit": null,
+      "page": 1,
+      "bbox": [
+        262.0,
+        344.764,
+        292.881,
+        358.031
+      ],
+      "rendered_text": "25 MG",
+      "rendering": "verbatim"
+    },
+    {
+      "field_path": "medications[0].frequency",
+      "status": "present",
+      "kind": "text",
+      "origin": "synthetic",
+      "value": "once daily",
+      "unit": null,
+      "page": 1,
+      "bbox": [
+        364.0,
+        344.308,
+        408.172,
+        358.088
+      ],
+      "rendered_text": "once daily",
+      "rendering": "verbatim",
+      "note": "frequency has no chart counterpart"
+    },
+    {
+      "field_path": "medications[1].name",
+      "status": "present",
+      "kind": "text",
+      "origin": "chart_derived",
+      "value": "sodium fluoride 0.0272 MG/MG Oral Gel",
+      "unit": null,
+      "page": 1,
+      "bbox": [
+        59.0,
+        365.425,
+        126.606,
+        379.235
+      ],
+      "rendered_text": "sodium fluoride",
+      "rendering": "derived",
+      "note": "rendering=derived, not a perturbation and not a truncation: a patient writes the common name, so the form carries short_drug_name(value) while value keeps the chart's full RxNorm product string"
+    },
+    {
+      "field_path": "medications[1].dose",
+      "status": "present",
+      "kind": "text",
+      "origin": "chart_derived",
+      "value": "0.0272 MG",
+      "unit": null,
+      "page": 1,
+      "bbox": [
+        262.0,
+        365.563,
+        311.224,
+        379.125
+      ],
+      "rendered_text": "0.0272 MG",
+      "rendering": "verbatim"
+    },
+    {
+      "field_path": "medications[1].frequency",
+      "status": "present",
+      "kind": "text",
+      "origin": "synthetic",
+      "value": "three times daily",
+      "unit": null,
+      "page": 1,
+      "bbox": [
+        364.0,
+        365.381,
+        435.225,
+        379.15
+      ],
+      "rendered_text": "three times daily",
+      "rendering": "verbatim",
+      "note": "frequency has no chart counterpart"
+    },
+    {
+      "field_path": "medications[2].name",
+      "status": "present",
+      "kind": "text",
+      "origin": "chart_derived",
+      "value": "Simvastatin 10 MG Oral Tablet",
+      "unit": null,
+      "page": 1,
+      "bbox": [
+        59.0,
+        386.457,
+        108.845,
+        400.095
+      ],
+      "rendered_text": "Simvastatin",
+      "rendering": "derived",
+      "note": "rendering=derived, not a perturbation and not a truncation: a patient writes the common name, so the form carries short_drug_name(value) while value keeps the chart's full RxNorm product string"
+    },
+    {
+      "field_path": "medications[2].dose",
+      "status": "present",
+      "kind": "text",
+      "origin": "chart_derived",
+      "value": "10 MG",
+      "unit": null,
+      "page": 1,
+      "bbox": [
+        262.0,
+        386.529,
+        291.346,
+        400.088
+      ],
+      "rendered_text": "10 MG",
+      "rendering": "verbatim"
+    },
+    {
+      "field_path": "medications[2].frequency",
+      "status": "present",
+      "kind": "text",
+      "origin": "synthetic",
+      "value": "three times daily",
+      "unit": null,
+      "page": 1,
+      "bbox": [
+        364.0,
+        386.503,
+        435.59,
+        400.165
+      ],
+      "rendered_text": "three times daily",
+      "rendering": "verbatim",
+      "note": "frequency has no chart counterpart"
+    },
+    {
+      "field_path": "medications[3].name",
+      "status": "present",
+      "kind": "text",
+      "origin": "chart_derived",
+      "value": "Acetaminophen 21.7 MG/ML / Dextromethorphan Hydrobromide 1 MG/ML / doxylamine succinate 0.417 MG/ML Oral Solution",
+      "unit": null,
+      "page": 1,
+      "bbox": [
+        59.0,
+        407.422,
+        209.713,
+        421.263
+      ],
+      "rendered_text": "Acetaminophen Dextromethorphan",
+      "rendering": "derived",
+      "note": "rendering=derived, not a perturbation and not a truncation: a patient writes the common name, so the form carries short_drug_name(value) while value keeps the chart's full RxNorm product string"
+    },
+    {
+      "field_path": "medications[3].dose",
+      "status": "present",
+      "kind": "text",
+      "origin": "chart_derived",
+      "value": "21.7 MG/ML",
+      "unit": null,
+      "page": 1,
+      "bbox": [
+        262.0,
+        407.577,
+        317.087,
+        421.183
+      ],
+      "rendered_text": "21.7 MG/ML",
+      "rendering": "verbatim"
+    },
+    {
+      "field_path": "medications[3].frequency",
+      "status": "present",
+      "kind": "text",
+      "origin": "synthetic",
+      "value": "three times daily",
+      "unit": null,
+      "page": 1,
+      "bbox": [
+        364.0,
+        407.368,
+        435.257,
+        421.217
+      ],
+      "rendered_text": "three times daily",
+      "rendering": "verbatim",
+      "note": "frequency has no chart counterpart"
+    },
+    {
+      "field_path": "allergies.none_known",
+      "status": "present",
+      "kind": "checkbox",
+      "origin": "chart_derived",
+      "value": false,
+      "unit": null,
+      "page": 1,
+      "bbox": [
+        59.0,
+        459.0,
+        67.5,
+        467.5
+      ],
+      "rendered_text": "",
+      "rendering": "verbatim",
+      "note": "'No known drug allergies' box; checked only when the chart has no allergies"
+    },
+    {
+      "field_path": "allergies[0].allergen",
+      "status": "present",
+      "kind": "text",
+      "origin": "chart",
+      "value": "Allergic disposition (finding)",
+      "unit": null,
+      "page": 1,
+      "bbox": [
+        59.0,
+        493.353,
+        182.773,
+        507.178
+      ],
+      "rendered_text": "Allergic disposition (finding)",
+      "rendering": "verbatim"
+    },
+    {
+      "field_path": "allergies[0].reaction",
+      "status": "present",
+      "kind": "text",
+      "origin": "chart",
+      "value": "Severe",
+      "unit": null,
+      "page": 1,
+      "bbox": [
+        282.0,
+        493.612,
+        310.897,
+        507.028
+      ],
+      "rendered_text": "Severe",
+      "rendering": "verbatim"
+    },
+    {
+      "field_path": "allergies[1].allergen",
+      "status": "present",
+      "kind": "text",
+      "origin": "chart",
+      "value": "Latex (substance)",
+      "unit": null,
+      "page": 1,
+      "bbox": [
+        59.0,
+        514.653,
+        135.189,
+        528.208
+      ],
+      "rendered_text": "Latex (substance)",
+      "rendering": "verbatim"
+    },
+    {
+      "field_path": "allergies[1].reaction",
+      "status": "present",
+      "kind": "text",
+      "origin": "chart",
+      "value": "Mild",
+      "unit": null,
+      "page": 1,
+      "bbox": [
+        282.0,
+        514.802,
+        302.394,
+        528.266
+      ],
+      "rendered_text": "Mild",
+      "rendering": "verbatim"
+    },
+    {
+      "field_path": "allergies[2].allergen",
+      "status": "present",
+      "kind": "text",
+      "origin": "chart",
+      "value": "Mold (organism)",
+      "unit": null,
+      "page": 1,
+      "bbox": [
+        59.0,
+        535.486,
+        131.422,
+        549.037
+      ],
+      "rendered_text": "Mold (organism)",
+      "rendering": "verbatim"
+    },
+    {
+      "field_path": "allergies[2].reaction",
+      "status": "present",
+      "kind": "text",
+      "origin": "chart",
+      "value": "Severe",
+      "unit": null,
+      "page": 1,
+      "bbox": [
+        282.0,
+        535.781,
+        310.177,
+        549.172
+      ],
+      "rendered_text": "Severe",
+      "rendering": "verbatim"
+    },
+    {
+      "field_path": "allergies[3].allergen",
+      "status": "present",
+      "kind": "text",
+      "origin": "chart",
+      "value": "House dust mite (organism)",
+      "unit": null,
+      "page": 1,
+      "bbox": [
+        59.0,
+        556.371,
+        177.044,
+        570.216
+      ],
+      "rendered_text": "House dust mite (organism)",
+      "rendering": "verbatim"
+    },
+    {
+      "field_path": "allergies[3].reaction",
+      "status": "present",
+      "kind": "text",
+      "origin": "chart",
+      "value": "Severe",
+      "unit": null,
+      "page": 1,
+      "bbox": [
+        282.0,
+        556.743,
+        310.371,
+        570.134
+      ],
+      "rendered_text": "Severe",
+      "rendering": "verbatim"
+    },
+    {
+      "field_path": "allergies[4].allergen",
+      "status": "present",
+      "kind": "text",
+      "origin": "chart",
+      "value": "Animal dander (substance)",
+      "unit": null,
+      "page": 1,
+      "bbox": [
+        59.0,
+        577.595,
+        175.611,
+        591.178
+      ],
+      "rendered_text": "Animal dander (substance)",
+      "rendering": "verbatim"
+    },
+    {
+      "field_path": "allergies[4].reaction",
+      "status": "present",
+      "kind": "text",
+      "origin": "chart",
+      "value": "Mild",
+      "unit": null,
+      "page": 1,
+      "bbox": [
+        282.0,
+        577.72,
+        302.576,
+        591.021
+      ],
+      "rendered_text": "Mild",
+      "rendering": "verbatim"
+    },
+    {
+      "field_path": "allergies[5].allergen",
+      "status": "present",
+      "kind": "text",
+      "origin": "chart",
+      "value": "Grass pollen (substance)",
+      "unit": null,
+      "page": 1,
+      "bbox": [
+        59.0,
+        598.377,
+        167.128,
+        612.194
+      ],
+      "rendered_text": "Grass pollen (substance)",
+      "rendering": "verbatim"
+    },
+    {
+      "field_path": "allergies[5].reaction",
+      "status": "present",
+      "kind": "text",
+      "origin": "chart",
+      "value": "Severe",
+      "unit": null,
+      "page": 1,
+      "bbox": [
+        282.0,
+        598.711,
+        310.264,
+        612.187
+      ],
+      "rendered_text": "Severe",
+      "rendering": "verbatim"
+    },
+    {
+      "field_path": "allergies[6].allergen",
+      "status": "present",
+      "kind": "text",
+      "origin": "chart",
+      "value": "Tree pollen (substance)",
+      "unit": null,
+      "page": 1,
+      "bbox": [
+        59.0,
+        619.743,
+        160.417,
+        633.202
+      ],
+      "rendered_text": "Tree pollen (substance)",
+      "rendering": "verbatim"
+    },
+    {
+      "field_path": "allergies[6].reaction",
+      "status": "present",
+      "kind": "text",
+      "origin": "chart",
+      "value": "Severe",
+      "unit": null,
+      "page": 1,
+      "bbox": [
+        282.0,
+        619.477,
+        310.354,
+        633.251
+      ],
+      "rendered_text": "Severe",
+      "rendering": "verbatim"
+    },
+    {
+      "field_path": "allergies[7].allergen",
+      "status": "present",
+      "kind": "text",
+      "origin": "chart",
+      "value": "Cow's milk (substance)",
+      "unit": null,
+      "page": 1,
+      "bbox": [
+        59.0,
+        640.583,
+        156.603,
+        654.238
+      ],
+      "rendered_text": "Cow's milk (substance)",
+      "rendering": "verbatim"
+    },
+    {
+      "field_path": "allergies[7].reaction",
+      "status": "present",
+      "kind": "text",
+      "origin": "chart",
+      "value": "Mild",
+      "unit": null,
+      "page": 1,
+      "bbox": [
+        282.0,
+        640.835,
+        302.373,
+        653.94
+      ],
+      "rendered_text": "Mild",
+      "rendering": "verbatim"
+    },
+    {
+      "field_path": "allergies[8].allergen",
+      "status": "present",
+      "kind": "text",
+      "origin": "chart",
+      "value": "Tree nut (substance)",
+      "unit": null,
+      "page": 1,
+      "bbox": [
+        59.0,
+        661.369,
+        148.235,
+        675.032
+      ],
+      "rendered_text": "Tree nut (substance)",
+      "rendering": "verbatim"
+    },
+    {
+      "field_path": "allergies[8].reaction",
+      "status": "present",
+      "kind": "text",
+      "origin": "chart",
+      "value": "Moderate",
+      "unit": null,
+      "page": 1,
+      "bbox": [
+        282.0,
+        661.599,
+        323.225,
+        675.131
+      ],
+      "rendered_text": "Moderate",
+      "rendering": "verbatim"
+    },
+    {
+      "field_path": "family_history.diabetes",
+      "status": "present",
+      "kind": "checkbox",
+      "origin": "synthetic",
+      "value": true,
+      "unit": null,
+      "page": 1,
+      "bbox": [
+        56.0,
+        715.0,
+        64.5,
+        723.5
+      ],
+      "rendered_text": "X",
+      "rendering": "verbatim",
+      "note": "family history has no chart counterpart"
+    },
+    {
+      "field_path": "family_history.diabetes.relation",
+      "status": "present",
+      "kind": "text",
+      "origin": "synthetic",
+      "value": "brother",
+      "unit": null,
+      "page": 1,
+      "bbox": [
+        135.043,
+        712.826,
+        164.446,
+        725.325
+      ],
+      "rendered_text": "brother",
+      "rendering": "verbatim",
+      "note": "family history has no chart counterpart"
+    },
+    {
+      "field_path": "family_history.hypertension",
+      "status": "present",
+      "kind": "checkbox",
+      "origin": "synthetic",
+      "value": false,
+      "unit": null,
+      "page": 1,
+      "bbox": [
+        306.0,
+        715.0,
+        314.5,
+        723.5
+      ],
+      "rendered_text": "",
+      "rendering": "verbatim",
+      "note": "family history has no chart counterpart"
+    },
+    {
+      "field_path": "family_history.heart_disease",
+      "status": "present",
+      "kind": "checkbox",
+      "origin": "synthetic",
+      "value": true,
+      "unit": null,
+      "page": 2,
+      "bbox": [
+        56.0,
+        85.0,
+        64.5,
+        93.5
+      ],
+      "rendered_text": "X",
+      "rendering": "verbatim",
+      "note": "family history has no chart counterpart"
+    },
+    {
+      "field_path": "family_history.heart_disease.relation",
+      "status": "present",
+      "kind": "text",
+      "origin": "synthetic",
+      "value": "sister",
+      "unit": null,
+      "page": 2,
+      "bbox": [
+        153.272,
+        82.736,
+        174.065,
+        95.191
+      ],
+      "rendered_text": "sister",
+      "rendering": "verbatim",
+      "note": "family history has no chart counterpart"
+    },
+    {
+      "field_path": "family_history.cancer",
+      "status": "present",
+      "kind": "checkbox",
+      "origin": "synthetic",
+      "value": true,
+      "unit": null,
+      "page": 2,
+      "bbox": [
+        306.0,
+        85.0,
+        314.5,
+        93.5
+      ],
+      "rendered_text": "X",
+      "rendering": "verbatim",
+      "note": "family history has no chart counterpart"
+    },
+    {
+      "field_path": "family_history.cancer.relation",
+      "status": "present",
+      "kind": "text",
+      "origin": "synthetic",
+      "value": "brother",
+      "unit": null,
+      "page": 2,
+      "bbox": [
+        379.115,
+        82.808,
+        408.271,
+        95.275
+      ],
+      "rendered_text": "brother",
+      "rendering": "verbatim",
+      "note": "family history has no chart counterpart"
+    },
+    {
+      "field_path": "family_history.stroke",
+      "status": "present",
+      "kind": "checkbox",
+      "origin": "synthetic",
+      "value": false,
+      "unit": null,
+      "page": 2,
+      "bbox": [
+        56.0,
+        108.0,
+        64.5,
+        116.5
+      ],
+      "rendered_text": "",
+      "rendering": "verbatim",
+      "note": "family history has no chart counterpart"
+    },
+    {
+      "field_path": "family_history.asthma",
+      "status": "present",
+      "kind": "checkbox",
+      "origin": "synthetic",
+      "value": false,
+      "unit": null,
+      "page": 2,
+      "bbox": [
+        306.0,
+        108.0,
+        314.5,
+        116.5
+      ],
+      "rendered_text": "",
+      "rendering": "verbatim",
+      "note": "family history has no chart counterpart"
+    },
+    {
+      "field_path": "signature.name",
+      "status": "present",
+      "kind": "text",
+      "origin": "chart",
+      "value": "Jae222 Dach178",
+      "unit": null,
+      "page": 2,
+      "bbox": [
+        126.533,
+        162.932,
+        199.56,
+        176.617
+      ],
+      "rendered_text": "Jae222 Dach178",
+      "rendering": "verbatim"
+    },
+    {
+      "field_path": "signature.date",
+      "status": "present",
+      "kind": "text",
+      "origin": "synthetic",
+      "value": "09/10/2026",
+      "unit": null,
+      "page": 2,
+      "bbox": [
+        392.318,
+        162.921,
+        441.549,
+        176.548
+      ],
+      "rendered_text": "09/10/2026",
+      "rendering": "verbatim"
+    }
+  ]
+}

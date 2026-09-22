@@ -1,0 +1,275 @@
+{
+  "cache_schema_version": "doc-factory-chart-cache/0.2.0",
+  "record": {
+    "allergies": [
+      {
+        "allergen": "Allergic disposition (finding)",
+        "reaction": "Severe",
+        "severity": null
+      },
+      {
+        "allergen": "Animal dander (substance)",
+        "reaction": "Mild",
+        "severity": null
+      },
+      {
+        "allergen": "Aspirin",
+        "reaction": "Severe",
+        "severity": null
+      }
+    ],
+    "city": "Westwood",
+    "conditions": [
+      {
+        "code": "SNOMED-CT:224299000",
+        "name": "Received higher education (finding)",
+        "onset": "1978-11-19"
+      },
+      {
+        "code": "SNOMED-CT:714628002",
+        "name": "Prediabetes (finding)",
+        "onset": "1982-11-28"
+      },
+      {
+        "code": "SNOMED-CT:271737000",
+        "name": "Anemia (disorder)",
+        "onset": "1982-11-28"
+      },
+      {
+        "code": "SNOMED-CT:239872002",
+        "name": "Osteoarthritis of hip (disorder)",
+        "onset": "2001-02-01"
+      },
+      {
+        "code": "SNOMED-CT:162864005",
+        "name": "Body mass index 30+ - obesity (finding)",
+        "onset": "2002-10-06"
+      },
+      {
+        "code": "SNOMED-CT:266948004",
+        "name": "Has a criminal record (finding)",
+        "onset": "2002-10-06"
+      },
+      {
+        "code": "SNOMED-CT:87433001",
+        "name": "Pulmonary emphysema (disorder)",
+        "onset": "2009-10-04"
+      },
+      {
+        "code": "SNOMED-CT:59621000",
+        "name": "Essential hypertension (disorder)",
+        "onset": "2013-10-13"
+      },
+      {
+        "code": "SNOMED-CT:314529007",
+        "name": "Medication review due (situation)",
+        "onset": "2014-10-19"
+      },
+      {
+        "code": "SNOMED-CT:423315002",
+        "name": "Limited social contact (finding)",
+        "onset": "2014-10-19"
+      },
+      {
+        "code": "SNOMED-CT:160904001",
+        "name": "Part-time employment (finding)",
+        "onset": "2015-10-25"
+      },
+      {
+        "code": "SNOMED-CT:422650009",
+        "name": "Social isolation (finding)",
+        "onset": "2015-10-25"
+      },
+      {
+        "code": "SNOMED-CT:160903007",
+        "name": "Full-time employment (finding)",
+        "onset": "2016-10-30"
+      },
+      {
+        "code": "SNOMED-CT:73595000",
+        "name": "Stress (finding)",
+        "onset": "2016-10-30"
+      },
+      {
+        "code": "SNOMED-CT:80583007",
+        "name": "Severe anxiety (panic) (finding)",
+        "onset": "2017-11-05"
+      },
+      {
+        "code": "SNOMED-CT:160904001",
+        "name": "Part-time employment (finding)",
+        "onset": "2018-11-11"
+      },
+      {
+        "code": "SNOMED-CT:66383009",
+        "name": "Gingivitis (disorder)",
+        "onset": "2018-11-11"
+      },
+      {
+        "code": "SNOMED-CT:195662009",
+        "name": "Acute viral pharyngitis (disorder)",
+        "onset": "2019-03-30"
+      },
+      {
+        "code": "SNOMED-CT:73595000",
+        "name": "Stress (finding)",
+        "onset": "2019-04-07"
+      },
+      {
+        "code": "SNOMED-CT:314529007",
+        "name": "Medication review due (situation)",
+        "onset": "2019-11-17"
+      },
+      {
+        "code": "SNOMED-CT:160903007",
+        "name": "Full-time employment (finding)",
+        "onset": "2019-11-17"
+      },
+      {
+        "code": "SNOMED-CT:314529007",
+        "name": "Medication review due (situation)",
+        "onset": "2020-10-25"
+      },
+      {
+        "code": "SNOMED-CT:237602007",
+        "name": "Metabolic syndrome X (disorder)",
+        "onset": "2020-10-25"
+      },
+      {
+        "code": "SNOMED-CT:741062008",
+        "name": "Not in labor force (finding)",
+        "onset": "2020-10-25"
+      },
+      {
+        "code": "SNOMED-CT:10509002",
+        "name": "Acute bronchitis (disorder)",
+        "onset": "2020-11-01"
+      },
+      {
+        "code": "SNOMED-CT:160903007",
+        "name": "Full-time employment (finding)",
+        "onset": "2020-11-22"
+      },
+      {
+        "code": "SNOMED-CT:73595000",
+        "name": "Stress (finding)",
+        "onset": "2020-11-22"
+      },
+      {
+        "code": "SNOMED-CT:314529007",
+        "name": "Medication review due (situation)",
+        "onset": "2021-11-28"
+      },
+      {
+        "code": "SNOMED-CT:422650009",
+        "name": "Social isolation (finding)",
+        "onset": "2021-11-28"
+      },
+      {
+        "code": "SNOMED-CT:444814009",
+        "name": "Viral sinusitis (disorder)",
+        "onset": "2022-09-01"
+      },
+      {
+        "code": "SNOMED-CT:95417003",
+        "name": "Primary fibromyalgia syndrome (disorder)",
+        "onset": "2023-08-24"
+      },
+      {
+        "code": "SNOMED-CT:741062008",
+        "name": "Not in labor force (finding)",
+        "onset": "2023-12-10"
+      },
+      {
+        "code": "SNOMED-CT:314529007",
+        "name": "Medication review due (situation)",
+        "onset": "2024-12-15"
+      },
+      {
+        "code": "SNOMED-CT:160904001",
+        "name": "Part-time employment (finding)",
+        "onset": "2024-12-15"
+      },
+      {
+        "code": "SNOMED-CT:160903007",
+        "name": "Full-time employment (finding)",
+        "onset": "2025-12-21"
+      },
+      {
+        "code": "SNOMED-CT:278598003",
+        "name": "Leaking dental filling (finding)",
+        "onset": "2026-01-04"
+      }
+    ],
+    "dob": "1960-09-25",
+    "first_name": "Merlyn225 Sanda877",
+    "last_name": "Mueller846",
+    "medications": [
+      {
+        "name": "Hydrocortisone 10 MG/ML Topical Cream",
+        "started": "1986-05-04",
+        "strength": "10 MG/ML"
+      },
+      {
+        "name": "Terfenadine 60 MG Oral Tablet",
+        "started": "1986-05-15",
+        "strength": "60 MG"
+      },
+      {
+        "name": "Naproxen sodium 220 MG Oral Tablet",
+        "started": "2001-02-01",
+        "strength": "220 MG"
+      },
+      {
+        "name": "albuterol 5 MG/ML Inhalation Solution",
+        "started": "2015-10-25",
+        "strength": "5 MG/ML"
+      },
+      {
+        "name": "Hydrochlorothiazide 25 MG Oral Tablet",
+        "started": "2015-10-25",
+        "strength": "25 MG"
+      },
+      {
+        "name": "lisinopril 10 MG Oral Tablet",
+        "started": "2015-10-25",
+        "strength": "10 MG"
+      },
+      {
+        "name": "amLODIPine 2.5 MG Oral Tablet",
+        "started": "2015-10-25",
+        "strength": "2.5 MG"
+      },
+      {
+        "name": "60 ACTUAT Fluticasone propionate 0.25 MG/ACTUAT / salmeterol 0.05 MG/ACTUAT Dry Powder Inhaler",
+        "started": "2015-10-25",
+        "strength": "0.25 MG/ACTUAT"
+      },
+      {
+        "name": "Acetaminophen 325 MG Oral Tablet",
+        "started": "2020-11-01",
+        "strength": "325 MG"
+      },
+      {
+        "name": "Naproxen 500 MG Oral Tablet",
+        "started": "2023-08-24",
+        "strength": "500 MG"
+      },
+      {
+        "name": "sodium fluoride 0.0272 MG/MG Oral Gel",
+        "started": "2026-01-04",
+        "strength": "0.0272 MG"
+      }
+    ],
+    "middle_name": "",
+    "mrn": "38",
+    "patient_ref": "a2c373ec-57bf-41cb-8767-94410dcf663d",
+    "phone": "",
+    "postal_code": "00000",
+    "sex": "Female",
+    "state": "Massachusetts",
+    "street": "890 Mills Well",
+    "uuid": "a2c373ec-57bf-41cb-8767-94410dcf663d"
+  },
+  "source": "local-openemr-mysql"
+}

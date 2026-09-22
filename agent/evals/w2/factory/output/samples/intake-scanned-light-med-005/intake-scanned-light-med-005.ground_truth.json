@@ -1,0 +1,1122 @@
+{
+  "schema_version": "doc-factory-groundtruth/0.2.0",
+  "scenario": {
+    "scenario_id": "intake-scanned-light-med-005",
+    "seed": 884127,
+    "patient_ref": "a2c373ec-57bf-41cb-8767-94410dcf663d",
+    "doc_type": "intake_form",
+    "quality": "scanned_light",
+    "perturbations": [
+      {
+        "kind": "med_discrepancy",
+        "params": {
+          "mode": "dose_change"
+        }
+      }
+    ],
+    "note": "Light scan; one medication written at a changed dose."
+  },
+  "chart_source": {
+    "system": "local-openemr",
+    "patient_ref": "a2c373ec-57bf-41cb-8767-94410dcf663d",
+    "patient_uuid": "a2c373ec-57bf-41cb-8767-94410dcf663d",
+    "medications_on_chart": 11,
+    "allergies_on_chart": 3,
+    "conditions_on_chart": 36
+  },
+  "coordinates": {
+    "space": "clean_pdf",
+    "units": "pt",
+    "origin": "top-left",
+    "y_axis": "down",
+    "note": "bbox is [x0, y0, x1, y1] on the original clean layout (<scenario_id>.clean.pdf), in PyMuPDF page space. For scanned variants map through transform.pdf_points_to_image_px."
+  },
+  "document": {
+    "path": "intake-scanned-light-med-005.pdf",
+    "sha256": "b0f59431f2c8702ad443ecda8141378cdb258981d2ed60d4ea207ac80161a63b",
+    "bytes": 625765,
+    "page_count": 2,
+    "has_text_layer": false
+  },
+  "clean_reference": {
+    "path": "intake-scanned-light-med-005.clean.pdf",
+    "sha256": "d350ccfd0a57af9024ac39424dc72dbe7f784afce87aa181206cef2413eea4db",
+    "bytes": 129478,
+    "page_count": 2,
+    "has_text_layer": true
+  },
+  "transform": {
+    "kind": "scan",
+    "profile": {
+      "name": "scanned_light",
+      "dpi": 200,
+      "skew_degrees": 0.45,
+      "noise_sigma": 3.2,
+      "blur_radius": 0.35,
+      "jpeg_quality": 82,
+      "vignette": 0.1,
+      "illumination_ramp": 0.05,
+      "speckle_density": 2e-05,
+      "paper_tint": [
+        252,
+        251,
+        247
+      ]
+    },
+    "mapping": "image_x = a*x + c*y + e ; image_y = b*x + d*y + f, with pdf_points_to_image_px = [a, c, e, b, d, f] and (x, y) a point on the clean layout in PyMuPDF page space (top-left origin, y down).",
+    "pages": [
+      {
+        "page": 1,
+        "skew_degrees": -0.12823,
+        "image_size_px": [
+          1700,
+          2200
+        ],
+        "page_size_pt": [
+          612.0,
+          792.0
+        ],
+        "pdf_points_to_image_px": [
+          2.77777082,
+          0.00621655,
+          -2.45962436,
+          -0.00621655,
+          2.77777082,
+          1.9050183
+        ],
+        "jpeg_bytes": 382061
+      },
+      {
+        "page": 2,
+        "skew_degrees": -0.23748,
+        "image_size_px": [
+          1700,
+          2200
+        ],
+        "page_size_pt": [
+          612.0,
+          792.0
+        ],
+        "pdf_points_to_image_px": [
+          2.77775392,
+          0.01151329,
+          -4.55196179,
+          -0.01151329,
+          2.77775392,
+          3.53251548
+        ],
+        "jpeg_bytes": 239646
+      }
+    ]
+  },
+  "pages": [
+    {
+      "number": 1,
+      "width": 612.0,
+      "height": 792.0
+    },
+    {
+      "number": 2,
+      "width": 612.0,
+      "height": 792.0
+    }
+  ],
+  "perturbations": [
+    {
+      "kind": "med_discrepancy",
+      "params": {
+        "mode": "dose_change"
+      },
+      "field_paths": [
+        "medications[6].dose"
+      ],
+      "chart_value": "amLODIPine 2.5 MG Oral Tablet (2.5 MG)",
+      "document_value": "amLODIPine 10 MG",
+      "expected_discrepancy": "The form gives amLODIPine as 10 MG; the chart product is 'amLODIPine 2.5 MG Oral Tablet', i.e. 2.5 MG."
+    }
+  ],
+  "fields": [
+    {
+      "field_path": "patient.name",
+      "status": "present",
+      "kind": "text",
+      "origin": "chart",
+      "value": "Merlyn225 Sanda877 Mueller846",
+      "unit": null,
+      "page": 1,
+      "bbox": [
+        86.869,
+        126.87,
+        231.012,
+        140.583
+      ],
+      "rendered_text": "Merlyn225 Sanda877 Mueller846",
+      "rendering": "verbatim"
+    },
+    {
+      "field_path": "patient.dob",
+      "status": "present",
+      "kind": "text",
+      "origin": "chart",
+      "value": "1960-09-25",
+      "unit": null,
+      "page": 1,
+      "bbox": [
+        419.665,
+        126.965,
+        468.63,
+        140.562
+      ],
+      "rendered_text": "1960-09-25",
+      "rendering": "verbatim"
+    },
+    {
+      "field_path": "patient.address",
+      "status": "present",
+      "kind": "text",
+      "origin": "chart",
+      "value": "890 Mills Well",
+      "unit": null,
+      "page": 1,
+      "bbox": [
+        95.078,
+        150.793,
+        157.282,
+        164.514
+      ],
+      "rendered_text": "890 Mills Well",
+      "rendering": "verbatim"
+    },
+    {
+      "field_path": "patient.sex",
+      "status": "present",
+      "kind": "text",
+      "origin": "chart",
+      "value": "Female",
+      "unit": null,
+      "page": 1,
+      "bbox": [
+        389.129,
+        151.232,
+        421.103,
+        164.578
+      ],
+      "rendered_text": "Female",
+      "rendering": "verbatim"
+    },
+    {
+      "field_path": "patient.city_state_zip",
+      "status": "present",
+      "kind": "text",
+      "origin": "chart",
+      "value": "Westwood, Massachusetts 00000",
+      "unit": null,
+      "page": 1,
+      "bbox": [
+        124.704,
+        174.817,
+        264.826,
+        188.542
+      ],
+      "rendered_text": "Westwood, Massachusetts 00000",
+      "rendering": "verbatim"
+    },
+    {
+      "field_path": "visit.date",
+      "status": "present",
+      "kind": "text",
+      "origin": "synthetic",
+      "value": "09/14/2026",
+      "unit": null,
+      "page": 1,
+      "bbox": [
+        107.837,
+        198.849,
+        157.556,
+        212.606
+      ],
+      "rendered_text": "09/14/2026",
+      "rendering": "verbatim"
+    },
+    {
+      "field_path": "chief_concern",
+      "status": "present",
+      "kind": "text",
+      "origin": "chart_derived",
+      "value": "Ongoing primary fibromyalgia syndrome, wants to discuss treatment",
+      "unit": null,
+      "page": 1,
+      "bbox": [
+        60.0,
+        250.774,
+        353.761,
+        264.577
+      ],
+      "rendered_text": "Ongoing primary fibromyalgia syndrome, wants to discuss treatment",
+      "rendering": "verbatim"
+    },
+    {
+      "field_path": "medications[0].name",
+      "status": "present",
+      "kind": "text",
+      "origin": "chart_derived",
+      "value": "Hydrocortisone 10 MG/ML Topical Cream",
+      "unit": null,
+      "page": 1,
+      "bbox": [
+        59.0,
+        344.507,
+        126.451,
+        358.143
+      ],
+      "rendered_text": "Hydrocortisone",
+      "rendering": "derived",
+      "note": "rendering=derived, not a perturbation and not a truncation: a patient writes the common name, so the form carries short_drug_name(value) while value keeps the chart's full RxNorm product string"
+    },
+    {
+      "field_path": "medications[0].dose",
+      "status": "present",
+      "kind": "text",
+      "origin": "chart_derived",
+      "value": "10 MG/ML",
+      "unit": null,
+      "page": 1,
+      "bbox": [
+        262.0,
+        344.951,
+        309.947,
+        358.236
+      ],
+      "rendered_text": "10 MG/ML",
+      "rendering": "verbatim"
+    },
+    {
+      "field_path": "medications[0].frequency",
+      "status": "present",
+      "kind": "text",
+      "origin": "synthetic",
+      "value": "once daily",
+      "unit": null,
+      "page": 1,
+      "bbox": [
+        364.0,
+        344.491,
+        408.93,
+        358.101
+      ],
+      "rendered_text": "once daily",
+      "rendering": "verbatim",
+      "note": "frequency has no chart counterpart"
+    },
+    {
+      "field_path": "medications[1].name",
+      "status": "present",
+      "kind": "text",
+      "origin": "chart_derived",
+      "value": "Terfenadine 60 MG Oral Tablet",
+      "unit": null,
+      "page": 1,
+      "bbox": [
+        59.0,
+        365.581,
+        109.342,
+        379.158
+      ],
+      "rendered_text": "Terfenadine",
+      "rendering": "derived",
+      "note": "rendering=derived, not a perturbation and not a truncation: a patient writes the common name, so the form carries short_drug_name(value) while value keeps the chart's full RxNorm product string"
+    },
+    {
+      "field_path": "medications[1].dose",
+      "status": "present",
+      "kind": "text",
+      "origin": "chart_derived",
+      "value": "60 MG",
+      "unit": null,
+      "page": 1,
+      "bbox": [
+        262.0,
+        365.452,
+        292.056,
+        379.218
+      ],
+      "rendered_text": "60 MG",
+      "rendering": "verbatim"
+    },
+    {
+      "field_path": "medications[1].frequency",
+      "status": "present",
+      "kind": "text",
+      "origin": "synthetic",
+      "value": "twice daily",
+      "unit": null,
+      "page": 1,
+      "bbox": [
+        364.0,
+        365.315,
+        411.113,
+        379.18
+      ],
+      "rendered_text": "twice daily",
+      "rendering": "verbatim",
+      "note": "frequency has no chart counterpart"
+    },
+    {
+      "field_path": "medications[2].name",
+      "status": "present",
+      "kind": "text",
+      "origin": "chart_derived",
+      "value": "Naproxen sodium 220 MG Oral Tablet",
+      "unit": null,
+      "page": 1,
+      "bbox": [
+        59.0,
+        386.382,
+        135.112,
+        400.251
+      ],
+      "rendered_text": "Naproxen sodium",
+      "rendering": "derived",
+      "note": "rendering=derived, not a perturbation and not a truncation: a patient writes the common name, so the form carries short_drug_name(value) while value keeps the chart's full RxNorm product string"
+    },
+    {
+      "field_path": "medications[2].dose",
+      "status": "present",
+      "kind": "text",
+      "origin": "chart_derived",
+      "value": "220 MG",
+      "unit": null,
+      "page": 1,
+      "bbox": [
+        262.0,
+        386.431,
+        298.062,
+        400.135
+      ],
+      "rendered_text": "220 MG",
+      "rendering": "verbatim"
+    },
+    {
+      "field_path": "medications[2].frequency",
+      "status": "present",
+      "kind": "text",
+      "origin": "synthetic",
+      "value": "every morning",
+      "unit": null,
+      "page": 1,
+      "bbox": [
+        364.0,
+        386.333,
+        426.005,
+        400.128
+      ],
+      "rendered_text": "every morning",
+      "rendering": "verbatim",
+      "note": "frequency has no chart counterpart"
+    },
+    {
+      "field_path": "medications[3].name",
+      "status": "present",
+      "kind": "text",
+      "origin": "chart_derived",
+      "value": "albuterol 5 MG/ML Inhalation Solution",
+      "unit": null,
+      "page": 1,
+      "bbox": [
+        59.0,
+        407.668,
+        97.216,
+        421.215
+      ],
+      "rendered_text": "albuterol",
+      "rendering": "derived",
+      "note": "rendering=derived, not a perturbation and not a truncation: a patient writes the common name, so the form carries short_drug_name(value) while value keeps the chart's full RxNorm product string"
+    },
+    {
+      "field_path": "medications[3].dose",
+      "status": "present",
+      "kind": "text",
+      "origin": "chart_derived",
+      "value": "5 MG/ML",
+      "unit": null,
+      "page": 1,
+      "bbox": [
+        262.0,
+        407.648,
+        304.979,
+        421.098
+      ],
+      "rendered_text": "5 MG/ML",
+      "rendering": "verbatim"
+    },
+    {
+      "field_path": "medications[3].frequency",
+      "status": "present",
+      "kind": "text",
+      "origin": "synthetic",
+      "value": "twice daily",
+      "unit": null,
+      "page": 1,
+      "bbox": [
+        364.0,
+        407.453,
+        410.263,
+        421.076
+      ],
+      "rendered_text": "twice daily",
+      "rendering": "verbatim",
+      "note": "frequency has no chart counterpart"
+    },
+    {
+      "field_path": "medications[4].name",
+      "status": "present",
+      "kind": "text",
+      "origin": "chart_derived",
+      "value": "Hydrochlorothiazide 25 MG Oral Tablet",
+      "unit": null,
+      "page": 1,
+      "bbox": [
+        59.0,
+        428.381,
+        147.144,
+        442.184
+      ],
+      "rendered_text": "Hydrochlorothiazide",
+      "rendering": "derived",
+      "note": "rendering=derived, not a perturbation and not a truncation: a patient writes the common name, so the form carries short_drug_name(value) while value keeps the chart's full RxNorm product string"
+    },
+    {
+      "field_path": "medications[4].dose",
+      "status": "present",
+      "kind": "text",
+      "origin": "chart_derived",
+      "value": "25 MG",
+      "unit": null,
+      "page": 1,
+      "bbox": [
+        262.0,
+        428.311,
+        292.548,
+        442.154
+      ],
+      "rendered_text": "25 MG",
+      "rendering": "verbatim"
+    },
+    {
+      "field_path": "medications[4].frequency",
+      "status": "present",
+      "kind": "text",
+      "origin": "synthetic",
+      "value": "at bedtime",
+      "unit": null,
+      "page": 1,
+      "bbox": [
+        364.0,
+        428.581,
+        409.426,
+        442.073
+      ],
+      "rendered_text": "at bedtime",
+      "rendering": "verbatim",
+      "note": "frequency has no chart counterpart"
+    },
+    {
+      "field_path": "medications[5].name",
+      "status": "present",
+      "kind": "text",
+      "origin": "chart_derived",
+      "value": "lisinopril 10 MG Oral Tablet",
+      "unit": null,
+      "page": 1,
+      "bbox": [
+        59.0,
+        449.471,
+        98.547,
+        463.159
+      ],
+      "rendered_text": "lisinopril",
+      "rendering": "derived",
+      "note": "rendering=derived, not a perturbation and not a truncation: a patient writes the common name, so the form carries short_drug_name(value) while value keeps the chart's full RxNorm product string"
+    },
+    {
+      "field_path": "medications[5].dose",
+      "status": "present",
+      "kind": "text",
+      "origin": "chart_derived",
+      "value": "10 MG",
+      "unit": null,
+      "page": 1,
+      "bbox": [
+        262.0,
+        450.015,
+        292.507,
+        463.069
+      ],
+      "rendered_text": "10 MG",
+      "rendering": "verbatim"
+    },
+    {
+      "field_path": "medications[5].frequency",
+      "status": "present",
+      "kind": "text",
+      "origin": "synthetic",
+      "value": "three times daily",
+      "unit": null,
+      "page": 1,
+      "bbox": [
+        364.0,
+        449.469,
+        436.068,
+        463.185
+      ],
+      "rendered_text": "three times daily",
+      "rendering": "verbatim",
+      "note": "frequency has no chart counterpart"
+    },
+    {
+      "field_path": "medications[6].name",
+      "status": "present",
+      "kind": "text",
+      "origin": "perturbed",
+      "value": "amLODIPine 2.5 MG Oral Tablet",
+      "unit": null,
+      "page": 1,
+      "bbox": [
+        59.0,
+        470.762,
+        116.764,
+        484.115
+      ],
+      "rendered_text": "amLODIPine",
+      "rendering": "derived",
+      "note": "chart strength is 2.5 MG"
+    },
+    {
+      "field_path": "medications[6].dose",
+      "status": "present",
+      "kind": "text",
+      "origin": "perturbed",
+      "value": "10 MG",
+      "unit": null,
+      "page": 1,
+      "bbox": [
+        262.0,
+        470.84,
+        292.192,
+        484.13
+      ],
+      "rendered_text": "10 MG",
+      "rendering": "verbatim"
+    },
+    {
+      "field_path": "medications[6].frequency",
+      "status": "present",
+      "kind": "text",
+      "origin": "synthetic",
+      "value": "as needed",
+      "unit": null,
+      "page": 1,
+      "bbox": [
+        364.0,
+        470.767,
+        406.25,
+        484.237
+      ],
+      "rendered_text": "as needed",
+      "rendering": "verbatim",
+      "note": "frequency has no chart counterpart"
+    },
+    {
+      "field_path": "medications[7].name",
+      "status": "present",
+      "kind": "text",
+      "origin": "chart_derived",
+      "value": "60 ACTUAT Fluticasone propionate 0.25 MG/ACTUAT / salmeterol 0.05 MG/ACTUAT Dry Powder Inhaler",
+      "unit": null,
+      "page": 1,
+      "bbox": [
+        59.0,
+        491.4,
+        158.793,
+        505.165
+      ],
+      "rendered_text": "Fluticasone propionate",
+      "rendering": "derived",
+      "note": "rendering=derived, not a perturbation and not a truncation: a patient writes the common name, so the form carries short_drug_name(value) while value keeps the chart's full RxNorm product string"
+    },
+    {
+      "field_path": "medications[7].dose",
+      "status": "present",
+      "kind": "text",
+      "origin": "chart_derived",
+      "value": "0.25 MG/ACTUAT",
+      "unit": null,
+      "page": 1,
+      "bbox": [
+        262.0,
+        491.635,
+        342.908,
+        505.101
+      ],
+      "rendered_text": "0.25 MG/ACTUAT",
+      "rendering": "verbatim"
+    },
+    {
+      "field_path": "medications[7].frequency",
+      "status": "present",
+      "kind": "text",
+      "origin": "synthetic",
+      "value": "every morning",
+      "unit": null,
+      "page": 1,
+      "bbox": [
+        364.0,
+        491.673,
+        425.492,
+        505.022
+      ],
+      "rendered_text": "every morning",
+      "rendering": "verbatim",
+      "note": "frequency has no chart counterpart"
+    },
+    {
+      "field_path": "medications[8].name",
+      "status": "present",
+      "kind": "text",
+      "origin": "chart_derived",
+      "value": "Acetaminophen 325 MG Oral Tablet",
+      "unit": null,
+      "page": 1,
+      "bbox": [
+        59.0,
+        512.561,
+        125.982,
+        526.23
+      ],
+      "rendered_text": "Acetaminophen",
+      "rendering": "derived",
+      "note": "rendering=derived, not a perturbation and not a truncation: a patient writes the common name, so the form carries short_drug_name(value) while value keeps the chart's full RxNorm product string"
+    },
+    {
+      "field_path": "medications[8].dose",
+      "status": "present",
+      "kind": "text",
+      "origin": "chart_derived",
+      "value": "325 MG",
+      "unit": null,
+      "page": 1,
+      "bbox": [
+        262.0,
+        512.45,
+        298.35,
+        526.095
+      ],
+      "rendered_text": "325 MG",
+      "rendering": "verbatim"
+    },
+    {
+      "field_path": "medications[8].frequency",
+      "status": "present",
+      "kind": "text",
+      "origin": "synthetic",
+      "value": "every morning",
+      "unit": null,
+      "page": 1,
+      "bbox": [
+        364.0,
+        512.545,
+        425.969,
+        526.235
+      ],
+      "rendered_text": "every morning",
+      "rendering": "verbatim",
+      "note": "frequency has no chart counterpart"
+    },
+    {
+      "field_path": "medications[9].name",
+      "status": "present",
+      "kind": "text",
+      "origin": "chart_derived",
+      "value": "Naproxen 500 MG Oral Tablet",
+      "unit": null,
+      "page": 1,
+      "bbox": [
+        59.0,
+        533.49,
+        100.726,
+        547.149
+      ],
+      "rendered_text": "Naproxen",
+      "rendering": "derived",
+      "note": "rendering=derived, not a perturbation and not a truncation: a patient writes the common name, so the form carries short_drug_name(value) while value keeps the chart's full RxNorm product string"
+    },
+    {
+      "field_path": "medications[9].dose",
+      "status": "present",
+      "kind": "text",
+      "origin": "chart_derived",
+      "value": "500 MG",
+      "unit": null,
+      "page": 1,
+      "bbox": [
+        262.0,
+        533.405,
+        297.602,
+        547.035
+      ],
+      "rendered_text": "500 MG",
+      "rendering": "verbatim"
+    },
+    {
+      "field_path": "medications[9].frequency",
+      "status": "present",
+      "kind": "text",
+      "origin": "synthetic",
+      "value": "as needed",
+      "unit": null,
+      "page": 1,
+      "bbox": [
+        364.0,
+        533.577,
+        406.992,
+        547.26
+      ],
+      "rendered_text": "as needed",
+      "rendering": "verbatim",
+      "note": "frequency has no chart counterpart"
+    },
+    {
+      "field_path": "medications[10].name",
+      "status": "present",
+      "kind": "text",
+      "origin": "chart_derived",
+      "value": "sodium fluoride 0.0272 MG/MG Oral Gel",
+      "unit": null,
+      "page": 1,
+      "bbox": [
+        59.0,
+        554.663,
+        127.659,
+        568.159
+      ],
+      "rendered_text": "sodium fluoride",
+      "rendering": "derived",
+      "note": "rendering=derived, not a perturbation and not a truncation: a patient writes the common name, so the form carries short_drug_name(value) while value keeps the chart's full RxNorm product string"
+    },
+    {
+      "field_path": "medications[10].dose",
+      "status": "present",
+      "kind": "text",
+      "origin": "chart_derived",
+      "value": "0.0272 MG",
+      "unit": null,
+      "page": 1,
+      "bbox": [
+        262.0,
+        554.498,
+        311.569,
+        568.132
+      ],
+      "rendered_text": "0.0272 MG",
+      "rendering": "verbatim"
+    },
+    {
+      "field_path": "medications[10].frequency",
+      "status": "present",
+      "kind": "text",
+      "origin": "synthetic",
+      "value": "once daily",
+      "unit": null,
+      "page": 1,
+      "bbox": [
+        364.0,
+        554.477,
+        408.258,
+        568.214
+      ],
+      "rendered_text": "once daily",
+      "rendering": "verbatim",
+      "note": "frequency has no chart counterpart"
+    },
+    {
+      "field_path": "allergies.none_known",
+      "status": "present",
+      "kind": "checkbox",
+      "origin": "chart_derived",
+      "value": false,
+      "unit": null,
+      "page": 1,
+      "bbox": [
+        59.0,
+        606.0,
+        67.5,
+        614.5
+      ],
+      "rendered_text": "",
+      "rendering": "verbatim",
+      "note": "'No known drug allergies' box; checked only when the chart has no allergies"
+    },
+    {
+      "field_path": "allergies[0].allergen",
+      "status": "present",
+      "kind": "text",
+      "origin": "chart",
+      "value": "Allergic disposition (finding)",
+      "unit": null,
+      "page": 1,
+      "bbox": [
+        59.0,
+        640.337,
+        184.189,
+        654.281
+      ],
+      "rendered_text": "Allergic disposition (finding)",
+      "rendering": "verbatim"
+    },
+    {
+      "field_path": "allergies[0].reaction",
+      "status": "present",
+      "kind": "text",
+      "origin": "chart",
+      "value": "Severe",
+      "unit": null,
+      "page": 1,
+      "bbox": [
+        282.0,
+        640.806,
+        310.682,
+        654.051
+      ],
+      "rendered_text": "Severe",
+      "rendering": "verbatim"
+    },
+    {
+      "field_path": "allergies[1].allergen",
+      "status": "present",
+      "kind": "text",
+      "origin": "chart",
+      "value": "Animal dander (substance)",
+      "unit": null,
+      "page": 1,
+      "bbox": [
+        59.0,
+        661.59,
+        174.84,
+        675.203
+      ],
+      "rendered_text": "Animal dander (substance)",
+      "rendering": "verbatim"
+    },
+    {
+      "field_path": "allergies[1].reaction",
+      "status": "present",
+      "kind": "text",
+      "origin": "chart",
+      "value": "Mild",
+      "unit": null,
+      "page": 1,
+      "bbox": [
+        282.0,
+        661.846,
+        302.415,
+        675.09
+      ],
+      "rendered_text": "Mild",
+      "rendering": "verbatim"
+    },
+    {
+      "field_path": "allergies[2].allergen",
+      "status": "present",
+      "kind": "text",
+      "origin": "chart",
+      "value": "Aspirin",
+      "unit": null,
+      "page": 1,
+      "bbox": [
+        59.0,
+        682.896,
+        90.104,
+        696.175
+      ],
+      "rendered_text": "Aspirin",
+      "rendering": "verbatim"
+    },
+    {
+      "field_path": "allergies[2].reaction",
+      "status": "present",
+      "kind": "text",
+      "origin": "chart",
+      "value": "Severe",
+      "unit": null,
+      "page": 1,
+      "bbox": [
+        282.0,
+        682.631,
+        310.744,
+        696.117
+      ],
+      "rendered_text": "Severe",
+      "rendering": "verbatim"
+    },
+    {
+      "field_path": "family_history.diabetes",
+      "status": "present",
+      "kind": "checkbox",
+      "origin": "synthetic",
+      "value": true,
+      "unit": null,
+      "page": 2,
+      "bbox": [
+        56.0,
+        115.0,
+        64.5,
+        123.5
+      ],
+      "rendered_text": "X",
+      "rendering": "verbatim",
+      "note": "family history has no chart counterpart"
+    },
+    {
+      "field_path": "family_history.diabetes.relation",
+      "status": "present",
+      "kind": "text",
+      "origin": "synthetic",
+      "value": "sister",
+      "unit": null,
+      "page": 2,
+      "bbox": [
+        135.043,
+        112.87,
+        156.099,
+        125.341
+      ],
+      "rendered_text": "sister",
+      "rendering": "verbatim",
+      "note": "family history has no chart counterpart"
+    },
+    {
+      "field_path": "family_history.hypertension",
+      "status": "present",
+      "kind": "checkbox",
+      "origin": "synthetic",
+      "value": false,
+      "unit": null,
+      "page": 2,
+      "bbox": [
+        306.0,
+        115.0,
+        314.5,
+        123.5
+      ],
+      "rendered_text": "",
+      "rendering": "verbatim",
+      "note": "family history has no chart counterpart"
+    },
+    {
+      "field_path": "family_history.heart_disease",
+      "status": "present",
+      "kind": "checkbox",
+      "origin": "synthetic",
+      "value": false,
+      "unit": null,
+      "page": 2,
+      "bbox": [
+        56.0,
+        138.0,
+        64.5,
+        146.5
+      ],
+      "rendered_text": "",
+      "rendering": "verbatim",
+      "note": "family history has no chart counterpart"
+    },
+    {
+      "field_path": "family_history.cancer",
+      "status": "present",
+      "kind": "checkbox",
+      "origin": "synthetic",
+      "value": false,
+      "unit": null,
+      "page": 2,
+      "bbox": [
+        306.0,
+        138.0,
+        314.5,
+        146.5
+      ],
+      "rendered_text": "",
+      "rendering": "verbatim",
+      "note": "family history has no chart counterpart"
+    },
+    {
+      "field_path": "family_history.stroke",
+      "status": "present",
+      "kind": "checkbox",
+      "origin": "synthetic",
+      "value": false,
+      "unit": null,
+      "page": 2,
+      "bbox": [
+        56.0,
+        161.0,
+        64.5,
+        169.5
+      ],
+      "rendered_text": "",
+      "rendering": "verbatim",
+      "note": "family history has no chart counterpart"
+    },
+    {
+      "field_path": "family_history.asthma",
+      "status": "present",
+      "kind": "checkbox",
+      "origin": "synthetic",
+      "value": false,
+      "unit": null,
+      "page": 2,
+      "bbox": [
+        306.0,
+        161.0,
+        314.5,
+        169.5
+      ],
+      "rendered_text": "",
+      "rendering": "verbatim",
+      "note": "family history has no chart counterpart"
+    },
+    {
+      "field_path": "signature.name",
+      "status": "present",
+      "kind": "text",
+      "origin": "chart",
+      "value": "Merlyn225 Sanda877 Mueller846",
+      "unit": null,
+      "page": 2,
+      "bbox": [
+        126.533,
+        215.927,
+        271.545,
+        229.556
+      ],
+      "rendered_text": "Merlyn225 Sanda877 Mueller846",
+      "rendering": "verbatim"
+    },
+    {
+      "field_path": "signature.date",
+      "status": "present",
+      "kind": "text",
+      "origin": "synthetic",
+      "value": "09/14/2026",
+      "unit": null,
+      "page": 2,
+      "bbox": [
+        392.318,
+        216.0,
+        441.182,
+        229.65
+      ],
+      "rendered_text": "09/14/2026",
+      "rendering": "verbatim"
+    }
+  ]
+}

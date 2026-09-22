@@ -33,3 +33,24 @@ langfuse>=4.15.3,<5
 # app/middleware/logging.py + app/middleware/correlation.py to attach
 # correlation_id to every log line for a request's lifetime
 structlog>=26.1.0
+
+# --- evals/w2/factory: the synthetic document factory (evals/w2/factory/README.md) ---
+
+# PDF rendering, rasterisation and text extraction. One engine does all three,
+# which is what lets the factory compute a field's bbox from font metrics while
+# drawing and have `validate` re-extract it independently afterwards.
+pymupdf>=1.28.2
+
+# Scan simulation: skew resampling and JPEG re-encoding in degrade.py.
+pillow>=11.0.0
+
+# The lighting field, sensor noise and speckle in degrade.py.
+numpy>=2.1.0
+
+# Scenario specs are YAML (evals/w2/factory/spec.py). Already present transitively
+# via langchain-core; declared because evals/w2/factory imports it directly.
+pyyaml>=6.0.2
+
+# Read-only chart pull from the local OpenEMR MySQL (evals/w2/factory/chart.py).
+# Pure Python, so no libmysqlclient on the host.
+pymysql>=1.1.1
