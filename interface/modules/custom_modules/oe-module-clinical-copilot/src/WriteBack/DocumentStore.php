@@ -18,6 +18,7 @@ use Document;
 use OpenEMR\Common\Database\QueryUtils;
 use OpenEMR\Core\OEGlobalsBag;
 use OpenEMR\Services\DocumentService;
+use Psr\Log\LoggerInterface;
 
 /**
  * Everything here goes through `\Document::createDocument()` — the same
@@ -37,11 +38,12 @@ use OpenEMR\Services\DocumentService;
  *   outside (spike §10.6). Here each refusal is its own message naming its
  *   own cause.
  */
-final readonly class DocumentStore
+final readonly class DocumentStore implements DocumentStorage
 {
     public function __construct(
         private DocumentService $documents,
         private OEGlobalsBag $globals,
+        private LoggerInterface $logger,
     ) {
     }
 
@@ -137,7 +139,7 @@ final readonly class DocumentStore
         string $declaredMimeType,
         string $content,
         int $ownerId
-    ): int {
+    ): StoredDocument {
         $sniffed = $this->sniffMimeType($content);
         if ($sniffed !== $declaredMimeType) {
             throw new InvalidWriteBackRequest(
@@ -168,7 +170,45 @@ final readonly class DocumentStore
         if ($documentId < 1) {
             throw new WriteBackFailed('the document was stored but no id came back');
         }
-        return $documentId;
+        return new StoredDocument($documentId, WriteOutcome::CREATED, self::pathOf($document->get_url()));
+    }
+
+    /**
+     * Deletes a file `store()` wrote, after the transaction that would have
+     * referenced it rolled back.
+     *
+     * Best effort by design. The `documents` row is gone, so nothing points
+     * at these bytes and failing to remove them is a disk-space problem, not
+     * a correctness one — whereas throwing here would replace the real error
+     * the caller is already handling with a less useful one. The failure is
+     * logged with the path and no patient identifier.
+     */
+    public function discardStoredFile(StoredDocument $document): void
+    {
+        if ($document->path === null) {
+            return;
+        }
+        if (!is_file($document->path)) {
+            return;
+        }
+        if (!@unlink($document->path)) {
+            $this->logger->error('Clinical Co-Pilot could not remove an orphaned document file', [
+                'path' => $document->path,
+                'document_id' => $document->documentId,
+            ]);
+        }
+    }
+
+    /**
+     * `documents.url` is a `file://` URL built by string concatenation, not
+     * by a URL builder, so it is unwrapped the same way rather than parsed.
+     */
+    private static function pathOf(mixed $url): ?string
+    {
+        if (!is_string($url) || !str_starts_with($url, 'file://')) {
+            return null;
+        }
+        return substr($url, strlen('file://'));
     }
 
     /**

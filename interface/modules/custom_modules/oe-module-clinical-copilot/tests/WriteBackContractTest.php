@@ -44,6 +44,8 @@ final class WriteBackContractTest extends TestCase
     private const PYTHON_KEY = self::DIGEST . ':2345-7:2026-09-20';
     private const PYTHON_EXTRACTION_ID = 'w2x-e962aba60f40d8c74f9c24351ba59b3c';
 
+    private const EXTRACTOR = 'writeback-checkpoint-probe/1';
+
     public function testDerivationMatchesTheAgentSideContract(): void
     {
         $date = new DateTimeImmutable('2026-09-20');
@@ -141,10 +143,81 @@ final class WriteBackContractTest extends TestCase
         $this->assertSame('< 200', $oneSided->toOpenEmrRange());
     }
 
+    public function testAPanelOfResultsIsAccepted(): void
+    {
+        $payload = $this->requestPayload();
+        $payload['results'][] = $this->resultPayload('2823-3', 'Potassium', 3.1);
+        $payload['results'][] = $this->resultPayload('2951-2', 'Sodium', 139.0);
+
+        $request = LabWriteBackRequest::fromArray($payload);
+
+        $this->assertCount(3, $request->results);
+        $this->assertSame(['2345-7', '2823-3', '2951-2'], array_map(
+            static fn ($result): string => $result->testCode,
+            $request->results
+        ));
+    }
+
+    public function testTwoResultsInOnePanelCannotShareAKey(): void
+    {
+        $payload = $this->requestPayload();
+        $payload['results'][] = $payload['results'][0];
+
+        $this->expectExceptionMessageMatches('/shares an idempotency key/');
+        LabWriteBackRequest::fromArray($payload);
+    }
+
+    public function testAnEmptyPanelIsRefused(): void
+    {
+        $payload = $this->requestPayload();
+        $payload['results'] = [];
+
+        $this->expectExceptionMessageMatches('/at least one result/');
+        LabWriteBackRequest::fromArray($payload);
+    }
+
+    public function testAPanelLargerThanOneTransactionShouldHoldIsRefused(): void
+    {
+        $payload = $this->requestPayload();
+        for ($i = 0; $i < LabWriteBackRequest::MAX_RESULTS; $i++) {
+            $payload['results'][] = $this->resultPayload('9999-' . $i, 'Filler', 1.0);
+        }
+
+        $this->expectExceptionMessageMatches('/at most/');
+        LabWriteBackRequest::fromArray($payload);
+    }
+
+    public function testTheRunIdMustBeThisDocumentUnderThisExtractor(): void
+    {
+        $payload = $this->requestPayload();
+        $payload['extractor_version'] = 'some-other-extractor/9';
+
+        $this->expectExceptionMessageMatches('/not this document extracted by this/');
+        LabWriteBackRequest::fromArray($payload);
+    }
+
+    public function testTheExtractorVersionIsRequired(): void
+    {
+        $payload = $this->requestPayload();
+        unset($payload['extractor_version']);
+
+        $this->expectException(InvalidWriteBackRequest::class);
+        LabWriteBackRequest::fromArray($payload);
+    }
+
+    public function testTheDerivationOfTheRunIdMatchesTheAgentSideContract(): void
+    {
+        // Produced by agent/app/models/w2/writeback.py document_extraction_id().
+        $this->assertSame(
+            'w2x-78d4d4b261f55a3d7e1062dccf26566b',
+            IdempotencyKeys::documentExtractionId(self::DIGEST, self::EXTRACTOR)
+        );
+    }
+
     public function testIntakeDocumentsAreRefused(): void
     {
         $this->expectExceptionMessageMatches('/never merged into it/');
-        LabWriteBackRequest::fromArray($this->requestPayload(['document_kind' => 'intake_form']));
+        LabWriteBackRequest::fromArray($this->requestPayload('intake_form'));
     }
 
     public function testAKeyTheEndpointDidNotComposeIsRefused(): void
@@ -177,7 +250,9 @@ final class WriteBackContractTest extends TestCase
     public function testADigestThatIsNotTheContentIsRefused(): void
     {
         $payload = $this->bytesPayload();
-        $payload['document']['content_base64'] = base64_encode('some other bytes entirely');
+        // Same length as the content the digest was taken over, so the
+        // digest check is the one that fires and not the length check.
+        $payload['document']['content_base64'] = base64_encode('y');
 
         $this->expectExceptionMessageMatches('/SHA3-512 of the decoded/');
         LabWriteBackRequest::fromArray($payload);
@@ -187,16 +262,50 @@ final class WriteBackContractTest extends TestCase
     {
         $request = LabWriteBackRequest::fromArray($this->requestPayload());
 
-        $this->assertSame(self::PYTHON_KEY, $request->onlyResult()->idempotencyKey);
-        $this->assertSame(self::PYTHON_EXTRACTION_ID, $request->onlyResult()->extractionId);
+        $this->assertSame(self::PYTHON_KEY, $request->results[0]->idempotencyKey);
+        $this->assertSame(self::PYTHON_EXTRACTION_ID, $request->results[0]->extractionId);
         $this->assertSame(self::DIGEST, $request->documentKey());
+    }
+
+    /**
+     * One more row of the same panel: same document, so the key differs only
+     * by test code.
+     *
+     * @return array<string, mixed>
+     *
+     * @codeCoverageIgnore Builder, not a data provider, but the same reasoning applies.
+     */
+    private function resultPayload(string $code, string $name, float $value): array
+    {
+        $key = self::DIGEST . ':' . strtoupper($code) . ':2026-09-20';
+        return [
+            'test_code' => $code,
+            'test_name' => $name,
+            'value' => ['kind' => 'numeric', 'value' => $value],
+            'unit' => 'mmol/L',
+            'reference_range' => ['low' => 3.5, 'high' => 5.1, 'text' => '3.5 - 5.1'],
+            'collection_date' => '2026-09-20',
+            'abnormal' => 'normal',
+            'page' => 1,
+            'bbox' => ['page' => 1, 'x0' => 306.0, 'y0' => 272.0, 'x1' => 338.5, 'y1' => 284.0],
+            'idempotency_key' => $key,
+            'extraction_id' => 'w2x-' . substr(hash('sha3-256', $key), 0, 32),
+        ];
     }
 
     /**
      * The same request with the bytes attached instead of a document id, so
      * the content checks have content to check.
      *
-     * @return array<string, mixed>
+     * @return array{
+     *     patient_uuid: string,
+     *     document: array<string, mixed>,
+     *     results: non-empty-list<array<string, mixed>>,
+     *     extraction_id: string,
+     *     extractor_version: string,
+     *     correlation_id: string,
+     *     document_kind?: string,
+     * }
      */
     private function bytesPayload(): array
     {
@@ -214,14 +323,22 @@ final class WriteBackContractTest extends TestCase
         ];
         $payload['results'][0]['idempotency_key'] = $key;
         $payload['results'][0]['extraction_id'] = 'w2x-' . substr(hash('sha3-256', $key), 0, 32);
+        $payload['extraction_id'] = IdempotencyKeys::documentExtractionId($digest, self::EXTRACTOR);
         return $payload;
     }
 
     /**
-     * @param array<string, mixed> $overrides
-     * @return array<string, mixed>
+     * @return array{
+     *     patient_uuid: string,
+     *     document: array<string, mixed>,
+     *     results: non-empty-list<array<string, mixed>>,
+     *     extraction_id: string,
+     *     extractor_version: string,
+     *     correlation_id: string,
+     *     document_kind?: string,
+     * }
      */
-    private function requestPayload(array $overrides = []): array
+    private function requestPayload(?string $documentKind = null): array
     {
         $payload = [
             'patient_uuid' => 'a2c36e54-af42-4c38-b86e-ade616ed5494',
@@ -245,9 +362,13 @@ final class WriteBackContractTest extends TestCase
                 'idempotency_key' => self::PYTHON_KEY,
                 'extraction_id' => self::PYTHON_EXTRACTION_ID,
             ]],
-            'extraction_id' => 'w2x-' . substr(hash('sha3-256', self::DIGEST . ':v1'), 0, 32),
+            'extraction_id' => IdempotencyKeys::documentExtractionId(self::DIGEST, self::EXTRACTOR),
+            'extractor_version' => self::EXTRACTOR,
             'correlation_id' => '11111111-2222-4333-8444-555555555555',
         ];
-        return array_merge($payload, $overrides);
+        if ($documentKind !== null) {
+            $payload['document_kind'] = $documentKind;
+        }
+        return $payload;
     }
 }

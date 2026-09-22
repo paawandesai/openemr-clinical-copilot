@@ -29,8 +29,19 @@ use OpenEMR\Common\Uuid\UuidRegistry;
  * these writes auditable: `ADODB_mysqli_log::Execute()` hands every
  * statement to `EventAuditLogger::auditSQLEvent()`, which maps
  * `procedure_report` and `procedure_result` to the `lab-results` audit
- * event. A Doctrine or PDO write would produce the same rows and no audit
- * trail.
+ * event. It does *not* audit `procedure_order` — `WriteBackAudit` covers
+ * that, from outside the transaction, and says why.
+ *
+ * ### One order, N results
+ *
+ * A panel arrives as one document and several analytes. They share one
+ * `procedure_order` — the requisition — and each gets its own
+ * `procedure_order_code` / `procedure_report` / `procedure_result` at
+ * sequence 1..N, so each analyte keeps its own LOINC code and printed name
+ * in the Procedure Results screen rather than being collapsed under the
+ * first one's. `ProcedureService::search()` joins report to order code on
+ * `procedure_order_seq`, so the sequences have to line up for the FHIR read
+ * to emit an Observation per analyte.
  *
  * UUIDs are written here rather than left to
  * `ProcedureService::__construct`'s backfill. The backfill works — the
@@ -38,7 +49,7 @@ use OpenEMR\Common\Uuid\UuidRegistry;
  * write, and a row this endpoint reports ids for should be complete when
  * the transaction commits.
  */
-final readonly class ProcedureChainWriter
+final readonly class ProcedureChainWriter implements ProcedureChain
 {
     /**
      * `procedure_order.procedure_order_type`. The value OpenEMR's own
@@ -46,24 +57,23 @@ final readonly class ProcedureChainWriter
      */
     private const ORDER_TYPE = 'laboratory_test';
 
-    /** Single-test order, so the one code and report share sequence 1. */
-    private const ORDER_SEQ = 1;
-
     /**
-     * Writes one order, one order code, one report and one result.
-     *
-     * @param int $pid `patient_data.pid` — resolved from the request's patient uuid.
-     * @param int $userId `users.id` of the clinician whose token this request carries.
-     * @param int $documentId `documents.id` of the source file.
+     * @param list<LabWriteBackResult> $results
+     * @return list<ProcedureChainIds>
+     * @throws WriteBackFailed if given no results
      */
-    public function write(
-        LabWriteBackResult $result,
-        int $pid,
-        int $userId,
-        int $documentId
-    ): ProcedureChainIds {
-        $collected = $result->collectionDate->format('Y-m-d H:i:s');
-        $reported = ($result->reportedAt ?? $result->collectionDate)->format('Y-m-d H:i:s');
+    public function write(array $results, int $pid, int $userId, int $documentId): array
+    {
+        if ($results === []) {
+            throw new WriteBackFailed('the procedure chain needs at least one result');
+        }
+        // The order spans the panel, so its dates come from the earliest
+        // collection and the latest report across the rows it covers.
+        $collected = min(array_map(static fn(LabWriteBackResult $r): string => $r->collectionDate->format('Y-m-d H:i:s'), $results));
+        $reported = max(array_map(
+            static fn(LabWriteBackResult $r): string => ($r->reportedAt ?? $r->collectionDate)->format('Y-m-d H:i:s'),
+            $results
+        ));
 
         $orderId = QueryUtils::sqlInsert(
             'INSERT INTO `procedure_order` SET `uuid` = ?, `provider_id` = ?, `patient_id` = ?,'
@@ -80,11 +90,28 @@ final readonly class ProcedureChainWriter
             ]
         );
 
+        $written = [];
+        foreach ($results as $index => $result) {
+            $written[] = $this->writeResult($result, $orderId, $index + 1, $userId, $documentId);
+        }
+        return $written;
+    }
+
+    private function writeResult(
+        LabWriteBackResult $result,
+        int $orderId,
+        int $sequence,
+        int $userId,
+        int $documentId
+    ): ProcedureChainIds {
+        $collected = $result->collectionDate->format('Y-m-d H:i:s');
+        $reported = ($result->reportedAt ?? $result->collectionDate)->format('Y-m-d H:i:s');
+
         QueryUtils::sqlStatementThrowException(
             'INSERT INTO `procedure_order_code` SET `procedure_order_id` = ?,'
             . ' `procedure_order_seq` = ?, `procedure_code` = ?, `procedure_name` = ?,'
             . " `procedure_source` = '1', `do_not_send` = 0",
-            [$orderId, self::ORDER_SEQ, $result->testCode, $result->testName]
+            [$orderId, $sequence, $result->testCode, $result->testName]
         );
 
         $reportId = QueryUtils::sqlInsert(
@@ -94,7 +121,7 @@ final readonly class ProcedureChainWriter
             [
                 (new UuidRegistry(['table_name' => 'procedure_report']))->createUuid(),
                 $orderId,
-                self::ORDER_SEQ,
+                $sequence,
                 $collected,
                 $reported,
                 $userId,

@@ -33,7 +33,7 @@ use Psr\Clock\ClockInterface;
  * clinical-looking column is `test_code`, which is a LOINC code and is
  * part of the key.
  */
-final readonly class WriteBackLedger
+final readonly class WriteBackLedger implements Ledger
 {
     public const TABLE = 'module_clinical_copilot_writeback_ledger';
 
@@ -76,7 +76,7 @@ final readonly class WriteBackLedger
         LabWriteBackRequest $request,
         LabWriteBackResult $result,
         int $documentId,
-        ProcedureChainIds $ids,
+        ProcedureChainIds $ids
     ): int {
         return QueryUtils::sqlInsert(
             'INSERT INTO `' . self::TABLE . '` SET'

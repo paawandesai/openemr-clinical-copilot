@@ -11,6 +11,8 @@ Three files, all generated, none hand-edited:
 
     docs/w2/schemas/lab_pdf.schema.json
     docs/w2/schemas/intake_form.schema.json
+    docs/w2/schemas/lab_writeback_request.schema.json
+    docs/w2/schemas/lab_writeback_response.schema.json
     docs/w2/factory-field-mapping.md
 
 The JSON Schemas are in *validation* mode — what an instance is checked
@@ -47,6 +49,12 @@ from app.models.w2.intake_form import (  # noqa: E402
     IntakeFormExtraction,
 )
 from app.models.w2.lab_pdf import LAB_PDF_SCHEMA_VERSION, LabPdfExtraction  # noqa: E402
+from app.models.w2.writeback import (  # noqa: E402
+    LAB_WRITEBACK_REQUEST_SCHEMA_VERSION,
+    LAB_WRITEBACK_RESPONSE_SCHEMA_VERSION,
+    LabWriteBackRequest,
+    LabWriteBackResponse,
+)
 
 REPO_ROOT = AGENT_ROOT.parent
 SCHEMA_DIR = REPO_ROOT / "docs" / "w2" / "schemas"
@@ -78,6 +86,22 @@ def intake_form_schema() -> str:
         IntakeFormExtraction,
         f"https://clinical-copilot.invalid/schemas/{INTAKE_FORM_SCHEMA_VERSION}",
         "Intake form extraction",
+    )
+
+
+def lab_writeback_request_schema() -> str:
+    return _schema(
+        LabWriteBackRequest,
+        f"https://clinical-copilot.invalid/schemas/{LAB_WRITEBACK_REQUEST_SCHEMA_VERSION}",
+        "Lab write-back request",
+    )
+
+
+def lab_writeback_response_schema() -> str:
+    return _schema(
+        LabWriteBackResponse,
+        f"https://clinical-copilot.invalid/schemas/{LAB_WRITEBACK_RESPONSE_SCHEMA_VERSION}",
+        "Lab write-back response",
     )
 
 
@@ -196,6 +220,8 @@ def _artefacts() -> dict[Path, str]:
             {
                 SCHEMA_DIR / "lab_pdf.schema.json": lab_pdf_schema(),
                 SCHEMA_DIR / "intake_form.schema.json": intake_form_schema(),
+                SCHEMA_DIR / "lab_writeback_request.schema.json": lab_writeback_request_schema(),
+                SCHEMA_DIR / "lab_writeback_response.schema.json": lab_writeback_response_schema(),
                 MAPPING_DOC: mapping_document(),
             }
         )

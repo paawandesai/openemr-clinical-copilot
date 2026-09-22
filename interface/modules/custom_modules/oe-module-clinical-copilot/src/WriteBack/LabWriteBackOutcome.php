@@ -16,45 +16,26 @@ namespace OpenEMR\Modules\ClinicalCopilot\WriteBack;
 
 /**
  * Shaped to the agent-side `LabWriteBackResponse`
- * (agent/app/models/w2/writeback.py), so `toArray()` is the wire format
- * and the only place field names are spelled.
+ * (agent/app/models/w2/writeback.py), so `toArray()` is the wire format and
+ * the only place field names are spelled.
+ *
+ * `procedureOrderId` is one value for a response whose results may span two
+ * writes: it is the order this call created, and — when this call created
+ * nothing — the order recorded for the first result. Per-result order ids
+ * are on the ledger; the response's job is to name the requisition this
+ * request produced.
  */
 final readonly class LabWriteBackOutcome
 {
+    /** @param non-empty-list<ResultOutcome> $results */
     public function __construct(
         public string $patientUuid,
         public int $documentId,
         public WriteOutcome $documentOutcome,
-        public string $testCode,
-        public string $idempotencyKey,
-        public string $extractionId,
-        public WriteOutcome $resultOutcome,
-        public ProcedureChainIds $ids,
+        public int $procedureOrderId,
+        public array $results,
         public string $correlationId,
     ) {
-    }
-
-    /**
-     * The ids a previous identical request already recorded. Nothing is
-     * written, and the answer is the same one that request received.
-     */
-    public static function replayed(LabWriteBackRequest $request, LedgerEntry $entry): self
-    {
-        return new self(
-            $request->patientUuid,
-            $entry->documentId,
-            WriteOutcome::DUPLICATE_IGNORED,
-            $request->onlyResult()->testCode,
-            $entry->idempotencyKey,
-            $entry->extractionId,
-            WriteOutcome::DUPLICATE_IGNORED,
-            new ProcedureChainIds(
-                $entry->procedureOrderId,
-                $entry->procedureReportId,
-                $entry->procedureResultId
-            ),
-            $request->correlationId,
-        );
     }
 
     /** @return array<string, mixed> */
@@ -64,18 +45,18 @@ final readonly class LabWriteBackOutcome
             'patient_uuid' => $this->patientUuid,
             'document_id' => $this->documentId,
             'document_outcome' => $this->documentOutcome->value,
-            'procedure_order_id' => $this->ids->procedureOrderId,
-            'results' => [
-                [
-                    'test_code' => $this->testCode,
-                    'idempotency_key' => $this->idempotencyKey,
-                    'extraction_id' => $this->extractionId,
-                    'outcome' => $this->resultOutcome->value,
-                    'procedure_report_id' => $this->ids->procedureReportId,
-                    'procedure_result_id' => $this->ids->procedureResultId,
-                ],
-            ],
+            'procedure_order_id' => $this->procedureOrderId,
+            'results' => array_map(static fn(ResultOutcome $r): array => $r->toArray(), $this->results),
             'correlation_id' => $this->correlationId,
         ];
+    }
+
+    /** How many results this call actually wrote. */
+    public function createdCount(): int
+    {
+        return count(array_filter(
+            $this->results,
+            static fn(ResultOutcome $r): bool => $r->outcome === WriteOutcome::CREATED
+        ));
     }
 }

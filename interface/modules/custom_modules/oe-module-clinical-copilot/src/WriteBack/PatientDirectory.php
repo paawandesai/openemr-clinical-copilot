@@ -25,7 +25,7 @@ use OpenEMR\Common\Uuid\UuidRegistry;
  * endpoint that accepted a pid would be an endpoint that writes a lab
  * result into whichever chart happens to hold that number.
  */
-final readonly class PatientDirectory
+final readonly class PatientDirectory implements PatientLookup
 {
     /**
      * @throws WriteBackFailed if no such patient exists on this instance.

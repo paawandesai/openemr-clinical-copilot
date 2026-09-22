@@ -92,6 +92,31 @@ final class IdempotencyKeys
     }
 
     /**
+     * The id for an extraction *run* over a whole document — what the
+     * request's `extraction_id` carries.
+     *
+     * Includes the extractor version so that re-extracting the same file
+     * with a changed extractor produces a different id, and so that the run
+     * id the caller sends can be recomputed here rather than believed.
+     *
+     * @throws InvalidWriteBackRequest
+     */
+    public static function documentExtractionId(string $documentSha3512, string $extractorVersion): string
+    {
+        if (trim($extractorVersion) === '') {
+            throw new InvalidWriteBackRequest(
+                'extractor_version',
+                'is required: an extraction run records which extractor produced it'
+            );
+        }
+        $material = implode(self::SEPARATOR, [
+            self::documentKey($documentSha3512),
+            trim($extractorVersion),
+        ]);
+        return 'w2x-' . substr(hash('sha3-256', $material), 0, 32);
+    }
+
+    /**
      * The id that goes into `procedure_result.comments`, and nothing else
      * goes there.
      *

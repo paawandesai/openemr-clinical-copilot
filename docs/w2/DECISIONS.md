@@ -745,3 +745,96 @@ is the same path a result arriving from a real lab interface takes.
 
 **Not settled here, and out of scope for the branch that wrote this:** batching
 several results into one request, and the agent-side client.
+
+---
+
+## D24 — The PDF preview reads through the module, not `GET /fhir/Binary/:id`
+
+**Status:** DECIDED — supersedes the read-back half of D1 (superseding). The
+document *write* path in D1 is unchanged; so is `Binary` as a read path for a
+caller that holds the `admin` ACL.
+**Date:** 2026-09-22
+
+**Decision:** The source-document preview is
+**`GET <module>/public/document.php?document_id=<int>`**, served inside the
+clinician's own OpenEMR session. It requires the `patients`/`docs` ACL — the
+one OpenEMR's own document viewer checks — and the document must belong to the
+patient whose chart is open. It serves `application/pdf` and nothing else.
+
+**Why D1's read-back does not work.** D1 says `GET /fhir/Binary/:id` "is also
+the source for the PDF preview", on the spike's evidence that it returns the
+bytes intact. It does — for an administrator. The route runs
+`RestConfig::request_authorization_check($request, "admin", "users")` for any
+non-patient request (`_rest_routes_fhir_r4_us_core_3_1_0.inc.php:285`), and a
+physician holds no `admin` ACL. Checked directly on the local stack:
+`admin/super`, `admin/users` and `admin/docs` are all false for `physician`,
+and the request returns **403 "Organization policy does not have permit access
+resource"**. The spike only saw it work because it ran as `admin`. Granting
+clinicians an `admin` ACL to read a PDF would be the wrong repair by a wide
+margin.
+
+**Why a module page and not another REST route.** The preview is rendered in
+the chart by a clinician who is already authenticated to OpenEMR. A REST route
+would need a brokered OAuth token for a browser `<embed>` that cannot carry an
+`Authorization` header, and would re-implement an authorization decision the
+session already answers. `brief.php` and `conversation.php` established the
+pattern; this follows it.
+
+**Three things it does deliberately:**
+
+1. **One answer for every way a document is not yours.** Missing, another
+   patient's, and deleted all return **404** with the same text. A document id
+   that exists for a patient is a fact about that patient, and an endpoint that
+   distinguished the cases would disclose it.
+2. **PDF only.** A stored document may be any type on the upload whitelist, and
+   streaming `text/html` or an SVG inline from OpenEMR's own origin is a
+   scripting vector on a trusted page. Anything else is **415**.
+3. **No CSRF token.** Reading changes nothing, a token in a query string leaks
+   through referrers and history, and OpenEMR's own retrieval does not use one.
+   The session and the ACL are the controls.
+
+**Not restricted to documents this module wrote.** A clinician with
+`patients`/`docs` can already open any of that patient's documents in
+OpenEMR's own viewer, so narrowing would protect nothing and would break the
+preview for a document uploaded any other way.
+
+---
+
+## D25 — A panel is one order, and one report+result per analyte
+
+**Status:** DECIDED
+**Date:** 2026-09-22
+
+**Decision:** One write-back request carries one document and N results. The
+results that are **new in that request** are written under **one new
+`procedure_order`**, with a `procedure_order_code` + `procedure_report` +
+`procedure_result` each, at sequence 1..N. Results already in the ledger are
+returned with the ids of the write that made them and nothing is inserted for
+them. The response's single `procedure_order_id` is the order this request
+created — or, when it created nothing, the order recorded for its first result.
+
+**Why one report per analyte rather than one report with N results.** A real
+laboratory interface files a panel as one report with many result rows, and
+that was the first shape tried. It loses the analyte's identity in the UI:
+`interface/orders/orders_results.php` groups by `procedure_order_code` and
+labels the group with `procedure_name`, so a panel under one code shows one
+name — the first analyte's, or an invented one — for every row beneath it. The
+extraction has no panel code to use instead (`LabResult.loinc_code` is
+per-row and assigned, and lab PDFs rarely print a panel LOINC). A code per
+analyte keeps each row named as the report named it, which is what the
+clinician checking the write needs to see. `ProcedureService::search()` joins
+report to order code on `procedure_order_seq`, so the sequences line up and the
+FHIR read emits one Observation per analyte either way.
+
+**Why idempotency is per result and not per request.** A request can legally
+repeat results and add others — a re-extraction that found one more analyte, or
+two requests overlapping on the same document. Replaying the whole request as a
+unit would either duplicate the repeats or refuse the additions. Per-result
+keys make the answer obvious: each row is created once, and a mixed request
+reports `created` and `duplicate_ignored` row by row. Verified on the local
+stack, including two identical requests fired together: the loser rolls back
+and returns the winner's ids, and exactly one chain exists afterwards.
+
+**Bound:** 100 results per request. Not a contract rule — a ceiling on how long
+one transaction may hold row locks across the procedure tables. A comprehensive
+metabolic panel is 14 analytes.

@@ -14,37 +14,44 @@ declare(strict_types=1);
 
 namespace OpenEMR\Modules\ClinicalCopilot\WriteBack;
 
-use OpenEMR\Common\Database\QueryUtils;
 use OpenEMR\Common\Database\SqlQueryException;
 use Psr\Log\LoggerInterface;
+use Throwable;
 
 /**
- * Document and lab result are written together or not at all, so a partial
- * write cannot leave a result pointing at a document that was never
- * stored.
+ * Document and lab results are written together or not at all, so a partial
+ * write cannot leave results pointing at a document that was never stored.
  *
- * Idempotency has two layers, and only the second one is load-bearing. The
- * ledger lookup before the transaction is an optimisation and the source
- * of the ids a replay answers with; two concurrent identical requests can
- * both miss it. The ledger's UNIQUE key is what they then collide on, and
- * the loser re-reads the winner's ids rather than failing — so a retry is
- * safe however it races (CLAUDE.md invariant 6).
+ * ### Idempotency is per result, and the constraint is what enforces it
  *
- * Known limit, deliberately not solved here: `\Document::createDocument()`
- * writes the encrypted file to disk, and a filesystem write is not part of
- * a database transaction. A rollback after that point removes the
- * `documents` row and leaves the ciphertext behind, unreferenced by
- * anything. That is the safe direction to fail — an orphaned file rather
- * than a row pointing at nothing — but it does mean a failed write can
- * leave bytes on disk.
+ * Each result carries its own D1 key. The ledger is read before the
+ * transaction to decide what is new, but that read is an optimisation and a
+ * source of ids — two concurrent identical requests can both miss it. The
+ * ledger's UNIQUE key is what they then collide on, and the loser rolls
+ * back, re-reads, and answers with the winner's ids. So a retry is safe
+ * however it races (CLAUDE.md invariant 6), and a request that repeats some
+ * results and adds others writes only the new ones.
+ *
+ * ### The orphaned-file problem, and what is done about it
+ *
+ * `\Document::createDocument()` encrypts the bytes and writes them to disk
+ * before the `documents` row is committed, and a filesystem write is not
+ * part of a database transaction. A rollback after that point removes the
+ * row and leaves ciphertext behind that nothing references. The rollback is
+ * still the right direction to fail — an unreferenced file beats a row
+ * pointing at nothing — but the file is this call's litter, so the failure
+ * path deletes it. Only a file *this call* wrote: a document that was
+ * already stored belongs to whoever stored it.
  */
 final readonly class LabWriteBackService
 {
     public function __construct(
-        private PatientDirectory $patients,
-        private DocumentStore $documents,
-        private ProcedureChainWriter $chain,
-        private WriteBackLedger $ledger,
+        private PatientLookup $patients,
+        private DocumentStorage $documents,
+        private ProcedureChain $chain,
+        private Ledger $ledger,
+        private Transaction $transaction,
+        private WriteBackAudit $audit,
         private LoggerInterface $logger,
     ) {
     }
@@ -56,80 +63,195 @@ final readonly class LabWriteBackService
     public function write(LabWriteBackRequest $request, int $userId): LabWriteBackOutcome
     {
         $pid = $this->patients->requirePid($request->patientUuid);
-        $result = $request->onlyResult();
 
-        $recorded = $this->ledger->findByIdempotencyKey($result->idempotencyKey);
-        if ($recorded !== null) {
-            $this->logReplay($request, $recorded);
-            return LabWriteBackOutcome::replayed($request, $recorded);
+        $recorded = $this->readLedger($request);
+        if ($this->allRecorded($request, $recorded)) {
+            $this->log($request, 'replayed an existing write', $recorded);
+            return $this->replay($request, $recorded);
         }
 
         try {
-            /** @var LabWriteBackOutcome $outcome */
-            $outcome = QueryUtils::inTransaction(
-                fn(): LabWriteBackOutcome => $this->writeOnce($request, $result, $pid, $userId)
+            $outcome = $this->transaction->run(
+                fn(): LabWriteBackOutcome => $this->writeOnce($request, $recorded, $pid, $userId)
             );
         } catch (SqlQueryException $exception) {
-            $winner = $this->ledger->findByIdempotencyKey($result->idempotencyKey);
-            if ($winner === null) {
-                // Not the UNIQUE key, then — a real database failure. The
-                // message may carry SQL, so it is logged and not returned.
-                $this->logger->error('Clinical Co-Pilot lab write-back failed', [
-                    'correlation_id' => $request->correlationId,
-                    'extraction_id' => $request->extractionId,
-                    'exception' => $exception,
-                ]);
-                throw new WriteBackFailed('the write could not be completed');
-            }
-            $this->logger->info('Clinical Co-Pilot lab write-back lost an idempotency race', [
-                'correlation_id' => $request->correlationId,
-                'extraction_id' => $request->extractionId,
-                'procedure_result_id' => $winner->procedureResultId,
-            ]);
-            return LabWriteBackOutcome::replayed($request, $winner);
+            return $this->afterRollback($request, $pid, $exception);
+        } catch (Throwable $exception) {
+            $this->audit->writeAbandoned($pid, 'the transaction was rolled back');
+            throw $exception;
         }
 
-        $this->logger->info('Clinical Co-Pilot wrote a lab result back to the chart', [
+        // After the commit, never inside it: OpenEMR's audit inserts do not
+        // roll back with the work they describe, so an entry written inside
+        // the transaction can outlive rows that were undone.
+        $this->audit->orderWritten(
+            $pid,
+            $outcome->procedureOrderId,
+            array_values(array_map(
+                static fn(ResultOutcome $r): int => $r->ids->procedureResultId,
+                array_filter(
+                    $outcome->results,
+                    static fn(ResultOutcome $r): bool => $r->outcome === WriteOutcome::CREATED
+                )
+            ))
+        );
+
+        $this->logger->info('Clinical Co-Pilot wrote lab results back to the chart', [
             'correlation_id' => $request->correlationId,
             'extraction_id' => $request->extractionId,
             'document_id' => $outcome->documentId,
             'document_outcome' => $outcome->documentOutcome->value,
-            'procedure_order_id' => $outcome->ids->procedureOrderId,
-            'procedure_report_id' => $outcome->ids->procedureReportId,
-            'procedure_result_id' => $outcome->ids->procedureResultId,
+            'procedure_order_id' => $outcome->procedureOrderId,
+            'results_created' => $outcome->createdCount(),
+            'results_total' => count($outcome->results),
         ]);
         return $outcome;
     }
 
     /**
+     * The body of the transaction.
+     *
+     * The document is stored inside it on purpose: storing first and
+     * committing later would leave a document in the chart whose results
+     * never arrived, which is the failure D1's "one transaction" exists to
+     * prevent. The cost is the orphaned file, which the caller cleans up.
+     *
+     * @param array<string, LedgerEntry|null> $recorded keyed by idempotency key
      * @throws InvalidWriteBackRequest|WriteBackFailed|SqlQueryException
      */
     private function writeOnce(
         LabWriteBackRequest $request,
-        LabWriteBackResult $result,
+        array $recorded,
         int $pid,
         int $userId
     ): LabWriteBackOutcome {
         $categoryId = $this->documents->resolveCategoryId($request->document->categoryPath);
-        [$documentId, $documentOutcome] = $this->resolveDocument($request, $pid, $categoryId, $userId);
-        $ids = $this->chain->write($result, $pid, $userId, $documentId);
-        $this->ledger->record($request, $result, $documentId, $ids);
+        $stored = $this->resolveDocument($request, $pid, $categoryId, $userId);
+
+        try {
+            $pending = [];
+            foreach ($request->results as $result) {
+                if (($recorded[$result->idempotencyKey] ?? null) === null) {
+                    $pending[] = $result;
+                }
+            }
+            $written = $this->chain->write($pending, $pid, $userId, $stored->documentId);
+
+            $byKey = [];
+            foreach ($pending as $index => $result) {
+                $this->ledger->record($request, $result, $stored->documentId, $written[$index]);
+                $byKey[$result->idempotencyKey] = ResultOutcome::created($result, $written[$index]);
+            }
+
+            // array_map over a non-empty list, so the response's result list
+            // is non-empty by construction rather than by assertion.
+            $outcomes = array_map(
+                static fn(LabWriteBackResult $result): ResultOutcome =>
+                    ($recorded[$result->idempotencyKey] ?? null) === null
+                        ? $byKey[$result->idempotencyKey]
+                        : ResultOutcome::alreadyWritten($result, $recorded[$result->idempotencyKey]),
+                $request->results
+            );
+
+            return new LabWriteBackOutcome(
+                $request->patientUuid,
+                $stored->documentId,
+                $stored->outcome,
+                $written[0]->procedureOrderId,
+                $outcomes,
+                $request->correlationId,
+            );
+        } catch (Throwable $exception) {
+            // The transaction is about to roll back and take the
+            // `documents` row with it. Remove the bytes it left on disk.
+            $this->documents->discardStoredFile($stored);
+            throw $exception;
+        }
+    }
+
+    /**
+     * A failed transaction is either a lost idempotency race or a real
+     * fault, and the ledger says which: after the rollback, every key this
+     * request carries is present exactly when someone else wrote them.
+     *
+     * @throws WriteBackFailed
+     */
+    private function afterRollback(
+        LabWriteBackRequest $request,
+        int $pid,
+        SqlQueryException $exception
+    ): LabWriteBackOutcome {
+        $recorded = $this->readLedger($request);
+        if (!$this->allRecorded($request, $recorded)) {
+            $this->audit->writeAbandoned($pid, 'the transaction was rolled back');
+            // Not the UNIQUE key, then — a real database failure. The
+            // message may carry SQL, so it is logged and not returned.
+            $this->logger->error('Clinical Co-Pilot lab write-back failed', [
+                'correlation_id' => $request->correlationId,
+                'extraction_id' => $request->extractionId,
+                'results_total' => count($request->results),
+                'exception' => $exception,
+            ]);
+            throw new WriteBackFailed('the write could not be completed');
+        }
+        $this->audit->writeAbandoned($pid, 'another request wrote the same results first');
+        $this->log($request, 'lost an idempotency race', $recorded);
+        return $this->replay($request, $recorded);
+    }
+
+    /**
+     * @return array<string, LedgerEntry|null> keyed by idempotency key
+     */
+    private function readLedger(LabWriteBackRequest $request): array
+    {
+        $recorded = [];
+        foreach ($request->results as $result) {
+            $recorded[$result->idempotencyKey] = $this->ledger->findByIdempotencyKey($result->idempotencyKey);
+        }
+        return $recorded;
+    }
+
+    /** @param array<string, LedgerEntry|null> $recorded */
+    private function allRecorded(LabWriteBackRequest $request, array $recorded): bool
+    {
+        foreach ($request->results as $result) {
+            if (($recorded[$result->idempotencyKey] ?? null) === null) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    /**
+     * Every result was already written: return what was recorded, having
+     * written nothing.
+     *
+     * @param array<string, LedgerEntry|null> $recorded
+     */
+    private function replay(LabWriteBackRequest $request, array $recorded): LabWriteBackOutcome
+    {
+        // allRecorded() has already established every entry is present.
+        $outcomes = array_map(
+            static fn(LabWriteBackResult $result): ResultOutcome => ResultOutcome::alreadyWritten(
+                $result,
+                $recorded[$result->idempotencyKey] ?? throw new WriteBackFailed('ledger row vanished')
+            ),
+            $request->results
+        );
+        $first = $recorded[$request->results[0]->idempotencyKey];
+        assert($first instanceof LedgerEntry);
 
         return new LabWriteBackOutcome(
             $request->patientUuid,
-            $documentId,
-            $documentOutcome,
-            $result->testCode,
-            $result->idempotencyKey,
-            $result->extractionId,
-            WriteOutcome::CREATED,
-            $ids,
+            $first->documentId,
+            WriteOutcome::DUPLICATE_IGNORED,
+            $first->procedureOrderId,
+            $outcomes,
             $request->correlationId,
         );
     }
 
     /**
-     * @return array{int, WriteOutcome}
      * @throws InvalidWriteBackRequest|WriteBackFailed
      */
     private function resolveDocument(
@@ -137,41 +259,38 @@ final readonly class LabWriteBackService
         int $pid,
         int $categoryId,
         int $userId
-    ): array {
+    ): StoredDocument {
         $document = $request->document;
 
         if ($document->existingDocumentId !== null) {
-            return [
-                $this->documents->requireExisting($document->existingDocumentId, $pid, $document->sha3512),
-                WriteOutcome::DUPLICATE_IGNORED,
-            ];
+            return StoredDocument::reused(
+                $this->documents->requireExisting($document->existingDocumentId, $pid, $document->sha3512)
+            );
         }
 
         $alreadyStored = $this->documents->findByHash($pid, $categoryId, $document->sha3512);
         if ($alreadyStored !== null) {
-            return [$alreadyStored, WriteOutcome::DUPLICATE_IGNORED];
+            return StoredDocument::reused($alreadyStored);
         }
 
-        return [
-            $this->documents->store(
-                $pid,
-                $categoryId,
-                $document->filename,
-                $document->mimeType,
-                (string) $document->content,
-                $userId
-            ),
-            WriteOutcome::CREATED,
-        ];
+        return $this->documents->store(
+            $pid,
+            $categoryId,
+            $document->filename,
+            $document->mimeType,
+            (string) $document->content,
+            $userId
+        );
     }
 
-    private function logReplay(LabWriteBackRequest $request, LedgerEntry $recorded): void
+    /** @param array<string, LedgerEntry|null> $recorded */
+    private function log(LabWriteBackRequest $request, string $what, array $recorded): void
     {
-        $this->logger->info('Clinical Co-Pilot lab write-back replayed an existing write', [
+        $this->logger->info('Clinical Co-Pilot lab write-back ' . $what, [
             'correlation_id' => $request->correlationId,
-            'extraction_id' => $recorded->extractionId,
-            'document_id' => $recorded->documentId,
-            'procedure_result_id' => $recorded->procedureResultId,
+            'extraction_id' => $request->extractionId,
+            'results_total' => count($request->results),
+            'results_already_written' => count(array_filter($recorded)),
         ]);
     }
 }

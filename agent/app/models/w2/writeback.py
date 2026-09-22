@@ -83,6 +83,21 @@ from app.models.w2.lab_values import AbnormalFlag, LabValue, ReferenceRange, ope
 #: from `procedure_result.comments` (§7).
 _KEY_SEPARATOR = ":"
 
+#: Names of the two published JSON Schema documents for this endpoint
+#: (`docs/w2/schemas/`, exported by `agent/scripts/export_w2_schemas.py`).
+#: Unlike `LabPdfExtraction`, neither model carries a `schema_version`
+#: *field*: an extraction file outlives the extractor that wrote it and has
+#: to say which schema it is in, whereas a request is read the moment it is
+#: sent, by one endpoint at one route. Versioning lives in the route.
+#:
+#: D22 applies to both documents: they describe shape. The cross-field rules
+#: — that an idempotency key is the composition of its own components, that
+#: a run id is this document under this extractor — live in the validators
+#: below and in the PHP endpoint, and a consumer that checks only the schema
+#: has not checked them.
+LAB_WRITEBACK_REQUEST_SCHEMA_VERSION = "w2-contracts/lab_writeback_request/1.0.0"
+LAB_WRITEBACK_RESPONSE_SCHEMA_VERSION = "w2-contracts/lab_writeback_response/1.0.0"
+
 
 def document_idempotency_key(sha3_512: str) -> str:
     """
@@ -306,6 +321,14 @@ class LabWriteBackRequest(W2Contract):
         pattern=EXTRACTION_ID_PATTERN,
         description="The extraction run these results came from.",
     )
+    extractor_version: str = Field(
+        min_length=1,
+        description=(
+            "Which extractor produced this run. Required, with no default: "
+            "the ledger row records it, and a default would make every "
+            "unstated run look like the same one."
+        ),
+    )
     correlation_id: str = Field(pattern=CORRELATION_ID_PATTERN)
 
     @model_validator(mode="after")
@@ -315,6 +338,15 @@ class LabWriteBackRequest(W2Contract):
                 "only lab values are written back. D2: intake medications and "
                 "allergies are document-derived facts surfaced as "
                 "discrepancies, never merged into the chart"
+            )
+        expected_run = document_extraction_id(
+            document_sha3_512=self.document.sha3_512,
+            extractor_version=self.extractor_version,
+        )
+        if self.extraction_id != expected_run:
+            raise ValueError(
+                "extraction_id is not this document extracted by this "
+                "extractor_version; see document_extraction_id"
             )
         seen: set[str] = set()
         for result in self.results:

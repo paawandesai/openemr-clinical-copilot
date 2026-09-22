@@ -254,11 +254,13 @@ the API client.
 
 ## Lab write-back endpoint
 
-`POST /api/clinical-copilot/lab-writeback` — one lab document plus one
-extracted lab result, written into the chart in a single transaction, with real
-ids returned. Decided in [`docs/w2/DECISIONS.md`](../../../../docs/w2/DECISIONS.md)
-D1 (superseding) and D23, on the evidence in
+`POST /api/clinical-copilot/lab-writeback` — one lab document plus the results
+extracted from it, written into the chart in a single transaction, with real ids
+returned. Decided in [`docs/w2/DECISIONS.md`](../../../../docs/w2/DECISIONS.md)
+D1 (superseding), D23 and D25, on the evidence in
 [`docs/w2/spikes/writeback.md`](../../../../docs/w2/spikes/writeback.md).
+Installing it on an instance:
+[`docs/w2/deploy-writeback.md`](../../../../docs/w2/deploy-writeback.md).
 
 Why it exists: OpenEMR 8.2 exposes **no API that writes a lab result**. Every
 FHIR write route 404s and no `Observation` write scope is defined even in
@@ -271,16 +273,32 @@ rest.
 
 ### What it writes, and what it refuses
 
-- **One document and one result.** Batching is not implemented; a request with
-  two results is refused rather than partly written.
+- **One document and its analytes.** A panel is one request: the results new to
+  it share one `procedure_order` and get a `procedure_order_code` +
+  `procedure_report` + `procedure_result` each, so every analyte keeps its own
+  LOINC code and printed name in the Procedure Results screen (D25). At most 100
+  results per request — a bound on one transaction, not a contract rule.
 - **Lab reports only.** `document_kind` must be `lab_pdf`. D2 forbids intake
   medications and allergies reaching the chart, and the type check is where
   that is enforced.
-- **Idempotently.** The ledger table `module_clinical_copilot_writeback_ledger`
-  is `UNIQUE` on D1's key over (document SHA3-512, test code, collection date).
-  The same request twice returns the same ids and writes nothing the second
-  time. The endpoint recomputes the key and the extraction id from their
-  components and refuses a request whose values do not match.
+- **Idempotently, per result.** The ledger table
+  `module_clinical_copilot_writeback_ledger` is `UNIQUE` on D1's key over
+  (document SHA3-512, test code, collection date). The same request twice
+  returns the same ids and writes nothing the second time; a request that
+  repeats some results and adds others writes only the new ones and reports
+  `created` / `duplicate_ignored` row by row. The endpoint recomputes every key,
+  every result's extraction id, and the run's `extraction_id` (which is
+  `document_extraction_id` of the document digest and `extractor_version`) from
+  their components, and refuses a request whose values do not match.
+- **All of it or none of it.** Document and results commit together. A failure
+  part-way rolls the whole thing back and deletes the encrypted file
+  `\Document::createDocument()` had already written — a filesystem write is not
+  part of a database transaction, so that cleanup is explicit. Verified against
+  the live stack by making the ledger insert fail on purpose: zero rows, no
+  orphaned file.
+- **Under a race.** Two identical requests arriving together produce exactly one
+  chain. The loser's transaction rolls back and it answers with the winner's
+  ids.
 - **`procedure_result.comments` carries an extraction id and nothing else.** It
   surfaces as `Observation.note[0].text`; the ledger maps that id to the
   document, page and bounding box.
@@ -326,6 +344,33 @@ The caller also needs the `patients`/`docs` and `patients`/`lab` ACLs, with
 `write` or `addonly`. The scope says what the client application may ask for;
 the ACL says what this clinician may do.
 
+### Auditing
+
+Core audits the `procedure_report` and `procedure_result` inserts through
+`EventAuditLogger::auditSQLEvent()`. It does **not** audit `procedure_order`:
+`LOG_TABLES` maps it to the `lab-order` event and `audit_events_lab-order` is
+not a global `library/globals.inc.php` defines, so the check is false on every
+instance. The module writes its own entry for that, from **outside** the
+transaction — OpenEMR's audit inserts do not roll back with the work they
+describe, so an entry written inside one can outlive rows that were undone. An
+attempt that wrote nothing is recorded too, with `success = 0`.
+
+### Source-document preview
+
+`GET <module>/public/document.php?document_id=<int>` streams the stored PDF for
+the patient whose chart is open, decrypting through `\Document::get_data()`.
+
+This replaces `GET /fhir/Binary/:id` for clinicians (D24). That route requires
+the `admin`/`users` ACL, which a physician does not have, so it 403s for exactly
+the people the preview is for — the write-back spike only saw it work because it
+ran as `admin`.
+
+It checks the session, the `patients`/`docs` ACL, and that the document belongs
+to the open chart. Missing, another patient's and deleted all answer **404**
+with the same text, because a document id that exists for a patient is itself a
+fact about that patient. Non-PDF documents are **415**: streaming arbitrary
+stored types inline from OpenEMR's own origin would be a scripting vector.
+
 ### Where the result appears
 
 **Procedures > Pending Review**, with the patient's chart open — not Patient
@@ -358,8 +403,21 @@ They cover:
   another patient under the same nonce, another nonce, or another login;
 - configuration parsing, including the loopback restriction.
 
-The write-back tests are isolated too, and cover the pure half of the endpoint:
-the idempotency key and extraction id (pinned against values produced by the
-committed Python contract, so a drift between the two derivations fails here
-rather than as a 400 in production), the abnormal-flag and value mappings onto
-OpenEMR's columns, and every refusal the request parser makes.
+The write-back tests are isolated too, and cover:
+
+- the idempotency key, the per-result extraction id and the run id, pinned
+  against values produced by the committed Python contract, so a drift between
+  the two derivations fails here rather than as a 400 in production;
+- the abnormal-flag and value mappings onto OpenEMR's columns, and every
+  refusal the request parser makes;
+- the orchestration, with the four database collaborators faked
+  (`tests/Fakes/`): a panel written as one call, a mixed request that writes
+  only the new rows, a transaction that fails after the document was stored
+  (nothing written, the ciphertext removed, nothing claimed in the audit log),
+  and the losing side of an idempotency race answering with the winner's ids.
+  The last two are also verified against a live database — see the session
+  report — but only here can the cleanup be observed, since after a real
+  rollback there is nothing left to look at but the absence of rows;
+- the preview's guard: method, id shape, ACL before chart, and a
+  `Content-Disposition` filename that cannot carry a path, a quote or a
+  newline.

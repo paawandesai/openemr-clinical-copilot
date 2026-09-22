@@ -16,6 +16,7 @@ namespace OpenEMR\Modules\ClinicalCopilot\WriteBack;
 
 use OpenEMR\BC\ServiceContainer;
 use OpenEMR\Common\Http\HttpRestRequest;
+use OpenEMR\Common\Session\SessionWrapperFactory;
 use OpenEMR\Core\OEGlobalsBag;
 use OpenEMR\Events\RestApiExtend\RestApiCreateEvent;
 use OpenEMR\Events\RestApiExtend\RestApiScopeEvent;
@@ -114,12 +115,15 @@ final readonly class LabWriteBackApi
      */
     private function controller(): LabWriteBackController
     {
+        $session = SessionWrapperFactory::getInstance()->getActiveSession();
         return new LabWriteBackController(
             new LabWriteBackService(
                 new PatientDirectory(),
-                new DocumentStore(new DocumentService(), $this->globals),
+                new DocumentStore(new DocumentService(), $this->globals, $this->logger),
                 new ProcedureChainWriter(),
                 new WriteBackLedger(ServiceContainer::getClock()),
+                new QueryUtilsTransaction(),
+                new EventLogWriteBackAudit($session),
                 $this->logger,
             ),
             $this->logger,
