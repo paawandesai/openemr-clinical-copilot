@@ -94,6 +94,15 @@ from app.models.metrics_events import (
     RetrievalEvent,
     UseCase,
 )
+from app.models.telemetry_events import (
+    HTTP_REQUEST_EVENT,
+    STEP_EVENT,
+    TOOL_CALL_EVENT,
+    HttpRequestEvent,
+    StepEvent,
+    StepOutcome,
+    ToolCallEvent,
+)
 
 if TYPE_CHECKING:
     from langfuse import Langfuse
@@ -151,6 +160,144 @@ class _LlmUsage(BaseModel):
     cache_read_input_tokens: NonNegativeInt | None = None
 
 
+_Score = tuple[str, float, Literal["BOOLEAN", "NUMERIC"]]
+
+
+class _Derived(BaseModel):
+    """What an operational event contributes: scores, tags, and a level."""
+
+    scores: list[_Score] = []
+    tags: list[str] = []
+    level: SpanLevel | None = None
+    status_message: str | None = None
+
+
+def _step_scores(data: dict[str, Any]) -> _Derived:
+    """
+    step_event -> NUMERIC `step_latency_ms:<pipeline>.<step>`. One score
+    name per step, so a Scores Numeric widget broken down by Name is the
+    by-step p50/p95. A failed step is exported at level ERROR with the
+    exception's class name — never its message.
+    """
+    event = StepEvent.model_validate(data)
+    derived = _Derived(
+        scores=[
+            (f"step_latency_ms:{event.pipeline.value}.{event.step}", event.latency_ms, "NUMERIC")
+        ],
+        tags=[f"pipeline:{event.pipeline.value}"],
+    )
+    if event.outcome is StepOutcome.ERROR:
+        derived.level = "ERROR"
+        derived.status_message = f"step failed: {event.error_type or 'unknown'}"
+    return derived
+
+
+def _tool_scores(data: dict[str, Any]) -> _Derived:
+    event = ToolCallEvent.model_validate(data)
+    failed = is_dependency_failure(event)
+    derived = _Derived(
+        scores=[
+            ("tool_call_failed", float(failed), "BOOLEAN"),
+            ("tool_call_retries", float(event.retries), "NUMERIC"),
+        ],
+        tags=[f"tool:{event.tool.value}"],
+    )
+    if failed:
+        derived.level = "ERROR"
+        derived.status_message = f"tool call failed: {event.error_type or event.status_code}"
+    return derived
+
+
+def _request_scores(data: dict[str, Any]) -> _Derived:
+    event = HttpRequestEvent.model_validate(data)
+    derived = _Derived(
+        scores=[
+            ("request_latency_ms", event.latency_ms, "NUMERIC"),
+            ("request_server_error", float(event.is_server_error), "BOOLEAN"),
+        ],
+        tags=[f"route:{event.route}"],
+    )
+    if event.is_server_error:
+        derived.level = "ERROR"
+        derived.status_message = f"HTTP {event.status_code}"
+    return derived
+
+
+class _EvidenceRetrieval(BaseModel):
+    """The fields of app/retrieval/worker.py's evidence_retrieval_event read here."""
+
+    hit_count: NonNegativeInt
+    reranked: bool
+
+
+def _retrieval_scores(data: dict[str, Any]) -> _Derived:
+    event = _EvidenceRetrieval.model_validate(data)
+    return _Derived(
+        scores=[
+            ("retrieval_hit_count", float(event.hit_count), "NUMERIC"),
+            ("retrieval_reranked", float(event.reranked), "BOOLEAN"),
+        ]
+    )
+
+
+class _ExtractionSummary(BaseModel):
+    """
+    The fields of the intake-extractor's `intake_extraction_completed`
+    summary read here (`ExtractionReport.log_summary()`, feat/w2-extractor).
+    """
+
+    field_outcomes: dict[str, NonNegativeInt]
+    mean_confidence: float | None = None
+
+
+def _extraction_scores(data: dict[str, Any]) -> _Derived:
+    """
+    NUMERIC `extraction_located_rate` = located / (located + unlocated):
+    of the values the model read, the share the deterministic locate step
+    found on the page (D3). `missing` and `illegible` describe the
+    document, not the extractor, and are left out of both sides.
+    """
+    event = _ExtractionSummary.model_validate(data)
+    derived = _Derived()
+    rate = located_rate(event.field_outcomes)
+    if rate is not None:
+        derived.scores.append(("extraction_located_rate", rate, "NUMERIC"))
+    if event.mean_confidence is not None:
+        derived.scores.append(("extraction_mean_confidence", event.mean_confidence, "NUMERIC"))
+    return derived
+
+
+def located_rate(field_outcomes: dict[str, int]) -> float | None:
+    """located / (located + unlocated), or None when neither occurred."""
+    located = field_outcomes.get("located", 0)
+    read = located + field_outcomes.get("unlocated", 0)
+    return located / read if read else None
+
+
+def is_dependency_failure(event: ToolCallEvent) -> bool:
+    """
+    A tool call that failed because the dependency did: no response at all,
+    or a 5xx / 429. A 4xx that is the caller's own business — an unknown
+    patient, a token OpenEMR rejects, a write the ledger refused — is not a
+    dependency failure and would make a tool-failure alert page on-call for
+    a typo.
+    """
+    if event.outcome is not StepOutcome.ERROR:
+        return False
+    if event.status_code is None:
+        return True
+    return event.status_code >= 500 or event.status_code == 429
+
+
+_OPERATIONAL_SCORERS = {
+    STEP_EVENT: _step_scores,
+    TOOL_CALL_EVENT: _tool_scores,
+    HTTP_REQUEST_EVENT: _request_scores,
+    "evidence_retrieval_event": _retrieval_scores,
+    "intake_extraction_completed": _extraction_scores,
+}
+
+
 class ObservabilityExportUnavailable(RuntimeError):
     """Raised by check_export_health(). Messages are safe to return from /ready."""
 
@@ -193,7 +340,7 @@ class LangfuseExporter:
 
         level: SpanLevel = "DEFAULT"
         status_message: str | None = None
-        scores: list[tuple[str, float, Literal["BOOLEAN", "NUMERIC"]]] = []
+        scores: list[_Score] = []
         llm_usage: _LlmUsage | None = None
 
         try:
@@ -241,6 +388,12 @@ class LangfuseExporter:
                 status_message = "Retrieval not attributable to a use case; excluded from Metric 5"
             elif event_type == LLM_USAGE_EVENT:
                 llm_usage = _LlmUsage.model_validate(event_data)
+            elif event_type in _OPERATIONAL_SCORERS:
+                derived = _OPERATIONAL_SCORERS[event_type](event_data)
+                scores.extend(derived.scores)
+                tags.extend(derived.tags)
+                if derived.level is not None:
+                    level, status_message = derived.level, derived.status_message
         except ValidationError as exc:
             level = "WARNING"
             status_message = (

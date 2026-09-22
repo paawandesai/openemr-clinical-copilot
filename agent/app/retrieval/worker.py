@@ -35,6 +35,8 @@ without them.
 from __future__ import annotations
 
 from app.middleware.logging import log_event
+from app.middleware.telemetry import step, tool_call
+from app.models.telemetry_events import Pipeline, Tool
 from app.models.w2.citations import Citation
 from app.models.w2.source_types import SourceType
 from app.models.w2.workers import (
@@ -159,15 +161,31 @@ def run_evidence_retriever(
     The request carries concepts and no patient field — that is D5 enforced
     by the shape of the type, and this function never adds one back.
     """
-    chunks, run = retriever.retrieve_with_outcome(
-        list(request.concepts),
-        top_k=request.top_k,
-        method=request.method,
-        rerank=request.rerank,
-        candidate_k=candidate_k,
-    )
-
-    reranked = bool(run.rerank and run.rerank.applied)
+    with (
+        step(Pipeline.EVIDENCE_RETRIEVER, "retrieval") as retrieval,
+        tool_call(Tool.GUIDELINE_RETRIEVER, request.method.value),
+    ):
+        chunks, run = retriever.retrieve_with_outcome(
+            list(request.concepts),
+            top_k=request.top_k,
+            method=request.method,
+            rerank=request.rerank,
+            candidate_k=candidate_k,
+        )
+        reranked = bool(run.rerank and run.rerank.applied)
+        # Numbers and flags only; the stage timings are the "by step" view
+        # of a retrieval, which is one step to the supervisor.
+        retrieval.counts.update(
+            hits=len(chunks),
+            reranked=reranked,
+            rerank_requested=bool(run.rerank),
+            rerank_over_budget=bool(run.rerank and run.rerank.over_budget),
+            rerank_unavailable=bool(run.rerank and run.rerank.unavailable),
+            lexical_ms=round(run.lexical_ms, 2),
+            dense_ms=round(run.dense_ms, 2),
+            fusion_ms=round(run.fusion_ms, 2),
+            rerank_ms=round(run.rerank.elapsed_ms, 2) if run.rerank else 0.0,
+        )
     if not reranked:
         # A chunk that kept a rerank_score from somewhere would make the
         # output contradict its own flag; EvidenceRetrieverOutput rejects

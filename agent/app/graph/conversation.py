@@ -97,6 +97,7 @@ from app.graph.follow_up import (
 from app.middleware.correlation import correlation_scope, get_correlation_id
 from app.middleware.langfuse_export import LATENCY_EVENT
 from app.middleware.logging import log_event
+from app.middleware.telemetry import record_steps, step
 from app.models.claims import VerificationResult
 from app.models.conversation import (
     ConversationGap,
@@ -107,6 +108,7 @@ from app.models.conversation import (
 from app.models.fhir_resources import Encounter, FhirResourceType, Observation
 from app.models.follow_up import RecordGap
 from app.models.metrics_events import LatencyEvent, UseCase
+from app.models.telemetry_events import Pipeline, StepOutcome
 from app.reasoning.draft_claims import SectionCount
 from app.reasoning.draft_conversation_turn import TurnDraft, draft_conversation_turn
 from app.reasoning.draft_follow_up import BOUNDED_RESOURCE_MODELS, Coverage
@@ -529,7 +531,17 @@ async def run_conversation_turn(
         if snapshot.invalidation is not None:
             _log_invalidation(snapshot.invalidation, user, session_id, key)
 
-        decision = route(question, snapshot.context_resource_types)
+        with step(
+            Pipeline.CONVERSATION, "routing", use_case=_USE_CASE, patient_session_key=key
+        ) as routing:
+            decision = route(question, snapshot.context_resource_types)
+            routing.counts.update(
+                refused=decision.refused,
+                rules=len(decision.rule_ids),
+                expansions=len(decision.expansions),
+            )
+            if decision.refused:
+                routing.outcome = StepOutcome.REFUSED
         log_event(
             "conversation_turn_routed",
             event_data={
@@ -669,6 +681,9 @@ async def run_conversation_turn(
             patient_session_key=key,
         )
         step_seconds["render"] = time.perf_counter() - started
+        record_steps(
+            Pipeline.CONVERSATION, step_seconds, use_case=_USE_CASE, patient_session_key=key
+        )
 
     return TurnResult(
         text=text,

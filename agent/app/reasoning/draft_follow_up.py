@@ -48,6 +48,7 @@ from pydantic import BaseModel
 
 from app.middleware.correlation import get_correlation_id
 from app.middleware.logging import log_event
+from app.middleware.telemetry import tool_call
 from app.models.claims import Claim
 from app.models.fhir_resources import (
     AllergyIntolerance,
@@ -57,6 +58,7 @@ from app.models.fhir_resources import (
 )
 from app.models.follow_up import RecordGap
 from app.models.metrics_events import UseCase
+from app.models.telemetry_events import Tool
 from app.reasoning import provider_health
 from app.reasoning.draft_claims import (
     _FALLBACK_BETA,
@@ -252,21 +254,24 @@ async def stream_structured(
 
     started = time.perf_counter()
     try:
-        async with _client().beta.messages.stream(
-            model=MODEL,
-            max_tokens=_MAX_TOKENS,
-            system=system,
-            messages=[{"role": "user", "content": user_content}],
-            thinking={"type": "adaptive"},
-            output_config={
-                "effort": EFFORT,
-                "format": {"type": "json_schema", "schema": schema},
-            },
-            betas=[_FALLBACK_BETA],
-            fallbacks="default",
-        ) as stream:
-            message = await stream.get_final_message()
-            request_id = stream.request_id
+        with tool_call(
+            Tool.LLM, MODEL, use_case=_USE_CASE, patient_session_key=patient_session_key
+        ):
+            async with _client().beta.messages.stream(
+                model=MODEL,
+                max_tokens=_MAX_TOKENS,
+                system=system,
+                messages=[{"role": "user", "content": user_content}],
+                thinking={"type": "adaptive"},
+                output_config={
+                    "effort": EFFORT,
+                    "format": {"type": "json_schema", "schema": schema},
+                },
+                betas=[_FALLBACK_BETA],
+                fallbacks="default",
+            ) as stream:
+                message = await stream.get_final_message()
+                request_id = stream.request_id
     except anthropic.APIError as exc:
         provider_health.record_failure()
         log_event(

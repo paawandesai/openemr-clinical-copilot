@@ -75,9 +75,11 @@ from app.fhir import client as fhir_client
 from app.middleware.correlation import correlation_scope, get_correlation_id
 from app.middleware.langfuse_export import LATENCY_EVENT
 from app.middleware.logging import log_event
+from app.middleware.telemetry import step
 from app.models.claims import VerificationResult
 from app.models.fhir_resources import FhirResourceType
 from app.models.metrics_events import LatencyEvent, UseCase
+from app.models.telemetry_events import Pipeline
 from app.reasoning.draft_claims import (
     PreVisitBriefDraft,
     SectionCount,
@@ -89,6 +91,7 @@ from app.verification.checker import FailureReason, verify_claims
 from app.verification.disclosure import audit_disclosure
 
 _USE_CASE = UseCase.PRE_VISIT_BRIEF
+_PIPELINE = Pipeline.PRE_VISIT_BRIEF
 
 # Render order and wording, one entry per Use Case 1 section.
 _SECTIONS: tuple[tuple[FhirResourceType, str, str], ...] = (
@@ -158,12 +161,28 @@ class PreVisitBriefResult:
 _Node = Callable[[PreVisitBriefState, Runtime[PreVisitBriefContext]], Awaitable[dict[str, Any]]]
 
 
-def _timed(name: str, node: _Node) -> _Node:
+def _timed(name: str, node: _Node, pipeline: Pipeline | None = None) -> _Node:
+    """
+    Record the node's wall-clock seconds in `node_seconds`. With a
+    `pipeline`, also emit one `step_event` per run — ok or error, with the
+    exception's class name — so per-step latency and failures reach the
+    dashboard (app/middleware/telemetry.py). Without one, nothing is
+    emitted, so a graph that reuses this wrapper opts in by naming itself.
+    """
+
     async def timed_node(
         state: PreVisitBriefState, runtime: Runtime[PreVisitBriefContext]
     ) -> dict[str, Any]:
         started = time.perf_counter()
-        update = await node(state, runtime)
+        if pipeline is None:
+            update = await node(state, runtime)
+        else:
+            with step(
+                pipeline,
+                name,
+                patient_session_key=getattr(runtime.context, "patient_session_key", None),
+            ):
+                update = await node(state, runtime)
         return {**update, "node_seconds": {name: time.perf_counter() - started}}
 
     return timed_node
@@ -401,10 +420,10 @@ def render_brief(
 
 def _build_graph() -> Any:
     graph = StateGraph(PreVisitBriefState, context_schema=PreVisitBriefContext)
-    graph.add_node("retrieve", _untraced(_timed("retrieve", _retrieve)))
-    graph.add_node("draft", _untraced(_timed("draft", _draft)))
-    graph.add_node("verify", _untraced(_timed("verify", _verify)))
-    graph.add_node("render", _untraced(_timed("render", _render)))
+    graph.add_node("retrieve", _untraced(_timed("retrieve", _retrieve, _PIPELINE)))
+    graph.add_node("draft", _untraced(_timed("draft", _draft, _PIPELINE)))
+    graph.add_node("verify", _untraced(_timed("verify", _verify, _PIPELINE)))
+    graph.add_node("render", _untraced(_timed("render", _render, _PIPELINE)))
     graph.add_edge(START, "retrieve")
     graph.add_edge("retrieve", "draft")
     graph.add_edge("draft", "verify")

@@ -52,7 +52,8 @@ lost on restart, not shared between workers. Recorded as an open item.
 
 from __future__ import annotations
 
-import structlog
+import time
+
 from fastapi import APIRouter, Depends, Query, Request
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
@@ -60,7 +61,10 @@ from app.api.conversation import _failures_as_api_errors
 from app.api.pre_visit_brief import ApiError
 from app.fhir import client as fhir_client
 from app.middleware.correlation import get_correlation_id
+from app.middleware.logging import log_event
+from app.middleware.telemetry import record_step
 from app.models.api import PATIENT_ID_PATTERN, ErrorCode, ErrorResponse
+from app.models.telemetry_events import Pipeline, StepOutcome
 from app.models.w2.base import W2Contract
 from app.models.w2.documents import DocumentKind, ExtractionStatus
 from app.models.w2.workers import ExtractionFailureReason
@@ -69,7 +73,6 @@ from app.workers.document_store import DocumentBoundElsewhere, UnreadablePdf
 from app.workers.intake_extractor.chart import fhir_chart_reader
 
 router = APIRouter()
-logger = structlog.get_logger(__name__)
 
 _bearer = HTTPBearer(
     auto_error=False,
@@ -145,6 +148,7 @@ async def upload_document(
     patient_id: str = _PATIENT_QUERY,
     credentials: HTTPAuthorizationCredentials | None = Depends(_bearer),
 ) -> UploadAccepted:
+    started = time.perf_counter()
     token = _require_token(credentials)
     correlation_id = get_correlation_id() or "no-request-context"
 
@@ -186,14 +190,24 @@ async def upload_document(
             "This file is already attached to a different chart and cannot be attached here.",
         ) from None
 
-    logger.info(
+    # Through log_event, not a bare logger line, so the upload is on the
+    # encounter's trace with every later step (docs/w2/OBSERVABILITY.md §2).
+    log_event(
         "w2_document_upload_accepted",
-        document_id=stored.document.document_id,
-        kind=kind.value,
-        byte_length=len(body),
-        duplicate=duplicate,
-        status=output.status.value,
-        correlation_id=correlation_id,
+        {
+            "document_id": stored.document.document_id,
+            "kind": kind.value,
+            "byte_length": len(body),
+            "duplicate": duplicate,
+            "status": output.status.value,
+            "correlation_id": correlation_id,
+        },
+    )
+    record_step(
+        Pipeline.DOCUMENTS,
+        "upload",
+        time.perf_counter() - started,
+        counts={"byte_length": len(body), "duplicate": duplicate},
     )
     return UploadAccepted(
         document_id=stored.document.document_id,
@@ -215,6 +229,7 @@ async def extraction_state(
     patient_id: str = _PATIENT_QUERY,
     credentials: HTTPAuthorizationCredentials | None = Depends(_bearer),
 ) -> ExtractionState:
+    started = time.perf_counter()
     token = _require_token(credentials)
     correlation_id = get_correlation_id() or "no-request-context"
 
@@ -230,11 +245,21 @@ async def extraction_state(
             404, ErrorCode.INVALID_REQUEST, "No extraction is recorded for that document."
         )
 
-    logger.info(
+    log_event(
         "w2_extraction_state_read",
-        document_id=document_id,
-        status=output.status.value,
-        correlation_id=correlation_id,
+        {
+            "document_id": document_id,
+            "status": output.status.value,
+            "correlation_id": correlation_id,
+        },
+    )
+    final = output.status in (ExtractionStatus.COMPLETE, ExtractionStatus.FAILED)
+    record_step(
+        Pipeline.DOCUMENTS,
+        "extraction_status",
+        time.perf_counter() - started,
+        StepOutcome.OK if final else StepOutcome.PENDING,
+        counts={"complete": output.status is ExtractionStatus.COMPLETE},
     )
     return ExtractionState(
         document_id=document_id,

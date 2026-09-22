@@ -31,6 +31,8 @@ from typing import Any
 import httpx
 
 from app.middleware.logging import log_event
+from app.middleware.telemetry import step, tool_call
+from app.models.telemetry_events import Pipeline, Tool
 from app.models.w2.writeback import LabWriteBackRequest, LabWriteBackResponse, WriteOutcome
 from app.writeback.exceptions import (
     WriteBackAuthError,
@@ -77,35 +79,53 @@ async def write_lab_results(
     a repeat either creates the rows or returns the ids of the write that
     already did (CLAUDE.md invariant 6).
     """
-    owns_client = client is None
-    http = client or httpx.AsyncClient(verify=_VERIFY_TLS, timeout=_TIMEOUT_SECONDS)
-    try:
-        response = await http.post(
-            writeback_url(),
-            content=request.model_dump_json(),
-            headers={
-                "Authorization": f"Bearer {token}",
-                "Content-Type": "application/json",
-            },
+    with step(Pipeline.WRITEBACK, "writeback") as writeback:
+        writeback.counts["results_total"] = len(request.results)
+        written = await _post(token, request, client)
+        created = sum(1 for r in written.results if r.outcome is WriteOutcome.CREATED)
+        writeback.counts.update(
+            results_created=created,
+            results_duplicate_ignored=len(written.results) - created,
         )
-    except httpx.HTTPError as error:
-        # Only the exception's class name: httpx puts the URL in its message,
-        # and a URL with a patient uuid in it is an identifier in a log line
-        # nobody asked for. The original is chained for a traceback, where it
-        # still never carries the request body (CLAUDE.md invariant 1).
-        raise WriteBackUnavailable(
-            f"write-back request did not complete: {type(error).__name__}"
-        ) from error
-    finally:
-        if owns_client:
-            await http.aclose()
-
-    _raise_for_status(response, request)
-    # model_validate_json, not model_validate on a parsed dict: under
-    # strict=True the enums only read from JSON (D22).
-    written = LabWriteBackResponse.model_validate_json(response.content)
     _log_outcome(request, written)
     return written
+
+
+async def _post(
+    token: str, request: LabWriteBackRequest, client: httpx.AsyncClient | None
+) -> LabWriteBackResponse:
+    owns_client = client is None
+    http = client or httpx.AsyncClient(verify=_VERIFY_TLS, timeout=_TIMEOUT_SECONDS)
+    # One logical call, one attempt: this client never retries on its own.
+    # A caller that retries on WriteBackUnavailable makes a second tool call
+    # under the same idempotency key, and the ledger answers it (invariant 6).
+    with tool_call(Tool.LAB_WRITEBACK) as call:
+        try:
+            response = await http.post(
+                writeback_url(),
+                content=request.model_dump_json(),
+                headers={
+                    "Authorization": f"Bearer {token}",
+                    "Content-Type": "application/json",
+                },
+            )
+        except httpx.HTTPError as error:
+            # Only the exception's class name: httpx puts the URL in its message,
+            # and a URL with a patient uuid in it is an identifier in a log line
+            # nobody asked for. The original is chained for a traceback, where it
+            # still never carries the request body (CLAUDE.md invariant 1).
+            raise WriteBackUnavailable(
+                f"write-back request did not complete: {type(error).__name__}"
+            ) from error
+        finally:
+            if owns_client:
+                await http.aclose()
+
+        call.status_code = response.status_code
+        _raise_for_status(response, request)
+    # model_validate_json, not model_validate on a parsed dict: under
+    # strict=True the enums only read from JSON (D22).
+    return LabWriteBackResponse.model_validate_json(response.content)
 
 
 def _raise_for_status(response: httpx.Response, request: LabWriteBackRequest) -> None:
