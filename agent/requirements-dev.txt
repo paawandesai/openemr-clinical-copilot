@@ -9,3 +9,10 @@ ruff>=0.16,<0.17
 
 # Test runner. tests/ is offline; evals/ is live and costs model calls.
 pytest>=8.0
+
+# JSON Schema validation for the published contracts in docs/w2/schemas/.
+# tests/test_w2_schema_validation.py checks each exported schema against
+# instances converted from the doc-factory samples — the schemas are a
+# graded deliverable that other tools read, and "pydantic produced it" is
+# not evidence that a JSON Schema validator accepts it.
+jsonschema>=4.21
