@@ -36,10 +36,17 @@ and stops at the first tier that finds anything:
 4. `fuzzy` — a near match, for OCR. **Off by default on a text layer**: a
    text layer reports characters exactly, so a value that is not there
    character-for-character is not there, and allowing near matches on a
-   digital PDF buys nothing but false locates.
+   digital PDF buys nothing but false locates. It is off *entirely* — on
+   any page, under any `FuzzyMode` — for a value that is a number, a unit,
+   a date or a lab flag; see `EXACT_ONLY_VALUE_CLASSES`.
 
 A stricter tier that finds exactly one match therefore beats a looser tier
 that finds several, which is where most real ambiguity goes away.
+
+Every result says which tier produced it (`tier`, as `exact` | `numeric` |
+`fuzzy`) and how well it matched (`score`, 1.0 for everything but a fuzzy
+match). An extractor is expected to carry a fuzzy locate at lower
+confidence than an exact one rather than treat the two alike.
 
 **This module never logs and never raises on a miss.** A miss is a return
 value, not an exception; and the reasons it returns name statuses and
@@ -58,7 +65,13 @@ from difflib import SequenceMatcher
 from enum import StrEnum
 
 from app.extraction.geometry import BBox, union_all
-from app.extraction.normalize import is_unit, split_number_and_unit, squash
+from app.extraction.normalize import (
+    ValueClass,
+    classify_value,
+    is_unit,
+    split_number_and_unit,
+    squash,
+)
 from app.extraction.words import PageWords, TextSource, Word
 
 #: Punctuation a match may leave unconsumed at the edge of the first or
@@ -111,6 +124,34 @@ _TIER_ORDER = {
     MatchKind.FUZZY: 3,
 }
 
+#: The coarse three-value vocabulary an extractor records against a value:
+#: `number_only` is a numeric match that found the number without its unit,
+#: so it reports as numeric evidence rather than as a fourth kind.
+_COARSE_TIER = {
+    MatchKind.EXACT: "exact",
+    MatchKind.NUMERIC: "numeric",
+    MatchKind.NUMBER_ONLY: "numeric",
+    MatchKind.FUZZY: "fuzzy",
+}
+
+#: Value classes the fuzzy tier is never used on, whatever `FuzzyMode` says.
+#:
+#: A near match is a claim that two strings are the same despite a
+#: difference. For a name or a drug that is usually an OCR slip worth
+#: forgiving. For a number, a unit, a date or a flag the difference *is*
+#: the value: `3.1` and `8.1` differ by one character and are a normal and
+#: a critical potassium; `mg/dL` and `mg/mL` differ by one character and
+#: are a thousandfold apart. There is no version of "close enough" that is
+#: safe there, so those four classes are matched by the exact and numeric
+#: tiers or not at all.
+#:
+#: This is a policy, not a default: passing `FuzzyMode.ALWAYS` does not
+#: lift it. A caller that wants a near match on a number wants a different
+#: function.
+EXACT_ONLY_VALUE_CLASSES = frozenset(
+    {ValueClass.NUMERIC, ValueClass.UNIT, ValueClass.DATE, ValueClass.FLAG}
+)
+
 
 class FuzzyMode(StrEnum):
     """When near-matching is allowed."""
@@ -161,10 +202,33 @@ class LocateResult:
     reason: str
     #: Which tier produced `candidates`, or None when nothing matched.
     kind: MatchKind | None = None
+    #: How the value was classified, and so whether the fuzzy tier was
+    #: available at all (`EXACT_ONLY_VALUE_CLASSES`).
+    value_class: ValueClass = ValueClass.FREE_TEXT
 
     @property
     def located(self) -> bool:
         return self.status is LocateStatus.LOCATED
+
+    @property
+    def tier(self) -> str | None:
+        """
+        The evidence tier, as `exact` | `numeric` | `fuzzy`, or None when
+        nothing matched. This and `score` are what an extractor records
+        beside the value: a `fuzzy` locate is a weaker claim than an
+        `exact` one and should be carried at lower confidence.
+        """
+        return None if self.kind is None else _COARSE_TIER[self.kind]
+
+    @property
+    def score(self) -> float | None:
+        """
+        The match quality of the single match, or None unless the status is
+        `located`. 1.0 for every exact and numeric match; for a fuzzy match
+        it is the similarity, and never reaches 1.0.
+        """
+        best = self.best
+        return None if best is None else best.score
 
     @property
     def best(self) -> Candidate | None:
@@ -209,6 +273,18 @@ class RowLocateResult:
     @property
     def bbox(self) -> BBox | None:
         return self.value.bbox
+
+    @property
+    def kind(self) -> MatchKind | None:
+        return self.value.kind
+
+    @property
+    def tier(self) -> str | None:
+        return self.value.tier
+
+    @property
+    def score(self) -> float | None:
+        return self.value.score
 
 
 def _soft_hyphen_words(words: Sequence[Word], squashed: Sequence[str]) -> set[int]:
@@ -475,33 +551,42 @@ def _fuzzy_candidates(index: PageIndex, needle: str, threshold: float) -> list[C
     ]
 
 
-def _decide(candidates: Sequence[Candidate], kind: MatchKind) -> LocateResult:
+def _decide(
+    candidates: Sequence[Candidate],
+    kind: MatchKind,
+    value_class: ValueClass = ValueClass.FREE_TEXT,
+) -> LocateResult:
     ranked = sorted(candidates, key=lambda candidate: (-candidate.score, candidate.word_indices))
     if len(ranked) == 1:
-        return LocateResult(LocateStatus.LOCATED, (ranked[0],), f"single {kind.value} match", kind)
+        return LocateResult(
+            LocateStatus.LOCATED, (ranked[0],), f"single {kind.value} match", kind, value_class
+        )
     if ranked[0].score - ranked[1].score > AMBIGUITY_MARGIN:
         return LocateResult(
             LocateStatus.LOCATED,
             tuple(ranked),
             f"{len(ranked)} {kind.value} matches, one clearly best",
             kind,
+            value_class,
         )
     return LocateResult(
         LocateStatus.AMBIGUOUS,
         tuple(ranked),
         f"{len(ranked)} {kind.value} matches, none clearly best",
         kind,
+        value_class,
     )
 
 
-def _not_located(reason: str) -> LocateResult:
-    return LocateResult(LocateStatus.NOT_LOCATED, (), reason, None)
+def _not_located(reason: str, value_class: ValueClass = ValueClass.FREE_TEXT) -> LocateResult:
+    return LocateResult(LocateStatus.NOT_LOCATED, (), reason, None, value_class)
 
 
 def locate(
     value: str,
     page: PageWords | PageIndex,
     *,
+    value_class: ValueClass | None = None,
     fuzzy: FuzzyMode = FuzzyMode.AUTO,
     fuzzy_threshold: float = DEFAULT_FUZZY_THRESHOLD,
     allow_number_only: bool = True,
@@ -511,40 +596,59 @@ def locate(
 
     Returns `located` with exactly one box, `ambiguous` with every box it
     could be, or `not_located`. It never picks one of several equally good
-    matches — see the module docstring.
+    matches — see the module docstring. The result carries `tier` and
+    `score` so a caller can hold a fuzzy match at lower confidence than an
+    exact one.
 
     `value` is the text an extractor says is on the page. Pass what the
     document *draws*: where a document deliberately re-expresses a chart
     value — a patient writing a drug's common name, a letterhead set in
     caps — the drawn text is what is on the page and the chart's wording is
     not (the doc-factory records this as `rendering: derived`).
+
+    `value_class` declares what kind of value this is, which decides
+    whether the fuzzy tier is available at all
+    (`EXACT_ONLY_VALUE_CLASSES`). Leave it out and it is inferred from the
+    string's shape; **declare it whenever the caller knows**, because
+    inference sees only the characters. A model that misreads `mg/dL` as
+    `md/gL` hands over something still recognisably unit-shaped, but one
+    that misreads `ratio` as `rtaio` does not, and an inferred
+    classification would let that be near-matched back onto a units column.
     """
     index = page if isinstance(page, PageIndex) else PageIndex.for_page(page)
+    resolved_class = classify_value(value) if value_class is None else value_class
     needle = squash(value)
     if not needle:
-        return _not_located("value is empty once normalised; nothing to find")
+        return _not_located("value is empty once normalised; nothing to find", resolved_class)
     if not index.words:
-        return _not_located("page has no words")
+        return _not_located("page has no words", resolved_class)
 
     exact = _exact_candidates(index, needle)
     if exact:
-        return _decide(exact, MatchKind.EXACT)
+        return _decide(exact, MatchKind.EXACT, resolved_class)
 
     with_unit, number_only = _numeric_candidates(index, value)
     if with_unit:
-        return _decide(with_unit, MatchKind.NUMERIC)
+        return _decide(with_unit, MatchKind.NUMERIC, resolved_class)
     if number_only and allow_number_only:
-        return _decide(number_only, MatchKind.NUMBER_ONLY)
+        return _decide(number_only, MatchKind.NUMBER_ONLY, resolved_class)
 
-    use_fuzzy = fuzzy is FuzzyMode.ALWAYS or (
-        fuzzy is FuzzyMode.AUTO and index.source is TextSource.OCR
+    exact_only = resolved_class in EXACT_ONLY_VALUE_CLASSES
+    use_fuzzy = not exact_only and (
+        fuzzy is FuzzyMode.ALWAYS or (fuzzy is FuzzyMode.AUTO and index.source is TextSource.OCR)
     )
     if use_fuzzy:
         near = _fuzzy_candidates(index, needle, fuzzy_threshold)
         if near:
-            return _decide(near, MatchKind.FUZZY)
+            return _decide(near, MatchKind.FUZZY, resolved_class)
 
-    return _not_located("no span of this page's words matches the value")
+    if exact_only:
+        return _not_located(
+            f"no exact or numeric match; the fuzzy tier is not used on a "
+            f"{resolved_class.value} value",
+            resolved_class,
+        )
+    return _not_located("no span of this page's words matches the value", resolved_class)
 
 
 def locate_in_row(
@@ -552,6 +656,7 @@ def locate_in_row(
     value: str,
     page: PageWords | PageIndex,
     *,
+    value_class: ValueClass | None = None,
     after_label: bool = True,
     fuzzy: FuzzyMode = FuzzyMode.AUTO,
     fuzzy_threshold: float = DEFAULT_FUZZY_THRESHOLD,
@@ -576,17 +681,26 @@ def locate_in_row(
     which is how every table in these documents is laid out, and stops the
     label from matching inside its own words. Set it False for a layout
     that puts the value first.
+
+    `value_class` applies to the **value**, not the label. A row label is a
+    test name, a drug or an allergen — free text, which the fuzzy tier may
+    still near-match, and on a degraded scan that is often the only way the
+    row is found at all. The value it anchors keeps whatever policy its own
+    class carries.
     """
     index = page if isinstance(page, PageIndex) else PageIndex.for_page(page)
+    resolved_class = classify_value(value) if value_class is None else value_class
     if not index.words:
-        return RowLocateResult(_not_located("page has no words"), (), ())
+        return RowLocateResult(_not_located("page has no words", resolved_class), (), ())
 
     label_result = locate(
         label, index, fuzzy=fuzzy, fuzzy_threshold=fuzzy_threshold, allow_number_only=False
     )
     label_candidates = label_result.candidates
     if not label_candidates:
-        return RowLocateResult(_not_located("the row label is not on this page"), (), ())
+        return RowLocateResult(
+            _not_located("the row label is not on this page", resolved_class), (), ()
+        )
 
     position = {origin: offset for offset, origin in enumerate(index.origin)}
     candidates: list[Candidate] = []
@@ -610,6 +724,7 @@ def locate_in_row(
         result = locate(
             value,
             index.restrict(row_word_offsets),
+            value_class=resolved_class,
             fuzzy=fuzzy,
             fuzzy_threshold=fuzzy_threshold,
             allow_number_only=allow_number_only,
@@ -626,7 +741,7 @@ def locate_in_row(
     rows = tuple(sorted(rows_searched))
     if not candidates:
         return RowLocateResult(
-            _not_located("the value is not on any row headed by this label"),
+            _not_located("the value is not on any row headed by this label", resolved_class),
             label_candidates,
             rows,
         )
@@ -639,4 +754,4 @@ def locate_in_row(
     in_tier = [
         candidate for candidate, kind in zip(candidates, kinds, strict=True) if kind is strongest
     ]
-    return RowLocateResult(_decide(in_tier, strongest), label_candidates, rows)
+    return RowLocateResult(_decide(in_tier, strongest, resolved_class), label_candidates, rows)

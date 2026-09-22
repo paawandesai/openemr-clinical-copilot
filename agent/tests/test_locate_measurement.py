@@ -28,7 +28,13 @@ import math
 
 import pytest
 
-from app.extraction import LocateStatus, TextSource, tesseract_available
+from app.extraction import (
+    EXACT_ONLY_VALUE_CLASSES,
+    LocateStatus,
+    MatchKind,
+    TextSource,
+    tesseract_available,
+)
 from tests.locate_measurement import (
     IOU_FLOOR,
     discover_samples,
@@ -70,6 +76,14 @@ CLEAN_NUMERIC_LOCATED = 0.90
 #: one-character decoy should be found only if OCR happened to produce
 #: exactly the decoy's characters. Measured 0/46 and 0/90.
 SCANNED_STRICT_FALSE_LOCATE_MAX = 0.02
+
+#: The fuzzy-tier policy, stated as a number: a one-character decoy of a
+#: numeric, unit, date or flag field is never located, under **default**
+#: settings — not merely with the fuzzy tier switched off. This is exact,
+#: not a budget, because the classes in `EXACT_ONLY_VALUE_CLASSES` reach
+#: only the exact and numeric tiers, and neither can match a string that
+#: differs by a character. Measured 0/242 across all six samples.
+EXACT_ONLY_DECOY_FALSE_LOCATE_MAX = 0.0
 
 #: How close the de-skew estimate has to be to the skew the factory
 #: recorded. Measured: 1.05 vs 1.14, -0.12 vs -0.13, -0.23 vs -0.24 degrees.
@@ -158,6 +172,33 @@ def test_clean_numeric_normalisation(clean) -> None:
     assert rate(numeric) >= CLEAN_NUMERIC_LOCATED
 
 
+def test_a_decoy_of_a_number_unit_date_or_flag_is_never_located(measurement) -> None:
+    # The fuzzy-tier policy, measured end to end and with default settings:
+    # `3.1` and `8.1` are one character apart and are a normal and a
+    # critical potassium, so no near match may ever place one on the other.
+    narrow = [
+        outcome
+        for outcome in measurement.by_probe("decoy")
+        if outcome.field_class in EXACT_ONLY_VALUE_CLASSES
+    ]
+    assert len(narrow) > 100, "the decoy set should cover the narrow classes broadly"
+    offenders = [o for o in narrow if o.status is LocateStatus.LOCATED]
+    assert rate(narrow) <= EXACT_ONLY_DECOY_FALSE_LOCATE_MAX, (
+        f"{len(offenders)} of {len(narrow)} decoys located; first: "
+        f"{offenders[0].field_path if offenders else None}"
+    )
+
+
+def test_the_narrow_classes_never_reach_the_fuzzy_tier(measurement) -> None:
+    # The same policy from the other side: whatever was located on a
+    # numeric, unit, date or flag field came from an exact or numeric
+    # match, never a near one.
+    for probe in ("rendered", "row_anchored", "numeric_value"):
+        for outcome in measurement.by_probe(probe):
+            if outcome.value_class in EXACT_ONLY_VALUE_CLASSES and outcome.kind is not None:
+                assert outcome.kind is not MatchKind.FUZZY, f"{probe}: {outcome.field_path}"
+
+
 # --- scanned ---------------------------------------------------------------
 
 
@@ -205,6 +246,23 @@ def test_the_deskew_estimate_matches_the_recorded_scan_skew(measurement) -> None
         assert math.isclose(timing.skew_degrees, recorded[key], abs_tol=SKEW_TOLERANCE_DEGREES), (
             f"{key}: estimated {timing.skew_degrees:.2f}, recorded {recorded[key]:.2f}"
         )
+
+
+@requires_tesseract
+def test_the_policy_holds_on_scanned_pages_with_declared_classes(measurement) -> None:
+    # Same assertion again on the scanned samples alone, and with the field
+    # class declared rather than inferred — which is how a schema-driven
+    # extractor calls this. Inference and declaration disagreed on exactly
+    # one probe across the six samples (`ratio` misread as `rtaio`), so
+    # both are measured rather than one standing in for the other.
+    for probe in ("decoy", "decoy_declared"):
+        narrow = [
+            outcome
+            for outcome in measurement.by_probe(probe)
+            if outcome.quality != "clean" and outcome.field_class in EXACT_ONLY_VALUE_CLASSES
+        ]
+        assert narrow, f"{probe} should cover the narrow classes on scanned pages"
+        assert rate(narrow) <= EXACT_ONLY_DECOY_FALSE_LOCATE_MAX, probe
 
 
 @requires_tesseract

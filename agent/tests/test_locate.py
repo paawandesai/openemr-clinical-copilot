@@ -20,6 +20,7 @@ from pathlib import Path
 import pytest
 
 from app.extraction import (
+    EXACT_ONLY_VALUE_CLASSES,
     BBox,
     FuzzyMode,
     LocateStatus,
@@ -27,7 +28,9 @@ from app.extraction import (
     OcrPolicy,
     PageIndex,
     TextSource,
+    ValueClass,
     build_page_words,
+    classify_value,
     extract_words,
     is_unit,
     locate,
@@ -424,6 +427,131 @@ class TestFuzzyTier:
         result = locate("Petrosian", page)
         assert result.status is LocateStatus.LOCATED
         assert result.bbox.y0 == 50.0
+
+
+class TestValueClass:
+    @pytest.mark.parametrize(
+        ("value", "expected"),
+        [
+            ("89", ValueClass.NUMERIC),
+            ("0.84", ValueClass.NUMERIC),
+            ("5.00", ValueClass.NUMERIC),
+            ("89 mg/dL", ValueClass.NUMERIC),
+            ("70 - 99", ValueClass.NUMERIC),
+            ("0.50 - 1.10", ValueClass.NUMERIC),
+            ("2026-08-30 07:12", ValueClass.DATE),
+            ("09/14/2026", ValueClass.DATE),
+            ("1959-12-28", ValueClass.DATE),
+            ("mg/dL", ValueClass.UNIT),
+            ("mL/min/1.73", ValueClass.UNIT),
+            ("%", ValueClass.UNIT),
+            ("H", ValueClass.FLAG),
+            ("L", ValueClass.FLAG),
+            ("X", ValueClass.FLAG),
+            ("Jae222 Dach178", ValueClass.FREE_TEXT),
+            ("890 Mills Well", ValueClass.FREE_TEXT),
+            ("22D2118740", ValueClass.FREE_TEXT),
+            ("Fexofenadine hydrochloride", ValueClass.FREE_TEXT),
+            ("Amoxicillin/Clavulanate", ValueClass.FREE_TEXT),
+            ("", ValueClass.FREE_TEXT),
+        ],
+    )
+    def test_classification(self, value: str, expected: ValueClass) -> None:
+        assert classify_value(value) is expected
+
+    def test_a_garbled_unit_is_still_unit_shaped(self) -> None:
+        # OCR reads mg/dL as md/gL. Inference has to keep calling that a
+        # unit, or the fuzzy tier would near-match it back onto a units
+        # column and pick a row at random.
+        assert classify_value("md/gL") is ValueClass.UNIT
+        assert classify_value("moml/L") is ValueClass.UNIT
+
+    def test_the_four_narrow_classes_are_the_exact_only_set(self) -> None:
+        assert EXACT_ONLY_VALUE_CLASSES == {
+            ValueClass.NUMERIC,
+            ValueClass.UNIT,
+            ValueClass.DATE,
+            ValueClass.FLAG,
+        }
+        assert ValueClass.FREE_TEXT not in EXACT_ONLY_VALUE_CLASSES
+
+
+class TestFuzzyPolicy:
+    """
+    A near match is a claim that two strings are the same despite a
+    difference. For a number, a unit, a date or a flag, the difference is
+    the value — so those classes never reach the fuzzy tier.
+    """
+
+    @pytest.mark.parametrize(
+        ("drawn", "probe"),
+        [
+            ("3.1", "8.1"),  # a normal and a critical potassium
+            ("mmol/L", "mmol/I"),
+            ("2026-09-09", "2026-09-08"),
+            ("111", "141"),
+        ],
+    )
+    def test_a_near_miss_on_a_narrow_class_is_not_located(self, drawn: str, probe: str) -> None:
+        page = page_of([[("Potassium", 57.0, 40.0), (drawn, 265.0, 30.0)]], source=TextSource.OCR)
+        result = locate(probe, page)
+        assert result.status is LocateStatus.NOT_LOCATED
+        assert result.bbox is None
+        assert "fuzzy tier is not used" in result.reason
+
+    def test_the_policy_is_not_a_default_that_fuzzy_mode_can_lift(self) -> None:
+        page = page_of([[("3.1", 265.0, 15.0)]], source=TextSource.OCR)
+        assert locate("8.1", page, fuzzy=FuzzyMode.ALWAYS).status is LocateStatus.NOT_LOCATED
+
+    def test_free_text_still_reaches_the_fuzzy_tier(self) -> None:
+        page = page_of([[("Petroslan", 60.0, 40.0)]], source=TextSource.OCR)
+        result = locate("Petrosian", page)
+        assert result.located
+        assert result.value_class is ValueClass.FREE_TEXT
+        assert result.tier == "fuzzy"
+        assert 0.84 <= result.score < 1.0
+
+    def test_an_exact_match_on_a_narrow_class_is_unaffected(self) -> None:
+        # The policy withholds the fuzzy tier, not the value: a number that
+        # really is on the page is still located, by the exact tier.
+        page = page_of([[("3.1", 265.0, 15.0)]], source=TextSource.OCR)
+        result = locate("3.1", page)
+        assert result.located
+        assert result.tier == "exact"
+        assert result.score == 1.0
+
+    def test_the_numeric_tier_still_works_under_the_policy(self) -> None:
+        page = page_of([[("5", 265.0, 6.0)]], source=TextSource.OCR)
+        result = locate("5.00", page)
+        assert result.located
+        assert result.tier == "numeric"
+        assert result.value_class is ValueClass.NUMERIC
+
+    def test_a_declared_class_overrides_what_the_string_looks_like(self) -> None:
+        # `rtaio` is OCR's reading of the unit `ratio`, and does not look
+        # like a unit any more. Inference calls it free text; a caller that
+        # knows it asked for a unit says so, and the tier is withheld.
+        page = page_of([[("ratio", 60.0, 22.0)]], source=TextSource.OCR)
+        assert classify_value("rtaio") is ValueClass.FREE_TEXT
+        assert locate("rtaio", page).value_class is ValueClass.FREE_TEXT
+        declared = locate("rtaio", page, value_class=ValueClass.UNIT)
+        assert declared.status is LocateStatus.NOT_LOCATED
+        assert declared.value_class is ValueClass.UNIT
+
+    def test_the_row_label_may_still_be_near_matched(self) -> None:
+        # The policy applies to the value, not to the label that anchors
+        # it. On a degraded scan a fuzzy label match is often the only way
+        # the row is found at all.
+        page = page_of([[("Potasslum", 57.0, 40.0), ("3.1", 265.0, 15.0)]], source=TextSource.OCR)
+        result = locate_in_row("Potassium", "3.1", page)
+        assert result.located
+        assert result.label_candidates[0].kind is MatchKind.FUZZY
+        assert result.tier == "exact"
+        assert result.value.value_class is ValueClass.NUMERIC
+
+    def test_a_row_anchored_near_miss_on_a_number_is_still_refused(self) -> None:
+        page = page_of([[("Potassium", 57.0, 40.0), ("3.1", 265.0, 15.0)]], source=TextSource.OCR)
+        assert locate_in_row("Potassium", "8.1", page).status is LocateStatus.NOT_LOCATED
 
 
 # --------------------------------------------------------------------------

@@ -38,6 +38,7 @@ from __future__ import annotations
 import re
 import unicodedata
 from decimal import Decimal, InvalidOperation
+from enum import StrEnum
 
 #: Characters that are the same mark drawn differently. Folded before
 #: casefolding so the result is plain ASCII punctuation.
@@ -136,6 +137,42 @@ _SLASH_SPACING = re.compile(r"\s*/\s*")
 _PER = re.compile(r"(?<![^\s/(\[])([a-z%0-9^*]+)\s+per\s+([a-z%0-9^*]+)(?![^\s/)\],.;])")
 _NUMBER = re.compile(r"^[+-]?(?:\d{1,3}(?:,\d{3})+|\d*)(?:\.\d+)?$")
 _LEADING_NUMBER = re.compile(r"^\s*([+-]?(?:\d{1,3}(?:,\d{3})+|\d+)(?:\.\d+)?|[+-]?\.\d+)\s*(.*)$")
+
+_NUM = r"[+-]?(?:\d{1,3}(?:,\d{3})+|\d+)(?:\.\d+)?"
+#: Two separators and three number-ish parts: `2026-08-30`, `09/14/2026`,
+#: either optionally followed by a clock time. `70-99` has one separator and
+#: is a range, not a date, so it does not match.
+_DATE = re.compile(r"^\d{1,4}[-/.]\d{1,2}[-/.]\d{1,4}(?:[ t]\d{1,2}:\d{2}(?::\d{2})?)?$")
+#: A reference interval: two numbers either side of `-` or `to`, with an
+#: optional trailing unit.
+_NUMERIC_RANGE = re.compile(rf"^{_NUM}\s*(?:-|to)\s*{_NUM}(?:\s*\S+)?$")
+#: Characters a unit may be written with, once normalised.
+_UNIT_SHAPE = re.compile(r"^[a-z0-9/%.^*]{1,12}$")
+
+
+class ValueClass(StrEnum):
+    """
+    What kind of value a string is — the thing `locate` bases its fuzzy-tier
+    policy on.
+
+    Classification is by *shape*, and it is deliberately biased towards the
+    four narrow classes rather than towards `FREE_TEXT`: a wrong guess of
+    `UNIT` only costs a value its near-match tier, while a wrong guess of
+    `FREE_TEXT` lets a near match change a digit in a clinical number. When
+    the caller knows what it is extracting — and an extractor filling a
+    strict schema always does — it should say so rather than rely on this.
+    """
+
+    #: A number, a number with a unit, or a reference interval.
+    NUMERIC = "numeric"
+    #: Unit notation, whether or not it is a unit this module knows.
+    UNIT = "unit"
+    #: A calendar date, with or without a clock time.
+    DATE = "date"
+    #: A lab abnormality flag, or any other one- or two-character mark.
+    FLAG = "flag"
+    #: Everything else: names, drug names, free-text answers, addresses.
+    FREE_TEXT = "free_text"
 
 
 def fold_characters(text: str) -> str:
@@ -261,6 +298,52 @@ def is_unit(text: str) -> bool:
     if first not in _UNIT_ATOMS:
         return False
     return all(part in _UNIT_ATOMS or parse_number(part) is not None for part in rest)
+
+
+def _is_unit_shaped(text: str) -> bool:
+    """
+    Whether a string is written the way a unit is written, even if it is not
+    a unit this module knows.
+
+    `is_unit` answers "is this one of the units in the table". This answers
+    the looser question the fuzzy policy needs: OCR reads `mg/dL` as
+    `md/gL`, which is not a unit and must still never be near-matched back
+    onto a units column. Short, spaceless, drawn from unit characters, and
+    carrying a `/` or a `%` is the shape; a drug name with a slash in it is
+    far longer and so is not caught.
+    """
+    return bool(_UNIT_SHAPE.match(text)) and ("/" in text or "%" in text)
+
+
+def classify_value(value: str) -> ValueClass:
+    """
+    What kind of value this string is. See `ValueClass`.
+
+    Order matters: a date and a reference interval both begin with digits,
+    so dates are recognised first and ranges before bare units. A value
+    that is none of the four narrow shapes is free text.
+    """
+    text = normalize(value)
+    if not text:
+        return ValueClass.FREE_TEXT
+    if _DATE.match(text):
+        return ValueClass.DATE
+    if parse_number(text) is not None or _NUMERIC_RANGE.match(text):
+        return ValueClass.NUMERIC
+    split = split_number_and_unit(text)
+    if split is not None and is_unit(split[1]):
+        return ValueClass.NUMERIC
+    # FLAG before UNIT, because `h` and `l` are both unit atoms (hour,
+    # litre) and a bare one on a lab report is an abnormality flag, not a
+    # unit. The two classes are treated identically by the fuzzy policy, so
+    # this only decides which name the result reports — but a table that
+    # calls an `H` a unit is a table that misleads whoever reads it.
+    if len(text) <= 2 and not any(character.isdigit() for character in text):
+        if any(character.isalpha() for character in text):
+            return ValueClass.FLAG
+    if is_unit(text) or _is_unit_shaped(text):
+        return ValueClass.UNIT
+    return ValueClass.FREE_TEXT
 
 
 def same_number(left: str, right: str) -> bool:

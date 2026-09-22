@@ -27,6 +27,7 @@ from app.extraction.geometry import BBox, union_all
 from app.extraction.locate import (
     AMBIGUITY_MARGIN,
     DEFAULT_FUZZY_THRESHOLD,
+    EXACT_ONLY_VALUE_CLASSES,
     Candidate,
     FuzzyMode,
     LocateResult,
@@ -38,6 +39,8 @@ from app.extraction.locate import (
     locate_in_row,
 )
 from app.extraction.normalize import (
+    ValueClass,
+    classify_value,
     is_unit,
     normalize,
     parse_number,
@@ -62,6 +65,7 @@ from app.extraction.words import (
 __all__ = [
     "AMBIGUITY_MARGIN",
     "DEFAULT_FUZZY_THRESHOLD",
+    "EXACT_ONLY_VALUE_CLASSES",
     "BBox",
     "Candidate",
     "DocumentWords",
@@ -76,8 +80,10 @@ __all__ = [
     "PageWords",
     "RowLocateResult",
     "TextSource",
+    "ValueClass",
     "Word",
     "build_page_words",
+    "classify_value",
     "extract_page_words",
     "extract_words",
     "is_unit",

@@ -61,6 +61,8 @@ from app.extraction import (
     OcrPolicy,
     PageIndex,
     TextSource,
+    ValueClass,
+    classify_value,
     extract_words,
     locate,
     locate_in_row,
@@ -241,6 +243,13 @@ class Outcome:
     #: box is the mark inside it, so checkbox IoU is not comparable with
     #: text IoU and the thresholds keep them apart.
     field_kind: str
+    #: What the field's true value *is* — the class a schema-driven
+    #: extractor would declare. Derived from the ground truth's
+    #: `rendered_text`, so no field-path table is involved.
+    field_class: ValueClass
+    #: The class `locate` actually applied on this call, which for an
+    #: inferred probe is read off the probe string and can differ.
+    value_class: ValueClass
     page: int
     probe: str
     status: LocateStatus
@@ -321,7 +330,9 @@ def measure_sample(sample: Sample, *, allow_ocr: bool = True) -> Measurement:
     clean_stream = _clean_stream(sample)
     scanned = sample.is_scan
 
-    def record(entry, probe, status, kind, box) -> None:
+    def record(entry, probe, result) -> None:
+        """Record one locate call. The box is always the result's own."""
+        box = result.bbox
         expected = _ground_truth_box(entry, transforms)
         iou = iou_x = height_ratio = None
         if box is not None and expected is not None:
@@ -337,10 +348,12 @@ def measure_sample(sample: Sample, *, allow_ocr: bool = True) -> Measurement:
                 field_path=entry["field_path"],
                 field_type=classify(entry["field_path"]),
                 field_kind=entry.get("kind", "text"),
+                field_class=classify_value(entry["rendered_text"]),
+                value_class=result.value_class,
                 page=entry.get("page") or 0,
                 probe=probe,
-                status=status,
-                kind=kind,
+                status=result.status,
+                kind=result.kind,
                 iou=iou,
                 iou_x=iou_x,
                 height_ratio=height_ratio,
@@ -353,22 +366,37 @@ def measure_sample(sample: Sample, *, allow_ocr: bool = True) -> Measurement:
         present = entry["status"] == "present" and index is not None
         drawn = entry["rendered_text"].strip()
 
+        # The class a schema-driven extractor would declare for this field.
+        # Read off the ground truth's own drawn text, so no field-path table
+        # is involved and the harness is not hand-picking classes.
+        declared = classify_value(entry["rendered_text"])
+
         # 1. What the page draws. `rendered_text` is the whole of it: for a
         #    `rendering: derived` field the chart's wording is not on the
         #    page, and looking for it would measure the wrong thing.
         if present and drawn:
-            result = locate(entry["rendered_text"], index)
-            record(entry, "rendered", result.status, result.kind, result.bbox)
+            record(entry, "rendered", locate(entry["rendered_text"], index))
             if scanned:
-                strict = locate(entry["rendered_text"], index, fuzzy=FuzzyMode.NEVER)
-                record(entry, "rendered_no_fuzzy", strict.status, strict.kind, strict.bbox)
+                # Three settings, to price the fuzzy-tier policy: the class
+                # declared, the class inferred from the probe string, and
+                # the tier switched off altogether.
+                for probe, result in (
+                    (
+                        "rendered_declared",
+                        locate(entry["rendered_text"], index, value_class=declared),
+                    ),
+                    (
+                        "rendered_no_fuzzy",
+                        locate(entry["rendered_text"], index, fuzzy=FuzzyMode.NEVER),
+                    ),
+                ):
+                    record(entry, probe, result)
 
         # 2. The number as a model would emit it: the ground truth holds
         #    89.0 where the page draws "89".
         value = entry["value"]
         if present and isinstance(value, (int, float)) and not isinstance(value, bool):
-            result = locate(str(value), index)
-            record(entry, "numeric_value", result.status, result.kind, result.bbox)
+            record(entry, "numeric_value", locate(str(value), index))
 
         # 3. Row-anchored: the value looked up under the label beside it.
         label_path = row_label_path(entry["field_path"]) if present and drawn else None
@@ -379,25 +407,25 @@ def measure_sample(sample: Sample, *, allow_ocr: bool = True) -> Measurement:
             and label.get("page") == page_number
             and label["rendered_text"].strip()
         ):
-            row = locate_in_row(label["rendered_text"], entry["rendered_text"], index)
-            record(entry, "row_anchored", row.status, row.value.kind, row.bbox)
+            row = locate_in_row(
+                label["rendered_text"], entry["rendered_text"], index, value_class=declared
+            )
+            record(entry, "row_anchored", row.value)
 
         # 4. The fields the factory says the document fails to convey.
         #    Anything found anywhere in the document is a false locate.
         if entry["status"] in {"absent", "illegible"} and entry["value"] is not None:
             for candidate_page in indexes.values():
-                result = locate(str(entry["value"]), candidate_page)
-                record(entry, "missing_field", result.status, result.kind, None)
+                record(entry, "missing_field", locate(str(entry["value"]), candidate_page))
 
-        # 5. Synthetic negatives.
+        # 5. Synthetic negatives, under the same three settings.
         if present and drawn:
             decoy = _decoy(entry["rendered_text"])
             if decoy is not None and squash(decoy) and squash(decoy) not in clean_stream:
-                result = locate(decoy, index)
-                record(entry, "decoy", result.status, result.kind, None)
+                record(entry, "decoy", locate(decoy, index))
                 if scanned:
-                    strict = locate(decoy, index, fuzzy=FuzzyMode.NEVER)
-                    record(entry, "decoy_no_fuzzy", strict.status, strict.kind, None)
+                    record(entry, "decoy_declared", locate(decoy, index, value_class=declared))
+                    record(entry, "decoy_no_fuzzy", locate(decoy, index, fuzzy=FuzzyMode.NEVER))
 
     return measurement
 
@@ -572,6 +600,7 @@ def render_tables(measurement: Measurement) -> str:
     for probe, label in (
         ("missing_field", "ground truth: absent/illegible"),
         ("decoy", "synthetic negative, 1 char off"),
+        ("decoy_declared", "same, field class declared"),
         ("decoy_no_fuzzy", "same, fuzzy tier off"),
     ):
         for quality in QUALITIES:
@@ -582,6 +611,42 @@ def render_tables(measurement: Measurement) -> str:
                 rows.append((label, quality, total, located, _percent(located, total), ambiguous))
     out.append(
         _table(("probe", "quality", "probes", "located", "false-locate rate", "ambiguous"), rows)
+    )
+
+    out.append(
+        "\nF2. Decoy false locates by the field's own value class."
+        "\n   numeric / unit / date / flag are the classes the fuzzy tier is never "
+        "used on\n   (EXACT_ONLY_VALUE_CLASSES); free_text is where it still runs."
+    )
+    rows = []
+    for probe, label in (("decoy", "inferred class"), ("decoy_declared", "declared class")):
+        for value_class in (
+            ValueClass.NUMERIC,
+            ValueClass.UNIT,
+            ValueClass.DATE,
+            ValueClass.FLAG,
+            ValueClass.FREE_TEXT,
+        ):
+            for quality in QUALITIES:
+                subset = [
+                    o for o in measurement.by_probe(probe, quality) if o.field_class is value_class
+                ]
+                located, total = _count(subset, LocateStatus.LOCATED)
+                if total:
+                    rows.append(
+                        (
+                            label,
+                            value_class.value,
+                            quality,
+                            total,
+                            located,
+                            _percent(located, total),
+                        )
+                    )
+    out.append(
+        _table(
+            ("setting", "field class", "quality", "probes", "located", "false-locate rate"), rows
+        )
     )
 
     out.append(
@@ -653,37 +718,40 @@ def render_tables(measurement: Measurement) -> str:
 
     strict = measurement.by_probe("rendered_no_fuzzy")
     if strict:
-        out.append("\nJ. What the OCR fuzzy tier buys and costs (scanned samples only)")
+        out.append(
+            "\nJ. What the fuzzy-tier policy costs and buys, scanned samples only."
+            "\n   'declared' is a schema-driven caller naming the field's class; "
+            "'inferred' reads the\n   class off the probe string; 'fuzzy off' withholds "
+            "the tier from every class."
+        )
         rows = []
         for quality in QUALITIES:
-            on = [o for o in rendered if o.quality == quality]
-            off = [o for o in strict if o.quality == quality]
-            decoy_on = measurement.by_probe("decoy", quality)
-            decoy_off = measurement.by_probe("decoy_no_fuzzy", quality)
-            if not off:
-                continue
-            rows.append(
-                (
-                    quality,
-                    len(off),
-                    _percent(_count(off, LocateStatus.LOCATED)[0], len(off)),
-                    _percent(_count(on, LocateStatus.LOCATED)[0], len(on)),
-                    _percent(_count(decoy_off, LocateStatus.LOCATED)[0], len(decoy_off)),
-                    _percent(_count(decoy_on, LocateStatus.LOCATED)[0], len(decoy_on)),
+            if quality == "clean":
+                continue  # no scan, so no fuzzy tier to price
+            settings = (
+                ("declared class", "rendered_declared", "decoy_declared"),
+                ("inferred class", "rendered", "decoy"),
+                ("fuzzy off entirely", "rendered_no_fuzzy", "decoy_no_fuzzy"),
+            )
+            for label, found_probe, decoy_probe in settings:
+                found = measurement.by_probe(found_probe, quality)
+                decoys = measurement.by_probe(decoy_probe, quality)
+                if not found or not decoys:
+                    continue
+                located, total = _count(found, LocateStatus.LOCATED)
+                false_hits, decoy_total = _count(decoys, LocateStatus.LOCATED)
+                rows.append(
+                    (
+                        quality,
+                        label,
+                        total,
+                        _percent(located, total),
+                        decoy_total,
+                        _percent(false_hits, decoy_total),
+                    )
                 )
-            )
         out.append(
-            _table(
-                (
-                    "quality",
-                    "fields",
-                    "located, fuzzy off",
-                    "located, fuzzy on",
-                    "false, fuzzy off",
-                    "false, fuzzy on",
-                ),
-                rows,
-            )
+            _table(("quality", "setting", "fields", "located", "decoys", "false-locate rate"), rows)
         )
 
     if measurement.skipped_scans:
