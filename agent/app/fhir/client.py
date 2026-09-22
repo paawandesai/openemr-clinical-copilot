@@ -76,21 +76,14 @@ def _raise_for_status(response: httpx.Response) -> None:
     {"error":"...","message":"...","code":0} — not a FHIR OperationOutcome.
     """
     if response.status_code in (401, 403):
-        raise FhirAuthError(
-            f"FHIR request rejected with {response.status_code}: "
-            f"{response.text}"
-        )
+        raise FhirAuthError(f"FHIR request rejected with {response.status_code}: {response.text}")
     if response.status_code == 404:
         raise FhirNotFoundError(f"FHIR resource not found: {response.text}")
     if response.status_code >= 400:
-        raise FhirServerError(
-            f"FHIR server returned {response.status_code}: {response.text}"
-        )
+        raise FhirServerError(f"FHIR server returned {response.status_code}: {response.text}")
 
 
-async def _get_bundle(
-    token: str, resource_type: str, params: dict[str, Any]
-) -> dict[str, Any]:
+async def _get_bundle(token: str, resource_type: str, params: dict[str, Any]) -> dict[str, Any]:
     """
     One authenticated GET against the FHIR search endpoint for
     `resource_type`, returning the parsed Bundle JSON. `token` is supplied
@@ -148,21 +141,97 @@ _INVISIBLE_CATEGORIES = frozenset({"Cc", "Cf", "Cs"})
 # — script, style, iframe, object, form, svg, a misspelled or unknown tag —
 # means the narrative is not plain formatted text, and no name is taken
 # from it.
-_NARRATIVE_ELEMENTS = frozenset({
-    "a", "abbr", "acronym", "address", "area", "b", "bdo", "big", "blockquote",
-    "br", "caption", "cite", "code", "col", "colgroup", "dd", "dfn", "div", "dl",
-    "dt", "em", "h1", "h2", "h3", "h4", "h5", "h6", "hr", "i", "img", "kbd", "li",
-    "map", "ol", "p", "pre", "q", "samp", "small", "span", "strong", "sub", "sup",
-    "table", "tbody", "td", "tfoot", "th", "thead", "tr", "tt", "ul", "var",
-})
+_NARRATIVE_ELEMENTS = frozenset(
+    {
+        "a",
+        "abbr",
+        "acronym",
+        "address",
+        "area",
+        "b",
+        "bdo",
+        "big",
+        "blockquote",
+        "br",
+        "caption",
+        "cite",
+        "code",
+        "col",
+        "colgroup",
+        "dd",
+        "dfn",
+        "div",
+        "dl",
+        "dt",
+        "em",
+        "h1",
+        "h2",
+        "h3",
+        "h4",
+        "h5",
+        "h6",
+        "hr",
+        "i",
+        "img",
+        "kbd",
+        "li",
+        "map",
+        "ol",
+        "p",
+        "pre",
+        "q",
+        "samp",
+        "small",
+        "span",
+        "strong",
+        "sub",
+        "sup",
+        "table",
+        "tbody",
+        "td",
+        "tfoot",
+        "th",
+        "thead",
+        "tr",
+        "tt",
+        "ul",
+        "var",
+    }
+)
 
 # Elements whose boundary separates words when rendered. Inline formatting
 # (<b>, <span>) does not: "<b>peni</b>cillin" reads "penicillin".
-_NARRATIVE_WORD_BREAKS = frozenset({
-    "address", "blockquote", "br", "caption", "dd", "div", "dl", "dt", "h1",
-    "h2", "h3", "h4", "h5", "h6", "hr", "li", "ol", "p", "pre", "table", "tbody",
-    "td", "tfoot", "th", "thead", "tr", "ul",
-})
+_NARRATIVE_WORD_BREAKS = frozenset(
+    {
+        "address",
+        "blockquote",
+        "br",
+        "caption",
+        "dd",
+        "div",
+        "dl",
+        "dt",
+        "h1",
+        "h2",
+        "h3",
+        "h4",
+        "h5",
+        "h6",
+        "hr",
+        "li",
+        "ol",
+        "p",
+        "pre",
+        "table",
+        "tbody",
+        "td",
+        "tfoot",
+        "th",
+        "thead",
+        "tr",
+        "ul",
+    }
+)
 
 # OpenEMR's narrative is `<div xmlns=…>` + the record's title
 # (UtilsService::createNarrative), and `lists.title` is varchar(255)
@@ -420,9 +489,7 @@ async def get_conditions(
                 source_id=r["id"],
                 display=_record_name(r, r.get("code")),
                 clinical_status=(clinical_status or {}).get("code", "unknown"),
-                onset_date=_parse_datetime(
-                    r.get("onsetDateTime") or r.get("recordedDate")
-                ),
+                onset_date=_parse_datetime(r.get("onsetDateTime") or r.get("recordedDate")),
             )
         )
     _emit_retrieval_event(FhirResourceType.CONDITION, use_case, patient_session_key)
@@ -452,13 +519,10 @@ async def get_medication_requests(
                 display=_record_name(r, med),
                 status=r.get("status", "unknown"),
                 rxnorm_code=(rxnorm_coding or {}).get("code"),
-                authored_date=_parse_datetime(r.get("authoredOn"))
-                or datetime.min,
+                authored_date=_parse_datetime(r.get("authoredOn")) or datetime.min,
             )
         )
-    _emit_retrieval_event(
-        FhirResourceType.MEDICATION_REQUEST, use_case, patient_session_key
-    )
+    _emit_retrieval_event(FhirResourceType.MEDICATION_REQUEST, use_case, patient_session_key)
     return requests
 
 
@@ -492,9 +556,7 @@ async def get_allergy_intolerances(
                 recorded_date=_parse_datetime(r.get("recordedDate")),
             )
         )
-    _emit_retrieval_event(
-        FhirResourceType.ALLERGY_INTOLERANCE, use_case, patient_session_key
-    )
+    _emit_retrieval_event(FhirResourceType.ALLERGY_INTOLERANCE, use_case, patient_session_key)
     return allergies
 
 
@@ -586,11 +648,8 @@ async def get_observations(
                 value=value_quantity["value"],
                 unit=value_quantity.get("unit"),
                 loinc_code=loinc_coding["code"],
-                effective_date=_parse_datetime(r.get("effectiveDateTime"))
-                or datetime.min,
+                effective_date=_parse_datetime(r.get("effectiveDateTime")) or datetime.min,
             )
         )
-    _emit_retrieval_event(
-        FhirResourceType.OBSERVATION, use_case, patient_session_key
-    )
+    _emit_retrieval_event(FhirResourceType.OBSERVATION, use_case, patient_session_key)
     return observations

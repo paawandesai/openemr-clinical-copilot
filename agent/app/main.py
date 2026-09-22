@@ -56,13 +56,17 @@ app = FastAPI(
 app.add_middleware(CorrelationIdMiddleware)
 
 
-def _error(status_code: int, error: ErrorCode, message: str, headers: dict[str, str] | None = None) -> JSONResponse:
+def _error(
+    status_code: int, error: ErrorCode, message: str, headers: dict[str, str] | None = None
+) -> JSONResponse:
     body = ErrorResponse(
         error=error,
         message=message,
         correlation_id=get_correlation_id() or "no-request-context",
     )
-    return JSONResponse(status_code=status_code, content=body.model_dump(mode="json"), headers=headers)
+    return JSONResponse(
+        status_code=status_code, content=body.model_dump(mode="json"), headers=headers
+    )
 
 
 @app.exception_handler(ApiError)
@@ -77,7 +81,9 @@ async def _invalid_request(request: Request, exc: RequestValidationError) -> JSO
         f"{'.'.join(str(part) for part in err['loc'][1:]) or 'body'}: {err['msg']}"
         for err in exc.errors()
     )
-    return _error(422, ErrorCode.INVALID_REQUEST, f"Request does not match the contract: {problems}")
+    return _error(
+        422, ErrorCode.INVALID_REQUEST, f"Request does not match the contract: {problems}"
+    )
 
 
 app.include_router(health_router)

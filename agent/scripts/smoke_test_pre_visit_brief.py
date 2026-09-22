@@ -118,12 +118,16 @@ def _print_run(run: _Run) -> None:
     print(f"correlation_id:      {result.correlation_id}")
     print(f"{'=' * 72}")
     print(result.text)
-    print(f"\n  claims: {len(result.verification_results)} drafted, {passed} verified, {failed} unverified")
+    print(
+        f"\n  claims: {len(result.verification_results)} drafted, {passed} verified, {failed} unverified"
+    )
     print("  timing (seconds):")
     for node in _NODES:
         print(f"    {node:<9} {result.node_seconds[node]:8.3f}")
     print(f"    {'nodes':<9} {sum(result.node_seconds.values()):8.3f}")
-    print(f"    {'total':<9} {result.total_seconds:8.3f}  (trigger → rendered, as logged in latency_event)")
+    print(
+        f"    {'total':<9} {result.total_seconds:8.3f}  (trigger → rendered, as logged in latency_event)"
+    )
 
 
 def _report(passed: bool, message: str) -> bool:
@@ -173,7 +177,8 @@ def _check_attribution(runs: list[_Run], events: list[dict[str, Any]]) -> bool:
             f"run {run.label[:1]}: event types {dict(sorted(types.items()))}",
         )
         body_mismatch = [
-            e for e in mine
+            e
+            for e in mine
             if e["event_data"].get("correlation_id", cid) != cid
             or e["event_data"].get("patient_session_key", run.key) != run.key
         ]
@@ -182,7 +187,11 @@ def _check_attribution(runs: list[_Run], events: list[dict[str, Any]]) -> bool:
             f"run {run.label[:1]}: event_data correlation_id / patient_session_key agree with the envelope "
             f"({len(body_mismatch)} disagree)",
         )
-        elsewhere = [e for e in events if e.get("patient_session_key") == run.key and e.get("correlation_id") != cid]
+        elsewhere = [
+            e
+            for e in events
+            if e.get("patient_session_key") == run.key and e.get("correlation_id") != cid
+        ]
         ok &= _report(
             not elsewhere,
             f"run {run.label[:1]}: its key appears on no event outside the run ({len(elsewhere)} found)",
@@ -218,20 +227,34 @@ async def main() -> None:
     allergy_patient = await _discover_a_patient_id(token)
     empty_allergy_patient = await _find_empty_allergy_patient(token, exclude=allergy_patient)
 
-    run_a = await _run("A: allergy on file", token, allergy_patient, _session_key(username, allergy_patient))
+    run_a = await _run(
+        "A: allergy on file", token, allergy_patient, _session_key(username, allergy_patient)
+    )
     _print_run(run_a)
     run_b = await _run(
-        "B: zero AllergyIntolerance records", token, empty_allergy_patient,
+        "B: zero AllergyIntolerance records",
+        token,
+        empty_allergy_patient,
         _session_key(username, empty_allergy_patient),
     )
     _print_run(run_b)
 
-    print(f"\n{'#' * 72}\nC and D: the same two patients, new sessions, run concurrently\n{'#' * 72}")
+    print(
+        f"\n{'#' * 72}\nC and D: the same two patients, new sessions, run concurrently\n{'#' * 72}"
+    )
     run_c, run_d = await asyncio.gather(
-        _run("C: A's patient, new session (concurrent with D)", token, allergy_patient,
-             _session_key(username, allergy_patient)),
-        _run("D: B's patient, new session (concurrent with C)", token, empty_allergy_patient,
-             _session_key(username, empty_allergy_patient)),
+        _run(
+            "C: A's patient, new session (concurrent with D)",
+            token,
+            allergy_patient,
+            _session_key(username, allergy_patient),
+        ),
+        _run(
+            "D: B's patient, new session (concurrent with C)",
+            token,
+            empty_allergy_patient,
+            _session_key(username, empty_allergy_patient),
+        ),
     )
     _print_run(run_c)
     _print_run(run_d)
@@ -243,7 +266,7 @@ async def main() -> None:
         rendered = _NOT_RECORDED in run.result.text
         ok &= _report(
             rendered == expect_not_recorded,
-            f"run {run.label[:1]}: \"{_NOT_RECORDED}\" {'present' if rendered else 'absent'} "
+            f'run {run.label[:1]}: "{_NOT_RECORDED}" {"present" if rendered else "absent"} '
             f"(expected {'present' if expect_not_recorded else 'absent'})",
         )
     for run in runs:

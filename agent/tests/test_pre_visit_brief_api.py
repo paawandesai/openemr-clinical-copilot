@@ -62,9 +62,16 @@ class SuccessTest(unittest.TestCase):
     def setUp(self) -> None:
         self.tokens_seen: list[str] = []
         records: dict[FhirResourceType, list[Any]] = {
-            FhirResourceType.CONDITION: [Condition(source_id="cond-1", display="HTN", clinical_status="active")],
+            FhirResourceType.CONDITION: [
+                Condition(source_id="cond-1", display="HTN", clinical_status="active")
+            ],
             FhirResourceType.MEDICATION_REQUEST: [
-                MedicationRequest(source_id="med-1", display="Norvasc", status="active", authored_date=datetime(2014, 2, 1))
+                MedicationRequest(
+                    source_id="med-1",
+                    display="Norvasc",
+                    status="active",
+                    authored_date=datetime(2014, 2, 1),
+                )
             ],
             FhirResourceType.ALLERGY_INTOLERANCE: [],
         }
@@ -79,11 +86,23 @@ class SuccessTest(unittest.TestCase):
 
             return fetch_records
 
-        async def draft(retrieved: dict[FhirResourceType, list[Any]], **_: Any) -> PreVisitBriefDraft:
+        async def draft(
+            retrieved: dict[FhirResourceType, list[Any]], **_: Any
+        ) -> PreVisitBriefDraft:
             return PreVisitBriefDraft(
                 claims=[
-                    Claim(source_id="cond-1", field="display", value="HTN", resource_type=FhirResourceType.CONDITION),
-                    Claim(source_id="med-1", field="display", value="Norvasc 10 MG", resource_type=FhirResourceType.MEDICATION_REQUEST),
+                    Claim(
+                        source_id="cond-1",
+                        field="display",
+                        value="HTN",
+                        resource_type=FhirResourceType.CONDITION,
+                    ),
+                    Claim(
+                        source_id="med-1",
+                        field="display",
+                        value="Norvasc 10 MG",
+                        resource_type=FhirResourceType.MEDICATION_REQUEST,
+                    ),
                 ],
                 section_counts={
                     FhirResourceType.CONDITION: SectionCount(retrieved=1, in_brief=1),
@@ -95,8 +114,16 @@ class SuccessTest(unittest.TestCase):
         patches = [
             mock.patch.object(pvb.fhir_client, "ensure_patient_exists", patient_read),
             mock.patch.object(pvb.fhir_client, "get_conditions", fetch(FhirResourceType.CONDITION)),
-            mock.patch.object(pvb.fhir_client, "get_medication_requests", fetch(FhirResourceType.MEDICATION_REQUEST)),
-            mock.patch.object(pvb.fhir_client, "get_allergy_intolerances", fetch(FhirResourceType.ALLERGY_INTOLERANCE)),
+            mock.patch.object(
+                pvb.fhir_client,
+                "get_medication_requests",
+                fetch(FhirResourceType.MEDICATION_REQUEST),
+            ),
+            mock.patch.object(
+                pvb.fhir_client,
+                "get_allergy_intolerances",
+                fetch(FhirResourceType.ALLERGY_INTOLERANCE),
+            ),
             mock.patch.object(pvb, "draft_pre_visit_brief", draft),
         ]
         for patcher in patches:
@@ -119,7 +146,10 @@ class SuccessTest(unittest.TestCase):
         self.assertEqual(response.headers["X-Correlation-ID"], "corr-test-4711")
         self.assertIn("Allergies: not recorded", body.brief)
         self.assertIn('UNVERIFIED: "Norvasc 10 MG"', body.brief)
-        self.assertEqual((body.verification.claims, body.verification.verified, body.verification.unverified), (2, 1, 1))
+        self.assertEqual(
+            (body.verification.claims, body.verification.verified, body.verification.unverified),
+            (2, 1, 1),
+        )
         self.assertEqual(
             [(c.source_id, c.verified, c.unverified_reason) for c in body.claims],
             [("cond-1", True, None), ("med-1", False, "value does not match source record")],
@@ -134,7 +164,11 @@ class SuccessTest(unittest.TestCase):
         self.assertTrue(events)
         self.assertEqual({e["patient_session_key"] for e in events}, {body.patient_session_key})
         self.assertEqual(
-            {e["event_data"]["correlation_id"] for e in events if "correlation_id" in e["event_data"]},
+            {
+                e["event_data"]["correlation_id"]
+                for e in events
+                if "correlation_id" in e["event_data"]
+            },
             {"corr-test-4711"},
         )
 
@@ -162,7 +196,10 @@ class FailureTest(unittest.TestCase):
         return body
 
     def test_missing_or_non_bearer_authorization_is_401_before_any_fhir_call(self) -> None:
-        for label, headers in {"none": {}, "basic": {"Authorization": "Basic dXNlcjpwYXNz"}}.items():
+        for label, headers in {
+            "none": {},
+            "basic": {"Authorization": "Basic dXNlcjpwYXNz"},
+        }.items():
             with self.subTest(label):
                 response = _post({"patient_id": PATIENT_ID}, headers)
                 self.assert_error(response, 401, "missing_bearer_token")
@@ -176,7 +213,9 @@ class FailureTest(unittest.TestCase):
             "sub with a colon": _jwt({"sub": "user:admin"}),
         }.items():
             with self.subTest(label):
-                self.assert_error(_post({"patient_id": PATIENT_ID}, _auth(token)), 401, "malformed_bearer_token")
+                self.assert_error(
+                    _post({"patient_id": PATIENT_ID}, _auth(token)), 401, "malformed_bearer_token"
+                )
         self.run.assert_not_awaited()
 
     def test_body_outside_the_contract_is_422_without_echoing_input(self) -> None:
@@ -195,7 +234,9 @@ class FailureTest(unittest.TestCase):
         self.run.assert_not_awaited()
 
     def test_fhir_401_names_every_cause_and_claims_none(self) -> None:
-        self.run.side_effect = FhirAuthError('FHIR request rejected with 401: {"error":"invalid_token"}')
+        self.run.side_effect = FhirAuthError(
+            'FHIR request rejected with 401: {"error":"invalid_token"}'
+        )
 
         response = _post({"patient_id": PATIENT_ID}, _auth())
 
@@ -207,12 +248,36 @@ class FailureTest(unittest.TestCase):
     def test_pipeline_failures_map_to_distinct_statuses_without_internals(self) -> None:
         request = httpx2.Request("POST", "https://api.anthropic.test/v1/messages")
         cases = {
-            "patient not found": (PatientNotFoundError("FHIR Patient read returned 404"), 404, "patient_not_found"),
-            "fhir error": (FhirServerError("FHIR server returned 500: SQLSTATE[42S02]"), 502, "fhir_unavailable"),
-            "fhir unreachable": (httpx.ConnectError("connect to 172.17.0.1:9300 failed"), 502, "fhir_unavailable"),
-            "drafting output": (ClaimDraftingError("Model output did not match the claim schema"), 502, "brief_generation_failed"),
-            "llm unreachable": (anthropic.APIConnectionError(request=request), 502, "brief_generation_failed"),
-            "unexpected": (RuntimeError("KeyError: 'retrieved' at node render"), 500, "internal_error"),
+            "patient not found": (
+                PatientNotFoundError("FHIR Patient read returned 404"),
+                404,
+                "patient_not_found",
+            ),
+            "fhir error": (
+                FhirServerError("FHIR server returned 500: SQLSTATE[42S02]"),
+                502,
+                "fhir_unavailable",
+            ),
+            "fhir unreachable": (
+                httpx.ConnectError("connect to 172.17.0.1:9300 failed"),
+                502,
+                "fhir_unavailable",
+            ),
+            "drafting output": (
+                ClaimDraftingError("Model output did not match the claim schema"),
+                502,
+                "brief_generation_failed",
+            ),
+            "llm unreachable": (
+                anthropic.APIConnectionError(request=request),
+                502,
+                "brief_generation_failed",
+            ),
+            "unexpected": (
+                RuntimeError("KeyError: 'retrieved' at node render"),
+                500,
+                "internal_error",
+            ),
         }
         for label, (error, status, code) in cases.items():
             with self.subTest(label):
@@ -228,9 +293,7 @@ class OpenApiTest(unittest.TestCase):
         schema = TestClient(app).get("/openapi.json").json()
 
         operation = schema["paths"]["/pre-visit-brief"]["post"]
-        self.assertEqual(
-            set(operation["responses"]), {"200", "401", "404", "422", "500", "502"}
-        )
+        self.assertEqual(set(operation["responses"]), {"200", "401", "404", "422", "500", "502"})
         self.assertIn("HTTPBearer", schema["components"]["securitySchemes"])
         self.assertIn("PreVisitBriefResponse", schema["components"]["schemas"])
 

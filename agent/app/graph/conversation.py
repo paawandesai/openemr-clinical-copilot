@@ -84,11 +84,11 @@ from app.conversation.state import (
 from app.fhir import client as fhir_client
 from app.fhir.exceptions import PatientNotFoundError
 from app.graph.follow_up import (
+    _FIELD_LABEL,
     GAP_WORDING,
     NOT_IN_RECORD,
     _claim_line,
     _display_value,
-    _FIELD_LABEL,
     _section_counts,
     answer_status,
     fetch_bounded_set,
@@ -390,7 +390,9 @@ def _closing_line(
 def render_refusal(turn: int, status: TurnStatus, refusals: list[RefusalCategory]) -> str:
     lines = [f"Follow-up answer (turn {turn})", ""]
     lines.append(
-        OUT_OF_SCOPE_HEADLINE if status is TurnStatus.REFUSED_OUT_OF_SCOPE else UNVERIFIABLE_HEADLINE
+        OUT_OF_SCOPE_HEADLINE
+        if status is TurnStatus.REFUSED_OUT_OF_SCOPE
+        else UNVERIFIABLE_HEADLINE
     )
     lines.extend(f"  - {REFUSAL_WORDING[category]}" for category in refusals)
     lines.append("")
@@ -435,11 +437,13 @@ def render_turn(
 
     unverified = sum(1 for result in results if not result.passed)
     if unverified:
-        lines.extend([
-            "",
-            f"{unverified} item(s) above could not be verified against the "
-            "chart and are marked UNVERIFIED.",
-        ])
+        lines.extend(
+            [
+                "",
+                f"{unverified} item(s) above could not be verified against the "
+                "chart and are marked UNVERIFIED.",
+            ]
+        )
 
     lines.extend(["", closing_line])
     return "\n".join(lines)
@@ -463,9 +467,7 @@ async def _retrieve(
     wants_visits = FhirResourceType.ENCOUNTER in decision.expansions
     base, observations, encounters = await asyncio.gather(
         fetch_bounded_set(token, patient_id, key),
-        fhir_client.get_observations(
-            token, patient_id, use_case=_USE_CASE, patient_session_key=key
-        )
+        fhir_client.get_observations(token, patient_id, use_case=_USE_CASE, patient_session_key=key)
         if wants_labs
         else none(),
         fhir_client.get_encounters(
@@ -610,9 +612,7 @@ async def run_conversation_turn(
         # The same verifier as the brief, over the same mapping the draft
         # step saw. Context from earlier turns is not part of it.
         started = time.perf_counter()
-        results = verify_claims(
-            draft.claims, bounded, use_case=_USE_CASE, patient_session_key=key
-        )
+        results = verify_claims(draft.claims, bounded, use_case=_USE_CASE, patient_session_key=key)
         step_seconds["verify"] = time.perf_counter() - started
 
         started = time.perf_counter()

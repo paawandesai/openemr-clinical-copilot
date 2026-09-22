@@ -57,9 +57,7 @@ from app.models.fhir_resources import (
 )
 from app.models.metrics_events import ClaimVerifiedEvent, UseCase
 
-FhirResource = (
-    Condition | MedicationRequest | AllergyIntolerance | Encounter | Observation
-)
+FhirResource = Condition | MedicationRequest | AllergyIntolerance | Encounter | Observation
 
 # The FHIR client (app/fhir/client.py) substitutes datetime.min when a
 # MedicationRequest.authoredOn or Observation.effectiveDateTime is absent,
@@ -153,9 +151,7 @@ def _verify_claim(
     # is what the physician reads as the item itself: "this allergy has no
     # name" must never count as a verified item. Stricter than the general
     # rule, never looser: whatever the claimed value, it fails.
-    if claim.field == _NAME_FIELD and any(
-        getattr(copy, _NAME_FIELD) is None for copy in copies
-    ):
+    if claim.field == _NAME_FIELD and any(getattr(copy, _NAME_FIELD) is None for copy in copies):
         return _failed(claim, FailureReason.NO_NAME_ON_SOURCE)
 
     if not all(_values_match(claim.value, getattr(copy, claim.field)) for copy in copies):
@@ -198,9 +194,7 @@ def _values_match(claimed: str | float | int | None, actual: object) -> bool:
     Fails closed: any source type not handled explicitly below never
     matches.
     """
-    if actual is None or (
-        isinstance(actual, datetime) and actual == _ABSENT_DATETIME_SENTINEL
-    ):
+    if actual is None or (isinstance(actual, datetime) and actual == _ABSENT_DATETIME_SENTINEL):
         return claimed is None
     if claimed is None:
         return False

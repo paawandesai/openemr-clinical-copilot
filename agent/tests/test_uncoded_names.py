@@ -56,7 +56,10 @@ DATA_ABSENT = {
 LIVE_UNCODED_ALLERGY: dict[str, Any] = {
     "resourceType": "AllergyIntolerance",
     "id": "a2c36e54-abdd-4e69-911c-11516235801e",
-    "text": {"status": "additional", "div": "<div xmlns='http://www.w3.org/1999/xhtml'>penicillin</div>"},
+    "text": {
+        "status": "additional",
+        "div": "<div xmlns='http://www.w3.org/1999/xhtml'>penicillin</div>",
+    },
     "code": DATA_ABSENT,
     "clinicalStatus": {"coding": [{"code": "active"}]},
     "recordedDate": "2026-09-16T00:00:00+00:00",
@@ -64,10 +67,15 @@ LIVE_UNCODED_ALLERGY: dict[str, Any] = {
 
 
 def _div(inner: str) -> dict[str, str]:
-    return {"status": "additional", "div": f"<div xmlns='http://www.w3.org/1999/xhtml'>{inner}</div>"}
+    return {
+        "status": "additional",
+        "div": f"<div xmlns='http://www.w3.org/1999/xhtml'>{inner}</div>",
+    }
 
 
-def _allergy(source_id: str, *, code: dict[str, Any] | None = None, text: Any = None) -> dict[str, Any]:
+def _allergy(
+    source_id: str, *, code: dict[str, Any] | None = None, text: Any = None
+) -> dict[str, Any]:
     resource: dict[str, Any] = {"resourceType": "AllergyIntolerance", "id": source_id}
     if code is not None:
         resource["code"] = code
@@ -76,7 +84,9 @@ def _allergy(source_id: str, *, code: dict[str, Any] | None = None, text: Any = 
     return resource
 
 
-def _condition(source_id: str, *, code: dict[str, Any] | None = None, text: Any = None) -> dict[str, Any]:
+def _condition(
+    source_id: str, *, code: dict[str, Any] | None = None, text: Any = None
+) -> dict[str, Any]:
     resource: dict[str, Any] = {
         "resourceType": "Condition",
         "id": source_id,
@@ -89,7 +99,9 @@ def _condition(source_id: str, *, code: dict[str, Any] | None = None, text: Any 
     return resource
 
 
-def _medication(source_id: str, *, concept: dict[str, Any] | None = None, text: Any = None) -> dict[str, Any]:
+def _medication(
+    source_id: str, *, concept: dict[str, Any] | None = None, text: Any = None
+) -> dict[str, Any]:
     resource: dict[str, Any] = {
         "resourceType": "MedicationRequest",
         "id": source_id,
@@ -128,9 +140,18 @@ def test_live_uncoded_allergy_is_named_from_its_narrative() -> None:
 @pytest.mark.parametrize(
     ("getter", "make"),
     [
-        (fhir_client.get_allergy_intolerances, lambda sid, **kw: _allergy(sid, code=kw.get("concept"), text=kw.get("text"))),
-        (fhir_client.get_conditions, lambda sid, **kw: _condition(sid, code=kw.get("concept"), text=kw.get("text"))),
-        (fhir_client.get_medication_requests, lambda sid, **kw: _medication(sid, concept=kw.get("concept"), text=kw.get("text"))),
+        (
+            fhir_client.get_allergy_intolerances,
+            lambda sid, **kw: _allergy(sid, code=kw.get("concept"), text=kw.get("text")),
+        ),
+        (
+            fhir_client.get_conditions,
+            lambda sid, **kw: _condition(sid, code=kw.get("concept"), text=kw.get("text")),
+        ),
+        (
+            fhir_client.get_medication_requests,
+            lambda sid, **kw: _medication(sid, concept=kw.get("concept"), text=kw.get("text")),
+        ),
     ],
     ids=["AllergyIntolerance", "Condition", "MedicationRequest"],
 )
@@ -138,7 +159,14 @@ def test_each_brief_type_names_uncoded_records_from_the_narrative_and_never_from
     getter: Any, make: Any
 ) -> None:
     bundle = _bundle(
-        make("coded", concept={"coding": [{"system": "http://snomed.info/sct", "code": "1", "display": "Coded name"}]}),
+        make(
+            "coded",
+            concept={
+                "coding": [
+                    {"system": "http://snomed.info/sct", "code": "1", "display": "Coded name"}
+                ]
+            },
+        ),
         make("narrative", concept=DATA_ABSENT, text=_div("Free-text name")),
         make("no-concept-narrative", text=_div("Only in the narrative")),
         make("unnamed", concept=DATA_ABSENT),
@@ -159,12 +187,20 @@ def test_each_brief_type_names_uncoded_records_from_the_narrative_and_never_from
 def test_a_coded_name_still_wins_over_the_narrative() -> None:
     both = _allergy(
         "a",
-        code={"text": "Penicillin G", "coding": [{"system": "http://snomed.info/sct", "code": "1", "display": "Other"}]},
+        code={
+            "text": "Penicillin G",
+            "coding": [{"system": "http://snomed.info/sct", "code": "1", "display": "Other"}],
+        },
         text=_div("penicillin"),
     )
     display_only = _allergy(
         "b",
-        code={"coding": [*DATA_ABSENT["coding"], {"system": "http://snomed.info/sct", "code": "2", "display": "Latex"}]},
+        code={
+            "coding": [
+                *DATA_ABSENT["coding"],
+                {"system": "http://snomed.info/sct", "code": "2", "display": "Latex"},
+            ]
+        },
         text=_div("latex (narrative)"),
     )
 
@@ -174,7 +210,9 @@ def test_a_coded_name_still_wins_over_the_narrative() -> None:
 
 
 def test_the_data_absent_display_is_never_used_as_a_name() -> None:
-    [record] = _fetch(fhir_client.get_allergy_intolerances, _bundle(_allergy("a", code=DATA_ABSENT)))
+    [record] = _fetch(
+        fhir_client.get_allergy_intolerances, _bundle(_allergy("a", code=DATA_ABSENT))
+    )
 
     assert record.display is None
 
@@ -191,10 +229,21 @@ def test_the_data_absent_display_is_never_used_as_a_name() -> None:
         _div("   \n\t "),
         _div("<p></p><br/>"),
     ],
-    ids=["absent", "status-empty", "no-div", "div-not-a-string", "text-not-an-object", "empty", "whitespace", "tags-only"],
+    ids=[
+        "absent",
+        "status-empty",
+        "no-div",
+        "div-not-a-string",
+        "text-not-an-object",
+        "empty",
+        "whitespace",
+        "tags-only",
+    ],
 )
 def test_no_usable_narrative_means_no_name(text: Any) -> None:
-    [record] = _fetch(fhir_client.get_allergy_intolerances, _bundle(_allergy("a", code=DATA_ABSENT, text=text)))
+    [record] = _fetch(
+        fhir_client.get_allergy_intolerances, _bundle(_allergy("a", code=DATA_ABSENT, text=text))
+    )
 
     assert record.display is None
 
@@ -208,7 +257,10 @@ _NARRATIVES: list[tuple[str, str | None]] = [
     ("<b>peni</b>cillin", "penicillin"),
     ("<p>Sulfa</p><p>drugs</p>", "Sulfa drugs"),
     ("<span style='color:red'>latex</span>", "latex"),
-    ("<img src='x' onerror='alert(1)'/>penicillin <a href='javascript:alert(2)'>rash</a>", "penicillin rash"),
+    (
+        "<img src='x' onerror='alert(1)'/>penicillin <a href='javascript:alert(2)'>rash</a>",
+        "penicillin rash",
+    ),
     ("Sulfa &amp; sulfonamides", "Sulfa & sulfonamides"),
     ("pen<!-- a comment -->icillin", "penicillin"),
     # Whitespace, including line breaks a brief line could be split on.
@@ -238,9 +290,14 @@ _NARRATIVES: list[tuple[str, str | None]] = [
 ]
 
 
-@pytest.mark.parametrize(("inner", "expected"), _NARRATIVES, ids=[f"n{i}" for i in range(len(_NARRATIVES))])
+@pytest.mark.parametrize(
+    ("inner", "expected"), _NARRATIVES, ids=[f"n{i}" for i in range(len(_NARRATIVES))]
+)
 def test_narrative_is_reduced_to_its_text_or_refused(inner: str, expected: str | None) -> None:
-    [record] = _fetch(fhir_client.get_allergy_intolerances, _bundle(_allergy("a", code=DATA_ABSENT, text=_div(inner))))
+    [record] = _fetch(
+        fhir_client.get_allergy_intolerances,
+        _bundle(_allergy("a", code=DATA_ABSENT, text=_div(inner))),
+    )
 
     assert record.display == expected
 
@@ -268,8 +325,22 @@ def _is_clean_name(name: str) -> bool:
 def test_fuzzed_narratives_never_yield_markup_or_a_second_line() -> None:
     """Whatever the narrative holds, the name is None or one line of plain text."""
     alphabet = [
-        *"<>/!?-[]&#;=\"' abcdiv", "script", "img", "onerror", "CDATA", "&lt;", "&gt;", "&#60;",
-        "\n", "\r", " ", "\x00", "‮", "​", "\ud800", "penicillin",
+        *"<>/!?-[]&#;=\"' abcdiv",
+        "script",
+        "img",
+        "onerror",
+        "CDATA",
+        "&lt;",
+        "&gt;",
+        "&#60;",
+        "\n",
+        "\r",
+        " ",
+        "\x00",
+        "‮",
+        "​",
+        "\ud800",
+        "penicillin",
     ]
     rng = random.Random(57)
     for _ in range(5000):
@@ -313,12 +384,16 @@ def _brief(allergies: list[dict[str, Any]]) -> tuple[PreVisitBriefResponse, list
     async def patient_exists(token: str, patient_id: str) -> None:
         return None
 
-    with mock.patch.object(fhir_client, "_get_bundle", get_bundle), \
-         mock.patch.object(pvb.fhir_client, "ensure_patient_exists", patient_exists), \
-         mock.patch.object(draft_claims, "_STUB_LLM_DRAFTING", True), \
-         capture_logs() as logs:
+    with (
+        mock.patch.object(fhir_client, "_get_bundle", get_bundle),
+        mock.patch.object(pvb.fhir_client, "ensure_patient_exists", patient_exists),
+        mock.patch.object(draft_claims, "_STUB_LLM_DRAFTING", True),
+        capture_logs() as logs,
+    ):
         response = TestClient(app).post(
-            "/pre-visit-brief", json={"patient_id": PATIENT_ID}, headers={"Authorization": f"Bearer {_jwt()}"}
+            "/pre-visit-brief",
+            json={"patient_id": PATIENT_ID},
+            headers={"Authorization": f"Bearer {_jwt()}"},
         )
     assert response.status_code == 200, response.text
     return PreVisitBriefResponse.model_validate_json(response.text), logs
@@ -349,12 +424,17 @@ def test_unnamed_record_is_disclosed_as_unverified_never_verified() -> None:
     assert claim.verified is False
     assert claim.value is None
     assert claim.unverified_reason == FailureReason.NO_NAME_ON_SOURCE.value
-    assert (body.verification.claims, body.verification.verified, body.verification.unverified) == (2, 1, 1)
+    assert (body.verification.claims, body.verification.verified, body.verification.unverified) == (
+        2,
+        1,
+        1,
+    )
     # The verifier logged it like any other failed, disclosed claim (Metrics 1 and 2).
     [event] = [
         e["event_data"]
         for e in logs
-        if e.get("event_type") == "claim_verified_event" and e["event_data"]["source_id"] == "allergy-unnamed"
+        if e.get("event_type") == "claim_verified_event"
+        and e["event_data"]["source_id"] == "allergy-unnamed"
     ]
     assert (event["passed"], event["disclosed_as_unverified"]) == (False, True)
 
@@ -363,7 +443,9 @@ def test_unnamed_record_is_never_given_to_the_model() -> None:
     retrieved = {
         rt: [] for rt in (pvb.FhirResourceType.CONDITION, pvb.FhirResourceType.MEDICATION_REQUEST)
     }
-    [record] = _fetch(fhir_client.get_allergy_intolerances, _bundle(_allergy("allergy-unnamed", code=DATA_ABSENT)))
+    [record] = _fetch(
+        fhir_client.get_allergy_intolerances, _bundle(_allergy("allergy-unnamed", code=DATA_ABSENT))
+    )
     retrieved[pvb.FhirResourceType.ALLERGY_INTOLERANCE] = [record]
 
     model_input = json.loads(draft_claims._serialize_retrieved(retrieved))
@@ -377,9 +459,19 @@ def test_unnamed_record_is_never_given_to_the_model() -> None:
 def test_hostile_narratives_never_put_markup_in_the_brief() -> None:
     body, _ = _brief(
         [
-            _allergy("benign", code=DATA_ABSENT, text=_div("<b>penicillin</b><img src=x onerror=alert(1)>")),
-            _allergy("script", code=DATA_ABSENT, text=_div("sulfa<script>alert(document.cookie)</script>")),
-            _allergy("escaped", code=DATA_ABSENT, text=_div("&lt;img src=x onerror=alert(1)&gt;latex")),
+            _allergy(
+                "benign",
+                code=DATA_ABSENT,
+                text=_div("<b>penicillin</b><img src=x onerror=alert(1)>"),
+            ),
+            _allergy(
+                "script",
+                code=DATA_ABSENT,
+                text=_div("sulfa<script>alert(document.cookie)</script>"),
+            ),
+            _allergy(
+                "escaped", code=DATA_ABSENT, text=_div("&lt;img src=x onerror=alert(1)&gt;latex")
+            ),
         ]
     )
 
@@ -388,7 +480,11 @@ def test_hostile_narratives_never_put_markup_in_the_brief() -> None:
     assert allergies.count('UNVERIFIED: "(name not available)"') == 2
     assert "<" not in body.brief and ">" not in body.brief
     assert all("<" not in str(c.value) and ">" not in str(c.value) for c in body.claims)
-    assert {c.source_id: c.verified for c in body.claims if c.resource_type.value == "AllergyIntolerance"} == {
+    assert {
+        c.source_id: c.verified
+        for c in body.claims
+        if c.resource_type.value == "AllergyIntolerance"
+    } == {
         "benign": True,
         "script": False,
         "escaped": False,
@@ -428,6 +524,6 @@ def test_allergy_with_no_clinical_status_parses_as_unknown_not_as_active() -> No
     )
 
     assert record.clinical_status == "unknown"
-    assert draft_claims.brief_records(
-        pvb.FhirResourceType.ALLERGY_INTOLERANCE, [record]
-    ) == [record]
+    assert draft_claims.brief_records(pvb.FhirResourceType.ALLERGY_INTOLERANCE, [record]) == [
+        record
+    ]

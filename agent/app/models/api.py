@@ -248,7 +248,9 @@ class ConversationInfo(_Contract):
             "reset_expired."
         )
     )
-    context_turns: int = Field(description="Earlier turns whose verified claims this turn was given.")
+    context_turns: int = Field(
+        description="Earlier turns whose verified claims this turn was given."
+    )
     context_claims: int = Field(description="Verified claims in that context.")
     state_saved: bool = Field(
         description=(
@@ -256,7 +258,9 @@ class ConversationInfo(_Contract):
             "was invalidated while the turn was in flight."
         )
     )
-    expires_in_seconds: int = Field(description="Until this conversation's state is discarded if idle.")
+    expires_in_seconds: int = Field(
+        description="Until this conversation's state is discarded if idle."
+    )
 
 
 class ConversationTurnResponse(_Contract):

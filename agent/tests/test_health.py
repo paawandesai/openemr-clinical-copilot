@@ -173,7 +173,9 @@ class ReadyTest(_ReadyBase):
                 },
             },
         )
-        self.assertEqual(self.anthropic.options, {"timeout": health._PROBE_TIMEOUT_SECONDS, "max_retries": 0})
+        self.assertEqual(
+            self.anthropic.options, {"timeout": health._PROBE_TIMEOUT_SECONDS, "max_retries": 0}
+        )
 
     def test_fhir_unreachable_is_503_and_named_without_exception_text(self) -> None:
         self.fhir.side_effect = httpx.ConnectError("connect to 10.0.0.9:9300 failed")
@@ -195,20 +197,26 @@ class ReadyTest(_ReadyBase):
         status, body = self.checks()
 
         self.assertEqual(status, 503)
-        self.assertEqual(body["checks"]["fhir"]["detail"], "OpenEMR FHIR API returned an unexpected response")
+        self.assertEqual(
+            body["checks"]["fhir"]["detail"], "OpenEMR FHIR API returned an unexpected response"
+        )
         self.assertNotIn("stack trace", str(body))
 
     def test_llm_provider_failures_are_503_with_a_fixed_detail(self) -> None:
         cases = {
             "rejected key": (
                 anthropic.AuthenticationError(
-                    "invalid x-api-key", response=httpx2.Response(401, request=_ANTHROPIC_REQUEST), body=None
+                    "invalid x-api-key",
+                    response=httpx2.Response(401, request=_ANTHROPIC_REQUEST),
+                    body=None,
                 ),
                 "LLM provider rejected the configured API key",
             ),
             "model unavailable": (
                 anthropic.NotFoundError(
-                    "model not found", response=httpx2.Response(404, request=_ANTHROPIC_REQUEST), body=None
+                    "model not found",
+                    response=httpx2.Response(404, request=_ANTHROPIC_REQUEST),
+                    body=None,
                 ),
                 "Drafting model is not available to the configured API key",
             ),
@@ -237,7 +245,9 @@ class ReadyTest(_ReadyBase):
     def test_observability_failure_is_reported_but_does_not_gate_readiness(self) -> None:
         os.environ["LANGFUSE_BASE_URL"] = "http://langfuse.test"
         with mock.patch.object(
-            health, "check_export_health", side_effect=ObservabilityExportUnavailable("Langfuse unreachable")
+            health,
+            "check_export_health",
+            side_effect=ObservabilityExportUnavailable("Langfuse unreachable"),
         ):
             status, body = self.checks()
 
@@ -357,9 +367,11 @@ class ProviderHealthWiringTest(unittest.TestCase):
             R.MEDICATION_REQUEST: [],
             R.ALLERGY_INTOLERANCE: [],
         }
-        with mock.patch.object(draft_claims, "_client", lambda: _StreamingAnthropic(error)), \
-             mock.patch.object(draft_claims, "_STUB_LLM_DRAFTING", False), \
-             capture_logs():
+        with (
+            mock.patch.object(draft_claims, "_client", lambda: _StreamingAnthropic(error)),
+            mock.patch.object(draft_claims, "_STUB_LLM_DRAFTING", False),
+            capture_logs(),
+        ):
             asyncio.run(draft_claims.draft_pre_visit_brief(retrieved, patient_session_key="u:p:s"))
 
     def test_a_credit_balance_error_is_recorded_against_readiness(self) -> None:

@@ -120,7 +120,11 @@ async def _oracle(token: str, patient_id: str) -> dict[R, list[Any]]:
         fhir_client.get_medication_requests(token, patient_id),
         fhir_client.get_allergy_intolerances(token, patient_id),
     )
-    return {R.CONDITION: conditions, R.MEDICATION_REQUEST: medications, R.ALLERGY_INTOLERANCE: allergies}
+    return {
+        R.CONDITION: conditions,
+        R.MEDICATION_REQUEST: medications,
+        R.ALLERGY_INTOLERANCE: allergies,
+    }
 
 
 async def _ask(
@@ -134,7 +138,9 @@ async def _ask(
     if response.status_code != 200:
         print(f"ERROR: {label} returned {response.status_code}: {response.text}", file=sys.stderr)
         sys.exit(1)
-    return _Run(label, question, response.status_code, FollowUpResponse.model_validate_json(response.text))
+    return _Run(
+        label, question, response.status_code, FollowUpResponse.model_validate_json(response.text)
+    )
 
 
 def _print_run(run: _Run) -> None:
@@ -144,33 +150,45 @@ def _print_run(run: _Run) -> None:
     print(f"correlation_id: {body.correlation_id}")
     print(f"{'=' * 72}")
     print(body.answer)
-    print(f"\n  verification: {body.verification.claims} claims, {body.verification.verified} verified, "
-          f"{body.verification.unverified} unverified")
+    print(
+        f"\n  verification: {body.verification.claims} claims, {body.verification.verified} verified, "
+        f"{body.verification.unverified} unverified"
+    )
     for claim in body.claims:
         mark = "VERIFIED  " if claim.verified else "UNVERIFIED"
-        print(f"    {mark} {claim.resource_type.value}/{claim.source_id} {claim.field}={claim.value!r}"
-              + (f"  [{claim.unverified_reason}]" if claim.unverified_reason else ""))
+        print(
+            f"    {mark} {claim.resource_type.value}/{claim.source_id} {claim.field}={claim.value!r}"
+            + (f"  [{claim.unverified_reason}]" if claim.unverified_reason else "")
+        )
     t = body.timing
-    print(f"  timing: retrieve {t.retrieve_seconds:.2f}s, draft {t.draft_seconds:.2f}s, "
-          f"verify {t.verify_seconds:.4f}s, render {t.render_seconds:.4f}s, total {t.total_seconds:.2f}s")
+    print(
+        f"  timing: retrieve {t.retrieve_seconds:.2f}s, draft {t.draft_seconds:.2f}s, "
+        f"verify {t.verify_seconds:.4f}s, render {t.render_seconds:.4f}s, total {t.total_seconds:.2f}s"
+    )
 
 
 def _answer_lines(body: FollowUpResponse) -> list[str]:
     return [line for line in body.answer.splitlines() if line.startswith("  - ")]
 
 
-def _check_common(run: _Run, oracle: dict[R, list[Any]], key: str, events: list[dict[str, Any]]) -> bool:
+def _check_common(
+    run: _Run, oracle: dict[R, list[Any]], key: str, events: list[dict[str, Any]]
+) -> bool:
     ok = True
     body = run.body
     tag = run.label.split(":")[0]
-    ok &= _report(body.patient_session_key == key, f"run {tag}: patient_session_key is the brief's ({key})")
+    ok &= _report(
+        body.patient_session_key == key, f"run {tag}: patient_session_key is the brief's ({key})"
+    )
 
     mismatched = []
     for claim in body.claims:
         if not claim.verified:
             continue
         copies = [r for r in oracle[claim.resource_type] if r.source_id == claim.source_id]
-        if not copies or not all(_values_match(claim.value, getattr(r, claim.field)) for r in copies):
+        if not copies or not all(
+            _values_match(claim.value, getattr(r, claim.field)) for r in copies
+        ):
             mismatched.append(claim)
     ok &= _report(
         not mismatched,
@@ -224,60 +242,118 @@ async def main() -> None:
 
     patient_id = await _find_patient(token)
     oracle = await _oracle(token, patient_id)
-    print(f"patient: {patient_id}  records: " + ", ".join(f"{t.value}={len(v)}" for t, v in oracle.items()))
+    print(
+        f"patient: {patient_id}  records: "
+        + ", ".join(f"{t.value}={len(v)}" for t, v in oracle.items())
+    )
 
-    inactive_med = next(m for m in oracle[R.MEDICATION_REQUEST] if m.status != "active" and m.rxnorm_code)
+    inactive_med = next(
+        m for m in oracle[R.MEDICATION_REQUEST] if m.status != "active" and m.rxnorm_code
+    )
     allergy = oracle[R.ALLERGY_INTOLERANCE][0]
     question_a = f"Is the {inactive_med.display} still active, and when was it prescribed?"
 
     transport = httpx.ASGITransport(app=app)
-    async with httpx.AsyncClient(transport=transport, base_url="http://agent.local", timeout=300.0) as http:
+    async with httpx.AsyncClient(
+        transport=transport, base_url="http://agent.local", timeout=300.0
+    ) as http:
         brief_response = await http.post(
-            "/pre-visit-brief", json={"patient_id": patient_id}, headers={"Authorization": f"Bearer {token}"}
+            "/pre-visit-brief",
+            json={"patient_id": patient_id},
+            headers={"Authorization": f"Bearer {token}"},
         )
         if brief_response.status_code != 200:
-            print(f"ERROR: brief returned {brief_response.status_code}: {brief_response.text}", file=sys.stderr)
+            print(
+                f"ERROR: brief returned {brief_response.status_code}: {brief_response.text}",
+                file=sys.stderr,
+            )
             sys.exit(1)
         brief = PreVisitBriefResponse.model_validate_json(brief_response.text)
-        print(f"\nBrief: session_id {brief.session_id}, {brief.verification.verified}/{brief.verification.claims} "
-              f"claims verified, key {brief.patient_session_key}")
+        print(
+            f"\nBrief: session_id {brief.session_id}, {brief.verification.verified}/{brief.verification.claims} "
+            f"claims verified, key {brief.patient_session_key}"
+        )
         session_id, key = brief.session_id, brief.patient_session_key
 
-        run_a = await _ask(http, "A: answerable from the retrieved set", token, patient_id, session_id, question_a)
+        run_a = await _ask(
+            http, "A: answerable from the retrieved set", token, patient_id, session_id, question_a
+        )
         _print_run(run_a)
         run_b1 = await _ask(
-            http, "B1: not in the retrieved set (lab)", token, patient_id, session_id,
+            http,
+            "B1: not in the retrieved set (lab)",
+            token,
+            patient_id,
+            session_id,
             "What was the patient's most recent hemoglobin A1c result?",
         )
         _print_run(run_b1)
         run_b2 = await _ask(
-            http, "B2: not in the retrieved set (vitals / visit)", token, patient_id, session_id,
+            http,
+            "B2: not in the retrieved set (vitals / visit)",
+            token,
+            patient_id,
+            session_id,
             "What was her blood pressure at the last visit?",
         )
         _print_run(run_b2)
 
         injected = [
-            _Injected(Claim(source_id=inactive_med.source_id, field="status", value="active",
-                            resource_type=R.MEDICATION_REQUEST), FailureReason.VALUE_MISMATCH),
-            _Injected(Claim(source_id=str(uuid.uuid4()), field="display", value="Warfarin 5 MG Oral Tablet",
-                            resource_type=R.MEDICATION_REQUEST), FailureReason.SOURCE_NOT_FOUND),
-            _Injected(Claim(source_id=allergy.source_id, field="severity", value="severe anaphylaxis",
-                            resource_type=R.ALLERGY_INTOLERANCE), FailureReason.FIELD_NOT_ON_SOURCE),
-            _Injected(Claim(source_id=allergy.source_id, field="display", value=allergy.display,
-                            resource_type=R.CONDITION), FailureReason.SOURCE_NOT_FOUND),
+            _Injected(
+                Claim(
+                    source_id=inactive_med.source_id,
+                    field="status",
+                    value="active",
+                    resource_type=R.MEDICATION_REQUEST,
+                ),
+                FailureReason.VALUE_MISMATCH,
+            ),
+            _Injected(
+                Claim(
+                    source_id=str(uuid.uuid4()),
+                    field="display",
+                    value="Warfarin 5 MG Oral Tablet",
+                    resource_type=R.MEDICATION_REQUEST,
+                ),
+                FailureReason.SOURCE_NOT_FOUND,
+            ),
+            _Injected(
+                Claim(
+                    source_id=allergy.source_id,
+                    field="severity",
+                    value="severe anaphylaxis",
+                    resource_type=R.ALLERGY_INTOLERANCE,
+                ),
+                FailureReason.FIELD_NOT_ON_SOURCE,
+            ),
+            _Injected(
+                Claim(
+                    source_id=allergy.source_id,
+                    field="display",
+                    value=allergy.display,
+                    resource_type=R.CONDITION,
+                ),
+                FailureReason.SOURCE_NOT_FOUND,
+            ),
         ]
         real_draft = follow_up_graph.draft_follow_up
 
         async def draft_with_injected_claims(*args: Any, **kwargs: Any) -> FollowUpDraft:
             draft = await real_draft(*args, **kwargs)
             return FollowUpDraft(
-                claims=[*draft.claims, *(i.claim for i in injected)], coverage=draft.coverage, gaps=draft.gaps
+                claims=[*draft.claims, *(i.claim for i in injected)],
+                coverage=draft.coverage,
+                gaps=draft.gaps,
             )
 
         with mock.patch.object(follow_up_graph, "draft_follow_up", draft_with_injected_claims):
             run_c = await _ask(
-                http, "C: A's question with four unverifiable claims injected", token, patient_id,
-                session_id, question_a,
+                http,
+                "C: A's question with four unverifiable claims injected",
+                token,
+                patient_id,
+                session_id,
+                question_a,
             )
         _print_run(run_c)
 
@@ -287,52 +363,88 @@ async def main() -> None:
     ok = True
 
     a = run_a.body
-    med_ids = {m.source_id for m in oracle[R.MEDICATION_REQUEST] if m.display == inactive_med.display}
+    med_ids = {
+        m.source_id for m in oracle[R.MEDICATION_REQUEST] if m.display == inactive_med.display
+    }
     verified_a = [c for c in a.claims if c.verified]
     ok &= _report(
-        a.answer_status.value in ("answered", "partially_answered") and not a.answer.splitlines()[2] == _NOT_IN_RECORD,
+        a.answer_status.value in ("answered", "partially_answered")
+        and not a.answer.splitlines()[2] == _NOT_IN_RECORD,
         f"run A: answer_status {a.answer_status.value}",
     )
     for field in ("display", "status", "authored_date"):
         cited = [c for c in verified_a if c.field == field and c.source_id in med_ids]
-        ok &= _report(bool(cited), f"run A: verified {field} claim on a {inactive_med.display} record "
-                                   f"({', '.join(f'{c.value}' for c in cited) or 'none'})")
+        ok &= _report(
+            bool(cited),
+            f"run A: verified {field} claim on a {inactive_med.display} record "
+            f"({', '.join(f'{c.value}' for c in cited) or 'none'})",
+        )
 
-    for run, gap_options in ((run_b1, {"lab_results"}), (run_b2, {"other_chart_data", "visit_history"})):
+    for run, gap_options in (
+        (run_b1, {"lab_results"}),
+        (run_b2, {"other_chart_data", "visit_history"}),
+    ):
         b = run.body
         tag = run.label[:2]
-        ok &= _report(b.answer_status.value == "not_in_record", f"run {tag}: answer_status {b.answer_status.value}")
-        ok &= _report(b.answer.splitlines()[2] == _NOT_IN_RECORD, f"run {tag}: answer opens with \"{_NOT_IN_RECORD}\"")
-        ok &= _report(b.verification.verified == 0, f"run {tag}: {b.verification.verified} verified claims")
-        ok &= _report(bool(gap_options & {g.value for g in b.gaps}),
-                      f"run {tag}: gaps {[g.value for g in b.gaps]} include one of {sorted(gap_options)}")
+        ok &= _report(
+            b.answer_status.value == "not_in_record",
+            f"run {tag}: answer_status {b.answer_status.value}",
+        )
+        ok &= _report(
+            b.answer.splitlines()[2] == _NOT_IN_RECORD,
+            f'run {tag}: answer opens with "{_NOT_IN_RECORD}"',
+        )
+        ok &= _report(
+            b.verification.verified == 0, f"run {tag}: {b.verification.verified} verified claims"
+        )
+        ok &= _report(
+            bool(gap_options & {g.value for g in b.gaps}),
+            f"run {tag}: gaps {[g.value for g in b.gaps]} include one of {sorted(gap_options)}",
+        )
 
     c = run_c.body
     plain_lines = [line for line in _answer_lines(c) if not line.startswith("  - UNVERIFIED: ")]
     for item in injected:
         outcome = [
-            o for o in c.claims
+            o
+            for o in c.claims
             if (o.resource_type, o.source_id, o.field, o.value)
             == (item.claim.resource_type, item.claim.source_id, item.claim.field, item.claim.value)
         ]
         ok &= _report(
-            len(outcome) == 1 and not outcome[0].verified and outcome[0].unverified_reason == item.reason.value,
+            len(outcome) == 1
+            and not outcome[0].verified
+            and outcome[0].unverified_reason == item.reason.value,
             f"run C: injected {item.claim.resource_type.value} {item.claim.field}={item.claim.value!r} → "
             f"{'unverified: ' + outcome[0].unverified_reason if outcome and not outcome[0].verified else outcome}",
         )
         ok &= _report(
-            not any(f'"{item.claim.value}"' in line or f": {item.claim.value}" in line for line in plain_lines),
+            not any(
+                f'"{item.claim.value}"' in line or f": {item.claim.value}" in line
+                for line in plain_lines
+            ),
             f"run C: {item.claim.value!r} appears in no plain (verified-looking) answer line",
         )
-    ok &= _report(c.answer_status.value != "answered", f"run C: answer_status {c.answer_status.value} (not answered)")
-    ok &= _report(c.verification.unverified >= len(injected),
-                  f"run C: {c.verification.unverified} unverified of {c.verification.claims} claims")
+    ok &= _report(
+        c.answer_status.value != "answered",
+        f"run C: answer_status {c.answer_status.value} (not answered)",
+    )
+    ok &= _report(
+        c.verification.unverified >= len(injected),
+        f"run C: {c.verification.unverified} unverified of {c.verification.claims} claims",
+    )
 
     for run in runs:
         ok &= _check_common(run, oracle, key, events)
 
-    leaked = [run.label[:2] for run in runs if any(run.question in line for line in recorder.lines if line.startswith("{"))]
-    ok &= _report(not leaked, f"no JSON log line contains a question's text (leaked: {leaked or 'none'})")
+    leaked = [
+        run.label[:2]
+        for run in runs
+        if any(run.question in line for line in recorder.lines if line.startswith("{"))
+    ]
+    ok &= _report(
+        not leaked, f"no JSON log line contains a question's text (leaked: {leaked or 'none'})"
+    )
 
     sys.stdout.flush()
     if not ok:

@@ -193,11 +193,32 @@ async def main() -> None:
     # KEY_METRICS.md Metric 5 depends on actually emits, with a real,
     # source-grounded label rather than a placeholder.
     calls = [
-        ("Condition", fhir_client.get_conditions(token, patient_id, use_case=UseCase.PRE_VISIT_BRIEF)),
-        ("MedicationRequest", fhir_client.get_medication_requests(token, patient_id, use_case=UseCase.PRE_VISIT_BRIEF)),
-        ("AllergyIntolerance", fhir_client.get_allergy_intolerances(token, patient_id, use_case=UseCase.PRE_VISIT_BRIEF)),
-        ("Encounter", fhir_client.get_encounters(token, patient_id, count=2, use_case=UseCase.CHANGE_DETECTION)),
-        ("Observation", fhir_client.get_observations(token, patient_id, use_case=UseCase.CHANGE_DETECTION)),
+        (
+            "Condition",
+            fhir_client.get_conditions(token, patient_id, use_case=UseCase.PRE_VISIT_BRIEF),
+        ),
+        (
+            "MedicationRequest",
+            fhir_client.get_medication_requests(
+                token, patient_id, use_case=UseCase.PRE_VISIT_BRIEF
+            ),
+        ),
+        (
+            "AllergyIntolerance",
+            fhir_client.get_allergy_intolerances(
+                token, patient_id, use_case=UseCase.PRE_VISIT_BRIEF
+            ),
+        ),
+        (
+            "Encounter",
+            fhir_client.get_encounters(
+                token, patient_id, count=2, use_case=UseCase.CHANGE_DETECTION
+            ),
+        ),
+        (
+            "Observation",
+            fhir_client.get_observations(token, patient_id, use_case=UseCase.CHANGE_DETECTION),
+        ),
     ]
 
     for label, coro in calls:

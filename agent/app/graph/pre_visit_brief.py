@@ -155,9 +155,7 @@ class PreVisitBriefResult:
         return self.rendered_ts - self.trigger_ts
 
 
-_Node = Callable[
-    [PreVisitBriefState, Runtime[PreVisitBriefContext]], Awaitable[dict[str, Any]]
-]
+_Node = Callable[[PreVisitBriefState, Runtime[PreVisitBriefContext]], Awaitable[dict[str, Any]]]
 
 
 def _timed(name: str, node: _Node) -> _Node:
@@ -295,9 +293,7 @@ async def _render(
     state: PreVisitBriefState, runtime: Runtime[PreVisitBriefContext]
 ) -> dict[str, Any]:
     ctx = runtime.context
-    text = render_brief(
-        state["results"], state["draft"].section_counts, state["retrieved"]
-    )
+    text = render_brief(state["results"], state["draft"].section_counts, state["retrieved"])
     # Deliberately here and not inside render_brief: the audit reads the
     # text the render step produced, so replacing or breaking that step
     # cannot remove the check with it (findings.md F-59).
@@ -364,8 +360,7 @@ def render_brief(
     for resource_type, heading, noun in _SECTIONS:
         counts = section_counts[resource_type]
         brief_ids = {
-            record.source_id
-            for record in brief_records(resource_type, retrieved[resource_type])
+            record.source_id for record in brief_records(resource_type, retrieved[resource_type])
         }
         section = [r for r in results if r.claim.resource_type == resource_type]
 
@@ -374,8 +369,7 @@ def render_brief(
             lines.append(f"{heading}: not recorded")
         elif counts.in_brief == 0:
             lines.append(
-                f"{heading}: none active "
-                f"({counts.retrieved} on file, none with active status)"
+                f"{heading}: none active ({counts.retrieved} on file, none with active status)"
             )
         else:
             lines.append(f"{heading}:")
@@ -394,10 +388,7 @@ def render_brief(
 
         undrafted = brief_ids - {r.claim.source_id for r in section}
         if undrafted:
-            lines.append(
-                f"  - {len(undrafted)} more {noun}(s) on file, "
-                "not included in this brief"
-            )
+            lines.append(f"  - {len(undrafted)} more {noun}(s) on file, not included in this brief")
 
     if unverified:
         lines.append("")
@@ -446,8 +437,7 @@ async def run_pre_visit_brief(
     """
     if UseCase(use_case) is not UseCase.PRE_VISIT_BRIEF:
         raise ValueError(
-            f"This graph serves {UseCase.PRE_VISIT_BRIEF.value} only, "
-            f"not {UseCase(use_case).value}"
+            f"This graph serves {UseCase.PRE_VISIT_BRIEF.value} only, not {UseCase(use_case).value}"
         )
     for name, value in (
         ("token", token),
@@ -466,9 +456,7 @@ async def run_pre_visit_brief(
     )
     correlation_id = get_correlation_id() or str(uuid.uuid4())
     with correlation_scope(correlation_id):
-        final = await PRE_VISIT_BRIEF_GRAPH.ainvoke(
-            {"node_seconds": {}}, context=context
-        )
+        final = await PRE_VISIT_BRIEF_GRAPH.ainvoke({"node_seconds": {}}, context=context)
 
     return PreVisitBriefResult(
         text=final["text"],

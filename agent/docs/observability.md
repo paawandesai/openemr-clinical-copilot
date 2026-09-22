@@ -382,10 +382,19 @@ is visible in Tracing, not silent.
   ```python
   log_event(
       "llm_usage_event",
-      {"model": response.model, **response.usage.model_dump(include={
-          "input_tokens", "output_tokens",
-          "cache_creation_input_tokens", "cache_read_input_tokens"})},
-      use_case=..., patient_session_key=...,
+      {
+          "model": response.model,
+          **response.usage.model_dump(
+              include={
+                  "input_tokens",
+                  "output_tokens",
+                  "cache_creation_input_tokens",
+                  "cache_read_input_tokens",
+              }
+          ),
+      },
+      use_case=...,
+      patient_session_key=...,
   )
   ```
 

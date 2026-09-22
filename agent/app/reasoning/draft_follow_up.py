@@ -207,9 +207,7 @@ def _serialize_retrieved(retrieved: dict[FhirResourceType, list[Any]]) -> str:
                     f"retrieved[{resource_type.value}] must hold "
                     f"{model.__name__} instances, got {type(record).__name__}"
                 )
-        sections[resource_type.value] = {
-            "records": [_record_json(record) for record in records]
-        }
+        sections[resource_type.value] = {"records": [_record_json(record) for record in records]}
     return json.dumps(sections, indent=2)
 
 
@@ -288,9 +286,7 @@ async def stream_structured(
     latency_ms = round((time.perf_counter() - started) * 1000)
 
     usage = message.usage
-    fallback_ran = any(
-        iteration.type == "fallback_message" for iteration in usage.iterations or []
-    )
+    fallback_ran = any(iteration.type == "fallback_message" for iteration in usage.iterations or [])
     # Same llm_usage_event shape as draft_claims.py, so Metric 6 reads both.
     log_event(
         "llm_usage_event",
@@ -315,9 +311,7 @@ async def stream_structured(
 
     if message.stop_reason == "refusal":
         category = message.stop_details.category if message.stop_details else None
-        raise ClaimDraftingError(
-            f"Model declined to draft claims (refusal category: {category})"
-        )
+        raise ClaimDraftingError(f"Model declined to draft claims (refusal category: {category})")
     if message.stop_reason == "max_tokens":
         raise ClaimDraftingError(f"Claim output truncated at max_tokens={_MAX_TOKENS}")
 
