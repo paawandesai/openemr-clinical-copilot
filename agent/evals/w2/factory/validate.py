@@ -173,8 +173,14 @@ def validate_file(ground_truth_path: Path) -> ScenarioReport:
         )
         check(inside, f"{path}: bbox {bbox} falls outside page {page_number} {tuple(page_rect)}")
 
-        found = words_in(clean_doc[page_number - 1], bbox)
-        extracted = " ".join(word[4] for word in found)
+        page = clean_doc[page_number - 1]
+        # A wrapped field's union bbox spans several lines, and words_in orders
+        # by x alone (a single drawn line is its unit), so the lines would
+        # interleave. Read each line's own box instead and join them in order.
+        boxes = record.get("line_bboxes") or [bbox]
+        extracted = " ".join(
+            " ".join(word[4] for word in words_in(page, box)) for box in boxes
+        ).strip()
 
         if status == "illegible":
             check(
@@ -190,6 +196,18 @@ def validate_file(ground_truth_path: Path) -> ScenarioReport:
             _normalise(extracted) == _normalise(rendered),
             f"{path}: bbox on page {page_number} extracts {extracted!r}, expected {rendered!r}",
         )
+
+        rendering = record.get("rendering")
+        if rendering == "wrapped":
+            check(
+                len(record.get("line_bboxes") or []) > 1,
+                f"{path}: rendering=wrapped but line_bboxes does not hold more than one box",
+            )
+        if rendering == "truncated":
+            check(
+                rendered.endswith("..."),
+                f"{path}: rendering=truncated but rendered_text does not end in an ellipsis",
+            )
 
     clean_doc.close()
     return report

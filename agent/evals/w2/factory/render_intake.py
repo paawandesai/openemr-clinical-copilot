@@ -21,7 +21,6 @@ from evals.w2.factory.canvas import (
     PageGeometry,
     emit_field,
     text_width,
-    truncate,
     wrap,
 )
 from evals.w2.factory.content import IntakeContent
@@ -80,8 +79,9 @@ def _answer_line(
         field_path,
         rule_x0 + 3,
         baseline - 0.6,
-        truncate(value, "hand", _HAND_SIZE, rule_x1 - rule_x0 - 8),
+        value,
         value=value,
+        max_width=rule_x1 - rule_x0 - 8,
         origin=origin,
         font="hand",
         size=_HAND_SIZE,
@@ -213,6 +213,13 @@ def render(
     canvas.y = baseline + 6
 
     # -- chief concern
+    #
+    # The only field on either document that is drawn over more than one line.
+    # It is recorded as ONE field: rendered_text is both lines joined, and bbox
+    # is the union of the line boxes (canvas.multiline_field). Emitting a
+    # `chief_concern` holding only line 1 plus a separate `chief_concern.line2`
+    # is what this replaced — a reader of the ground truth had no way to tell
+    # that first line from a complete answer.
     _section(canvas, 2, "Reason for today's visit", "in your own words")
     lines = wrap(content.chief_concern, "hand", _HAND_SIZE, _RIGHT - _LEFT - 14, max_lines=2)
     baseline = canvas.y + 20
@@ -220,24 +227,33 @@ def render(
         FieldOrigin.CHART_DERIVED if content.chief_concern_from_chart else FieldOrigin.SYNTHETIC
     )
     for index in range(2):
-        canvas.rule(_LEFT, baseline + 2.4, _RIGHT, width=0.5, color=RULE)
-        if index < len(lines):
-            path = "chief_concern" if index == 0 else f"chief_concern.line{index + 1}"
-            emit_field(
-                canvas,
-                plan,
-                path,
-                _LEFT + 4,
-                baseline - 0.6,
-                lines[index],
-                value=content.chief_concern if index == 0 else lines[index],
-                origin=origin,
-                font="hand",
-                size=_HAND_SIZE,
-                color=INK,
-                illegible_width=min(text_width(lines[index], "hand", _HAND_SIZE) + 6, 260),
-            )
-        baseline += 22
+        canvas.rule(_LEFT, baseline + index * 22 + 2.4, _RIGHT, width=0.5, color=RULE)
+
+    if plan.is_missing("chief_concern"):
+        canvas.absent("chief_concern", value=content.chief_concern)
+    elif plan.is_illegible("chief_concern"):
+        canvas.illegible(
+            "chief_concern",
+            _LEFT + 4,
+            baseline - 0.6,
+            value=content.chief_concern,
+            width=min(text_width(lines[0], "hand", _HAND_SIZE) + 6, 260),
+            size=_HAND_SIZE,
+        )
+    else:
+        canvas.multiline_field(
+            "chief_concern",
+            _LEFT + 4,
+            baseline - 0.6,
+            lines,
+            line_height=22,
+            value=content.chief_concern,
+            origin=origin,
+            font="hand",
+            size=_HAND_SIZE,
+            color=INK,
+        )
+    baseline += 2 * 22
     canvas.y = baseline - 12
 
     # -- medications
@@ -259,8 +275,9 @@ def render(
             f"medications[{index}].name",
             _LEFT + 3,
             baseline,
-            truncate(medication.written_name, "hand", _HAND_SIZE, 192),
+            medication.written_name,
             value=medication.chart_name or medication.written_name,
+            max_width=192,
             origin=med_origin,
             font="hand",
             size=_HAND_SIZE,
@@ -270,7 +287,11 @@ def render(
             or (
                 None
                 if medication.chart_name is None
-                else "value is the full chart product name; the form carries the common name"
+                else (
+                    "rendering=derived, not a perturbation and not a truncation: a patient "
+                    "writes the common name, so the form carries short_drug_name(value) while "
+                    "value keeps the chart's full RxNorm product string"
+                )
             ),
         )
         dose_text = medication.dose or "-"
@@ -280,8 +301,9 @@ def render(
             f"medications[{index}].dose",
             _LEFT + 206,
             baseline,
-            truncate(dose_text, "hand", _HAND_SIZE, 90),
+            dose_text,
             value=medication.dose,
+            max_width=90,
             origin=med_origin,
             font="hand",
             size=_HAND_SIZE,
@@ -295,8 +317,9 @@ def render(
             f"medications[{index}].frequency",
             _LEFT + 308,
             baseline,
-            truncate(medication.frequency, "hand", _HAND_SIZE, 132),
+            medication.frequency,
             value=medication.frequency,
+            max_width=132,
             origin=FieldOrigin.SYNTHETIC,
             font="hand",
             size=_HAND_SIZE,
@@ -334,8 +357,9 @@ def render(
             f"allergies[{index}].allergen",
             _LEFT + 3,
             baseline,
-            truncate(allergy.allergen, "hand", _HAND_SIZE, 212),
+            allergy.allergen,
             value=allergy.allergen,
+            max_width=212,
             origin=allergy_origin,
             font="hand",
             size=_HAND_SIZE,
@@ -348,8 +372,9 @@ def render(
             f"allergies[{index}].reaction",
             _LEFT + 226,
             baseline,
-            truncate(allergy.reaction, "hand", _HAND_SIZE, 214),
+            allergy.reaction,
             value=allergy.reaction,
+            max_width=214,
             origin=allergy_origin,
             font="hand",
             size=_HAND_SIZE,
@@ -388,8 +413,9 @@ def render(
                     f"family_history.{entry.key}.relation",
                     rule_x0 + 2,
                     baseline - 0.6,
-                    truncate(entry.relation, "hand", 9.5, x + 232 - rule_x0),
+                    entry.relation,
                     value=entry.relation,
+                    max_width=x + 232 - rule_x0,
                     origin=FieldOrigin.SYNTHETIC,
                     font="hand",
                     size=9.5,

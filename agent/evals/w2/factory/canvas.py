@@ -26,7 +26,13 @@ from dataclasses import dataclass
 
 import pymupdf
 
-from evals.w2.factory.groundtruth import FieldKind, FieldOrigin, FieldRecord, FieldStatus
+from evals.w2.factory.groundtruth import (
+    FieldKind,
+    FieldOrigin,
+    FieldRecord,
+    FieldStatus,
+    TextRendering,
+)
 
 #: Logical font name -> PDF base-14 font. Base-14 fonts need no embedded font
 #: file, which keeps output byte-stable across machines. "hand" is Times-Italic
@@ -81,6 +87,10 @@ def drawable(text: str) -> str:
     return text.translate(_TRANSLITERATE)
 
 
+class PageBreakInField(RuntimeError):
+    """A single field's lines would straddle a page boundary."""
+
+
 BLACK = (0.0, 0.0, 0.0)
 INK = (0.08, 0.11, 0.26)
 GREY = (0.45, 0.45, 0.45)
@@ -108,21 +118,44 @@ def _text_bbox(x: float, baseline: float, text: str, logical: str, size: float) 
     )
 
 
-def truncate(text: str, logical: str, size: float, max_width: float) -> str:
-    """Shorten with an ellipsis so a value never runs into the next column."""
+ELLIPSIS = "..."
+
+
+def fit(text: str, logical: str, size: float, max_width: float) -> tuple[str, bool]:
+    """
+    ``(drawn, was_truncated)`` for text that must not run into the next column.
+
+    Breaks at a word boundary when there is one, so a cut reads as a shortened
+    phrase rather than a word sliced in half; only a single over-long word is
+    cut mid-word. Either way the result ends in an ellipsis, so a truncation is
+    visible on the page and not just in the ground truth.
+    """
     text = drawable(text)
     if text_width(text, logical, size) <= max_width:
-        return text
-    ellipsis = "..."
-    budget = max_width - text_width(ellipsis, logical, size)
+        return text, False
+
+    budget = max_width - text_width(ELLIPSIS, logical, size)
     if budget <= 0:
-        return ""
+        return "", True
+
     out = ""
     for char in text:
         if text_width(out + char, logical, size) > budget:
             break
         out += char
-    return (out.rstrip() + ellipsis) if out.strip() else ""
+
+    # Prefer the last whole word, unless that would leave almost nothing.
+    head, sep, _tail = out.rstrip().rpartition(" ")
+    if sep and len(head) >= max(3, len(out) // 3):
+        out = head
+
+    out = out.rstrip(" ,;:-")
+    return (out + ELLIPSIS, True) if out else ("", True)
+
+
+def truncate(text: str, logical: str, size: float, max_width: float) -> str:
+    """``fit()`` when the caller does not need to know whether it cut."""
+    return fit(text, logical, size, max_width)[0]
 
 
 def wrap(text: str, logical: str, size: float, max_width: float, max_lines: int = 99) -> list[str]:
@@ -254,9 +287,17 @@ class DocumentCanvas:
         color: Sequence[float] = BLACK,
         align: str = "left",
         width: float | None = None,
+        rendering: TextRendering | None = None,
         note: str | None = None,
     ) -> pymupdf.Rect:
-        """Draw a value and record it. ``align`` needs ``width`` for right/center."""
+        """
+        Draw a value and record it. ``align`` needs ``width`` for right/center.
+
+        ``rendering`` defaults to VERBATIM when the drawn characters are exactly
+        ``value``, and DERIVED when they are not — so a field whose document
+        wording differs from the chart's can never be mistaken for one the
+        document lost. Callers override it for a truncation or a wrap.
+        """
         drawn = drawable(text)
         if align != "left":
             assert width is not None, "align requires width"
@@ -271,21 +312,110 @@ class DocumentCanvas:
             )
             rect = _text_bbox(x, baseline, drawn, font, size)
 
+        truth = drawn if value is None else value
+        if rendering is None:
+            rendering = (
+                TextRendering.VERBATIM
+                if isinstance(truth, str) and drawn == drawable(truth)
+                else TextRendering.DERIVED
+                if isinstance(truth, str)
+                else TextRendering.VERBATIM
+            )
         self.fields.append(
             FieldRecord(
                 field_path=field_path,
                 status=FieldStatus.PRESENT,
                 kind=FieldKind.TEXT,
                 origin=origin,
-                value=drawn if value is None else value,
+                value=truth,
                 unit=unit,
                 page=self.page_number,
                 bbox=(rect.x0, rect.y0, rect.x1, rect.y1),
                 rendered_text=drawn,
+                rendering=rendering,
                 note=note,
             )
         )
         return rect
+
+    def multiline_field(
+        self,
+        field_path: str,
+        x: float,
+        first_baseline: float,
+        lines: Sequence[str],
+        *,
+        line_height: float,
+        value: str | float | int | bool | None = None,
+        origin: FieldOrigin = FieldOrigin.CHART,
+        font: str = "sans",
+        size: float = 9.0,
+        color: Sequence[float] = BLACK,
+        note: str | None = None,
+    ) -> pymupdf.Rect:
+        """
+        Draw one value across several lines and record it as ONE field.
+
+        ``rendered_text`` is every line joined with single spaces — the whole
+        text as drawn, not the first line — and ``bbox`` is the union of the
+        line boxes, with the individual boxes kept in ``line_bboxes``.
+
+        All lines must land on one page: a field split across a page break has
+        no single bbox, and silently recording the part that fits is the bug
+        this method exists to prevent. Raises rather than truncating.
+        """
+        assert lines, "multiline_field needs at least one line"
+        boxes: list[pymupdf.Rect] = []
+        drawn_lines: list[str] = []
+        page_at_start = self.page_number
+
+        for index, line in enumerate(lines):
+            baseline = first_baseline + index * line_height
+            if baseline > self.geometry.content_bottom:
+                raise PageBreakInField(
+                    f"{field_path}: line {index + 1} of {len(lines)} falls past the bottom of "
+                    f"page {page_at_start}. A field spanning a page break is not supported; "
+                    "shorten the text or start the field further up the page."
+                )
+            drawn = drawable(line)
+            if font == "hand":
+                boxes.append(self._draw_hand(x, baseline, drawn, size, color))
+            else:
+                self.page.insert_text(
+                    (x, baseline), drawn, fontname=FONTS[font], fontsize=size, color=tuple(color)
+                )
+                boxes.append(_text_bbox(x, baseline, drawn, font, size))
+            drawn_lines.append(drawn)
+
+        union = boxes[0]
+        for box in boxes[1:]:
+            union = union | box
+
+        joined = " ".join(drawn_lines)
+        truth = joined if value is None else value
+        rendering = (
+            TextRendering.WRAPPED
+            if len(drawn_lines) > 1
+            else TextRendering.VERBATIM
+            if isinstance(truth, str) and joined == drawable(truth)
+            else TextRendering.DERIVED
+        )
+        self.fields.append(
+            FieldRecord(
+                field_path=field_path,
+                status=FieldStatus.PRESENT,
+                kind=FieldKind.TEXT,
+                origin=origin,
+                value=truth,
+                page=self.page_number,
+                bbox=(union.x0, union.y0, union.x1, union.y1),
+                rendered_text=joined,
+                rendering=rendering,
+                line_bboxes=[(b.x0, b.y0, b.x1, b.y1) for b in boxes] if len(boxes) > 1 else None,
+                note=note,
+            )
+        )
+        return union
 
     def checkbox(
         self,
@@ -599,8 +729,10 @@ def emit_field(
     color: Sequence[float] = BLACK,
     align: str = "left",
     width: float | None = None,
+    max_width: float | None = None,
     illegible_width: float | None = None,
     skip_if_blank: bool = False,
+    rendering: TextRendering | None = None,
     note: str | None = None,
 ) -> pymupdf.Rect | None:
     """
@@ -610,17 +742,27 @@ def emit_field(
     ``value`` (defaulting to ``text``) is the chart truth, and survives into the
     ground truth even when the document does not carry it — a perturbed field is
     recorded as explicitly absent or illegible, never silently dropped.
+
+    Pass ``max_width`` rather than pre-truncating at the call site: the fitting
+    happens here, so a value that had to be cut is recorded as
+    ``rendering: truncated`` instead of looking like a shorter value that was
+    always that length.
     """
     truth = text if value is None else value
     if skip_if_blank and not text.strip():
         # The chart has nothing here, so the form has a blank line and there is
         # nothing to extract. Recording a zero-width bbox would be noise.
         return None
+
+    drawn, was_truncated = (text, False) if max_width is None else fit(text, font, size, max_width)
+    if was_truncated and rendering is None:
+        rendering = TextRendering.TRUNCATED
+
     if plan.is_missing(field_path):
         canvas.absent(field_path, value=truth, unit=unit, note=note)
         return None
     if plan.is_illegible(field_path):
-        ink_width = illegible_width or width or max(text_width(text, font, size), 24.0)
+        ink_width = illegible_width or width or max(text_width(drawn, font, size), 24.0)
         return canvas.illegible(
             field_path, x, baseline, value=truth, unit=unit, width=ink_width, size=size, note=note
         )
@@ -628,7 +770,7 @@ def emit_field(
         field_path,
         x,
         baseline,
-        text,
+        drawn,
         value=truth,
         unit=unit,
         origin=origin,
@@ -637,5 +779,6 @@ def emit_field(
         color=color,
         align=align,
         width=width,
+        rendering=rendering,
         note=note,
     )

@@ -23,7 +23,7 @@ from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any
 
-GROUND_TRUTH_SCHEMA_VERSION = "doc-factory-groundtruth/0.1.0"
+GROUND_TRUTH_SCHEMA_VERSION = "doc-factory-groundtruth/0.2.0"
 
 
 class FieldStatus(str, Enum):
@@ -52,6 +52,29 @@ class FieldKind(str, Enum):
     CHECKBOX = "checkbox"
 
 
+class TextRendering(str, Enum):
+    """
+    How ``rendered_text`` relates to ``value`` — the difference between
+    "the document says something else on purpose" and "the document lost some
+    of it", which a reader otherwise has to guess from the strings.
+    """
+
+    #: Drawn exactly as ``value`` reads.
+    VERBATIM = "verbatim"
+    #: Deliberately re-expressed: a drug's common name instead of the full
+    #: RxNorm product string, a letterhead in caps, a labelled value. ``note``
+    #: says which. Not a defect and not a perturbation — the document is what a
+    #: real one would say, and ``value`` keeps the chart's wording.
+    DERIVED = "derived"
+    #: Drawn over more than one line. ``rendered_text`` is the lines joined
+    #: with single spaces, and ``bbox`` is the union of the line boxes;
+    #: ``line_bboxes`` has them individually.
+    WRAPPED = "wrapped"
+    #: Cut to fit its column, ending in an ellipsis. ``value`` is the full
+    #: text; an extractor cannot recover it from this document.
+    TRUNCATED = "truncated"
+
+
 @dataclass
 class FieldRecord:
     field_path: str
@@ -66,7 +89,12 @@ class FieldRecord:
     page: int | None = None
     bbox: tuple[float, float, float, float] | None = None
     #: Exactly the characters drawn on the page ("" when nothing was drawn).
+    #: For a wrapped field this is every line, joined with single spaces.
     rendered_text: str = ""
+    #: How rendered_text relates to value. See TextRendering.
+    rendering: TextRendering = TextRendering.VERBATIM
+    #: One box per drawn line, for a wrapped field; None when there is one line.
+    line_bboxes: list[tuple[float, float, float, float]] | None = None
     note: str | None = None
 
     def to_json(self) -> dict[str, Any]:
@@ -80,7 +108,10 @@ class FieldRecord:
             "page": self.page,
             "bbox": [round(v, 3) for v in self.bbox] if self.bbox is not None else None,
             "rendered_text": self.rendered_text,
+            "rendering": self.rendering.value,
         }
+        if self.line_bboxes is not None:
+            out["line_bboxes"] = [[round(v, 3) for v in box] for box in self.line_bboxes]
         if self.note is not None:
             out["note"] = self.note
         return out

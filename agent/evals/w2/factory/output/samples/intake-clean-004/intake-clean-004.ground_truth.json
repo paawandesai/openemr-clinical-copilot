@@ -1,5 +1,5 @@
 {
-  "schema_version": "doc-factory-groundtruth/0.1.0",
+  "schema_version": "doc-factory-groundtruth/0.2.0",
   "scenario": {
     "scenario_id": "intake-clean-004",
     "seed": 306190,
@@ -26,14 +26,14 @@
   },
   "document": {
     "path": "intake-clean-004.pdf",
-    "sha256": "8c19d7cad362ae4056d200b485e648faf31296ec201479127e7fbfb4550fc13d",
+    "sha256": "2d9d58763b3f091ca9f046a3edfd0ab54147905b1bbae52ec0f46812ab01be05",
     "bytes": 124606,
     "page_count": 2,
     "has_text_layer": true
   },
   "clean_reference": {
     "path": "intake-clean-004.pdf",
-    "sha256": "8c19d7cad362ae4056d200b485e648faf31296ec201479127e7fbfb4550fc13d",
+    "sha256": "2d9d58763b3f091ca9f046a3edfd0ab54147905b1bbae52ec0f46812ab01be05",
     "bytes": 124606,
     "page_count": 2,
     "has_text_layer": true
@@ -67,7 +67,8 @@
         157.597,
         140.572
       ],
-      "rendered_text": "Jae222 Dach178"
+      "rendered_text": "Jae222 Dach178",
+      "rendering": "verbatim"
     },
     {
       "field_path": "patient.dob",
@@ -83,7 +84,8 @@
         469.448,
         140.56
       ],
-      "rendered_text": "1959-12-28"
+      "rendered_text": "1959-12-28",
+      "rendering": "verbatim"
     },
     {
       "field_path": "patient.address",
@@ -99,7 +101,8 @@
         219.287,
         164.606
       ],
-      "rendered_text": "566 Labadie Station Suite 85"
+      "rendered_text": "566 Labadie Station Suite 85",
+      "rendering": "verbatim"
     },
     {
       "field_path": "patient.sex",
@@ -115,7 +118,8 @@
         410.501,
         164.397
       ],
-      "rendered_text": "Male"
+      "rendered_text": "Male",
+      "rendering": "verbatim"
     },
     {
       "field_path": "patient.city_state_zip",
@@ -131,7 +135,8 @@
         257.962,
         188.531
       ],
-      "rendered_text": "Methuen, Massachusetts 01841"
+      "rendered_text": "Methuen, Massachusetts 01841",
+      "rendering": "verbatim"
     },
     {
       "field_path": "visit.date",
@@ -147,7 +152,8 @@
         157.861,
         212.598
       ],
-      "rendered_text": "09/10/2026"
+      "rendered_text": "09/10/2026",
+      "rendering": "verbatim"
     },
     {
       "field_path": "chief_concern",
@@ -163,7 +169,8 @@
         242.49,
         264.59
       ],
-      "rendered_text": "gingivitis - recheck and medication review"
+      "rendered_text": "gingivitis - recheck and medication review",
+      "rendering": "verbatim"
     },
     {
       "field_path": "medications[0].name",
@@ -180,7 +187,8 @@
         357.962
       ],
       "rendered_text": "diphenhydrAMINE Hydrochloride",
-      "note": "value is the full chart product name; the form carries the common name"
+      "rendering": "derived",
+      "note": "rendering=derived, not a perturbation and not a truncation: a patient writes the common name, so the form carries short_drug_name(value) while value keeps the chart's full RxNorm product string"
     },
     {
       "field_path": "medications[0].dose",
@@ -196,7 +204,8 @@
         292.881,
         358.031
       ],
-      "rendered_text": "25 MG"
+      "rendered_text": "25 MG",
+      "rendering": "verbatim"
     },
     {
       "field_path": "medications[0].frequency",
@@ -213,6 +222,7 @@
         358.088
       ],
       "rendered_text": "once daily",
+      "rendering": "verbatim",
       "note": "frequency has no chart counterpart"
     },
     {
@@ -230,7 +240,8 @@
         379.235
       ],
       "rendered_text": "sodium fluoride",
-      "note": "value is the full chart product name; the form carries the common name"
+      "rendering": "derived",
+      "note": "rendering=derived, not a perturbation and not a truncation: a patient writes the common name, so the form carries short_drug_name(value) while value keeps the chart's full RxNorm product string"
     },
     {
       "field_path": "medications[1].dose",
@@ -246,7 +257,8 @@
         311.224,
         379.125
       ],
-      "rendered_text": "0.0272 MG"
+      "rendered_text": "0.0272 MG",
+      "rendering": "verbatim"
     },
     {
       "field_path": "medications[1].frequency",
@@ -263,6 +275,7 @@
         379.15
       ],
       "rendered_text": "three times daily",
+      "rendering": "verbatim",
       "note": "frequency has no chart counterpart"
     },
     {
@@ -280,7 +293,8 @@
         400.095
       ],
       "rendered_text": "Simvastatin",
-      "note": "value is the full chart product name; the form carries the common name"
+      "rendering": "derived",
+      "note": "rendering=derived, not a perturbation and not a truncation: a patient writes the common name, so the form carries short_drug_name(value) while value keeps the chart's full RxNorm product string"
     },
     {
       "field_path": "medications[2].dose",
@@ -296,7 +310,8 @@
         291.346,
         400.088
       ],
-      "rendered_text": "10 MG"
+      "rendered_text": "10 MG",
+      "rendering": "verbatim"
     },
     {
       "field_path": "medications[2].frequency",
@@ -313,6 +328,7 @@
         400.165
       ],
       "rendered_text": "three times daily",
+      "rendering": "verbatim",
       "note": "frequency has no chart counterpart"
     },
     {
@@ -330,7 +346,8 @@
         421.263
       ],
       "rendered_text": "Acetaminophen Dextromethorphan",
-      "note": "value is the full chart product name; the form carries the common name"
+      "rendering": "derived",
+      "note": "rendering=derived, not a perturbation and not a truncation: a patient writes the common name, so the form carries short_drug_name(value) while value keeps the chart's full RxNorm product string"
     },
     {
       "field_path": "medications[3].dose",
@@ -346,7 +363,8 @@
         317.087,
         421.183
       ],
-      "rendered_text": "21.7 MG/ML"
+      "rendered_text": "21.7 MG/ML",
+      "rendering": "verbatim"
     },
     {
       "field_path": "medications[3].frequency",
@@ -363,6 +381,7 @@
         421.217
       ],
       "rendered_text": "three times daily",
+      "rendering": "verbatim",
       "note": "frequency has no chart counterpart"
     },
     {
@@ -380,6 +399,7 @@
         467.5
       ],
       "rendered_text": "",
+      "rendering": "verbatim",
       "note": "'No known drug allergies' box; checked only when the chart has no allergies"
     },
     {
@@ -396,7 +416,8 @@
         182.773,
         507.178
       ],
-      "rendered_text": "Allergic disposition (finding)"
+      "rendered_text": "Allergic disposition (finding)",
+      "rendering": "verbatim"
     },
     {
       "field_path": "allergies[0].reaction",
@@ -412,7 +433,8 @@
         310.897,
         507.028
       ],
-      "rendered_text": "Severe"
+      "rendered_text": "Severe",
+      "rendering": "verbatim"
     },
     {
       "field_path": "allergies[1].allergen",
@@ -428,7 +450,8 @@
         135.189,
         528.208
       ],
-      "rendered_text": "Latex (substance)"
+      "rendered_text": "Latex (substance)",
+      "rendering": "verbatim"
     },
     {
       "field_path": "allergies[1].reaction",
@@ -444,7 +467,8 @@
         302.394,
         528.266
       ],
-      "rendered_text": "Mild"
+      "rendered_text": "Mild",
+      "rendering": "verbatim"
     },
     {
       "field_path": "allergies[2].allergen",
@@ -460,7 +484,8 @@
         131.422,
         549.037
       ],
-      "rendered_text": "Mold (organism)"
+      "rendered_text": "Mold (organism)",
+      "rendering": "verbatim"
     },
     {
       "field_path": "allergies[2].reaction",
@@ -476,7 +501,8 @@
         310.177,
         549.172
       ],
-      "rendered_text": "Severe"
+      "rendered_text": "Severe",
+      "rendering": "verbatim"
     },
     {
       "field_path": "allergies[3].allergen",
@@ -492,7 +518,8 @@
         177.044,
         570.216
       ],
-      "rendered_text": "House dust mite (organism)"
+      "rendered_text": "House dust mite (organism)",
+      "rendering": "verbatim"
     },
     {
       "field_path": "allergies[3].reaction",
@@ -508,7 +535,8 @@
         310.371,
         570.134
       ],
-      "rendered_text": "Severe"
+      "rendered_text": "Severe",
+      "rendering": "verbatim"
     },
     {
       "field_path": "allergies[4].allergen",
@@ -524,7 +552,8 @@
         175.611,
         591.178
       ],
-      "rendered_text": "Animal dander (substance)"
+      "rendered_text": "Animal dander (substance)",
+      "rendering": "verbatim"
     },
     {
       "field_path": "allergies[4].reaction",
@@ -540,7 +569,8 @@
         302.576,
         591.021
       ],
-      "rendered_text": "Mild"
+      "rendered_text": "Mild",
+      "rendering": "verbatim"
     },
     {
       "field_path": "allergies[5].allergen",
@@ -556,7 +586,8 @@
         167.128,
         612.194
       ],
-      "rendered_text": "Grass pollen (substance)"
+      "rendered_text": "Grass pollen (substance)",
+      "rendering": "verbatim"
     },
     {
       "field_path": "allergies[5].reaction",
@@ -572,7 +603,8 @@
         310.264,
         612.187
       ],
-      "rendered_text": "Severe"
+      "rendered_text": "Severe",
+      "rendering": "verbatim"
     },
     {
       "field_path": "allergies[6].allergen",
@@ -588,7 +620,8 @@
         160.417,
         633.202
       ],
-      "rendered_text": "Tree pollen (substance)"
+      "rendered_text": "Tree pollen (substance)",
+      "rendering": "verbatim"
     },
     {
       "field_path": "allergies[6].reaction",
@@ -604,7 +637,8 @@
         310.354,
         633.251
       ],
-      "rendered_text": "Severe"
+      "rendered_text": "Severe",
+      "rendering": "verbatim"
     },
     {
       "field_path": "allergies[7].allergen",
@@ -620,7 +654,8 @@
         156.603,
         654.238
       ],
-      "rendered_text": "Cow's milk (substance)"
+      "rendered_text": "Cow's milk (substance)",
+      "rendering": "verbatim"
     },
     {
       "field_path": "allergies[7].reaction",
@@ -636,7 +671,8 @@
         302.373,
         653.94
       ],
-      "rendered_text": "Mild"
+      "rendered_text": "Mild",
+      "rendering": "verbatim"
     },
     {
       "field_path": "allergies[8].allergen",
@@ -652,7 +688,8 @@
         148.235,
         675.032
       ],
-      "rendered_text": "Tree nut (substance)"
+      "rendered_text": "Tree nut (substance)",
+      "rendering": "verbatim"
     },
     {
       "field_path": "allergies[8].reaction",
@@ -668,7 +705,8 @@
         323.225,
         675.131
       ],
-      "rendered_text": "Moderate"
+      "rendered_text": "Moderate",
+      "rendering": "verbatim"
     },
     {
       "field_path": "family_history.diabetes",
@@ -685,6 +723,7 @@
         723.5
       ],
       "rendered_text": "X",
+      "rendering": "verbatim",
       "note": "family history has no chart counterpart"
     },
     {
@@ -702,6 +741,7 @@
         725.325
       ],
       "rendered_text": "brother",
+      "rendering": "verbatim",
       "note": "family history has no chart counterpart"
     },
     {
@@ -719,6 +759,7 @@
         723.5
       ],
       "rendered_text": "",
+      "rendering": "verbatim",
       "note": "family history has no chart counterpart"
     },
     {
@@ -736,6 +777,7 @@
         93.5
       ],
       "rendered_text": "X",
+      "rendering": "verbatim",
       "note": "family history has no chart counterpart"
     },
     {
@@ -753,6 +795,7 @@
         95.191
       ],
       "rendered_text": "sister",
+      "rendering": "verbatim",
       "note": "family history has no chart counterpart"
     },
     {
@@ -770,6 +813,7 @@
         93.5
       ],
       "rendered_text": "X",
+      "rendering": "verbatim",
       "note": "family history has no chart counterpart"
     },
     {
@@ -787,6 +831,7 @@
         95.275
       ],
       "rendered_text": "brother",
+      "rendering": "verbatim",
       "note": "family history has no chart counterpart"
     },
     {
@@ -804,6 +849,7 @@
         116.5
       ],
       "rendered_text": "",
+      "rendering": "verbatim",
       "note": "family history has no chart counterpart"
     },
     {
@@ -821,6 +867,7 @@
         116.5
       ],
       "rendered_text": "",
+      "rendering": "verbatim",
       "note": "family history has no chart counterpart"
     },
     {
@@ -837,7 +884,8 @@
         199.56,
         176.617
       ],
-      "rendered_text": "Jae222 Dach178"
+      "rendered_text": "Jae222 Dach178",
+      "rendering": "verbatim"
     },
     {
       "field_path": "signature.date",
@@ -853,7 +901,8 @@
         441.549,
         176.548
       ],
-      "rendered_text": "09/10/2026"
+      "rendered_text": "09/10/2026",
+      "rendering": "verbatim"
     }
   ]
 }

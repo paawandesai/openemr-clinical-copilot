@@ -1,5 +1,5 @@
 {
-  "schema_version": "doc-factory-groundtruth/0.1.0",
+  "schema_version": "doc-factory-groundtruth/0.2.0",
   "scenario": {
     "scenario_id": "lab-clean-001",
     "seed": 20260921,
@@ -26,15 +26,15 @@
   },
   "document": {
     "path": "lab-clean-001.pdf",
-    "sha256": "c76f48d860be68b4005dbdb9443065b23190d3cf7cf2e0dc46c919992ca20921",
-    "bytes": 31851,
+    "sha256": "e4117a27cc6b199429406422272d43ac014b7d7a1e13cbae0889319f29571218",
+    "bytes": 32032,
     "page_count": 1,
     "has_text_layer": true
   },
   "clean_reference": {
     "path": "lab-clean-001.pdf",
-    "sha256": "c76f48d860be68b4005dbdb9443065b23190d3cf7cf2e0dc46c919992ca20921",
-    "bytes": 31851,
+    "sha256": "e4117a27cc6b199429406422272d43ac014b7d7a1e13cbae0889319f29571218",
+    "bytes": 32032,
     "page_count": 1,
     "has_text_layer": true
   },
@@ -62,7 +62,8 @@
         326.115,
         79.115
       ],
-      "rendered_text": "BAY STATE CLINICAL DIAGNOSTICS"
+      "rendered_text": "BAY STATE CLINICAL DIAGNOSTICS",
+      "rendering": "derived"
     },
     {
       "field_path": "lab.address",
@@ -78,7 +79,8 @@
         194.512,
         100.392
       ],
-      "rendered_text": "Quincy, MA 02169   Tel (617) 555-0188"
+      "rendered_text": "Quincy, MA 02169   Tel (617) 555-0188",
+      "rendering": "verbatim"
     },
     {
       "field_path": "lab.clia",
@@ -94,7 +96,8 @@
         558.0,
         100.392
       ],
-      "rendered_text": "22D2118740"
+      "rendered_text": "22D2118740",
+      "rendering": "verbatim"
     },
     {
       "field_path": "lab.director",
@@ -105,12 +108,13 @@
       "unit": null,
       "page": 1,
       "bbox": [
-        394.4,
+        467.312,
         100.4,
         558.0,
         111.392
       ],
-      "rendered_text": "Laboratory Director: Nadia Okonjo-Reyes, MD"
+      "rendered_text": "Nadia Okonjo-Reyes, MD",
+      "rendering": "verbatim"
     },
     {
       "field_path": "patient.name",
@@ -126,7 +130,8 @@
         259.615,
         149.631
       ],
-      "rendered_text": "Merlyn225 Sanda877 Mueller846"
+      "rendered_text": "Merlyn225 Sanda877 Mueller846",
+      "rendering": "verbatim"
     },
     {
       "field_path": "order.accession",
@@ -142,7 +147,8 @@
         453.467,
         149.631
       ],
-      "rendered_text": "260830-993-9962"
+      "rendered_text": "260830-993-9962",
+      "rendering": "verbatim"
     },
     {
       "field_path": "patient.dob",
@@ -158,7 +164,8 @@
         175.003,
         162.031
       ],
-      "rendered_text": "1960-09-25"
+      "rendered_text": "1960-09-25",
+      "rendering": "verbatim"
     },
     {
       "field_path": "order.specimen",
@@ -174,7 +181,8 @@
         409.916,
         162.031
       ],
-      "rendered_text": "Serum"
+      "rendered_text": "Serum",
+      "rendering": "verbatim"
     },
     {
       "field_path": "patient.sex",
@@ -190,7 +198,8 @@
         159.339,
         174.431
       ],
-      "rendered_text": "Female"
+      "rendered_text": "Female",
+      "rendering": "verbatim"
     },
     {
       "field_path": "order.collected",
@@ -206,7 +215,8 @@
         453.467,
         174.431
       ],
-      "rendered_text": "2026-08-30 07:12"
+      "rendered_text": "2026-08-30 07:12",
+      "rendering": "verbatim"
     },
     {
       "field_path": "patient.mrn",
@@ -222,7 +232,8 @@
         139.786,
         186.831
       ],
-      "rendered_text": "38"
+      "rendered_text": "38",
+      "rendering": "verbatim"
     },
     {
       "field_path": "order.received",
@@ -238,7 +249,8 @@
         453.467,
         186.831
       ],
-      "rendered_text": "2026-08-30 09:29"
+      "rendered_text": "2026-08-30 09:29",
+      "rendering": "verbatim"
     },
     {
       "field_path": "patient.address",
@@ -254,7 +266,8 @@
         184.27,
         199.231
       ],
-      "rendered_text": "890 Mills Well"
+      "rendered_text": "890 Mills Well",
+      "rendering": "verbatim"
     },
     {
       "field_path": "order.reported",
@@ -270,7 +283,8 @@
         453.467,
         199.231
       ],
-      "rendered_text": "2026-08-30 16:29"
+      "rendered_text": "2026-08-30 16:29",
+      "rendering": "verbatim"
     },
     {
       "field_path": "patient.city_state_zip",
@@ -286,7 +300,8 @@
         261.569,
         211.631
       ],
-      "rendered_text": "Westwood, Massachusetts 00000"
+      "rendered_text": "Westwood, Massachusetts 00000",
+      "rendering": "verbatim"
     },
     {
       "field_path": "order.ordering_provider",
@@ -302,7 +317,8 @@
         469.571,
         211.631
       ],
-      "rendered_text": "Marcus Oyelaran, MD"
+      "rendered_text": "Marcus Oyelaran, MD",
+      "rendering": "verbatim"
     },
     {
       "field_path": "results.cmp.glucose.name",
@@ -318,7 +334,8 @@
         88.545,
         268.171
       ],
-      "rendered_text": "Glucose"
+      "rendered_text": "Glucose",
+      "rendering": "verbatim"
     },
     {
       "field_path": "results.cmp.glucose.value",
@@ -334,7 +351,8 @@
         280.0,
         268.171
       ],
-      "rendered_text": "89"
+      "rendered_text": "89",
+      "rendering": "verbatim"
     },
     {
       "field_path": "results.cmp.glucose.flag",
@@ -350,7 +368,8 @@
         306.0,
         268.24
       ],
-      "rendered_text": ""
+      "rendered_text": "",
+      "rendering": "verbatim"
     },
     {
       "field_path": "results.cmp.glucose.unit",
@@ -366,7 +385,8 @@
         349.899,
         268.171
       ],
-      "rendered_text": "mg/dL"
+      "rendered_text": "mg/dL",
+      "rendering": "verbatim"
     },
     {
       "field_path": "results.cmp.glucose.reference_range",
@@ -382,7 +402,8 @@
         440.772,
         268.171
       ],
-      "rendered_text": "70 - 99"
+      "rendered_text": "70 - 99",
+      "rendering": "verbatim"
     },
     {
       "field_path": "results.cmp.bun.name",
@@ -398,7 +419,8 @@
         136.799,
         280.771
       ],
-      "rendered_text": "BUN (Urea Nitrogen)"
+      "rendered_text": "BUN (Urea Nitrogen)",
+      "rendering": "verbatim"
     },
     {
       "field_path": "results.cmp.bun.value",
@@ -414,7 +436,8 @@
         280.0,
         280.771
       ],
-      "rendered_text": "15"
+      "rendered_text": "15",
+      "rendering": "verbatim"
     },
     {
       "field_path": "results.cmp.bun.flag",
@@ -430,7 +453,8 @@
         306.0,
         280.84
       ],
-      "rendered_text": ""
+      "rendered_text": "",
+      "rendering": "verbatim"
     },
     {
       "field_path": "results.cmp.bun.unit",
@@ -446,7 +470,8 @@
         349.899,
         280.771
       ],
-      "rendered_text": "mg/dL"
+      "rendered_text": "mg/dL",
+      "rendering": "verbatim"
     },
     {
       "field_path": "results.cmp.bun.reference_range",
@@ -462,7 +487,8 @@
         435.99,
         280.771
       ],
-      "rendered_text": "7 - 20"
+      "rendered_text": "7 - 20",
+      "rendering": "verbatim"
     },
     {
       "field_path": "results.cmp.creatinine.name",
@@ -478,7 +504,8 @@
         96.19,
         293.371
       ],
-      "rendered_text": "Creatinine"
+      "rendered_text": "Creatinine",
+      "rendering": "verbatim"
     },
     {
       "field_path": "results.cmp.creatinine.value",
@@ -494,7 +521,8 @@
         280.0,
         293.371
       ],
-      "rendered_text": "0.84"
+      "rendered_text": "0.84",
+      "rendering": "verbatim"
     },
     {
       "field_path": "results.cmp.creatinine.flag",
@@ -510,7 +538,8 @@
         306.0,
         293.44
       ],
-      "rendered_text": ""
+      "rendered_text": "",
+      "rendering": "verbatim"
     },
     {
       "field_path": "results.cmp.creatinine.unit",
@@ -526,7 +555,8 @@
         349.899,
         293.371
       ],
-      "rendered_text": "mg/dL"
+      "rendered_text": "mg/dL",
+      "rendering": "verbatim"
     },
     {
       "field_path": "results.cmp.creatinine.reference_range",
@@ -542,7 +572,8 @@
         455.117,
         293.371
       ],
-      "rendered_text": "0.50 - 1.10"
+      "rendered_text": "0.50 - 1.10",
+      "rendering": "verbatim"
     },
     {
       "field_path": "results.cmp.egfr.name",
@@ -558,7 +589,8 @@
         79.936,
         305.971
       ],
-      "rendered_text": "eGFR"
+      "rendered_text": "eGFR",
+      "rendering": "verbatim"
     },
     {
       "field_path": "results.cmp.egfr.value",
@@ -574,7 +606,8 @@
         280.0,
         305.971
       ],
-      "rendered_text": "90"
+      "rendered_text": "90",
+      "rendering": "verbatim"
     },
     {
       "field_path": "results.cmp.egfr.flag",
@@ -590,7 +623,8 @@
         306.0,
         306.04
       ],
-      "rendered_text": ""
+      "rendered_text": "",
+      "rendering": "verbatim"
     },
     {
       "field_path": "results.cmp.egfr.unit",
@@ -606,7 +640,8 @@
         373.317,
         305.971
       ],
-      "rendered_text": "mL/min/1.73"
+      "rendered_text": "mL/min/1.73",
+      "rendering": "verbatim"
     },
     {
       "field_path": "results.cmp.egfr.reference_range",
@@ -622,7 +657,8 @@
         445.553,
         305.971
       ],
-      "rendered_text": "60 - 120"
+      "rendered_text": "60 - 120",
+      "rendering": "verbatim"
     },
     {
       "field_path": "results.cmp.sodium.name",
@@ -638,7 +674,8 @@
         86.154,
         318.571
       ],
-      "rendered_text": "Sodium"
+      "rendered_text": "Sodium",
+      "rendering": "verbatim"
     },
     {
       "field_path": "results.cmp.sodium.value",
@@ -654,7 +691,8 @@
         280.0,
         318.571
       ],
-      "rendered_text": "137"
+      "rendered_text": "137",
+      "rendering": "verbatim"
     },
     {
       "field_path": "results.cmp.sodium.flag",
@@ -670,7 +708,8 @@
         306.0,
         318.64
       ],
-      "rendered_text": ""
+      "rendered_text": "",
+      "rendering": "verbatim"
     },
     {
       "field_path": "results.cmp.sodium.unit",
@@ -686,7 +725,8 @@
         354.191,
         318.571
       ],
-      "rendered_text": "mmol/L"
+      "rendered_text": "mmol/L",
+      "rendering": "verbatim"
     },
     {
       "field_path": "results.cmp.sodium.reference_range",
@@ -702,7 +742,8 @@
         450.335,
         318.571
       ],
-      "rendered_text": "136 - 145"
+      "rendered_text": "136 - 145",
+      "rendering": "verbatim"
     },
     {
       "field_path": "results.cmp.potassium.name",
@@ -718,7 +759,8 @@
         97.145,
         331.171
       ],
-      "rendered_text": "Potassium"
+      "rendered_text": "Potassium",
+      "rendering": "verbatim"
     },
     {
       "field_path": "results.cmp.potassium.value",
@@ -734,7 +776,8 @@
         280.0,
         331.171
       ],
-      "rendered_text": "4.1"
+      "rendered_text": "4.1",
+      "rendering": "verbatim"
     },
     {
       "field_path": "results.cmp.potassium.flag",
@@ -750,7 +793,8 @@
         306.0,
         331.24
       ],
-      "rendered_text": ""
+      "rendered_text": "",
+      "rendering": "verbatim"
     },
     {
       "field_path": "results.cmp.potassium.unit",
@@ -766,7 +810,8 @@
         354.191,
         331.171
       ],
-      "rendered_text": "mmol/L"
+      "rendered_text": "mmol/L",
+      "rendering": "verbatim"
     },
     {
       "field_path": "results.cmp.potassium.reference_range",
@@ -782,7 +827,8 @@
         445.553,
         331.171
       ],
-      "rendered_text": "3.5 - 5.1"
+      "rendered_text": "3.5 - 5.1",
+      "rendering": "verbatim"
     },
     {
       "field_path": "results.cmp.chloride.name",
@@ -798,7 +844,8 @@
         89.018,
         343.771
       ],
-      "rendered_text": "Chloride"
+      "rendered_text": "Chloride",
+      "rendering": "verbatim"
     },
     {
       "field_path": "results.cmp.chloride.value",
@@ -814,7 +861,8 @@
         280.0,
         343.771
       ],
-      "rendered_text": "102"
+      "rendered_text": "102",
+      "rendering": "verbatim"
     },
     {
       "field_path": "results.cmp.chloride.flag",
@@ -830,7 +878,8 @@
         306.0,
         343.84
       ],
-      "rendered_text": ""
+      "rendered_text": "",
+      "rendering": "verbatim"
     },
     {
       "field_path": "results.cmp.chloride.unit",
@@ -846,7 +895,8 @@
         354.191,
         343.771
       ],
-      "rendered_text": "mmol/L"
+      "rendered_text": "mmol/L",
+      "rendering": "verbatim"
     },
     {
       "field_path": "results.cmp.chloride.reference_range",
@@ -862,7 +912,8 @@
         445.553,
         343.771
       ],
-      "rendered_text": "98 - 107"
+      "rendered_text": "98 - 107",
+      "rendering": "verbatim"
     },
     {
       "field_path": "results.cmp.co2.name",
@@ -878,7 +929,8 @@
         128.69,
         356.371
       ],
-      "rendered_text": "CO2 (Bicarbonate)"
+      "rendered_text": "CO2 (Bicarbonate)",
+      "rendering": "verbatim"
     },
     {
       "field_path": "results.cmp.co2.value",
@@ -894,7 +946,8 @@
         280.0,
         356.371
       ],
-      "rendered_text": "25"
+      "rendered_text": "25",
+      "rendering": "verbatim"
     },
     {
       "field_path": "results.cmp.co2.flag",
@@ -910,7 +963,8 @@
         306.0,
         356.44
       ],
-      "rendered_text": ""
+      "rendered_text": "",
+      "rendering": "verbatim"
     },
     {
       "field_path": "results.cmp.co2.unit",
@@ -926,7 +980,8 @@
         354.191,
         356.371
       ],
-      "rendered_text": "mmol/L"
+      "rendered_text": "mmol/L",
+      "rendering": "verbatim"
     },
     {
       "field_path": "results.cmp.co2.reference_range",
@@ -942,7 +997,8 @@
         440.772,
         356.371
       ],
-      "rendered_text": "22 - 29"
+      "rendered_text": "22 - 29",
+      "rendering": "verbatim"
     },
     {
       "field_path": "results.cmp.calcium.name",
@@ -958,7 +1014,8 @@
         88.055,
         368.971
       ],
-      "rendered_text": "Calcium"
+      "rendered_text": "Calcium",
+      "rendering": "verbatim"
     },
     {
       "field_path": "results.cmp.calcium.value",
@@ -974,7 +1031,8 @@
         280.0,
         368.971
       ],
-      "rendered_text": "9.3"
+      "rendered_text": "9.3",
+      "rendering": "verbatim"
     },
     {
       "field_path": "results.cmp.calcium.flag",
@@ -990,7 +1048,8 @@
         306.0,
         369.04
       ],
-      "rendered_text": ""
+      "rendered_text": "",
+      "rendering": "verbatim"
     },
     {
       "field_path": "results.cmp.calcium.unit",
@@ -1006,7 +1065,8 @@
         349.899,
         368.971
       ],
-      "rendered_text": "mg/dL"
+      "rendered_text": "mg/dL",
+      "rendering": "verbatim"
     },
     {
       "field_path": "results.cmp.calcium.reference_range",
@@ -1022,7 +1082,8 @@
         450.335,
         368.971
       ],
-      "rendered_text": "8.6 - 10.2"
+      "rendered_text": "8.6 - 10.2",
+      "rendering": "verbatim"
     },
     {
       "field_path": "results.cmp.protein_total.name",
@@ -1038,7 +1099,8 @@
         108.144,
         381.571
       ],
-      "rendered_text": "Protein, Total"
+      "rendered_text": "Protein, Total",
+      "rendering": "verbatim"
     },
     {
       "field_path": "results.cmp.protein_total.value",
@@ -1054,7 +1116,8 @@
         280.0,
         381.571
       ],
-      "rendered_text": "7.3"
+      "rendered_text": "7.3",
+      "rendering": "verbatim"
     },
     {
       "field_path": "results.cmp.protein_total.flag",
@@ -1070,7 +1133,8 @@
         306.0,
         381.64
       ],
-      "rendered_text": ""
+      "rendered_text": "",
+      "rendering": "verbatim"
     },
     {
       "field_path": "results.cmp.protein_total.unit",
@@ -1086,7 +1150,8 @@
         342.736,
         381.571
       ],
-      "rendered_text": "g/dL"
+      "rendered_text": "g/dL",
+      "rendering": "verbatim"
     },
     {
       "field_path": "results.cmp.protein_total.reference_range",
@@ -1102,7 +1167,8 @@
         445.553,
         381.571
       ],
-      "rendered_text": "6.4 - 8.3"
+      "rendered_text": "6.4 - 8.3",
+      "rendering": "verbatim"
     },
     {
       "field_path": "results.cmp.albumin.name",
@@ -1118,7 +1184,8 @@
         88.063,
         394.171
       ],
-      "rendered_text": "Albumin"
+      "rendered_text": "Albumin",
+      "rendering": "verbatim"
     },
     {
       "field_path": "results.cmp.albumin.value",
@@ -1134,7 +1201,8 @@
         280.0,
         394.171
       ],
-      "rendered_text": "3.7"
+      "rendered_text": "3.7",
+      "rendering": "verbatim"
     },
     {
       "field_path": "results.cmp.albumin.flag",
@@ -1150,7 +1218,8 @@
         306.0,
         394.24
       ],
-      "rendered_text": ""
+      "rendered_text": "",
+      "rendering": "verbatim"
     },
     {
       "field_path": "results.cmp.albumin.unit",
@@ -1166,7 +1235,8 @@
         342.736,
         394.171
       ],
-      "rendered_text": "g/dL"
+      "rendered_text": "g/dL",
+      "rendering": "verbatim"
     },
     {
       "field_path": "results.cmp.albumin.reference_range",
@@ -1182,7 +1252,8 @@
         445.553,
         394.171
       ],
-      "rendered_text": "3.5 - 5.0"
+      "rendered_text": "3.5 - 5.0",
+      "rendering": "verbatim"
     },
     {
       "field_path": "results.cmp.bilirubin_total.name",
@@ -1198,7 +1269,8 @@
         111.481,
         406.771
       ],
-      "rendered_text": "Bilirubin, Total"
+      "rendered_text": "Bilirubin, Total",
+      "rendering": "verbatim"
     },
     {
       "field_path": "results.cmp.bilirubin_total.value",
@@ -1214,7 +1286,8 @@
         280.0,
         406.771
       ],
-      "rendered_text": "0.7"
+      "rendered_text": "0.7",
+      "rendering": "verbatim"
     },
     {
       "field_path": "results.cmp.bilirubin_total.flag",
@@ -1230,7 +1303,8 @@
         306.0,
         406.84
       ],
-      "rendered_text": ""
+      "rendered_text": "",
+      "rendering": "verbatim"
     },
     {
       "field_path": "results.cmp.bilirubin_total.unit",
@@ -1246,7 +1320,8 @@
         349.899,
         406.771
       ],
-      "rendered_text": "mg/dL"
+      "rendered_text": "mg/dL",
+      "rendering": "verbatim"
     },
     {
       "field_path": "results.cmp.bilirubin_total.reference_range",
@@ -1262,7 +1337,8 @@
         445.553,
         406.771
       ],
-      "rendered_text": "0.2 - 1.2"
+      "rendered_text": "0.2 - 1.2",
+      "rendering": "verbatim"
     },
     {
       "field_path": "results.cmp.alp.name",
@@ -1278,7 +1354,8 @@
         139.698,
         419.371
       ],
-      "rendered_text": "Alkaline Phosphatase"
+      "rendered_text": "Alkaline Phosphatase",
+      "rendering": "verbatim"
     },
     {
       "field_path": "results.cmp.alp.value",
@@ -1294,7 +1371,8 @@
         280.0,
         419.371
       ],
-      "rendered_text": "81"
+      "rendered_text": "81",
+      "rendering": "verbatim"
     },
     {
       "field_path": "results.cmp.alp.flag",
@@ -1310,7 +1388,8 @@
         306.0,
         419.44
       ],
-      "rendered_text": ""
+      "rendered_text": "",
+      "rendering": "verbatim"
     },
     {
       "field_path": "results.cmp.alp.unit",
@@ -1326,7 +1405,8 @@
         339.382,
         419.371
       ],
-      "rendered_text": "U/L"
+      "rendered_text": "U/L",
+      "rendering": "verbatim"
     },
     {
       "field_path": "results.cmp.alp.reference_range",
@@ -1342,7 +1422,8 @@
         445.553,
         419.371
       ],
-      "rendered_text": "40 - 129"
+      "rendered_text": "40 - 129",
+      "rendering": "verbatim"
     },
     {
       "field_path": "results.cmp.ast.name",
@@ -1358,7 +1439,8 @@
         106.218,
         431.971
       ],
-      "rendered_text": "AST (SGOT)"
+      "rendered_text": "AST (SGOT)",
+      "rendering": "verbatim"
     },
     {
       "field_path": "results.cmp.ast.value",
@@ -1374,7 +1456,8 @@
         280.0,
         431.971
       ],
-      "rendered_text": "28"
+      "rendered_text": "28",
+      "rendering": "verbatim"
     },
     {
       "field_path": "results.cmp.ast.flag",
@@ -1390,7 +1473,8 @@
         306.0,
         432.04
       ],
-      "rendered_text": ""
+      "rendered_text": "",
+      "rendering": "verbatim"
     },
     {
       "field_path": "results.cmp.ast.unit",
@@ -1406,7 +1490,8 @@
         339.382,
         431.971
       ],
-      "rendered_text": "U/L"
+      "rendered_text": "U/L",
+      "rendering": "verbatim"
     },
     {
       "field_path": "results.cmp.ast.reference_range",
@@ -1422,7 +1507,8 @@
         440.772,
         431.971
       ],
-      "rendered_text": "10 - 40"
+      "rendered_text": "10 - 40",
+      "rendering": "verbatim"
     },
     {
       "field_path": "results.cmp.alt.name",
@@ -1438,7 +1524,8 @@
         104.309,
         444.571
       ],
-      "rendered_text": "ALT (SGPT)"
+      "rendered_text": "ALT (SGPT)",
+      "rendering": "verbatim"
     },
     {
       "field_path": "results.cmp.alt.value",
@@ -1454,7 +1541,8 @@
         280.0,
         444.571
       ],
-      "rendered_text": "37"
+      "rendered_text": "37",
+      "rendering": "verbatim"
     },
     {
       "field_path": "results.cmp.alt.flag",
@@ -1470,7 +1558,8 @@
         306.0,
         444.64
       ],
-      "rendered_text": ""
+      "rendered_text": "",
+      "rendering": "verbatim"
     },
     {
       "field_path": "results.cmp.alt.unit",
@@ -1486,7 +1575,8 @@
         339.382,
         444.571
       ],
-      "rendered_text": "U/L"
+      "rendered_text": "U/L",
+      "rendering": "verbatim"
     },
     {
       "field_path": "results.cmp.alt.reference_range",
@@ -1502,7 +1592,8 @@
         435.99,
         444.571
       ],
-      "rendered_text": "7 - 56"
+      "rendered_text": "7 - 56",
+      "rendering": "verbatim"
     },
     {
       "field_path": "results.lipid.cholesterol_total.name",
@@ -1518,7 +1609,8 @@
         124.39,
         500.171
       ],
-      "rendered_text": "Cholesterol, Total"
+      "rendered_text": "Cholesterol, Total",
+      "rendering": "verbatim"
     },
     {
       "field_path": "results.lipid.cholesterol_total.value",
@@ -1534,7 +1626,8 @@
         280.0,
         500.171
       ],
-      "rendered_text": "144"
+      "rendered_text": "144",
+      "rendering": "verbatim"
     },
     {
       "field_path": "results.lipid.cholesterol_total.flag",
@@ -1550,7 +1643,8 @@
         306.0,
         500.24
       ],
-      "rendered_text": ""
+      "rendered_text": "",
+      "rendering": "verbatim"
     },
     {
       "field_path": "results.lipid.cholesterol_total.unit",
@@ -1566,7 +1660,8 @@
         349.899,
         500.171
       ],
-      "rendered_text": "mg/dL"
+      "rendered_text": "mg/dL",
+      "rendering": "verbatim"
     },
     {
       "field_path": "results.lipid.cholesterol_total.reference_range",
@@ -1582,7 +1677,8 @@
         450.335,
         500.171
       ],
-      "rendered_text": "125 - 200"
+      "rendered_text": "125 - 200",
+      "rendering": "verbatim"
     },
     {
       "field_path": "results.lipid.triglycerides.name",
@@ -1598,7 +1694,8 @@
         105.736,
         512.771
       ],
-      "rendered_text": "Triglycerides"
+      "rendered_text": "Triglycerides",
+      "rendering": "verbatim"
     },
     {
       "field_path": "results.lipid.triglycerides.value",
@@ -1614,7 +1711,8 @@
         280.0,
         512.771
       ],
-      "rendered_text": "89"
+      "rendered_text": "89",
+      "rendering": "verbatim"
     },
     {
       "field_path": "results.lipid.triglycerides.flag",
@@ -1630,7 +1728,8 @@
         306.0,
         512.84
       ],
-      "rendered_text": ""
+      "rendered_text": "",
+      "rendering": "verbatim"
     },
     {
       "field_path": "results.lipid.triglycerides.unit",
@@ -1646,7 +1745,8 @@
         349.899,
         512.771
       ],
-      "rendered_text": "mg/dL"
+      "rendered_text": "mg/dL",
+      "rendering": "verbatim"
     },
     {
       "field_path": "results.lipid.triglycerides.reference_range",
@@ -1662,7 +1762,8 @@
         445.553,
         512.771
       ],
-      "rendered_text": "35 - 150"
+      "rendered_text": "35 - 150",
+      "rendering": "verbatim"
     },
     {
       "field_path": "results.lipid.hdl.name",
@@ -1678,7 +1779,8 @@
         120.081,
         525.371
       ],
-      "rendered_text": "HDL Cholesterol"
+      "rendered_text": "HDL Cholesterol",
+      "rendering": "verbatim"
     },
     {
       "field_path": "results.lipid.hdl.value",
@@ -1694,7 +1796,8 @@
         280.0,
         525.371
       ],
-      "rendered_text": "95"
+      "rendered_text": "95",
+      "rendering": "verbatim"
     },
     {
       "field_path": "results.lipid.hdl.flag",
@@ -1710,7 +1813,8 @@
         306.0,
         525.44
       ],
-      "rendered_text": ""
+      "rendered_text": "",
+      "rendering": "verbatim"
     },
     {
       "field_path": "results.lipid.hdl.unit",
@@ -1726,7 +1830,8 @@
         349.899,
         525.371
       ],
-      "rendered_text": "mg/dL"
+      "rendered_text": "mg/dL",
+      "rendering": "verbatim"
     },
     {
       "field_path": "results.lipid.hdl.reference_range",
@@ -1742,7 +1847,8 @@
         445.553,
         525.371
       ],
-      "rendered_text": "50 - 100"
+      "rendered_text": "50 - 100",
+      "rendering": "verbatim"
     },
     {
       "field_path": "results.lipid.ldl_calc.name",
@@ -1758,7 +1864,8 @@
         142.063,
         537.971
       ],
-      "rendered_text": "LDL Cholesterol (calc)"
+      "rendered_text": "LDL Cholesterol (calc)",
+      "rendering": "verbatim"
     },
     {
       "field_path": "results.lipid.ldl_calc.value",
@@ -1774,7 +1881,8 @@
         280.0,
         537.971
       ],
-      "rendered_text": "68"
+      "rendered_text": "68",
+      "rendering": "verbatim"
     },
     {
       "field_path": "results.lipid.ldl_calc.flag",
@@ -1790,7 +1898,8 @@
         306.0,
         538.04
       ],
-      "rendered_text": ""
+      "rendered_text": "",
+      "rendering": "verbatim"
     },
     {
       "field_path": "results.lipid.ldl_calc.unit",
@@ -1806,7 +1915,8 @@
         349.899,
         537.971
       ],
-      "rendered_text": "mg/dL"
+      "rendered_text": "mg/dL",
+      "rendering": "verbatim"
     },
     {
       "field_path": "results.lipid.ldl_calc.reference_range",
@@ -1822,7 +1932,8 @@
         445.553,
         537.971
       ],
-      "rendered_text": "40 - 100"
+      "rendered_text": "40 - 100",
+      "rendering": "verbatim"
     },
     {
       "field_path": "results.lipid.chol_hdl_ratio.name",
@@ -1838,7 +1949,8 @@
         143.026,
         550.571
       ],
-      "rendered_text": "Total Chol / HDL Ratio"
+      "rendered_text": "Total Chol / HDL Ratio",
+      "rendering": "verbatim"
     },
     {
       "field_path": "results.lipid.chol_hdl_ratio.value",
@@ -1854,7 +1966,8 @@
         280.0,
         550.571
       ],
-      "rendered_text": "3.4"
+      "rendered_text": "3.4",
+      "rendering": "verbatim"
     },
     {
       "field_path": "results.lipid.chol_hdl_ratio.flag",
@@ -1870,7 +1983,8 @@
         306.0,
         550.64
       ],
-      "rendered_text": ""
+      "rendered_text": "",
+      "rendering": "verbatim"
     },
     {
       "field_path": "results.lipid.chol_hdl_ratio.unit",
@@ -1886,7 +2000,8 @@
         342.727,
         550.571
       ],
-      "rendered_text": "ratio"
+      "rendered_text": "ratio",
+      "rendering": "verbatim"
     },
     {
       "field_path": "results.lipid.chol_hdl_ratio.reference_range",
@@ -1902,7 +2017,8 @@
         445.553,
         550.571
       ],
-      "rendered_text": "1.5 - 5.0"
+      "rendered_text": "1.5 - 5.0",
+      "rendering": "verbatim"
     },
     {
       "field_path": "results.a1c.hba1c.name",
@@ -1918,7 +2034,8 @@
         120.09,
         606.171
       ],
-      "rendered_text": "Hemoglobin A1c"
+      "rendered_text": "Hemoglobin A1c",
+      "rendering": "verbatim"
     },
     {
       "field_path": "results.a1c.hba1c.value",
@@ -1934,7 +2051,8 @@
         280.0,
         606.171
       ],
-      "rendered_text": "4.8"
+      "rendered_text": "4.8",
+      "rendering": "verbatim"
     },
     {
       "field_path": "results.a1c.hba1c.flag",
@@ -1950,7 +2068,8 @@
         306.0,
         606.24
       ],
-      "rendered_text": ""
+      "rendered_text": "",
+      "rendering": "verbatim"
     },
     {
       "field_path": "results.a1c.hba1c.unit",
@@ -1966,7 +2085,8 @@
         333.645,
         606.171
       ],
-      "rendered_text": "%"
+      "rendered_text": "%",
+      "rendering": "verbatim"
     },
     {
       "field_path": "results.a1c.hba1c.reference_range",
@@ -1982,7 +2102,8 @@
         445.553,
         606.171
       ],
-      "rendered_text": "4.0 - 5.6"
+      "rendered_text": "4.0 - 5.6",
+      "rendering": "verbatim"
     },
     {
       "field_path": "results.a1c.eag.name",
@@ -1998,7 +2119,8 @@
         140.171,
         618.771
       ],
-      "rendered_text": "Est. Average Glucose"
+      "rendered_text": "Est. Average Glucose",
+      "rendering": "verbatim"
     },
     {
       "field_path": "results.a1c.eag.value",
@@ -2014,7 +2136,8 @@
         280.0,
         618.771
       ],
-      "rendered_text": "85"
+      "rendered_text": "85",
+      "rendering": "verbatim"
     },
     {
       "field_path": "results.a1c.eag.flag",
@@ -2030,7 +2153,8 @@
         306.0,
         618.84
       ],
-      "rendered_text": ""
+      "rendered_text": "",
+      "rendering": "verbatim"
     },
     {
       "field_path": "results.a1c.eag.unit",
@@ -2046,7 +2170,8 @@
         349.899,
         618.771
       ],
-      "rendered_text": "mg/dL"
+      "rendered_text": "mg/dL",
+      "rendering": "verbatim"
     },
     {
       "field_path": "results.a1c.eag.reference_range",
@@ -2062,7 +2187,8 @@
         445.553,
         618.771
       ],
-      "rendered_text": "68 - 114"
+      "rendered_text": "68 - 114",
+      "rendering": "verbatim"
     }
   ]
 }

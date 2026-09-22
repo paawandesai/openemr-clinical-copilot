@@ -380,3 +380,178 @@ def test_specs_reference_a_patient_by_uuid(scenario_id):
     )
     chart = _chart(spec)
     assert chart.uuid == spec.patient_ref
+
+
+# -- nothing is cut without saying so --------------------------------------
+
+
+def _present_text_fields(payload):
+    return [
+        f
+        for f in payload["fields"]
+        if f["status"] == "present" and f["kind"] == "text" and f["rendered_text"]
+    ]
+
+
+@pytest.mark.parametrize("scenario_id", SPEC_IDS)
+def test_no_rendered_text_is_silently_cut(scenario_id):
+    """
+    A field's rendered_text must be the whole of what was drawn.
+
+    The failure this guards against is a field that wrapped or overflowed and
+    kept only its first line or first few characters, which reads in the ground
+    truth like a short value rather than a lost one. Three shapes are illegal:
+    a trailing hyphen, a rendered_text that is a strict prefix of its value
+    without declaring why, and a `truncated` field with no ellipsis to show for
+    it.
+    """
+    payload = json.loads(
+        (SAMPLES_DIR / scenario_id / f"{scenario_id}.ground_truth.json").read_text(encoding="utf-8")
+    )
+    problems = []
+    for f in _present_text_fields(payload):
+        drawn, value, rendering = f["rendered_text"], f["value"], f["rendering"]
+
+        if drawn.rstrip().endswith("-"):
+            problems.append(f"{f['field_path']}: rendered_text ends in a hyphen: {drawn!r}")
+
+        if rendering == "truncated" and not drawn.endswith("..."):
+            problems.append(f"{f['field_path']}: truncated but no ellipsis: {drawn!r}")
+
+        if (
+            isinstance(value, str)
+            and value
+            and drawn != value
+            and value.startswith(drawn)
+            and rendering == "verbatim"
+        ):
+            problems.append(
+                f"{f['field_path']}: rendered_text is a strict prefix of value but claims to be "
+                f"verbatim — {drawn!r} vs {value!r}"
+            )
+    assert not problems, "\n".join(problems)
+
+
+@pytest.mark.parametrize("scenario_id", SPEC_IDS)
+def test_derived_fields_explain_themselves(scenario_id):
+    """A field whose drawn wording differs on purpose has to say why."""
+    payload = json.loads(
+        (SAMPLES_DIR / scenario_id / f"{scenario_id}.ground_truth.json").read_text(encoding="utf-8")
+    )
+    for f in _present_text_fields(payload):
+        if f["rendering"] != "derived":
+            continue
+        # A note, or a self-evident case-only change (the letterhead in caps).
+        explained = f.get("note") or f["rendered_text"].upper() == str(f["value"]).upper()
+        assert explained, f"{scenario_id}: {f['field_path']} is derived with no note"
+
+
+def _chart_with(**overrides):
+    """A minimal ChartRecord, for exercising paths the samples do not reach."""
+    base = dict(
+        patient_ref="a2c373ec-57bf-41cb-8767-94410dcf663d",
+        uuid="a2c373ec-57bf-41cb-8767-94410dcf663d",
+        mrn="1",
+        first_name="A",
+        middle_name="",
+        last_name="B",
+        dob="1980-01-01",
+        sex="Female",
+        street="1 Road",
+        city="Town",
+        state="MA",
+        postal_code="01000",
+        phone="",
+    )
+    base.update(overrides)
+    return ChartRecord(**base)
+
+
+def test_a_wrapped_field_joins_its_lines_and_unions_its_boxes():
+    """
+    No sample wraps, so build one that must.
+
+    The chief concern is the only field drawn over more than one line. It has
+    to come back as ONE field carrying both lines, not a first line plus a
+    `.line2` sibling.
+    """
+    from evals.w2.factory.chart import ChartCondition
+
+    long_name = (
+        "Chronic obstructive pulmonary disease with acute exacerbation and "
+        "associated respiratory insufficiency of the lower airways (disorder)"
+    )
+    chart = _chart_with(conditions=(ChartCondition(name=long_name, code=None, onset="2020-01-01"),))
+    spec = parse_spec(_spec(scenario_id="t-wrap", doc_type="intake_form"))
+    payload = ground_truth_for(spec, chart)
+
+    by_path = {f["field_path"]: f for f in payload["fields"]}
+    assert "chief_concern.line2" not in by_path, "a wrapped field must not be split into siblings"
+
+    field = by_path["chief_concern"]
+    assert field["rendering"] == "wrapped", field["rendering"]
+
+    boxes = field["line_bboxes"]
+    assert boxes is not None and len(boxes) > 1, "a wrapped field records one box per line"
+
+    # rendered_text is every line, so the last word of the value survives.
+    assert field["rendered_text"].split()[-1] == field["value"].split()[-1]
+    assert len(field["rendered_text"]) > len(boxes[0]) * 0  # readability only
+
+    # bbox is the union of the line boxes.
+    x0, y0, x1, y1 = field["bbox"]
+    assert x0 == pytest.approx(min(b[0] for b in boxes), abs=0.01)
+    assert y0 == pytest.approx(min(b[1] for b in boxes), abs=0.01)
+    assert x1 == pytest.approx(max(b[2] for b in boxes), abs=0.01)
+    assert y1 == pytest.approx(max(b[3] for b in boxes), abs=0.01)
+    # and it really is taller than any single line.
+    assert (y1 - y0) > max(b[3] - b[1] for b in boxes)
+
+
+def test_a_truncated_field_says_so_and_carries_an_ellipsis():
+    """No sample truncates either; force one and check it is declared."""
+    from evals.w2.factory.chart import ChartAllergy
+
+    allergen = (
+        "Hydrolysed wheat protein and fermented soya derivative used in "
+        "industrial food preparation (substance)"
+    )
+    chart = _chart_with(
+        allergies=(ChartAllergy(allergen=allergen, reaction="Mild", severity=None),)
+    )
+    spec = parse_spec(_spec(scenario_id="t-trunc", doc_type="intake_form"))
+    payload = ground_truth_for(spec, chart)
+
+    field = {f["field_path"]: f for f in payload["fields"]}["allergies[0].allergen"]
+    assert field["rendering"] == "truncated", field["rendering"]
+    assert field["rendered_text"].endswith("...")
+    assert field["value"] == allergen, "the chart's full wording is still recorded"
+    assert not field["rendered_text"].rstrip(". ").endswith("-")
+
+
+def test_fit_breaks_at_a_word_boundary():
+    from evals.w2.factory.canvas import fit
+
+    drawn, cut = fit("Laboratory Director: Nadia Okonjo-Reyes, MD", "sans", 8.0, 60.0)
+    assert cut is True
+    assert drawn.endswith("...")
+    # the cut lands between words, not inside "Okonjo-Reyes"
+    assert not drawn.rstrip(".").endswith("-")
+    assert drawn.rstrip(".").strip() in "Laboratory Director: Nadia Okonjo-Reyes, MD"
+
+    drawn, cut = fit("short", "sans", 8.0, 200.0)
+    assert (drawn, cut) == ("short", False)
+
+
+def test_multiline_field_refuses_to_span_a_page_break():
+    from evals.w2.factory.canvas import DocumentCanvas, PageBreakInField, PageGeometry
+
+    canvas = DocumentCanvas(PageGeometry(), seed=1)
+    with pytest.raises(PageBreakInField, match="page break"):
+        canvas.multiline_field(
+            "t.overflow",
+            72,
+            canvas.geometry.content_bottom - 4,
+            ["first line", "second line"],
+            line_height=40,
+        )

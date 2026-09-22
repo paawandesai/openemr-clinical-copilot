@@ -20,7 +20,6 @@ from evals.w2.factory.canvas import (
     PageGeometry,
     emit_field,
     text_width,
-    truncate,
 )
 from evals.w2.factory.content import LabContent
 from evals.w2.factory.groundtruth import FieldOrigin
@@ -92,19 +91,30 @@ def _header(canvas: DocumentCanvas, content: LabContent) -> None:
         align="right",
         width=120,
     )
+    # The caption is chrome, drawn separately, so the field's bbox bounds the
+    # director's name alone. Folding the caption into the field would make the
+    # drawn text differ from the value for no reason an extractor benefits
+    # from, and would put a box around text nobody is extracting.
+    caption = "Laboratory Director:"
+    director_width = text_width(content.lab.director, "sans", 8)
+    canvas.label(
+        _RIGHT - director_width - 4 - text_width(caption, "sans", 8),
+        109,
+        caption,
+        font="sans",
+        size=8,
+        color=GREY,
+    )
     emit_field(
         canvas,
         plan,
         "lab.director",
-        _RIGHT - 220,
+        _RIGHT - director_width,
         109,
-        f"Laboratory Director: {content.lab.director}",
-        value=content.lab.director,
+        content.lab.director,
         origin=FieldOrigin.SYNTHETIC,
         font="sans",
         size=8,
-        align="right",
-        width=220,
     )
 
     canvas.rule(_LEFT, 118, _RIGHT, width=1.4, color=BLACK)
@@ -173,8 +183,9 @@ def _two_column_block(canvas: DocumentCanvas, content: LabContent) -> None:
             path,
             _LEFT + 76,
             baseline,
-            truncate(value, "sans", 8.8, 178),
+            value,
             value=value,
+            max_width=178,
             origin=origin,
             font="sans",
             size=8.8,
@@ -188,8 +199,9 @@ def _two_column_block(canvas: DocumentCanvas, content: LabContent) -> None:
             rpath,
             mid + 68,
             baseline,
-            truncate(rvalue, "sans", 8.8, _RIGHT - (mid + 70)),
+            rvalue,
             value=rvalue,
+            max_width=_RIGHT - (mid + 70),
             origin=rorigin,
             font="sans",
             size=8.8,
@@ -280,8 +292,9 @@ def render(
                 f"{path}.name",
                 _COL_TEST + 3,
                 baseline,
-                truncate(test.name, "sans", _ROW_SIZE, _COL_TEST_W - 8),
+                test.name,
                 value=test.name,
+                max_width=_COL_TEST_W - 8,
                 origin=FieldOrigin.SYNTHETIC,
                 font="sans",
                 size=_ROW_SIZE,
@@ -323,8 +336,9 @@ def render(
                 f"{path}.unit",
                 _COL_UNIT,
                 baseline,
-                truncate(test.unit, "sans", _ROW_SIZE, _COL_UNIT_W - 4),
+                test.unit,
                 value=test.unit,
+                max_width=_COL_UNIT_W - 4,
                 origin=FieldOrigin.SYNTHETIC,
                 font="sans",
                 size=_ROW_SIZE,

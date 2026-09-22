@@ -1,5 +1,5 @@
 {
-  "schema_version": "doc-factory-groundtruth/0.1.0",
+  "schema_version": "doc-factory-groundtruth/0.2.0",
   "scenario": {
     "scenario_id": "intake-scanned-light-med-005",
     "seed": 884127,
@@ -40,7 +40,7 @@
   },
   "clean_reference": {
     "path": "intake-scanned-light-med-005.clean.pdf",
-    "sha256": "29e9de88b74ca0eae2babfcc4d344942bac03b141b63abcfc3e50c134c008a63",
+    "sha256": "d350ccfd0a57af9024ac39424dc72dbe7f784afce87aa181206cef2413eea4db",
     "bytes": 129478,
     "page_count": 2,
     "has_text_layer": true
@@ -150,7 +150,8 @@
         231.012,
         140.583
       ],
-      "rendered_text": "Merlyn225 Sanda877 Mueller846"
+      "rendered_text": "Merlyn225 Sanda877 Mueller846",
+      "rendering": "verbatim"
     },
     {
       "field_path": "patient.dob",
@@ -166,7 +167,8 @@
         468.63,
         140.562
       ],
-      "rendered_text": "1960-09-25"
+      "rendered_text": "1960-09-25",
+      "rendering": "verbatim"
     },
     {
       "field_path": "patient.address",
@@ -182,7 +184,8 @@
         157.282,
         164.514
       ],
-      "rendered_text": "890 Mills Well"
+      "rendered_text": "890 Mills Well",
+      "rendering": "verbatim"
     },
     {
       "field_path": "patient.sex",
@@ -198,7 +201,8 @@
         421.103,
         164.578
       ],
-      "rendered_text": "Female"
+      "rendered_text": "Female",
+      "rendering": "verbatim"
     },
     {
       "field_path": "patient.city_state_zip",
@@ -214,7 +218,8 @@
         264.826,
         188.542
       ],
-      "rendered_text": "Westwood, Massachusetts 00000"
+      "rendered_text": "Westwood, Massachusetts 00000",
+      "rendering": "verbatim"
     },
     {
       "field_path": "visit.date",
@@ -230,7 +235,8 @@
         157.556,
         212.606
       ],
-      "rendered_text": "09/14/2026"
+      "rendered_text": "09/14/2026",
+      "rendering": "verbatim"
     },
     {
       "field_path": "chief_concern",
@@ -246,7 +252,8 @@
         353.761,
         264.577
       ],
-      "rendered_text": "Ongoing primary fibromyalgia syndrome, wants to discuss treatment"
+      "rendered_text": "Ongoing primary fibromyalgia syndrome, wants to discuss treatment",
+      "rendering": "verbatim"
     },
     {
       "field_path": "medications[0].name",
@@ -263,7 +270,8 @@
         358.143
       ],
       "rendered_text": "Hydrocortisone",
-      "note": "value is the full chart product name; the form carries the common name"
+      "rendering": "derived",
+      "note": "rendering=derived, not a perturbation and not a truncation: a patient writes the common name, so the form carries short_drug_name(value) while value keeps the chart's full RxNorm product string"
     },
     {
       "field_path": "medications[0].dose",
@@ -279,7 +287,8 @@
         309.947,
         358.236
       ],
-      "rendered_text": "10 MG/ML"
+      "rendered_text": "10 MG/ML",
+      "rendering": "verbatim"
     },
     {
       "field_path": "medications[0].frequency",
@@ -296,6 +305,7 @@
         358.101
       ],
       "rendered_text": "once daily",
+      "rendering": "verbatim",
       "note": "frequency has no chart counterpart"
     },
     {
@@ -313,7 +323,8 @@
         379.158
       ],
       "rendered_text": "Terfenadine",
-      "note": "value is the full chart product name; the form carries the common name"
+      "rendering": "derived",
+      "note": "rendering=derived, not a perturbation and not a truncation: a patient writes the common name, so the form carries short_drug_name(value) while value keeps the chart's full RxNorm product string"
     },
     {
       "field_path": "medications[1].dose",
@@ -329,7 +340,8 @@
         292.056,
         379.218
       ],
-      "rendered_text": "60 MG"
+      "rendered_text": "60 MG",
+      "rendering": "verbatim"
     },
     {
       "field_path": "medications[1].frequency",
@@ -346,6 +358,7 @@
         379.18
       ],
       "rendered_text": "twice daily",
+      "rendering": "verbatim",
       "note": "frequency has no chart counterpart"
     },
     {
@@ -363,7 +376,8 @@
         400.251
       ],
       "rendered_text": "Naproxen sodium",
-      "note": "value is the full chart product name; the form carries the common name"
+      "rendering": "derived",
+      "note": "rendering=derived, not a perturbation and not a truncation: a patient writes the common name, so the form carries short_drug_name(value) while value keeps the chart's full RxNorm product string"
     },
     {
       "field_path": "medications[2].dose",
@@ -379,7 +393,8 @@
         298.062,
         400.135
       ],
-      "rendered_text": "220 MG"
+      "rendered_text": "220 MG",
+      "rendering": "verbatim"
     },
     {
       "field_path": "medications[2].frequency",
@@ -396,6 +411,7 @@
         400.128
       ],
       "rendered_text": "every morning",
+      "rendering": "verbatim",
       "note": "frequency has no chart counterpart"
     },
     {
@@ -413,7 +429,8 @@
         421.215
       ],
       "rendered_text": "albuterol",
-      "note": "value is the full chart product name; the form carries the common name"
+      "rendering": "derived",
+      "note": "rendering=derived, not a perturbation and not a truncation: a patient writes the common name, so the form carries short_drug_name(value) while value keeps the chart's full RxNorm product string"
     },
     {
       "field_path": "medications[3].dose",
@@ -429,7 +446,8 @@
         304.979,
         421.098
       ],
-      "rendered_text": "5 MG/ML"
+      "rendered_text": "5 MG/ML",
+      "rendering": "verbatim"
     },
     {
       "field_path": "medications[3].frequency",
@@ -446,6 +464,7 @@
         421.076
       ],
       "rendered_text": "twice daily",
+      "rendering": "verbatim",
       "note": "frequency has no chart counterpart"
     },
     {
@@ -463,7 +482,8 @@
         442.184
       ],
       "rendered_text": "Hydrochlorothiazide",
-      "note": "value is the full chart product name; the form carries the common name"
+      "rendering": "derived",
+      "note": "rendering=derived, not a perturbation and not a truncation: a patient writes the common name, so the form carries short_drug_name(value) while value keeps the chart's full RxNorm product string"
     },
     {
       "field_path": "medications[4].dose",
@@ -479,7 +499,8 @@
         292.548,
         442.154
       ],
-      "rendered_text": "25 MG"
+      "rendered_text": "25 MG",
+      "rendering": "verbatim"
     },
     {
       "field_path": "medications[4].frequency",
@@ -496,6 +517,7 @@
         442.073
       ],
       "rendered_text": "at bedtime",
+      "rendering": "verbatim",
       "note": "frequency has no chart counterpart"
     },
     {
@@ -513,7 +535,8 @@
         463.159
       ],
       "rendered_text": "lisinopril",
-      "note": "value is the full chart product name; the form carries the common name"
+      "rendering": "derived",
+      "note": "rendering=derived, not a perturbation and not a truncation: a patient writes the common name, so the form carries short_drug_name(value) while value keeps the chart's full RxNorm product string"
     },
     {
       "field_path": "medications[5].dose",
@@ -529,7 +552,8 @@
         292.507,
         463.069
       ],
-      "rendered_text": "10 MG"
+      "rendered_text": "10 MG",
+      "rendering": "verbatim"
     },
     {
       "field_path": "medications[5].frequency",
@@ -546,6 +570,7 @@
         463.185
       ],
       "rendered_text": "three times daily",
+      "rendering": "verbatim",
       "note": "frequency has no chart counterpart"
     },
     {
@@ -563,6 +588,7 @@
         484.115
       ],
       "rendered_text": "amLODIPine",
+      "rendering": "derived",
       "note": "chart strength is 2.5 MG"
     },
     {
@@ -579,7 +605,8 @@
         292.192,
         484.13
       ],
-      "rendered_text": "10 MG"
+      "rendered_text": "10 MG",
+      "rendering": "verbatim"
     },
     {
       "field_path": "medications[6].frequency",
@@ -596,6 +623,7 @@
         484.237
       ],
       "rendered_text": "as needed",
+      "rendering": "verbatim",
       "note": "frequency has no chart counterpart"
     },
     {
@@ -613,7 +641,8 @@
         505.165
       ],
       "rendered_text": "Fluticasone propionate",
-      "note": "value is the full chart product name; the form carries the common name"
+      "rendering": "derived",
+      "note": "rendering=derived, not a perturbation and not a truncation: a patient writes the common name, so the form carries short_drug_name(value) while value keeps the chart's full RxNorm product string"
     },
     {
       "field_path": "medications[7].dose",
@@ -629,7 +658,8 @@
         342.908,
         505.101
       ],
-      "rendered_text": "0.25 MG/ACTUAT"
+      "rendered_text": "0.25 MG/ACTUAT",
+      "rendering": "verbatim"
     },
     {
       "field_path": "medications[7].frequency",
@@ -646,6 +676,7 @@
         505.022
       ],
       "rendered_text": "every morning",
+      "rendering": "verbatim",
       "note": "frequency has no chart counterpart"
     },
     {
@@ -663,7 +694,8 @@
         526.23
       ],
       "rendered_text": "Acetaminophen",
-      "note": "value is the full chart product name; the form carries the common name"
+      "rendering": "derived",
+      "note": "rendering=derived, not a perturbation and not a truncation: a patient writes the common name, so the form carries short_drug_name(value) while value keeps the chart's full RxNorm product string"
     },
     {
       "field_path": "medications[8].dose",
@@ -679,7 +711,8 @@
         298.35,
         526.095
       ],
-      "rendered_text": "325 MG"
+      "rendered_text": "325 MG",
+      "rendering": "verbatim"
     },
     {
       "field_path": "medications[8].frequency",
@@ -696,6 +729,7 @@
         526.235
       ],
       "rendered_text": "every morning",
+      "rendering": "verbatim",
       "note": "frequency has no chart counterpart"
     },
     {
@@ -713,7 +747,8 @@
         547.149
       ],
       "rendered_text": "Naproxen",
-      "note": "value is the full chart product name; the form carries the common name"
+      "rendering": "derived",
+      "note": "rendering=derived, not a perturbation and not a truncation: a patient writes the common name, so the form carries short_drug_name(value) while value keeps the chart's full RxNorm product string"
     },
     {
       "field_path": "medications[9].dose",
@@ -729,7 +764,8 @@
         297.602,
         547.035
       ],
-      "rendered_text": "500 MG"
+      "rendered_text": "500 MG",
+      "rendering": "verbatim"
     },
     {
       "field_path": "medications[9].frequency",
@@ -746,6 +782,7 @@
         547.26
       ],
       "rendered_text": "as needed",
+      "rendering": "verbatim",
       "note": "frequency has no chart counterpart"
     },
     {
@@ -763,7 +800,8 @@
         568.159
       ],
       "rendered_text": "sodium fluoride",
-      "note": "value is the full chart product name; the form carries the common name"
+      "rendering": "derived",
+      "note": "rendering=derived, not a perturbation and not a truncation: a patient writes the common name, so the form carries short_drug_name(value) while value keeps the chart's full RxNorm product string"
     },
     {
       "field_path": "medications[10].dose",
@@ -779,7 +817,8 @@
         311.569,
         568.132
       ],
-      "rendered_text": "0.0272 MG"
+      "rendered_text": "0.0272 MG",
+      "rendering": "verbatim"
     },
     {
       "field_path": "medications[10].frequency",
@@ -796,6 +835,7 @@
         568.214
       ],
       "rendered_text": "once daily",
+      "rendering": "verbatim",
       "note": "frequency has no chart counterpart"
     },
     {
@@ -813,6 +853,7 @@
         614.5
       ],
       "rendered_text": "",
+      "rendering": "verbatim",
       "note": "'No known drug allergies' box; checked only when the chart has no allergies"
     },
     {
@@ -829,7 +870,8 @@
         184.189,
         654.281
       ],
-      "rendered_text": "Allergic disposition (finding)"
+      "rendered_text": "Allergic disposition (finding)",
+      "rendering": "verbatim"
     },
     {
       "field_path": "allergies[0].reaction",
@@ -845,7 +887,8 @@
         310.682,
         654.051
       ],
-      "rendered_text": "Severe"
+      "rendered_text": "Severe",
+      "rendering": "verbatim"
     },
     {
       "field_path": "allergies[1].allergen",
@@ -861,7 +904,8 @@
         174.84,
         675.203
       ],
-      "rendered_text": "Animal dander (substance)"
+      "rendered_text": "Animal dander (substance)",
+      "rendering": "verbatim"
     },
     {
       "field_path": "allergies[1].reaction",
@@ -877,7 +921,8 @@
         302.415,
         675.09
       ],
-      "rendered_text": "Mild"
+      "rendered_text": "Mild",
+      "rendering": "verbatim"
     },
     {
       "field_path": "allergies[2].allergen",
@@ -893,7 +938,8 @@
         90.104,
         696.175
       ],
-      "rendered_text": "Aspirin"
+      "rendered_text": "Aspirin",
+      "rendering": "verbatim"
     },
     {
       "field_path": "allergies[2].reaction",
@@ -909,7 +955,8 @@
         310.744,
         696.117
       ],
-      "rendered_text": "Severe"
+      "rendered_text": "Severe",
+      "rendering": "verbatim"
     },
     {
       "field_path": "family_history.diabetes",
@@ -926,6 +973,7 @@
         123.5
       ],
       "rendered_text": "X",
+      "rendering": "verbatim",
       "note": "family history has no chart counterpart"
     },
     {
@@ -943,6 +991,7 @@
         125.341
       ],
       "rendered_text": "sister",
+      "rendering": "verbatim",
       "note": "family history has no chart counterpart"
     },
     {
@@ -960,6 +1009,7 @@
         123.5
       ],
       "rendered_text": "",
+      "rendering": "verbatim",
       "note": "family history has no chart counterpart"
     },
     {
@@ -977,6 +1027,7 @@
         146.5
       ],
       "rendered_text": "",
+      "rendering": "verbatim",
       "note": "family history has no chart counterpart"
     },
     {
@@ -994,6 +1045,7 @@
         146.5
       ],
       "rendered_text": "",
+      "rendering": "verbatim",
       "note": "family history has no chart counterpart"
     },
     {
@@ -1011,6 +1063,7 @@
         169.5
       ],
       "rendered_text": "",
+      "rendering": "verbatim",
       "note": "family history has no chart counterpart"
     },
     {
@@ -1028,6 +1081,7 @@
         169.5
       ],
       "rendered_text": "",
+      "rendering": "verbatim",
       "note": "family history has no chart counterpart"
     },
     {
@@ -1044,7 +1098,8 @@
         271.545,
         229.556
       ],
-      "rendered_text": "Merlyn225 Sanda877 Mueller846"
+      "rendered_text": "Merlyn225 Sanda877 Mueller846",
+      "rendering": "verbatim"
     },
     {
       "field_path": "signature.date",
@@ -1060,7 +1115,8 @@
         441.182,
         229.65
       ],
-      "rendered_text": "09/14/2026"
+      "rendered_text": "09/14/2026",
+      "rendering": "verbatim"
     }
   ]
 }

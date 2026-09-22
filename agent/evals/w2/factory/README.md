@@ -88,12 +88,12 @@ in a panel the report does not order, fails the run with a message listing what
 ## Ground truth
 
 **This is not the Phase 2 schema.** It is an interim shape carrying a
-`schema_version` (`doc-factory-groundtruth/0.1.0`) so a later adapter can
+`schema_version` (`doc-factory-groundtruth/0.2.0`) so a later adapter can
 convert it without guessing.
 
 ```jsonc
 {
-  "schema_version": "doc-factory-groundtruth/0.1.0",
+  "schema_version": "doc-factory-groundtruth/0.2.0",
   "scenario":    { "scenario_id": ..., "seed": ..., "perturbations": [...] },
   "chart_source":{ "system": "local-openemr", "patient_uuid": "a2c373ec-…", ... },
   "coordinates": { "space": "clean_pdf", "units": "pt", "origin": "top-left", "y_axis": "down" },
@@ -109,7 +109,8 @@ convert it without guessing.
   "fields": [
     { "field_path": "results.cmp.glucose.value", "status": "present",
       "kind": "text", "origin": "perturbed", "value": 168.0, "unit": "mg/dL",
-      "page": 1, "bbox": [230.0, 396.3, 275.6, 407.2], "rendered_text": "168" }
+      "page": 1, "bbox": [230.0, 396.3, 275.6, 407.2], "rendered_text": "168",
+      "rendering": "verbatim" }
   ]
 }
 ```
@@ -134,6 +135,31 @@ maps a clean-layout point to a pixel of that page's scan image. It is the
 rotation used to skew the page composed with the `dpi/72` raster scale — the
 same matrix the degradation pipeline inverted to produce the image, not an
 estimate.
+
+### How rendered_text relates to value
+
+`rendering` says why the drawn characters differ from `value`, so a reader
+never has to infer it from the strings:
+
+| `rendering` | meaning |
+|---|---|
+| `verbatim` | drawn exactly as `value` reads |
+| `derived` | deliberately re-expressed; `note` says how. A medication is the clearest case: the chart holds `"Fexofenadine hydrochloride 30 MG Oral Tablet"` and the form carries `"Fexofenadine hydrochloride"`, because that is what a patient writes. **Not a perturbation and not a truncation** — the document is what a real one would say, and no discrepancy is implied. The letterhead drawn in caps is the same category. |
+| `wrapped` | drawn over more than one line. `rendered_text` is the lines joined with single spaces — the whole text, never just the first line — `bbox` is the union of the line boxes, and `line_bboxes` holds them individually. |
+| `truncated` | cut to fit its column and ending in an ellipsis. `value` keeps the full text; an extractor cannot recover it from the document. |
+
+Fitting happens inside `canvas.emit_field` (via `canvas.fit`), not at the call
+sites, so a value that had to be cut is always recorded as `truncated` rather
+than looking like a shorter value that was that length all along. `fit` breaks
+at a word boundary where there is one, so a cut reads as a shortened phrase
+rather than a word sliced in half.
+
+A field's lines must all land on one page. `canvas.multiline_field` raises
+`PageBreakInField` rather than recording the part that fits, because a field
+split across a page break has no single bbox and silently keeping the first
+half is exactly the failure this is here to prevent. No field in the six
+samples wraps or is truncated today; `tests/test_doc_factory.py` exercises both
+paths with charts built for the purpose.
 
 ### Field statuses and origins
 
