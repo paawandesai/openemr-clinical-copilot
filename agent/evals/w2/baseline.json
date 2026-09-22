@@ -1,7 +1,7 @@
 {
   "schema_version": "w2-gate/baseline/1.0.0",
-  "generated_at": "2026-09-22T18:24:43+00:00",
-  "commit": "8834e1c44b40f33c11e73e91bfcda4cd7a9df3a3",
+  "generated_at": "2026-09-22T22:12:02+00:00",
+  "commit": "e6c5264b04b112c4b8b6b24e37a8ec2065fbfc83",
   "judge": {
     "model": "claude-haiku-4-5",
     "model_version": "claude-haiku-4-5-20251001",
@@ -9,9 +9,9 @@
     "calibration": "UNCALIBRATED"
   },
   "counts": {
-    "specs": 91,
-    "active": 50,
-    "pending": 41
+    "specs": 93,
+    "active": 54,
+    "pending": 39
   },
   "cases": {
     "W2-A1": {
@@ -357,6 +357,13 @@
       "critical": false,
       "verdict": "pass"
     },
+    "W2-F10": {
+      "category": "F",
+      "status": "active",
+      "tier": "det",
+      "critical": false,
+      "verdict": "pass"
+    },
     "W2-G1": {
       "category": "G",
       "status": "pending_sut",
@@ -373,17 +380,17 @@
     },
     "W2-G3": {
       "category": "G",
-      "status": "pending_sut",
+      "status": "active",
       "tier": "det",
       "critical": false,
-      "verdict": "pending"
+      "verdict": "pass"
     },
     "W2-G4": {
       "category": "G",
-      "status": "pending_sut",
+      "status": "active",
       "tier": "det",
       "critical": false,
-      "verdict": "pending"
+      "verdict": "pass"
     },
     "W2-G5": {
       "category": "G",
@@ -569,10 +576,10 @@
     },
     "W2-K2": {
       "category": "K",
-      "status": "pending_sut",
+      "status": "active",
       "tier": "det",
       "critical": true,
-      "verdict": "pending"
+      "verdict": "pass"
     },
     "W2-K3": {
       "category": "K",
@@ -594,6 +601,13 @@
       "tier": "det",
       "critical": false,
       "verdict": "pass"
+    },
+    "W2-K6": {
+      "category": "K",
+      "status": "pending_sut",
+      "tier": "det",
+      "critical": true,
+      "verdict": "pending"
     },
     "W2-M1": {
       "category": "M",
@@ -744,12 +758,12 @@
       "rate": 1.0
     },
     "F": {
-      "specs": 9,
-      "active": 8,
+      "specs": 10,
+      "active": 9,
       "pending": 1,
       "det": {
-        "scored": 8,
-        "passed": 8,
+        "scored": 9,
+        "passed": 9,
         "skipped": 0,
         "rate": 1.0
       },
@@ -763,13 +777,13 @@
     },
     "G": {
       "specs": 10,
-      "active": 0,
-      "pending": 10,
+      "active": 2,
+      "pending": 8,
       "det": {
-        "scored": 0,
-        "passed": 0,
+        "scored": 2,
+        "passed": 2,
         "skipped": 0,
-        "rate": null
+        "rate": 1.0
       },
       "judge": {
         "scored": 0,
@@ -777,7 +791,7 @@
         "skipped": 0,
         "rate": null
       },
-      "rate": null
+      "rate": 1.0
     },
     "H": {
       "specs": 9,
@@ -834,12 +848,12 @@
       "rate": 1.0
     },
     "K": {
-      "specs": 5,
-      "active": 3,
+      "specs": 6,
+      "active": 4,
       "pending": 2,
       "det": {
-        "scored": 3,
-        "passed": 3,
+        "scored": 4,
+        "passed": 4,
         "skipped": 0,
         "rate": 1.0
       },
@@ -871,12 +885,12 @@
     }
   },
   "aggregate": {
-    "specs": 91,
-    "active": 50,
-    "pending": 41,
+    "specs": 93,
+    "active": 54,
+    "pending": 39,
     "det": {
-      "scored": 42,
-      "passed": 42,
+      "scored": 46,
+      "passed": 46,
       "skipped": 0,
       "rate": 1.0
     },
