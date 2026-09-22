@@ -1,0 +1,12 @@
+{
+  "fixture_id": "fc_fail_added_clinical_judgement",
+  "rubric": "factually_consistent",
+  "expected_verdict": "fail",
+  "frozen": true,
+  "why_this_label": "The number and unit are right. Everything after them — markedly elevated, indicates poor glycaemic control — is a clinical judgement the source does not make, and rule 2 of the committed prompt requires that a statement add nothing the source does not say. This is the RAGAS/DeepEval strict-mode property as a fixture: every atomic claim supported, or the case fails.",
+  "what_this_detects": "A loosened factually_consistent prompt, in the direction it actually gets loosened — towards rewarding a fluent, clinically sensible sentence. Measured: committed prompt fail 5/5 rounds, 15/15 votes; generic rubric pass.",
+  "payload": {
+    "statement": "Glucose was 168 mg/dL, which is markedly elevated and indicates poor glycaemic control.",
+    "source_text": "GLUCOSE            168    mg/dL    70 - 99    H\nSpecimen collected 2 March. Comprehensive Metabolic Panel."
+  }
+}

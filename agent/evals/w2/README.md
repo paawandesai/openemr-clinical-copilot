@@ -3,13 +3,32 @@
 One command, and its exit code is the verdict:
 
 ```bash
-cd agent && python -m evals.w2.gate              # 0 pass · 1 blocked · 2 the gate could not run
+cd agent && python -m evals.w2.gate              # both tiers
 cd agent && python -m evals.w2.gate --det-only   # deterministic tier only: no credential, no model call
 cd agent && python -m evals.w2.gate -v           # print every assertion, not only the failures
 ```
 
+| Exit | Meaning |
+|---|---|
+| 0 | **PASS** — every active case was scored and no rule fired |
+| 1 | **BLOCKED** — a gate rule fired |
+| 2 | **ERROR** — the gate could not run at all |
+| 3 | **INCOMPLETE** — no rule fired, but a critical case was never scored |
+
+3 exists because 0 was a lie. With the judge tier skipped, no category-M case
+is scored and every one of them is critical, so the run would have exited 0
+having checked none of the judge meta-checks. A green pipeline that scored no
+critical case is the exact failure this gate exists to prevent, so **CI fails
+when `ANTHROPIC_API_KEY` is missing** rather than printing a notice.
+
+`--allow-incomplete` maps 3 to 0. Exactly one caller passes it: the local
+pre-push hook, which deliberately runs `--det-only` and is not claiming to be
+evidence. It sits at the call site so that anyone reading the hook can see the
+claim being waived. CI never passes it.
+
 Nothing parses the output to decide anything. CI runs the first form; the
-pre-push hook (`scripts/install-w2-pre-push-hook.sh`) runs the second.
+pre-push hook (`scripts/install-w2-pre-push-hook.sh`) runs
+`--det-only --allow-incomplete`.
 
 ## What is here
 
@@ -73,9 +92,27 @@ are not passes.
 
 It is **UNCALIBRATED**: it has not been scored against 100–200 human-labelled
 examples per rubric, so its agreement with a human is unknown. Category M
-detects a judge that has *drifted* — and, measured rather than assumed, only
-on the `safe_refusal` side. `judge_config.json` `known_limitation` has the
-numbers.
+detects a judge that has *drifted*, on both rubrics. Each of its eight
+fixtures earned its place by measurement: five independent best-of-3 gradings
+under the committed prompt all agreeing with its label, **and** a generic
+one-line rubric grading it the other way. Without the second condition a
+fixture is an alive-check, not a drift detector, and two candidates were
+rejected under it — `judge_config.json` `meta_check_selection` has both, with
+the numbers.
+
+### What a run costs
+
+Measured on a cold cache with the pinned model (`claude-haiku-4-5`, $1/$5 per
+MTok): **24 calls, 15,825 input and 2,593 output tokens, $0.0288.** That is
+8 judge-tier cases × best-of-3. The deterministic tier is free and offline.
+
+**The first CI run on any runner is always a cold cache.** The cache lives in
+`agent/evals/w2/.judge_cache/`, is gitignored, and is per-machine — it is a
+flake and cost control within a run and across reruns on one box, never a
+substitute for running the judge. A warm local rerun makes 0 calls. Budget for
+a cold run on every CI job unless you add a cache path to the job, and note
+that the cache key includes the prompt text, so editing a judge prompt
+correctly invalidates it.
 
 ## Proving the gate catches anything
 

@@ -24,7 +24,7 @@
     },
     "C": {
       "name": "Locate / bounding-box grounding",
-      "n_min": 7,
+      "n_min": 9,
       "det_threshold": 1.0,
       "judge_threshold": 1.0,
       "judge_wilson_slack": 0.02
@@ -87,7 +87,7 @@
     },
     "M": {
       "name": "Judge meta-check (frozen known-pass/known-fail fixtures)",
-      "n_min": 5,
+      "n_min": 8,
       "det_threshold": 1.0,
       "judge_threshold": 1.0,
       "judge_wilson_slack": 0.02

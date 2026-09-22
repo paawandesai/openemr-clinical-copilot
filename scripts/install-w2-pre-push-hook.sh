@@ -15,8 +15,14 @@
 #
 # What it therefore does NOT cover: the judge tier (categories with a
 # factually_consistent or safe_refusal assertion, which today means the judge
-# meta-check set). CI runs those. The hook prints which cases it did not score
-# rather than letting a green local run read as a full one.
+# meta-check set, all of it critical). CI runs those.
+#
+# The gate exits 3 for a run that scored no critical case, and 3 is nonzero, so
+# the hook passes --allow-incomplete to map it to 0. That flag lives HERE, at
+# the call site, and not inside the gate: this hook is the one caller entitled
+# to say "I am not claiming to be evidence", and anyone reading the hook can
+# see it claim that. CI never passes it, so a CI run with no credential fails.
+# The gate still prints NOT EVIDENCE with the unscored case ids either way.
 #
 # This is a companion to scripts/install-git-hooks.sh (the pre-commit secret
 # scan), kept separate because that script's refusal-to-clobber logic is about
@@ -43,6 +49,14 @@ fi
 
 mkdir -p "$HOOK_DIR"
 
+# A zero-byte hook is not somebody else's hook, it is debris — most likely a
+# heredoc that hung and left a truncated file behind (which is exactly how
+# this arm came to be written). Clear it rather than refusing forever.
+if [ -e "$HOOK" ] && [ ! -s "$HOOK" ]; then
+  echo "install-w2-pre-push-hook: $HOOK is empty; replacing it."
+  rm -f "$HOOK"
+fi
+
 if [ -e "$HOOK" ] && ! grep -q "$MARKER" "$HOOK" 2>/dev/null; then
   cat >&2 <<EOF
 install-w2-pre-push-hook: $HOOK already exists and is not ours.
@@ -61,6 +75,13 @@ fi
 # from: that directory may be deleted later. It resolves everything from
 # whichever worktree is pushing, and skips itself on a branch that predates the
 # gate rather than failing the push.
+# NOTE on the heredoc below: it is UNQUOTED, because $MARKER is interpolated
+# into it at install time. That means a backtick inside it is a command
+# substitution that runs while the hook is being written — `python3` with no
+# arguments opens an interactive REPL and the installer hangs with a
+# zero-byte hook already truncated into place. Escape every backtick in the
+# hook body, and every $ that the HOOK should expand rather than the
+# installer.
 cat > "$HOOK" <<EOF
 #!/usr/bin/env bash
 $MARKER
@@ -72,17 +93,26 @@ if [ ! -d "\$top/agent/evals/w2/gate" ]; then
   exit 0
 fi
 
-python=\${W2_GATE_PYTHON:-python3}
+# scripts/new-worktree.sh builds agent/.venv on python 3.12 and installs the
+# requirements, so prefer it. A bare \`python3\` is often the system 3.9, which
+# cannot import the app at all — finding it and failing on an import error
+# would read as a gate failure rather than as a missing interpreter.
+python=\${W2_GATE_PYTHON:-}
+if [ -z "\$python" ] && [ -x "\$top/agent/.venv/bin/python" ]; then
+  python="\$top/agent/.venv/bin/python"
+fi
+python=\${python:-python3}
 if ! command -v "\$python" >/dev/null 2>&1; then
   echo "pre-push: \$python not found; the gate was NOT run." >&2
-  echo "pre-push: set W2_GATE_PYTHON to your interpreter, or push with --no-verify." >&2
+  echo "pre-push: run scripts/new-worktree.sh, set W2_GATE_PYTHON, or push --no-verify." >&2
   exit 1
 fi
 
 echo "pre-push: running the Week 2 eval gate (deterministic tier)..."
 cd "\$top/agent"
-if "\$python" -m evals.w2.gate --det-only; then
-  echo "pre-push: deterministic tier passed. The judge tier was NOT run here — CI runs it."
+if "\$python" -m evals.w2.gate --det-only --allow-incomplete; then
+  echo "pre-push: deterministic tier passed. The judge tier was NOT run here — CI runs it,"
+  echo "pre-push: and this run is not evidence that the category-M cases hold."
   exit 0
 fi
 cat >&2 <<'MSG'

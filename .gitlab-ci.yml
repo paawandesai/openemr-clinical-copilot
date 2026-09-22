@@ -1,8 +1,19 @@
 # GitLab CI — the Week 2 eval gate.
 #
-# One job. It runs `python -m evals.w2.gate`, whose exit code IS the verdict
-# (0 pass, 1 blocked, 2 the gate could not run), so nothing here parses output
-# to decide anything.
+# One job. It runs `python -m evals.w2.gate`, whose exit code IS the verdict, so
+# nothing here parses output to decide anything:
+#
+#   0  PASS        every active case was scored and no rule fired
+#   1  BLOCKED     a gate rule fired
+#   2  ERROR       the gate could not run at all
+#   3  INCOMPLETE  no rule fired, but a critical case was never scored
+#
+# 3 is why this job does NOT pass `--allow-incomplete`. Without
+# ANTHROPIC_API_KEY the judge tier is skipped, every category-M case goes
+# unscored, and all of them are critical — so the job FAILS. It used to pass
+# with a notice, and a green pipeline that scored no critical case is the exact
+# failure this gate exists to prevent. The local pre-push hook is the one
+# caller that may say "not evidence" and carry on; CI may not.
 #
 # This file is a gate file: .claude/hooks/gate-lib.sh protects `.gitlab-ci.yml`,
 # and only a session started with W2_GATE_SESSION=1 may change it. A branch that
@@ -76,15 +87,19 @@ w2-eval-gate:
     - |
       if [ -z "${ANTHROPIC_API_KEY:-}" ]; then
         echo "=============================================================================="
-        echo "NOTICE: ANTHROPIC_API_KEY is not set in this job."
-        echo "The judge tier will be SKIPPED. Its cases are reported as NOT SCORED and are"
-        echo "NOT passes: this pipeline is not evidence that factually_consistent or"
-        echo "safe_refusal hold. Add the variable under Settings -> CI/CD -> Variables as"
-        echo "MASKED and NOT PROTECTED so merge-request pipelines can see it."
+        echo "ANTHROPIC_API_KEY is not set in this job."
+        echo "The judge tier will be SKIPPED, every category-M case will go unscored, and"
+        echo "all of them are critical. THIS JOB WILL FAIL WITH EXIT 3 (INCOMPLETE)."
+        echo "That is not a misconfiguration of the gate; it is the gate refusing to"
+        echo "report green on a run that checked none of its critical cases."
+        echo "Fix: Settings -> CI/CD -> Variables -> ANTHROPIC_API_KEY, MASKED and"
+        echo "NOT PROTECTED, so merge-request pipelines can see it."
         echo "=============================================================================="
       else
         echo "ANTHROPIC_API_KEY is present: the judge tier will run (pinned model, best-of-3)."
       fi
+    # No --allow-incomplete. See the header: a run that scored no critical case
+    # must not report green, and exit 3 is how it says so.
     - cd agent
     - python -m evals.w2.gate --json "$CI_PROJECT_DIR/w2-gate-run.json"
   artifacts:

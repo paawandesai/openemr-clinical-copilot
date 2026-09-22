@@ -1,0 +1,23 @@
+{
+  "id": "W2-C8",
+  "category": "C",
+  "critical": true,
+  "status": "pending_sut",
+  "inputs": {
+    "kind": "factory_scenario",
+    "scenario_ids": [
+      "lab-scanned-heavy-abnormal-002",
+      "intake-scanned-light-med-005"
+    ],
+    "note": "Needs the locate step (feat/w2-locate). The exclusion is a property of the VALUE CLASS, not of one field: app/extraction/locate.py EXACT_ONLY_VALUE_CLASSES = {NUMERIC, UNIT, DATE, FLAG}. Drive locate() with a candidate one character off in each of the four classes — `111` for a drawn `11.1`, `mg/dt` for `mg/dL`, `2026-03-02` for `2026-08-02`, `H` for `N` — on a scanned page, under every FuzzyMode including ALWAYS. W2-C7 asserts the numeric case against one fixture; this asserts the rule over the whole class set and over the tier order, which is where it would be re-introduced."
+  },
+  "expected": "On a scanned page, a one-character-off value in any of the four exact-only classes is NOT located by any tier — not exact, not numeric, not number_only, and not fuzzy even with FuzzyMode.ALWAYS. It comes back not_located and is disclosed as unsupported.",
+  "assertions": [
+    {
+      "rubric": "locate_result",
+      "tier": "det",
+      "check": "pending.w2_c8_locate_result"
+    }
+  ],
+  "guards_against": "A fuzzy tier re-admitted for a value class where a near miss changes the meaning. The damage is the same in all four: a misread number, a misread unit (mg/dL read as mg/dt, or worse, matched to a different unit's column), a misread collection date, and a misread flag all acquire a bbox and become located facts with a citation a reviewer can click and confirm. It is worse than finding nothing, because it converts the one signal that says `code could not place this` into evidence that it is on the page."
+}

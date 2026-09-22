@@ -51,6 +51,13 @@ class JudgeUnavailable(RuntimeError):
     """No credential. The judge tier is skipped with a visible notice."""
 
 
+#: Published price per million tokens for the pinned judge model, for the cost
+#: line the gate prints. A figure in a README goes stale silently; one beside
+#: the measured token counts at least fails loudly against the invoice.
+PRICE_PER_MTOK_INPUT = 1.0
+PRICE_PER_MTOK_OUTPUT = 5.0
+
+
 @dataclass(frozen=True)
 class JudgeVerdict:
     verdict: str
@@ -110,6 +117,10 @@ class Judge:
         self._client: Any | None = None
         self.calls_made = 0
         self.cache_hits = 0
+        #: Token usage across this run's live calls, so the gate can print
+        #: what a cold cache actually costs instead of an estimate.
+        self.input_tokens = 0
+        self.output_tokens = 0
 
     @staticmethod
     def credential_present() -> bool:
@@ -167,6 +178,10 @@ class Judge:
             messages=[{"role": "user", "content": _render(rubric, payload)}],
         )
         self.calls_made += 1
+        usage = getattr(response, "usage", None)
+        if usage is not None:
+            self.input_tokens += int(getattr(usage, "input_tokens", 0) or 0)
+            self.output_tokens += int(getattr(usage, "output_tokens", 0) or 0)
         served = getattr(response, "model", "")
         if served != self.model_version:
             raise GateError(
@@ -185,6 +200,12 @@ class Judge:
         if verdict not in ("pass", "fail"):
             raise GateError(f"the judge returned verdict {verdict!r}")
         return verdict, str(parsed.get("reason", ""))[:400]
+
+    def estimated_cost_usd(self) -> float:
+        """What this run's live judge calls cost, from the reported usage."""
+        return (
+            self.input_tokens * PRICE_PER_MTOK_INPUT + self.output_tokens * PRICE_PER_MTOK_OUTPUT
+        ) / 1_000_000
 
     def grade(self, case_id: str, rubric: str, payload: dict[str, Any]) -> JudgeVerdict:
         """Best of three, cached. Raises JudgeUnavailable with no credential."""

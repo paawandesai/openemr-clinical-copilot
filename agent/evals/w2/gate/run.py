@@ -1,11 +1,29 @@
 """
 The gate, as one command.
 
-    cd agent && python -m evals.w2.gate                 # 0 pass, 1 blocked, 2 error
+    cd agent && python -m evals.w2.gate
     cd agent && python -m evals.w2.gate --det-only      # deterministic tier only
     cd agent && python -m evals.w2.gate --seed-baseline # write baseline.json
 
-Exit code is the verdict and nothing else, so CI needs no output parsing.
+Exit code is the verdict and nothing else, so CI needs no output parsing:
+
+    0  PASS        every active case was scored and no rule fired
+    1  BLOCKED     a gate rule fired
+    2  ERROR       the gate could not run at all
+    3  INCOMPLETE  no rule fired, but a critical case was never scored
+
+3 exists because 0 was a lie. A run with the judge tier skipped scores no
+category-M case, and every one of those is critical — so it exited 0 having
+checked none of the judge meta-checks. A green pipeline that scored no
+critical case is the exact failure this gate exists to prevent, so a missing
+ANTHROPIC_API_KEY in CI now FAILS the job rather than printing a notice
+nobody reads.
+
+`--allow-incomplete` maps 3 to 0, for the one caller that means it: the local
+pre-push hook, which deliberately runs `--det-only` and is not claiming to be
+evidence. CI never passes it. It is a flag at the call site rather than an
+exception buried in the gate, so "this run did not check the critical cases"
+is visible in the command somebody reads.
 """
 
 from __future__ import annotations
@@ -156,6 +174,15 @@ def main(argv: list[str] | None = None) -> int:
         help="deterministic tier only; no model calls, no credential",
     )
     parser.add_argument(
+        "--allow-incomplete",
+        action="store_true",
+        help=(
+            "exit 0 instead of 3 when the only problem is that a critical case was not "
+            "scored. For the local pre-push hook, which does not run the judge tier and "
+            "does not claim to be evidence. CI must not pass this."
+        ),
+    )
+    parser.add_argument(
         "--seed-baseline", action="store_true", help="write this run's results to baseline.json"
     )
     parser.add_argument(
@@ -191,11 +218,15 @@ def main(argv: list[str] | None = None) -> int:
     elif judge_needed and not judge_available:
         print()
         print("*" * 78)
-        print("* NOTICE: ANTHROPIC_API_KEY is not set. The JUDGE TIER IS SKIPPED.")
-        print("* Its cases are reported as not scored. They are NOT passes, and this run")
-        print("* is NOT evidence that factually_consistent or safe_refusal hold.")
-        print("* Set the variable in GitLab CI/CD as MASKED and NOT PROTECTED so that")
-        print("* merge-request pipelines can see it.")
+        print("* ANTHROPIC_API_KEY is not set. The JUDGE TIER IS SKIPPED, so every")
+        print("* category-M case goes unscored — and all of them are critical.")
+        print("*")
+        print("* THIS RUN WILL EXIT 3 AND FAIL THE JOB. That is deliberate: a green")
+        print("* pipeline that scored no critical case is the failure this gate exists")
+        print("* to prevent, and a notice in a log nobody reads is not a substitute.")
+        print("*")
+        print("* Fix: GitLab -> Settings -> CI/CD -> Variables -> ANTHROPIC_API_KEY,")
+        print("* MASKED and NOT PROTECTED, so merge-request pipelines can see it.")
         print("*" * 78)
     elif judge_needed:
         config = judge_module.load_judge_config()
@@ -283,11 +314,20 @@ def main(argv: list[str] | None = None) -> int:
 
     if judge_needed and not args.det_only and judge_available:
         engine = judge_module.judge()
-        print(f"Judge: {engine.calls_made} model call(s), {engine.cache_hits} cache hit(s)")
+        print(
+            f"Judge: {engine.calls_made} model call(s), {engine.cache_hits} cache hit(s), "
+            f"{engine.input_tokens} in / {engine.output_tokens} out tokens, "
+            f"~${engine.estimated_cost_usd():.4f}"
+        )
 
     _print_violations(violations)
 
     blocked = bool(violations)
+    unscored_critical = [
+        r for r in results if r.case.is_active and r.case.critical and not r.scored
+    ]
+    incomplete = bool(unscored_critical)
+
     print()
     print(RULE)
     judge_state = (
@@ -295,12 +335,26 @@ def main(argv: list[str] | None = None) -> int:
         if (judge_needed and not args.det_only and not judge_available)
         else ("NOT RUN" if args.det_only else "RUN [UNCALIBRATED]")
     )
+    if blocked:
+        outcome = "BLOCKED"
+    elif not incomplete:
+        outcome = "PASS"
+    elif args.allow_incomplete:
+        outcome = "PASS (INCOMPLETE, --allow-incomplete)"
+    else:
+        outcome = "INCOMPLETE"
     print(
-        f"VERDICT: {'BLOCKED' if blocked else 'PASS'} | "
+        f"VERDICT: {outcome} | "
         f"specs {aggregate.specs} | active {aggregate.active} | pending {aggregate.pending} | "
         f"det {aggregate.det.passed}/{aggregate.det.scored} | "
         f"judge {aggregate.judge.passed}/{aggregate.judge.scored} ({judge_state})"
     )
+    if incomplete:
+        print(
+            f"NOT EVIDENCE: {len(unscored_critical)} critical case(s) were never scored "
+            f"({', '.join(r.case.id for r in unscored_critical)}). This run does not show "
+            "that they hold."
+        )
     print(RULE)
 
     payload = build_baseline(results, scores, aggregate)
@@ -308,6 +362,8 @@ def main(argv: list[str] | None = None) -> int:
         {"rule": v.rule, "summary": v.summary, "detail": v.detail} for v in violations
     ]
     payload["blocked"] = blocked
+    payload["incomplete"] = incomplete
+    payload["unscored_critical"] = [r.case.id for r in unscored_critical]
     if args.json_path:
         with open(args.json_path, "w", encoding="utf-8") as handle:
             json.dump(payload, handle, indent=2)
@@ -317,6 +373,18 @@ def main(argv: list[str] | None = None) -> int:
         if blocked:
             print("refusing to seed a baseline from a blocked run", file=sys.stderr)
             return 2
+        if incomplete:
+            # Seeding here would record every unscored critical case as
+            # "skipped", and rule (c) fires only on a case the baseline says
+            # passed — so each of them would be exempt from the critical-case
+            # override for as long as that baseline stood.
+            print(
+                "refusing to seed a baseline from a run that did not score "
+                f"{len(unscored_critical)} critical case(s): "
+                f"{', '.join(r.case.id for r in unscored_critical)}",
+                file=sys.stderr,
+            )
+            return 2
         if os.environ.get("W2_GATE_SESSION") != "1":
             print(
                 "refusing to write baseline.json: it is a gate file and this is not a "
@@ -325,9 +393,15 @@ def main(argv: list[str] | None = None) -> int:
             )
             return 2
         seed = {
-            key: value for key, value in payload.items() if key not in ("violations", "blocked")
+            key: value
+            for key, value in payload.items()
+            if key not in ("violations", "blocked", "incomplete", "unscored_critical")
         }
         BASELINE.write_text(json.dumps(seed, indent=2) + "\n", encoding="utf-8")
         print(f"baseline written to {BASELINE}")
 
-    return 1 if blocked else 0
+    if blocked:
+        return 1
+    if incomplete and not args.allow_incomplete:
+        return 3
+    return 0

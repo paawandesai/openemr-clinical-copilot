@@ -2080,7 +2080,7 @@ impossible to keep.
 
 ## D-NEXT (b) — The judge is a different Claude tier; `temperature 0` is not expressible
 
-**Status:** DECIDED
+**Status:** DECIDED — its `known_limitation` paragraph is SUPERSEDED by D-NEXT (e)
 **Date:** 2026-09-22
 **Number assigned at merge.** Recorded from work order 10.
 
@@ -2177,3 +2177,138 @@ for W2-C1 (clean), W2-C2 (scanned) and W2-C7 (the one-character-off numeric,
 critical). All three of those are `pending_sut`: the locate step does not
 exist yet, so the rule is written down before the code that would otherwise
 pick a tolerance by trying one.
+
+---
+
+## D-NEXT (d) — The gate has a fourth exit code, and `0` no longer means "nothing was checked"
+
+**Status:** DECIDED
+**Date:** 2026-09-22
+**Number assigned at merge.** Recorded from work order 10, follow-up 2.
+
+**Decision:** `python -m evals.w2.gate` exits:
+
+| code | meaning |
+|---|---|
+| 0 | PASS — every active case was scored and no rule fired |
+| 1 | BLOCKED — a gate rule fired |
+| 2 | ERROR — the gate could not run |
+| 3 | **INCOMPLETE** — no rule fired, but a critical case was never scored |
+
+A run that exits 3 prints, on its own line:
+`NOT EVIDENCE: n critical case(s) were never scored (ids). This run does not
+show that they hold.`
+
+`--allow-incomplete` maps 3 to 0. Exactly one caller passes it: the local
+pre-push hook. **The CI job does not**, so a pipeline with no
+`ANTHROPIC_API_KEY` FAILS rather than passing with a notice.
+
+`--seed-baseline` refuses an incomplete run outright, with or without
+`--allow-incomplete`.
+
+**Rationale.** The first version exited 0 whenever no rule fired, printed a
+loud notice when the judge tier was skipped, and left it there. That was
+wrong in the only direction that matters. Every category-M case is critical
+and every one of them is judge-tier, so a CI job with the variable missing
+scored **none** of them and still reported green — a green pipeline that
+checked no critical case, which is the precise failure this gate exists to
+prevent. The notice was doing the work a exit code should do, and nobody
+reads a notice under a green tick.
+
+Rule (c) already refuses to treat an unscored case as a regression, because
+it has not been measured rather than having got worse. Exit 3 is the other
+half of that sentence: not measured is also not passed.
+
+`--seed-baseline` refuses because seeding from an incomplete run would record
+each unscored critical case as `skipped`, and rule (c) fires only on a case
+the baseline says *passed* — so every one of them would be exempt from the
+critical-case override for as long as that baseline stood. An incomplete run
+cannot be allowed to become the thing later runs are compared against.
+
+The flag lives at the call site rather than as a rule inside the gate so that
+"this run is not claiming to be evidence" is visible in the command a person
+reads, not buried in a config file.
+
+---
+
+## D-NEXT (e) — A meta-check fixture is admitted by measurement, over five rounds
+
+**Status:** DECIDED
+**Date:** 2026-09-22
+**Supersedes:** the `known_limitation` paragraph of D-NEXT (b), and only that
+paragraph. The rest of (b) — the judge tier, the version pin, the cache key,
+the unavailability of `temperature 0` — stands unchanged.
+**Number assigned at merge.**
+
+**Decision:** a fixture enters category M only if both hold:
+
+1. **Stable.** Five independent best-of-3 gradings under the committed prompt
+   all agree with its label.
+2. **Discriminating.** A generic one-line rubric for the same rubric grades it
+   the *other* way.
+
+(1) keeps a fixture from becoming the flake that gets the whole category
+deleted. (2) is what makes it a drift detector rather than an alive-check.
+
+On that rule the set is eight: `fc_pass`, `fc_fail`, `sr_pass`, `sr_fail`,
+`sr_fail_over_refusal`, and three added here —
+`fc_fail_guideline_as_patient_fact`, `fc_fail_invented_unit_conversion`,
+`fc_fail_added_clinical_judgement`, each measured at 5/5 rounds and 15/15
+votes under the committed prompt and `pass` under a generic rubric.
+
+**What D-NEXT (b) got wrong, and why.** (b) recorded that the
+`factually_consistent` half of the meta-check could not be closed: every
+candidate that discriminated appeared to sit on the model's decision boundary
+and to be unstable there. That conclusion was drawn from **single rounds of
+three votes**. At five rounds two of those same candidates are 15/15. Three
+votes cannot separate a stable fixture from a borderline one, and a
+measurement that cannot make the distinction it is being used to make is not
+evidence for either answer. The measurement protocol is part of this decision,
+not a detail of how it was reached.
+
+**Two candidates rejected under the rule, recorded because they are
+informative:**
+
+- *A claim citing a chunk that does not contain it* — stable at 15/15, but a
+  generic rubric fails it too. It detects nothing a loosening would do. Same
+  role as `fc_fail`: an alive-check.
+- *"The laboratory reported the potassium as normal", over a row with a blank
+  flag column* — the committed prompt graded it **pass**, 12/15. The
+  `factually_consistent` rubric does not enforce D20 at the prose level. This
+  is a finding, not a fixture: blank-is-not-normal is held deterministically
+  by W2-D2, and a judge is the wrong instrument for a safety rule that a type
+  can hold.
+
+---
+
+## D-NEXT (f) — Exact-only matching covers four value classes, not just numerics
+
+**Status:** DECIDED
+**Date:** 2026-09-22
+**Extends** D-NEXT (c), which stated the rule for numerics only. (c) is not
+superseded: everything in it still holds.
+**Number assigned at merge.**
+
+**Decision:** the fuzzy locate tier is excluded for **numeric, unit, date and
+lab-flag** values, not numerics alone — matching
+`EXACT_ONLY_VALUE_CLASSES = {NUMERIC, UNIT, DATE, FLAG}` in
+`app/extraction/locate.py` on `feat/w2-locate`. The exclusion holds on any
+page, under any `FuzzyMode`, including `ALWAYS`. Value-preserving
+normalisation (`5` / `5.0` / `5.00`, unit spelling) is unaffected: the line is
+whether two strings denote the same thing, not whether they are spelled the
+same way.
+
+W2-C7 asserts the numeric case against one fixture; **W2-C8** asserts the rule
+across all four classes and across the tier order, which is where it would be
+re-introduced. **W2-C9** carries the scanned-page box tolerance from (c) as a
+case of its own: centre-inside-ground-truth after the recorded transform, or
+horizontal IoU >= 0.9; raw IoU >= 0.5 on clean pages only (W2-C1).
+
+**Rationale.** A near miss changes the meaning in all four classes, not just
+in numbers. `mg/dL` read as `mg/dt` is a unit that does not exist; matched
+fuzzily it could land on a neighbouring column's unit. A collection date one
+digit out attaches a result to the wrong encounter. A flag `N` read as `H` —
+or the reverse — is the abnormality signal itself, and on Synthea data the lab
+PDF is the only place that signal exists. In every case the damage is not the
+misread but the bbox that follows it: a located fact with a citation a
+reviewer can click and confirm, built on a value that is not on the page.

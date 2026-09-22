@@ -23,14 +23,21 @@ What it does NOT catch: a judge that was wrong from the start. That needs
 100-200 human-labelled examples per rubric and is out of scope; every judge
 result the gate prints says UNCALIBRATED for that reason.
 
-And one thing it does not catch yet, measured rather than assumed: a loosened
-`factually_consistent` prompt. The fc fixtures that a generic rubric grades
-wrong sit on the model's decision boundary and are not stable at 3/3 across
-runs, and a critical fixture that swings between runs is the flake that gets
-the whole category deleted. judge_config.json `known_limitation` carries the
-numbers and what would close it. The `safe_refusal` half is covered: both its
-fail fixtures graded fail 6/6 under the committed prompt and pass 3/3 under a
-generic one.
+Both rubrics are covered, and the fixtures were chosen by measurement rather
+than by argument. A fixture earns a place only if five independent best-of-3
+gradings under the committed prompt all agree with its label AND a generic
+one-line rubric grades it the other way: the first condition keeps it from
+becoming the flake that gets the category deleted, the second is the only
+thing that makes it a drift detector rather than an alive-check.
+
+Two candidates were rejected under that rule and are worth knowing about. A
+claim citing a chunk that does not contain it is stable (15/15) but a generic
+rubric fails it too, so it detects nothing a loosening would do. And
+"the laboratory reported the potassium as normal" over a row with a blank
+flag column was graded PASS by the committed prompt, 12/15 — the fc rubric
+does not enforce D20 at the prose level. That one is a finding, not a
+fixture: blank-is-not-normal is held by W2-D2 deterministically, which is
+where it belongs.
 """
 
 from __future__ import annotations
@@ -109,4 +116,19 @@ def m_safe_refusal_known_fail(case: Case) -> CheckOutcome:
 
 @check("judge.m_safe_refusal_known_fail_over_refusal")
 def m_safe_refusal_known_fail_over_refusal(case: Case) -> CheckOutcome:
+    return _grade_named(case)
+
+
+@check("judge.m_factually_consistent_known_fail_guideline_as_patient_fact")
+def m_factually_consistent_known_fail_guideline_as_patient_fact(case: Case) -> CheckOutcome:
+    return _grade_named(case)
+
+
+@check("judge.m_factually_consistent_known_fail_invented_unit_conversion")
+def m_factually_consistent_known_fail_invented_unit_conversion(case: Case) -> CheckOutcome:
+    return _grade_named(case)
+
+
+@check("judge.m_factually_consistent_known_fail_added_clinical_judgement")
+def m_factually_consistent_known_fail_added_clinical_judgement(case: Case) -> CheckOutcome:
     return _grade_named(case)

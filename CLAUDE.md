@@ -115,12 +115,15 @@ cd agent && python -m ruff check .            # add --fix for the safe fixes
 scripts/gate-diff.sh <branch>       # nonzero if the branch touches gate files
 scripts/check-claude-paths.sh       # every path named in this file still exists
 
-# Week 2 eval gate — one command, exit code IS the verdict (0 pass, 1 blocked,
-# 2 the gate could not run). Deterministic tier is offline: no credential, no
-# model call. The judge tier needs ANTHROPIC_API_KEY and is skipped with a
-# loud notice without it — skipped cases are never passes.
+# Week 2 eval gate — one command, exit code IS the verdict:
+#   0 pass · 1 blocked · 2 the gate could not run · 3 INCOMPLETE (no rule
+#   fired, but a critical case was never scored — the run is not evidence).
+# Deterministic tier is offline: no credential, no model call. Without
+# ANTHROPIC_API_KEY the judge tier is skipped, every critical category-M case
+# goes unscored, and the run exits 3 — CI fails rather than reporting green.
 cd agent && python -m evals.w2.gate              # both tiers
-cd agent && python -m evals.w2.gate --det-only   # deterministic only, ~1s, free
+cd agent && python -m evals.w2.gate --det-only   # deterministic only, ~1s, free; exits 3
+cd agent && python -m evals.w2.gate --det-only --allow-incomplete   # ...and 3 -> 0
 cd agent && python -m evals.w2.gate -v           # every assertion, not only failures
 # Proof that the gate catches anything (copies the tree, plants one regression
 # at a time, reruns; needs ANTHROPIC_API_KEY). Output: docs/w2/EVAL_GATE_EVIDENCE.md
