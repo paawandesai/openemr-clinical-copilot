@@ -66,6 +66,10 @@ class ExtractionReport(W2Contract):
     discrepancies: DiscrepancyReport | None = None
     vision: VisionCost = Field(default_factory=VisionCost)
     step_ms: dict[str, int] = Field(default_factory=dict)
+    #: Lab reports: each row's test_key and how its LOINC code was assigned
+    #: (loinc.LoincOutcome value). Rows not `mapped` are uncoded and the
+    #: write-back planner skips them as `no_loinc_code`.
+    loinc: list[tuple[str, str]] = Field(default_factory=list)
     page_count: int | None = None
     has_text_layer: bool | None = None
 
@@ -103,6 +107,8 @@ class ExtractionReport(W2Contract):
             "parse_failures": len(self.parse_failures),
             "mean_confidence": self.mean_confidence,
         }
+        if self.loinc:
+            summary["loinc_outcomes"] = dict(Counter(outcome for _, outcome in self.loinc))
         if self.flag_cross_check is not None:
             check = self.flag_cross_check
             summary["cross_check"] = {

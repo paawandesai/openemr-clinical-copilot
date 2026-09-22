@@ -1,0 +1,355 @@
+{
+  "doc_type": "intake_form",
+  "document_sha256": "2d9d58763b3f091ca9f046a3edfd0ab54147905b1bbae52ec0f46812ab01be05",
+  "extractor_version": "intake-extractor/1.0.0+claude-opus-5",
+  "format": "w2-staging/vision-transcription/1.0.0",
+  "prompt_fingerprint": "2b76c554980f34a1541fc18dfe0f9d2a46c8bd57cf57077a0c72c9c7391fa632",
+  "raw": {
+    "allergies": [
+      {
+        "reaction": {
+          "page": 1,
+          "state": "present",
+          "text": "Severe"
+        },
+        "substance": {
+          "page": 1,
+          "state": "present",
+          "text": "Allergic disposition (finding)"
+        }
+      },
+      {
+        "reaction": {
+          "page": 1,
+          "state": "present",
+          "text": "Mild"
+        },
+        "substance": {
+          "page": 1,
+          "state": "present",
+          "text": "Latex (substance)"
+        }
+      },
+      {
+        "reaction": {
+          "page": 1,
+          "state": "present",
+          "text": "Severe"
+        },
+        "substance": {
+          "page": 1,
+          "state": "present",
+          "text": "Mold (organism)"
+        }
+      },
+      {
+        "reaction": {
+          "page": 1,
+          "state": "present",
+          "text": "Severe"
+        },
+        "substance": {
+          "page": 1,
+          "state": "present",
+          "text": "House dust mite (organism)"
+        }
+      },
+      {
+        "reaction": {
+          "page": 1,
+          "state": "present",
+          "text": "Mild"
+        },
+        "substance": {
+          "page": 1,
+          "state": "present",
+          "text": "Animal dander (substance)"
+        }
+      },
+      {
+        "reaction": {
+          "page": 1,
+          "state": "present",
+          "text": "Severe"
+        },
+        "substance": {
+          "page": 1,
+          "state": "present",
+          "text": "Grass pollen (substance)"
+        }
+      },
+      {
+        "reaction": {
+          "page": 1,
+          "state": "present",
+          "text": "Severe"
+        },
+        "substance": {
+          "page": 1,
+          "state": "present",
+          "text": "Tree pollen (substance)"
+        }
+      },
+      {
+        "reaction": {
+          "page": 1,
+          "state": "present",
+          "text": "Mild"
+        },
+        "substance": {
+          "page": 1,
+          "state": "present",
+          "text": "Cow's milk (substance)"
+        }
+      },
+      {
+        "reaction": {
+          "page": 1,
+          "state": "present",
+          "text": "Moderate"
+        },
+        "substance": {
+          "page": 1,
+          "state": "present",
+          "text": "Tree nut (substance)"
+        }
+      }
+    ],
+    "chief_concern": {
+      "page": 1,
+      "state": "present",
+      "text": "gingivitis - recheck and medication review"
+    },
+    "family_history": [
+      {
+        "condition": {
+          "label": "Diabetes",
+          "page": 1,
+          "state": "ticked"
+        },
+        "relation": {
+          "page": 1,
+          "state": "present",
+          "text": "brother"
+        }
+      },
+      {
+        "condition": {
+          "label": "High blood pressure",
+          "page": 1,
+          "state": "unticked"
+        },
+        "relation": {
+          "page": null,
+          "state": "absent",
+          "text": ""
+        }
+      },
+      {
+        "condition": {
+          "label": "Heart disease",
+          "page": 2,
+          "state": "ticked"
+        },
+        "relation": {
+          "page": 2,
+          "state": "present",
+          "text": "sister"
+        }
+      },
+      {
+        "condition": {
+          "label": "Cancer",
+          "page": 2,
+          "state": "ticked"
+        },
+        "relation": {
+          "page": 2,
+          "state": "present",
+          "text": "brother"
+        }
+      },
+      {
+        "condition": {
+          "label": "Stroke",
+          "page": 2,
+          "state": "unticked"
+        },
+        "relation": {
+          "page": null,
+          "state": "absent",
+          "text": ""
+        }
+      },
+      {
+        "condition": {
+          "label": "Asthma",
+          "page": 2,
+          "state": "unticked"
+        },
+        "relation": {
+          "page": null,
+          "state": "absent",
+          "text": ""
+        }
+      }
+    ],
+    "medications": [
+      {
+        "dose": {
+          "page": 1,
+          "state": "present",
+          "text": "25 MG"
+        },
+        "frequency": {
+          "page": 1,
+          "state": "present",
+          "text": "once daily"
+        },
+        "name": {
+          "page": 1,
+          "state": "present",
+          "text": "diphenhydrAMINE Hydrochloride"
+        },
+        "route": {
+          "page": null,
+          "state": "absent",
+          "text": ""
+        }
+      },
+      {
+        "dose": {
+          "page": 1,
+          "state": "present",
+          "text": "0.0272 MG"
+        },
+        "frequency": {
+          "page": 1,
+          "state": "present",
+          "text": "three times daily"
+        },
+        "name": {
+          "page": 1,
+          "state": "present",
+          "text": "sodium fluoride"
+        },
+        "route": {
+          "page": null,
+          "state": "absent",
+          "text": ""
+        }
+      },
+      {
+        "dose": {
+          "page": 1,
+          "state": "present",
+          "text": "10 MG"
+        },
+        "frequency": {
+          "page": 1,
+          "state": "present",
+          "text": "three times daily"
+        },
+        "name": {
+          "page": 1,
+          "state": "present",
+          "text": "Simvastatin"
+        },
+        "route": {
+          "page": null,
+          "state": "absent",
+          "text": ""
+        }
+      },
+      {
+        "dose": {
+          "page": 1,
+          "state": "present",
+          "text": "21.7 MG/ML"
+        },
+        "frequency": {
+          "page": 1,
+          "state": "present",
+          "text": "three times daily"
+        },
+        "name": {
+          "page": 1,
+          "state": "present",
+          "text": "Acetaminophen Dextromethorphan"
+        },
+        "route": {
+          "page": null,
+          "state": "absent",
+          "text": ""
+        }
+      }
+    ],
+    "no_known_drug_allergies": {
+      "label": "No known drug allergies",
+      "page": 1,
+      "state": "unticked"
+    },
+    "patient": {
+      "address": {
+        "page": 1,
+        "state": "present",
+        "text": "566 Labadie Station Suite 85"
+      },
+      "city_state_zip": {
+        "page": 1,
+        "state": "present",
+        "text": "Methuen, Massachusetts 01841"
+      },
+      "date_of_birth": {
+        "page": 1,
+        "state": "present",
+        "text": "1959-12-28"
+      },
+      "mrn": {
+        "page": null,
+        "state": "absent",
+        "text": ""
+      },
+      "name": {
+        "page": 1,
+        "state": "present",
+        "text": "Jae222 Dach178"
+      },
+      "sex": {
+        "page": 1,
+        "state": "present",
+        "text": "Male"
+      }
+    },
+    "signature_date": {
+      "page": 2,
+      "state": "present",
+      "text": "09/10/2026"
+    },
+    "signature_name": {
+      "page": 2,
+      "state": "present",
+      "text": "Jae222 Dach178"
+    },
+    "visit_date": {
+      "page": 1,
+      "state": "present",
+      "text": "09/10/2026"
+    }
+  },
+  "recorded_at": "2026-09-22T22:14:19+00:00",
+  "requested_model": "claude-opus-5",
+  "sample": "intake-clean-004",
+  "served_models": [
+    "claude-opus-5"
+  ],
+  "usage": {
+    "cache_creation_input_tokens": 0,
+    "cache_read_input_tokens": 0,
+    "calls": 1,
+    "cost_usd": 0.09553,
+    "input_tokens": 11531,
+    "latency_ms": 18071,
+    "output_tokens": 1515
+  }
+}

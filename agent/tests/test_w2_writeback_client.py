@@ -254,10 +254,20 @@ def test_a_row_with_no_printed_name_is_not_written() -> None:
     assert built.skipped[0].reason is SkipReason.NO_TEST_NAME
 
 
-def test_an_undecidable_flag_is_not_written() -> None:
+def test_a_row_with_no_reference_range_on_the_page_is_not_written() -> None:
     # No reference range means no computable flag, and
-    # procedure_result.abnormal has no value meaning "we could not tell".
+    # procedure_result.abnormal has no value meaning "we could not tell". The
+    # reason names the missing range, not an undecidable flag.
     built = plan([glucose(reference=None)])
+
+    assert built.request is None
+    assert built.skipped[0].reason is SkipReason.REFERENCE_RANGE_NOT_LOCATED
+
+
+def test_an_undecidable_flag_is_not_written() -> None:
+    # The range is on the page but has no numeric bounds: the flag is
+    # genuinely indeterminate, which is a different thing to disclose.
+    built = plan([glucose(reference="See note")])
 
     assert built.request is None
     assert built.skipped[0].reason is SkipReason.FLAG_INDETERMINATE

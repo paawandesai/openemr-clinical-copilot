@@ -1140,6 +1140,17 @@ points the contracts and D3/D13/D20/D24 left to the implementation:
     `scripts/compute_metrics.py` deliberately has no built-in prices; this
     is a narrower, per-call estimate the work order asks the worker to log,
     and it does not change how Metric 6 is computed.
+13. **LOINC codes are assigned from a committed table** (`loinc.py`), by
+    exact match on the normalised printed test name — case, punctuation and
+    spacing folded, nothing else — with the unit as tiebreak and as veto: a
+    unit the model read that matches no entry for the name leaves the row
+    uncoded, even when the name is unique. No fuzzy matching, no
+    terminology service. Only a located name is coded. eGFR is refused on
+    purpose: its code depends on an equation the report does not print. An
+    uncoded row is skipped by the write-back planner as `no_loinc_code`. The
+    planner now reports a reference range that is not a located fact as
+    `reference_range_not_located`, separately from a range that is on the
+    page but cannot decide the flag (`flag_indeterminate`).
 
 **Rationale.** Each is the conservative reading of an invariant: a rule that
 can only turn a would-be fact into a disclosed unsupported field, never the

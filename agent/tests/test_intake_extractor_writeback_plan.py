@@ -1,14 +1,14 @@
 """
 The extractor's `LabPdfExtraction` is what `app/writeback/plan.py` expects.
 
-The planner (feat/w2-writeback) is not changed here; these tests pin the
-handoff so a change on either side that breaks it fails a test:
+These tests pin the handoff between the worker and the planner
+(feat/w2-writeback) so a change on either side that breaks it fails a test:
 
-* rows come out uncoded — `loinc_code` is assigned, never extracted — so as
-  emitted every located row is `no_loinc_code`, and nothing else;
-* once coded, every located clean-sample row is writable, and the request's
-  extraction id is the extraction's own when the caller passes the
-  worker's `EXTRACTOR_VERSION`;
+* rows come out coded by the committed table (`loinc.py`), so every
+  located clean-sample row is writable except eGFR, which is deliberately
+  uncoded and skipped as `no_loinc_code`; the request's extraction id is
+  the extraction's own when the caller passes the worker's
+  `EXTRACTOR_VERSION`;
 * a printed flag that disagrees with the computed one is the planner's
   `flag_disagrees_with_page`; a blank flag column is not a disagreement.
 """
@@ -17,7 +17,6 @@ from __future__ import annotations
 
 import asyncio
 import uuid
-from collections import Counter
 
 from structlog.testing import capture_logs
 
@@ -56,17 +55,6 @@ def _extracted(sample: str) -> LabPdfExtraction:
     return payload
 
 
-def _coded(extraction: LabPdfExtraction) -> LabPdfExtraction:
-    return extraction.model_copy(
-        update={
-            "results": [
-                row.model_copy(update={"loinc_code": f"{1000 + i}-0"})
-                for i, row in enumerate(extraction.results)
-            ]
-        }
-    )
-
-
 def _plan(extraction: LabPdfExtraction, sha: str, content: bytes):  # noqa: ANN202
     return plan_write_back(
         extraction,
@@ -78,21 +66,18 @@ def _plan(extraction: LabPdfExtraction, sha: str, content: bytes):  # noqa: ANN2
     )
 
 
-def test_as_emitted_every_located_row_is_uncoded_and_nothing_else() -> None:
+def test_as_emitted_every_clean_row_but_egfr_is_coded_and_writable() -> None:
+    # loinc.py codes every analyte the factory draws except eGFR, which it
+    # refuses on purpose (the equation is not printed). That row is skipped
+    # cleanly as `no_loinc_code`; everything else is written.
     extraction = _extracted(SAMPLE)
     plan = _plan(extraction, extraction.document.checksums.sha3_512, pdf_bytes(SAMPLE))
-    assert plan.request is None
-    assert Counter(s.reason for s in plan.skipped) == {SkipReason.NO_LOINC_CODE: 22}
-
-
-def test_once_coded_every_clean_row_is_writable_under_the_extractions_own_id() -> None:
-    extraction = _coded(_extracted(SAMPLE))
-    plan = _plan(extraction, extraction.document.checksums.sha3_512, pdf_bytes(SAMPLE))
-    assert plan.skipped == []
-    assert plan.writable_count == 22
+    assert [(s.test_key, s.reason) for s in plan.skipped] == [("egfr", SkipReason.NO_LOINC_CODE)]
+    assert plan.writable_count == 21
     assert plan.request.extraction_id == extraction.extraction_id
-    first = plan.request.results[0]
-    assert first.bbox == extraction.results[0].value.citation.bbox
+    glucose = next(r for r in plan.request.results if r.test_name == "Glucose")
+    assert glucose.test_code == "2345-7"
+    assert glucose.bbox == extraction.results[0].value.citation.bbox
 
 
 def _one_row(flag: str) -> LabPdfExtraction:
@@ -115,7 +100,8 @@ def _one_row(flag: str) -> LabPdfExtraction:
         ],
         collected_at=present("2026-08-30 07:12"),
     )
-    return _coded(assemble_lab(raw, words(page), source_document(), EXTRACTION_ID).extraction)
+    # Glucose in mg/dL is coded by the table (2345-7), so the flag rules decide.
+    return assemble_lab(raw, words(page), source_document(), EXTRACTION_ID).extraction
 
 
 def test_a_disagreeing_printed_flag_is_the_planners_flag_disagrees_with_page() -> None:

@@ -72,6 +72,7 @@ from app.workers.intake_extractor.fields import (
     declared_class,
     declared_strategy,
 )
+from app.workers.intake_extractor.loinc import LoincOutcome, assign_loinc
 from app.workers.intake_extractor.vision_schema import (
     RawCheckbox,
     RawField,
@@ -144,6 +145,8 @@ class AssembledExtraction:
     extraction: LabPdfExtraction | IntakeFormExtraction
     records: list[FieldRecord] = field(default_factory=list)
     parse_failures: list[str] = field(default_factory=list)
+    #: Lab rows only: (test_key, how its LOINC code was or was not assigned).
+    loinc: list[tuple[str, LoincOutcome]] = field(default_factory=list)
 
     @property
     def located_count(self) -> int:
@@ -537,22 +540,30 @@ def assemble_lab(
 
     keys = _unique([row.test_key for row in raw.results], "row")
     results: list[LabResult] = []
+    loinc: list[tuple[str, LoincOutcome]] = []
     for key, row in zip(keys, raw.results, strict=True):
         panel = _slug(row.panel) if row.panel else None
         base = f"results.{panel or 'ungrouped'}.{key}"
         anchor = a.anchor(row.test_name, [row.value, row.unit, row.reference_range, row.flag])
         unit_text = row.unit.text.strip() if row.unit.state == "present" else None
+        test_name = a.field(
+            "results[].test_name",
+            f"{base}.name",
+            row.test_name,
+            anchor=anchor,
+            is_anchor=True,
+        )
+        unit = a.field("results[].unit", f"{base}.unit", row.unit, anchor=anchor)
+        # Assigned, not extracted: from the located printed name, with the
+        # unit as tiebreak and veto (loinc.py). Unmapped rows stay uncoded.
+        assignment = assign_loinc(test_name, unit)
+        loinc.append((key, assignment.outcome))
         results.append(
             LabResult(
                 panel=panel,
                 test_key=key,
-                test_name=a.field(
-                    "results[].test_name",
-                    f"{base}.name",
-                    row.test_name,
-                    anchor=anchor,
-                    is_anchor=True,
-                ),
+                test_name=test_name,
+                loinc_code=assignment.code,
                 value=a.field(
                     "results[].value",
                     f"{base}.value",
@@ -560,7 +571,7 @@ def assemble_lab(
                     parse=parse_lab_value,
                     anchor=anchor,
                 ),
-                unit=a.field("results[].unit", f"{base}.unit", row.unit, anchor=anchor),
+                unit=unit,
                 reference_range=a.field(
                     "results[].reference_range",
                     f"{base}.reference_range",
@@ -589,7 +600,7 @@ def assemble_lab(
         order=order,
         results=results,
     )
-    return AssembledExtraction(extraction, a.records, a.parse_failures)
+    return AssembledExtraction(extraction, a.records, a.parse_failures, loinc)
 
 
 def assemble_intake(

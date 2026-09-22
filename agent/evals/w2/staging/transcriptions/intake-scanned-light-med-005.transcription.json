@@ -1,0 +1,437 @@
+{
+  "doc_type": "intake_form",
+  "document_sha256": "b0f59431f2c8702ad443ecda8141378cdb258981d2ed60d4ea207ac80161a63b",
+  "extractor_version": "intake-extractor/1.0.0+claude-opus-5",
+  "format": "w2-staging/vision-transcription/1.0.0",
+  "prompt_fingerprint": "2b76c554980f34a1541fc18dfe0f9d2a46c8bd57cf57077a0c72c9c7391fa632",
+  "raw": {
+    "allergies": [
+      {
+        "reaction": {
+          "page": 1,
+          "state": "present",
+          "text": "Severe"
+        },
+        "substance": {
+          "page": 1,
+          "state": "present",
+          "text": "Allergic disposition (finding)"
+        }
+      },
+      {
+        "reaction": {
+          "page": 1,
+          "state": "present",
+          "text": "Mild"
+        },
+        "substance": {
+          "page": 1,
+          "state": "present",
+          "text": "Animal dander (substance)"
+        }
+      },
+      {
+        "reaction": {
+          "page": 1,
+          "state": "present",
+          "text": "Severe"
+        },
+        "substance": {
+          "page": 1,
+          "state": "present",
+          "text": "Aspirin"
+        }
+      }
+    ],
+    "chief_concern": {
+      "page": 1,
+      "state": "present",
+      "text": "Ongoing primary fibromyalgia syndrome, wants to discuss treatment"
+    },
+    "family_history": [
+      {
+        "condition": {
+          "label": "Diabetes",
+          "page": 2,
+          "state": "ticked"
+        },
+        "relation": {
+          "page": 2,
+          "state": "present",
+          "text": "sister"
+        }
+      },
+      {
+        "condition": {
+          "label": "High blood pressure",
+          "page": 2,
+          "state": "unticked"
+        },
+        "relation": {
+          "page": null,
+          "state": "absent",
+          "text": ""
+        }
+      },
+      {
+        "condition": {
+          "label": "Heart disease",
+          "page": 2,
+          "state": "unticked"
+        },
+        "relation": {
+          "page": null,
+          "state": "absent",
+          "text": ""
+        }
+      },
+      {
+        "condition": {
+          "label": "Cancer",
+          "page": 2,
+          "state": "unticked"
+        },
+        "relation": {
+          "page": null,
+          "state": "absent",
+          "text": ""
+        }
+      },
+      {
+        "condition": {
+          "label": "Stroke",
+          "page": 2,
+          "state": "unticked"
+        },
+        "relation": {
+          "page": null,
+          "state": "absent",
+          "text": ""
+        }
+      },
+      {
+        "condition": {
+          "label": "Asthma",
+          "page": 2,
+          "state": "unticked"
+        },
+        "relation": {
+          "page": null,
+          "state": "absent",
+          "text": ""
+        }
+      }
+    ],
+    "medications": [
+      {
+        "dose": {
+          "page": 1,
+          "state": "present",
+          "text": "10 MG/ML"
+        },
+        "frequency": {
+          "page": 1,
+          "state": "present",
+          "text": "once daily"
+        },
+        "name": {
+          "page": 1,
+          "state": "present",
+          "text": "Hydrocortisone"
+        },
+        "route": {
+          "page": null,
+          "state": "absent",
+          "text": ""
+        }
+      },
+      {
+        "dose": {
+          "page": 1,
+          "state": "present",
+          "text": "60 MG"
+        },
+        "frequency": {
+          "page": 1,
+          "state": "present",
+          "text": "twice daily"
+        },
+        "name": {
+          "page": 1,
+          "state": "present",
+          "text": "Terfenadine"
+        },
+        "route": {
+          "page": null,
+          "state": "absent",
+          "text": ""
+        }
+      },
+      {
+        "dose": {
+          "page": 1,
+          "state": "present",
+          "text": "220 MG"
+        },
+        "frequency": {
+          "page": 1,
+          "state": "present",
+          "text": "every morning"
+        },
+        "name": {
+          "page": 1,
+          "state": "present",
+          "text": "Naproxen sodium"
+        },
+        "route": {
+          "page": null,
+          "state": "absent",
+          "text": ""
+        }
+      },
+      {
+        "dose": {
+          "page": 1,
+          "state": "present",
+          "text": "5 MG/ML"
+        },
+        "frequency": {
+          "page": 1,
+          "state": "present",
+          "text": "twice daily"
+        },
+        "name": {
+          "page": 1,
+          "state": "present",
+          "text": "albuterol"
+        },
+        "route": {
+          "page": null,
+          "state": "absent",
+          "text": ""
+        }
+      },
+      {
+        "dose": {
+          "page": 1,
+          "state": "present",
+          "text": "25 MG"
+        },
+        "frequency": {
+          "page": 1,
+          "state": "present",
+          "text": "at bedtime"
+        },
+        "name": {
+          "page": 1,
+          "state": "present",
+          "text": "Hydrochlorothiazide"
+        },
+        "route": {
+          "page": null,
+          "state": "absent",
+          "text": ""
+        }
+      },
+      {
+        "dose": {
+          "page": 1,
+          "state": "present",
+          "text": "10 MG"
+        },
+        "frequency": {
+          "page": 1,
+          "state": "present",
+          "text": "three times daily"
+        },
+        "name": {
+          "page": 1,
+          "state": "present",
+          "text": "lisinopril"
+        },
+        "route": {
+          "page": null,
+          "state": "absent",
+          "text": ""
+        }
+      },
+      {
+        "dose": {
+          "page": 1,
+          "state": "present",
+          "text": "10 MG"
+        },
+        "frequency": {
+          "page": 1,
+          "state": "present",
+          "text": "as needed"
+        },
+        "name": {
+          "page": 1,
+          "state": "present",
+          "text": "amLODIPine"
+        },
+        "route": {
+          "page": null,
+          "state": "absent",
+          "text": ""
+        }
+      },
+      {
+        "dose": {
+          "page": 1,
+          "state": "present",
+          "text": "0.25 MG/ACTUAT"
+        },
+        "frequency": {
+          "page": 1,
+          "state": "present",
+          "text": "every morning"
+        },
+        "name": {
+          "page": 1,
+          "state": "present",
+          "text": "Fluticasone propionate"
+        },
+        "route": {
+          "page": null,
+          "state": "absent",
+          "text": ""
+        }
+      },
+      {
+        "dose": {
+          "page": 1,
+          "state": "present",
+          "text": "325 MG"
+        },
+        "frequency": {
+          "page": 1,
+          "state": "present",
+          "text": "every morning"
+        },
+        "name": {
+          "page": 1,
+          "state": "present",
+          "text": "Acetaminophen"
+        },
+        "route": {
+          "page": null,
+          "state": "absent",
+          "text": ""
+        }
+      },
+      {
+        "dose": {
+          "page": 1,
+          "state": "present",
+          "text": "500 MG"
+        },
+        "frequency": {
+          "page": 1,
+          "state": "present",
+          "text": "as needed"
+        },
+        "name": {
+          "page": 1,
+          "state": "present",
+          "text": "Naproxen"
+        },
+        "route": {
+          "page": null,
+          "state": "absent",
+          "text": ""
+        }
+      },
+      {
+        "dose": {
+          "page": 1,
+          "state": "present",
+          "text": "0.0272 MG"
+        },
+        "frequency": {
+          "page": 1,
+          "state": "present",
+          "text": "once daily"
+        },
+        "name": {
+          "page": 1,
+          "state": "present",
+          "text": "sodium fluoride"
+        },
+        "route": {
+          "page": null,
+          "state": "absent",
+          "text": ""
+        }
+      }
+    ],
+    "no_known_drug_allergies": {
+      "label": "No known drug allergies",
+      "page": 1,
+      "state": "unticked"
+    },
+    "patient": {
+      "address": {
+        "page": 1,
+        "state": "present",
+        "text": "890 Mills Well"
+      },
+      "city_state_zip": {
+        "page": 1,
+        "state": "present",
+        "text": "Westwood, Massachusetts 00000"
+      },
+      "date_of_birth": {
+        "page": 1,
+        "state": "present",
+        "text": "1960-09-25"
+      },
+      "mrn": {
+        "page": null,
+        "state": "absent",
+        "text": ""
+      },
+      "name": {
+        "page": 1,
+        "state": "present",
+        "text": "Merlyn225 Sanda877 Mueller846"
+      },
+      "sex": {
+        "page": 1,
+        "state": "present",
+        "text": "Female"
+      }
+    },
+    "signature_date": {
+      "page": 2,
+      "state": "present",
+      "text": "09/14/2026"
+    },
+    "signature_name": {
+      "page": 2,
+      "state": "present",
+      "text": "Merlyn225 Sanda877 Mueller846"
+    },
+    "visit_date": {
+      "page": 1,
+      "state": "present",
+      "text": "09/14/2026"
+    }
+  },
+  "recorded_at": "2026-09-22T22:14:36+00:00",
+  "requested_model": "claude-opus-5",
+  "sample": "intake-scanned-light-med-005",
+  "served_models": [
+    "claude-opus-5"
+  ],
+  "usage": {
+    "cache_creation_input_tokens": 0,
+    "cache_read_input_tokens": 0,
+    "calls": 1,
+    "cost_usd": 0.104055,
+    "input_tokens": 11531,
+    "latency_ms": 16785,
+    "output_tokens": 1856
+  }
+}

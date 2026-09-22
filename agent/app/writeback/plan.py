@@ -17,7 +17,15 @@ stated reason rather than being written and disclosed afterwards:
 * **A row with no collection date.** It is the third component of D1's
   idempotency key; without it there is no key, and without a key there is
   no idempotency.
-* **A row whose flag cannot be computed** — `indeterminate`. There is no
+* **A row whose reference range is not a fact** — the page does not print
+  one, or the locate step could not place the one the model read. With no
+  range there is no flag to write, and the reason is a property of the
+  extraction, not of the arithmetic, so it is reported separately from the
+  next case: "go and find the range" and "the range cannot decide this
+  value" are different things to tell a clinician.
+* **A row whose flag cannot be computed** from a range that *is* on the
+  page — `indeterminate`: a censored value straddling a bound, a range with
+  no numeric bounds, a qualitative term the rule cannot read. There is no
   `procedure_result.abnormal` value meaning "undecidable", and writing
   `no` would put a normal in a chart that the data does not support.
 * **A row whose printed flag and computed flag disagree.** One of the two
@@ -60,6 +68,7 @@ class SkipReason(StrEnum):
     NO_LOINC_CODE = "no_loinc_code"
     NO_COLLECTION_DATE = "no_collection_date"
     NO_TEST_NAME = "no_test_name"
+    REFERENCE_RANGE_NOT_LOCATED = "reference_range_not_located"
     FLAG_INDETERMINATE = "flag_indeterminate"
     FLAG_DISAGREES_WITH_PAGE = "flag_disagrees_with_page"
 
@@ -182,6 +191,11 @@ def _build_result(
         # drops both. The extraction's `test_key` is our handle, not the
         # laboratory's name for the test, so it is not a substitute.
         return SkipReason.NO_TEST_NAME
+
+    if result.reference_range.as_presented_fact() is None:
+        # Missing from the page, or read but not located (invariant 4): not
+        # an undecidable flag, an absent input to it.
+        return SkipReason.REFERENCE_RANGE_NOT_LOCATED
 
     cross_check = result.cross_check_flag()
     if cross_check is None or cross_check.computed is AbnormalFlag.INDETERMINATE:

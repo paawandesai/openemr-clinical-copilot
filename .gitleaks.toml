@@ -1,0 +1,32 @@
+# gitleaks configuration, read by .claude/hooks/secret-scan.sh (gitleaks looks
+# for .gitleaks.toml at the repository root).
+#
+# Every default rule stays on. The only addition is one narrow allowlist, and
+# every condition in it must hold (condition = "AND") for a finding to be
+# dropped: the rule, the path and the line shape.
+
+title = "clinical-copilot gitleaks config"
+
+[extend]
+useDefault = true
+
+# The intake-extractor's recorded vision transcriptions
+# (agent/evals/w2/factory/record_transcriptions.py) carry the transcription
+# schema's lab-row handle, `"test_key": "<analyte>"` — e.g.
+# `"test_key": "hemoglobin_a1c"`. The default `generic-api-key` rule reads
+# "key" followed by a long-enough token as a credential. It is an analyte name
+# chosen by the model, not a secret.
+#
+# Scoped three ways, all required:
+#   - rule:  generic-api-key only;
+#   - path:  the recorded transcription files only;
+#   - line:  a whole line that is exactly a `test_key` field with a
+#            lower-case snake_case value — the shape the schema produces.
+# A real key anywhere else, or any other line in these files, is still caught.
+[[allowlists]]
+description = "transcription test_key lab-row handles are analyte names, not credentials"
+targetRules = ["generic-api-key"]
+condition = "AND"
+paths = ['''^agent/evals/w2/staging/transcriptions/[a-z0-9-]+\.transcription\.json$''']
+regexTarget = "line"
+regexes = ['''^\s*"test_key": "[a-z0-9_]+",?\s*$''']

@@ -134,6 +134,7 @@ def _report_from_state(
     common = {
         "fields": fields,
         "parse_failures": list(assembled.parse_failures) if assembled else [],
+        "loinc": [(key, outcome.value) for key, outcome in assembled.loinc] if assembled else [],
         "mean_confidence": round(fmean(scored), 4) if scored else None,
         "vision": vision,
         "step_ms": step_ms,
