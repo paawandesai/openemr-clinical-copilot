@@ -4,8 +4,8 @@ What has to happen on an instance before `POST /api/clinical-copilot/lab-writeba
 answers: the module's SQL, an OAuth client that can reach it, and the chart
 embed's client re-registered so the agent can write under the clinician.
 
-Decisions behind it: [`DECISIONS.md`](DECISIONS.md) D1 (superseding), D23, D24,
-D25. Endpoint reference, including the request shape and every refusal:
+Decisions behind it: [`DECISIONS.md`](DECISIONS.md) D1 (superseding), D29, D30,
+D31. Endpoint reference, including the request shape and every refusal:
 [the module README](../../interface/modules/custom_modules/oe-module-clinical-copilot/README.md).
 
 > **Nothing here has been run against Vultr.** Both work orders were LOCAL
@@ -209,7 +209,7 @@ FHIR_BASE_URL=https://<host>:9300/apis/default/fhir
    (`log.comments` is base64 on this version.)
 6. **A clinician can see it.** With the patient's chart open: **Procedures →
    Pending Review**. Not *Patient Results* — a written-back result is created
-   unreviewed and moves there when a clinician signs it (D23).
+   unreviewed and moves there when a clinician signs it (D29).
 7. **The preview works.** `<module>/public/document.php?document_id=<id>`, in a
    logged-in session with that patient's chart open, returns the PDF. A
    different chart open, or an id that is not that patient's, returns 404.

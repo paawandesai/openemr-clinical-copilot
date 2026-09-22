@@ -257,7 +257,7 @@ the API client.
 `POST /api/clinical-copilot/lab-writeback` — one lab document plus the results
 extracted from it, written into the chart in a single transaction, with real ids
 returned. Decided in [`docs/w2/DECISIONS.md`](../../../../docs/w2/DECISIONS.md)
-D1 (superseding), D23 and D25, on the evidence in
+D1 (superseding), D29 and D31, on the evidence in
 [`docs/w2/spikes/writeback.md`](../../../../docs/w2/spikes/writeback.md).
 Installing it on an instance:
 [`docs/w2/deploy-writeback.md`](../../../../docs/w2/deploy-writeback.md).
@@ -276,7 +276,7 @@ rest.
 - **One document and its analytes.** A panel is one request: the results new to
   it share one `procedure_order` and get a `procedure_order_code` +
   `procedure_report` + `procedure_result` each, so every analyte keeps its own
-  LOINC code and printed name in the Procedure Results screen (D25). At most 100
+  LOINC code and printed name in the Procedure Results screen (D31). At most 100
   results per request — a bound on one transaction, not a contract rule.
 - **Lab reports only.** `document_kind` must be `lab_pdf`. D2 forbids intake
   medications and allergies reaching the chart, and the type check is where
@@ -360,7 +360,7 @@ attempt that wrote nothing is recorded too, with `success = 0`.
 `GET <module>/public/document.php?document_id=<int>` streams the stored PDF for
 the patient whose chart is open, decrypting through `\Document::get_data()`.
 
-This replaces `GET /fhir/Binary/:id` for clinicians (D24). That route requires
+This replaces `GET /fhir/Binary/:id` for clinicians (D30). That route requires
 the `admin`/`users` ACL, which a physician does not have, so it 403s for exactly
 the people the preview is for — the write-back spike only saw it work because it
 ran as `admin`.

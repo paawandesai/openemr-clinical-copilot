@@ -8,6 +8,19 @@ Statuses: `DECIDED` (settled; do not re-open, raise conflicts in your session
 report) · `OPEN` (not settled; propose, do not assume) · `PENDING-SPIKE`
 (blocked on a named spike) · `SUPERSEDED by Dn`.
 
+**Numbering.** A number is assigned when the entry **merges to `main`**, not
+when it is written on a branch. A branch may use a working number, but if
+that number is already taken on `main` when the branch merges, the branch's
+entry moves to the next free number at the end of the sequence and gains a
+`**Numbering:** was Dxx on <branch>, renumbered on merge because <the
+earlier entry>` line in its header. The entry that landed first always keeps
+its number. Rebase before merging and renumber every reference on the
+branch — docs, code comments, tests — in the same change.
+
+D25, D26 and D29-D31 were dropped from this file by the conflict resolution
+in merge `d65dac4` (`feat/w2-ui`) and restored verbatim from `720d5bd`, the
+merge before it; D29-D34 were renumbered at the same time.
+
 ---
 
 ## D1 — Write-back path for documents and lab values
@@ -872,110 +885,199 @@ document, and the locate step is not entitled to that judgement.
 
 ---
 
-## D23 — The Week 2 UI extends the chart embed, and `AnswerView` is what it draws
+## D25 — Local embeddings, equal-weight hybrid RRF, local cross-encoder rerank
 
-**Status:** DECIDED
+**Status:** DECIDED — supersedes D5 (OPEN) and D23 (PROPOSED).
+**Number:** this entry was written as D24 on `feat/w2-retrieval`. D24 was
+taken on `main` by `feat/w2-locate`'s exact-only value-class policy, which
+merged first, so it is D25 — the next free number against `main` at the
+time of the rebase. Nothing about the decision changed with the number.
 **Date:** 2026-09-22
-**Raised by:** work order 11 (UI part 1).
+**Evidence:** [`docs/w2/retrieval-bakeoff.md`](retrieval-bakeoff.md), on the
+28-document / 693-chunk corpus after the licensing audit (D26).
+**Deployment:** [`docs/w2/retrieval-deploy.md`](retrieval-deploy.md).
 
-**Decision:** The source-grounded answer view is built into the Week 1
-chart-embed module (`interface/modules/custom_modules/oe-module-clinical-copilot`),
-as a second patient-dashboard card, and **not** into the standalone UI
-(`agent/deploy/ui/index.html`). What it renders is a new contract,
-`AnswerView` (`app/models/w2/answer_view.py`): a `FinalAnswer` plus the
-`ViewerDocument`s, `EvidenceChunk`s and `ReportedFlagView`s needed to draw
-it, with validators that refuse an answer citing a source the view does not
-carry.
+### Decision
 
-**Rationale.** The work order asked for the chart embed "unless there is a
-clear reason to prefer the standalone UI". There is a clear reason the
-other way: the document bytes must be fetched server-side with the
-clinician's own authority (D28), and the standalone page has no OpenEMR
-session, no CSRF token and no ACL — it is a static file behind Caddy where
-the operator pastes a token. A proxy cannot exist there. The upload control
-has the same problem: it attaches a document to the patient whose chart is
-open, and only the module knows which patient that is
-(`ChartRequest::fromRequest()` refuses to answer for any other).
+1. **Embeddings: local.** `BAAI/bge-small-en-v1.5` through fastembed / ONNX
+   Runtime. MIT, 67 MB, 384-dimensional. Not sentence-transformers, so
+   torch stays out of the image.
 
-`AnswerView` exists because `FinalAnswer` is complete as an accountability
-record and incomplete as something to draw, in three ways that are each a
-way the view could lie: a document citation names a page whose bytes and
-size the view must already have; a guideline citation carries its snippet
-but not its publisher, so a chip would quote with no attribution; and a
-`ReportedFlag` has to reach the renderer as a value, not as an empty
-string it would have to interpret (D20). Putting those checks in a model
-means they fail at the boundary rather than in JavaScript on a page a
-clinician is already reading.
+2. **Retrieval: BM25 + dense, fused with RRF at equal weights.** Each half
+   searches to depth 30; the fused list is what the reranker sees. Equal
+   weights, explicitly: weighting the dense half 2× scored better
+   (recall@5 0.733 vs 0.692) but was fitted on the same 30 dev queries it
+   was measured on, and 30 queries is not enough to adopt a weight from.
+   D23 proposed adopting it; that part is rejected here. Revisit it
+   against the eval cases, where fitting and measuring are separated.
 
-**Consequence:** the module now carries ES modules and a vendored library
-under `public/`, and `.mjs` is served as `text/javascript` by the
-container's Apache. The card registration and the three PHP routes are
-specified in `docs/w2/ui-integration.md` and were **not** written on
-`feat/w2-ui` — work order 09 owns all PHP in that module.
+3. **Rerank: the local cross-encoder, over the top 20, on every retrieval.**
+   `Xenova/ms-marco-MiniLM-L-6-v2`, Apache-2.0, 80 MB, ONNX. D23 proposed
+   running it only as a fallback; that part is rejected too — the PRD
+   requires a reranker, and a reranker that runs only when some
+   not-yet-designed trigger fires is not one.
+
+4. **Four chunks are passed to the answer step.** recall@4 for the decided
+   configuration is 0.666.
+
+5. **Latency budget: 2.5 s for the rerank stage.** Over it, the fused order
+   stands and the output says `reranked=false`. The retriever then opens a
+   circuit so the next turn skips rerank rather than paying the budget
+   again to discard the result again; `GuidelineRetriever.reset_rerank_circuit()`
+   closes it. `EvidenceRetrieverOutput` enforces the other half — a result
+   set marked `reranked=true` must carry a `rerank_score` on every chunk —
+   so the flag and the data cannot drift apart.
+
+6. **No Cohere this week.** No API key is configured, so it was never
+   measured. The adapter stays in the tree, disabled and unreferenced by
+   any default path.
+
+### The numbers
+
+30 concept-only dev queries, 110 relevance judgments, 693 chunks, Apple M5
+Pro, five timing passes:
+
+| config | recall@5 | recall@4 | MRR | p50 ms | p95 ms | queries at zero |
+|---|---|---|---|---|---|---|
+| BM25 only | 0.570 | 0.505 | 0.733 | 0.2 | 0.3 | 2 |
+| dense only | 0.718 | 0.654 | 0.854 | 3.2 | 7.0 | 1 |
+| hybrid RRF, equal weights | 0.692 | 0.644 | 0.826 | 3.6 | 4.6 | 1 |
+| hybrid RRF, dense 2× (fitted) | 0.733 | 0.672 | 0.887 | 3.9 | 4.9 | 1 |
+| **hybrid RRF + cross-encoder (this decision)** | 0.702 | 0.666 | **0.889** | 288.7 | 515.1 | **0** |
+| hybrid RRF dense 2× + cross-encoder | 0.702 | 0.677 | 0.889 | 283.3 | 490.6 | 0 |
+| hybrid RRF + Cohere rerank-v3.5 | — | — | — | — | — | not run: no key |
+
+### Rationale
+
+**Local embeddings, on the constraint before the numbers.** D5's hard
+constraint is that no patient identifier may appear in a query that leaves
+this system. A hosted embedding API puts *every* retrieval query on the
+wire, which makes that constraint depend on a text filter holding on every
+call forever. A local embedder makes it depend on nothing: the query never
+leaves the process. That is why "no Cohere" is not only a consequence of
+having no key — an all-local stack makes D5 structural rather than
+procedural, and that is worth more than an unmeasured ranking improvement.
+
+**Equal weights, because the alternative was fitted.** Dense 2× is worth
+four points of recall@5 and is stable across fusion depths 30-100 and RRF
+k 20-60 — and dense 3× scores higher recall (0.745) with *lower* MRR
+(0.854), which is the shape of overfitting rather than of a better
+setting. The honest position is that the dev set cannot tell us the weight,
+so the code ships the untuned default and the question moves to the eval
+cases.
+
+**The reranker earns its ~300 ms on the case that matters, not on the
+mean.** It *lowers* mean recall@5 (0.733 → 0.702 against the fitted
+fusion, 0.692 → 0.702 against the equal-weight fusion it actually replaces)
+and moves MRR by 0.002. What it does is eliminate total misses: it is the
+only configuration with no query at zero recall.
+
+The concrete case is `q19-levothyroxine-followup`, which asks about
+levothyroxine dosing and follow-up testing. Exactly one chunk in the corpus
+answers it, in a consumer-facing NIDDK page — *"You will take
+levothyroxine, a thyroid hormone medicine…"* — and neither BM25 nor the
+bi-encoder puts it in the top 10, because the query is written in clinical
+register and the chunk is written for patients. recall goes 0.00 → 1.00
+with the cross-encoder, which reads the query and the passage together.
+
+In a pipeline that must cite or disclose, a turn with no usable evidence is
+the expensive turn. Spending ~300 ms to stop having them is the right trade,
+and it is why the reranker runs on every retrieval rather than behind a
+trigger nobody has designed.
+
+**The budget exists because 300 ms is a laptop number.** The deployment
+host is a shared-vCPU droplet and nothing here has been measured on it. If
+the cross-encoder does not fit, the system degrades to the fused order and
+says so in the output and the log, rather than getting slow. A sustained
+stream of `rerank_over_budget: true` is the condition to re-open this
+decision — not a reason to raise the budget.
+
+### What is still unmeasured
+
+- **The droplet.** Every number above is an Apple M5 Pro.
+- **Cohere.** Never run. Claiming it is worse than the local cross-encoder
+  would be inventing a comparison.
+- **The fusion weighting, separated from its fitting.** That needs the
+  eval cases.
 
 ---
 
-## D25 — PDF.js is vendored and pinned, not loaded from a CDN
+## D26 — USPSTF statements stay in the corpus, as licensed material rather than public domain
 
 **Status:** DECIDED
+**Number:** written as D25 on this branch and renumbered on the same rebase
+that moved the retrieval decision from D24 to D25; D24 belongs to
+`feat/w2-locate`. The licensing finding is unchanged.
 **Date:** 2026-09-22
+**Evidence:** `agent/scripts/audit_corpus_licensing.py`, run against all 28
+sources' raw HTML on 2026-09-22.
+**Needs human sign-off:** yes — see "Conflict" below.
 
-**Decision:** `pdfjs-dist` **6.3.289**, the `legacy/build` minified ES
-modules, committed under `public/vendor/pdfjs/` with their digests recorded
-in `PROVENANCE.md`. Apache-2.0, compatible with the fork's GPL-3.0.
+### What the audit found
 
-**Rationale.** The decision does not rest on CSP, and the work order's
-"state the CSP reasoning" has an honest answer: OpenEMR sends no
-`script-src` policy on the patient dashboard — the only
-`Content-Security-Policy` headers in the tree are `frame-ancestors 'none'`
-on `interface/login/login.php` and `portal/index.php` — so a CDN script
-would load. That is the problem rather than the permission. The library
-executes in the same document as the chart, so a CDN origin has script
-access to PHI on every chart open, with only its own integrity in between.
-Clinic installs are also routinely without egress, and every other
-front-end asset OpenEMR uses is served from its own webroot. Finally, when
-a rendered page is the evidence behind a clinical claim (invariant 2),
-which renderer drew it is part of the provenance, and a pinned file with a
-recorded digest answers that where `@latest` does not.
+Work order 08 named USPSTF, CDC and NIH as acceptable publishers and asked
+for "public domain or openly licensed ONLY". `sources.yaml` recorded all
+28 sources as `us-gov-public-domain`. For eight of them that was wrong.
 
-**Consequence:** ~1.8 MB of vendored JavaScript, and an upgrade is a
-deliberate act that re-runs the overlay alignment check — the coordinate
-work depends on `page.view`, `page.rotate` and `viewport.transform`. The
-viewer cross-checks PDF.js's own `viewport.transform` against its
-reimplementation on every render and draws **no** boxes if they disagree,
-so a library change that moved every box surfaces as "no boxes and a
-message" rather than as boxes in plausible wrong places.
+**USPSTF recommendation statements are not public domain.** They are
+published by JAMA — or, for the 2015 thyroid statement, Annals of Internal
+Medicine — under arrangement with AHRQ, and the page says so: "©2022 AMA
+and United States Government … All rights reserved."
 
----
+The sentence that follows is what makes them usable: AHRQ "permits members
+of the public to reproduce, redistribute, publicly display, and incorporate
+USPSTF work into other materials provided that it is reproduced without any
+changes to the work or portions thereof", and adds that AHRQ and HHS
+"cannot endorse, or appear to endorse, derivative or excerpted materials".
 
-## D26 — A wrapped document field is one located citation per line box
+Two smaller findings:
 
-**Status:** DECIDED
-**Date:** 2026-09-22
+- **nhlbi.nih.gov** captions its embedded animations "Medical Animation
+  Copyright © Nucleus Medical Media, All rights reserved" — a third party's
+  notice, for a video this corpus does not carry.
+- **MedlinePlus** is mixed: `/lab-tests/` pages are NLM's own and public
+  domain, while `/ency/` is copyright A.D.A.M. Inc. and `/druginfo/` is
+  copyright ASHP. All three MedlinePlus sources here are `/lab-tests/`.
+  Confirmed, not assumed.
 
-**Decision:** When an extracted value wraps across lines, the locate step
-emits **one `Citation` per line box**, all sharing `source_id`,
-`field_or_chunk_id` and `extraction_id`. The view groups a claim's
-citations by `(source_type, source_id, field_or_chunk_id)` into a single
-chip, and activating that chip highlights every one of its boxes and
-scrolls to their union.
+### Decision
 
-**Rationale.** `Citation.bbox` is one `BBox` and `BBox` is one rectangle.
-A two-line value has no single rectangle: the union covers the whitespace
-between the lines and runs the full column width on both, so highlighting
-it would claim ink that is not the value's. The alternative — letting the
-view split a union box by an assumed line height — would be the view
-inventing geometry, which is exactly what D3 keeps out of everything but
-the deterministic locate step. One citation per box keeps every rectangle
-something code actually found, and grouping at render time keeps the reader
-seeing one source rather than three.
+1. **Keep the eight USPSTF sources**, recorded as
+   `uspstf-ahrq-redistribution-permitted` rather than
+   `us-gov-public-domain`. `SourceRecord.verbatim_only` is True for them.
+2. **Verbatim excerpts only.** `app/retrieval/worker.py::citation_for()`
+   refuses any quote that is not literally a substring of its chunk, so a
+   paraphrase cannot be presented as the source's words. That was already
+   an honesty requirement; for these eight it is a licence condition too.
+3. **The UI must not present a USPSTF excerpt as an AHRQ or HHS
+   endorsement** of the co-pilot's answer
+   (`corpus_meta.USPSTF_ENDORSEMENT_CONSTRAINT`). Not yet implemented —
+   there is no UI for guideline evidence yet.
+4. **Third-party rights notices are stripped from the corpus text** at
+   fetch time and recorded in `sources.yaml` instead. Leaving them in meant
+   a retrieval could surface "All rights reserved" as evidence and a
+   citation could quote it back to a clinician. Three chunks were removed;
+   every bake-off metric was unchanged to three decimal places, which is
+   the evidence that what was stripped was chrome and not content.
+5. **No source was removed for licensing.**
 
-**Consequence, stated plainly:** none of the six committed doc-factory
-samples contains a wrapped field — the 0.2.0 `rendering` vocabulary has a
-`wrapped` member and no sample uses it — so the multi-box path is covered
-by unit tests (`tests/js/answer-view.test.mjs`) and is **not** exercised
-against ground truth in a browser. A factory scenario with a wrapped field
-would close that gap.
+### Conflict, stated plainly
+
+The review instruction was "remove any non-public-domain source". Read
+literally that deletes all eight USPSTF statements — the actual
+recommendations, and the most clinically load-bearing part of the corpus —
+on the strength of a copyright notice that is immediately followed by an
+express grant of the exact permission this use needs.
+
+This entry keeps them instead, because (a) the same work order named USPSTF
+as an approved publisher, (b) the permission is explicit and this use is
+verbatim reproduction of portions with attribution, and (c) deleting a
+third of the corpus on a licence reading is a bigger unilateral act than
+recording the licence accurately and asking.
+
+**A human should confirm this.** If the answer is remove them, it is one
+edit to `sources.yaml` and a rebuild; the audit script, the licence enum
+and the verbatim-only plumbing all stay as they are.
 
 ---
 
@@ -1055,3 +1157,284 @@ the module route and the fixture-mode file both satisfy the same two-method
 interface. The 403 and 404 cases are distinguished and say different
 things, because "you may not see this" and "this is gone" are different
 facts about a patient's record.
+
+---
+
+## D29 — The lab write-back endpoint ships as a custom module, not a core route
+
+**Status:** DECIDED
+**Date:** 2026-09-22
+**Implements:** D1 (superseding), whose "custom endpoint in the OpenEMR fork,
+protected by a new custom OAuth scope" this entry pins down.
+**Numbering:** was D23 on `feat/w2-writeback`, renumbered on merge because D23 (local embeddings and weighted hybrid RRF, `feat/w2-retrieval`) landed on `main` first.
+
+**Decision:**
+
+- The endpoint is **`POST /api/clinical-copilot/lab-writeback`**, registered by
+  the existing `oe-module-clinical-copilot` module through OpenEMR's own
+  extension points — `RestApiCreateEvent` for the route and `RestApiScopeEvent`
+  for the scope. No file under `apis/routes/` or `src/Common/Auth/` is edited.
+- The custom scope is **`user/lab-writeback.c`**.
+- The ledger is **`module_clinical_copilot_writeback_ledger`**, created by the
+  module's `sql/install.sql`, `UNIQUE` on `idempotency_key`.
+- A written-back result is created with **`procedure_report.review_status =
+  'received'`**, i.e. unreviewed.
+
+**Rationale:**
+
+*Module over core route.* Both extension points already exist and are
+dispatched on every relevant request: `StandardRouteFinder::find()` fires
+`RestApiCreateEvent` after loading the core route map, and
+`ScopeRepository::getCurrentSmartScopes()` fires `RestApiScopeEvent` — which is
+what dynamic client registration validates against and what the token endpoint
+grants from. Both reach the module because `interface/globals.php`, which
+constructs `ModulesApplication`, is loaded by `SiteSetupListener` for `/apis/`
+and `/oauth2/` alike. The route that results is dispatched, scope-checked and
+audited exactly like a core one — verified: a token without the scope is
+refused by `AuthorizationListener` with `scope user/lab-writeback.c not in
+access token`. Editing `apis/routes/_rest_routes_standard.inc.php` and
+`ServerScopeListEntity` would buy nothing and cost a permanent merge conflict
+against upstream in two files every rebase touches, in a fork whose whole
+history is one squashed import. It would also make the write-back
+unswitchable: the module can be disabled, a core route cannot. The Week 1
+chart embed is already this module, so this adds no new deployment unit.
+
+*The scope string is not free choice.* `HttpRestParsedRoute` takes the last
+non-parameter path segment as the resource and
+`HttpRestRouteHandler::checkSecurity()` maps POST to the `c` permission, so the
+route path and the scope are two spellings of one thing. `.c` rather than
+`.write` because create is all this endpoint does — a correction is a new
+document and a new extraction, never an edit of a value already in the chart —
+and `.write` would grant update and delete that nothing implements.
+
+*Unreviewed, deliberately.* `review_status = 'reviewed'` would put the result
+straight into **Procedures → Patient Results**, which is tempting and wrong: it
+asserts a clinician has reviewed a value no clinician has seen.
+`orders_results.php` skips `review_status = 'received'` in patient-results mode
+and shows it in review mode, so an extracted result lands in **Procedures →
+Pending Review** and moves to Patient Results when a clinician signs it. That
+is the same path a result arriving from a real lab interface takes.
+
+**Consequences, all verified on the local stack:**
+
+1. **The client also needs `api:oemr`.** `BearerTokenAuthorizationStrategy::
+   isValidRequestForUserRole()` rejects any `/api/` request whose token lacks
+   it, before the resource scope is looked at. A client registered with only
+   `openid user/lab-writeback.c` gets 403 on every call. Scopes are immutable
+   per client, so this is a registration-time decision.
+2. **The write-back client is a third local client**, separate from the read
+   client and the chart embed, exactly as D1's "human step" anticipated.
+   `skip_ehr_launch_authorization_flow` is **not** needed for it — that flag
+   exists for the embed's server-side loopback broker, and the write-back
+   client uses the password grant.
+3. **The endpoint requires two ACLs as well as the scope**, `patients`/`docs`
+   and `patients`/`lab`, both with `write`/`addonly`. A scope says what the
+   client application may ask for; an ACL says what this clinician may do.
+
+**Not settled here, and out of scope for the branch that wrote this:** batching
+several results into one request, and the agent-side client.
+
+---
+
+## D30 — The PDF preview reads through the module, not `GET /fhir/Binary/:id`
+
+**Status:** DECIDED — supersedes the read-back half of D1 (superseding). The
+document *write* path in D1 is unchanged; so is `Binary` as a read path for a
+caller that holds the `admin` ACL.
+**Date:** 2026-09-22
+**Numbering:** was D24 on `feat/w2-writeback`, renumbered on merge because D24 (numbers, units, dates and lab flags are never near-matched, `feat/w2-locate`) landed on `main` first.
+
+**Decision:** The source-document preview is
+**`GET <module>/public/document.php?document_id=<int>`**, served inside the
+clinician's own OpenEMR session. It requires the `patients`/`docs` ACL — the
+one OpenEMR's own document viewer checks — and the document must belong to the
+patient whose chart is open. It serves `application/pdf` and nothing else.
+
+**Why D1's read-back does not work.** D1 says `GET /fhir/Binary/:id` "is also
+the source for the PDF preview", on the spike's evidence that it returns the
+bytes intact. It does — for an administrator. The route runs
+`RestConfig::request_authorization_check($request, "admin", "users")` for any
+non-patient request (`_rest_routes_fhir_r4_us_core_3_1_0.inc.php:285`), and a
+physician holds no `admin` ACL. Checked directly on the local stack:
+`admin/super`, `admin/users` and `admin/docs` are all false for `physician`,
+and the request returns **403 "Organization policy does not have permit access
+resource"**. The spike only saw it work because it ran as `admin`. Granting
+clinicians an `admin` ACL to read a PDF would be the wrong repair by a wide
+margin.
+
+**Why a module page and not another REST route.** The preview is rendered in
+the chart by a clinician who is already authenticated to OpenEMR. A REST route
+would need a brokered OAuth token for a browser `<embed>` that cannot carry an
+`Authorization` header, and would re-implement an authorization decision the
+session already answers. `brief.php` and `conversation.php` established the
+pattern; this follows it.
+
+**Three things it does deliberately:**
+
+1. **One answer for every way a document is not yours.** Missing, another
+   patient's, and deleted all return **404** with the same text. A document id
+   that exists for a patient is a fact about that patient, and an endpoint that
+   distinguished the cases would disclose it.
+2. **PDF only.** A stored document may be any type on the upload whitelist, and
+   streaming `text/html` or an SVG inline from OpenEMR's own origin is a
+   scripting vector on a trusted page. Anything else is **415**.
+3. **No CSRF token.** Reading changes nothing, a token in a query string leaks
+   through referrers and history, and OpenEMR's own retrieval does not use one.
+   The session and the ACL are the controls.
+
+**Not restricted to documents this module wrote.** A clinician with
+`patients`/`docs` can already open any of that patient's documents in
+OpenEMR's own viewer, so narrowing would protect nothing and would break the
+preview for a document uploaded any other way.
+
+---
+
+## D31 — A panel is one order, and one report+result per analyte
+
+**Status:** DECIDED
+**Date:** 2026-09-22
+**Numbering:** was D25 on `feat/w2-writeback`, renumbered on merge because D25 (local embeddings, equal-weight hybrid RRF, local cross-encoder rerank, `feat/w2-retrieval`) landed on `main` first.
+
+**Decision:** One write-back request carries one document and N results. The
+results that are **new in that request** are written under **one new
+`procedure_order`**, with a `procedure_order_code` + `procedure_report` +
+`procedure_result` each, at sequence 1..N. Results already in the ledger are
+returned with the ids of the write that made them and nothing is inserted for
+them. The response's single `procedure_order_id` is the order this request
+created — or, when it created nothing, the order recorded for its first result.
+
+**Why one report per analyte rather than one report with N results.** A real
+laboratory interface files a panel as one report with many result rows, and
+that was the first shape tried. It loses the analyte's identity in the UI:
+`interface/orders/orders_results.php` groups by `procedure_order_code` and
+labels the group with `procedure_name`, so a panel under one code shows one
+name — the first analyte's, or an invented one — for every row beneath it. The
+extraction has no panel code to use instead (`LabResult.loinc_code` is
+per-row and assigned, and lab PDFs rarely print a panel LOINC). A code per
+analyte keeps each row named as the report named it, which is what the
+clinician checking the write needs to see. `ProcedureService::search()` joins
+report to order code on `procedure_order_seq`, so the sequences line up and the
+FHIR read emits one Observation per analyte either way.
+
+**Why idempotency is per result and not per request.** A request can legally
+repeat results and add others — a re-extraction that found one more analyte, or
+two requests overlapping on the same document. Replaying the whole request as a
+unit would either duplicate the repeats or refuse the additions. Per-result
+keys make the answer obvious: each row is created once, and a mixed request
+reports `created` and `duplicate_ignored` row by row. Verified on the local
+stack, including two identical requests fired together: the loser rolls back
+and returns the winner's ids, and exactly one chain exists afterwards.
+
+**Bound:** 100 results per request. Not a contract rule — a ceiling on how long
+one transaction may hold row locks across the procedure tables. A comprehensive
+metabolic panel is 14 analytes.
+
+---
+
+## D32 — The Week 2 UI extends the chart embed, and `AnswerView` is what it draws
+
+**Status:** DECIDED
+**Date:** 2026-09-22
+**Raised by:** work order 11 (UI part 1).
+**Numbering:** was D23 on `feat/w2-ui`, renumbered on merge because D23 (local embeddings and weighted hybrid RRF, `feat/w2-retrieval`) landed on `main` first.
+
+**Decision:** The source-grounded answer view is built into the Week 1
+chart-embed module (`interface/modules/custom_modules/oe-module-clinical-copilot`),
+as a second patient-dashboard card, and **not** into the standalone UI
+(`agent/deploy/ui/index.html`). What it renders is a new contract,
+`AnswerView` (`app/models/w2/answer_view.py`): a `FinalAnswer` plus the
+`ViewerDocument`s, `EvidenceChunk`s and `ReportedFlagView`s needed to draw
+it, with validators that refuse an answer citing a source the view does not
+carry.
+
+**Rationale.** The work order asked for the chart embed "unless there is a
+clear reason to prefer the standalone UI". There is a clear reason the
+other way: the document bytes must be fetched server-side with the
+clinician's own authority (D28), and the standalone page has no OpenEMR
+session, no CSRF token and no ACL — it is a static file behind Caddy where
+the operator pastes a token. A proxy cannot exist there. The upload control
+has the same problem: it attaches a document to the patient whose chart is
+open, and only the module knows which patient that is
+(`ChartRequest::fromRequest()` refuses to answer for any other).
+
+`AnswerView` exists because `FinalAnswer` is complete as an accountability
+record and incomplete as something to draw, in three ways that are each a
+way the view could lie: a document citation names a page whose bytes and
+size the view must already have; a guideline citation carries its snippet
+but not its publisher, so a chip would quote with no attribution; and a
+`ReportedFlag` has to reach the renderer as a value, not as an empty
+string it would have to interpret (D20). Putting those checks in a model
+means they fail at the boundary rather than in JavaScript on a page a
+clinician is already reading.
+
+**Consequence:** the module now carries ES modules and a vendored library
+under `public/`, and `.mjs` is served as `text/javascript` by the
+container's Apache. The card registration and the three PHP routes are
+specified in `docs/w2/ui-integration.md` and were **not** written on
+`feat/w2-ui` — work order 09 owns all PHP in that module.
+
+---
+
+## D33 — PDF.js is vendored and pinned, not loaded from a CDN
+
+**Status:** DECIDED
+**Date:** 2026-09-22
+**Numbering:** was D25 on `feat/w2-ui`, renumbered on merge because D25 (local embeddings, equal-weight hybrid RRF, local cross-encoder rerank, `feat/w2-retrieval`) landed on `main` first.
+
+**Decision:** `pdfjs-dist` **6.3.289**, the `legacy/build` minified ES
+modules, committed under `public/vendor/pdfjs/` with their digests recorded
+in `PROVENANCE.md`. Apache-2.0, compatible with the fork's GPL-3.0.
+
+**Rationale.** The decision does not rest on CSP, and the work order's
+"state the CSP reasoning" has an honest answer: OpenEMR sends no
+`script-src` policy on the patient dashboard — the only
+`Content-Security-Policy` headers in the tree are `frame-ancestors 'none'`
+on `interface/login/login.php` and `portal/index.php` — so a CDN script
+would load. That is the problem rather than the permission. The library
+executes in the same document as the chart, so a CDN origin has script
+access to PHI on every chart open, with only its own integrity in between.
+Clinic installs are also routinely without egress, and every other
+front-end asset OpenEMR uses is served from its own webroot. Finally, when
+a rendered page is the evidence behind a clinical claim (invariant 2),
+which renderer drew it is part of the provenance, and a pinned file with a
+recorded digest answers that where `@latest` does not.
+
+**Consequence:** ~1.8 MB of vendored JavaScript, and an upgrade is a
+deliberate act that re-runs the overlay alignment check — the coordinate
+work depends on `page.view`, `page.rotate` and `viewport.transform`. The
+viewer cross-checks PDF.js's own `viewport.transform` against its
+reimplementation on every render and draws **no** boxes if they disagree,
+so a library change that moved every box surfaces as "no boxes and a
+message" rather than as boxes in plausible wrong places.
+
+---
+
+## D34 — A wrapped document field is one located citation per line box
+
+**Status:** DECIDED
+**Date:** 2026-09-22
+**Numbering:** was D26 on `feat/w2-ui`, renumbered on merge because D26 (USPSTF statements stay in the corpus, `feat/w2-retrieval`) landed on `main` first.
+
+**Decision:** When an extracted value wraps across lines, the locate step
+emits **one `Citation` per line box**, all sharing `source_id`,
+`field_or_chunk_id` and `extraction_id`. The view groups a claim's
+citations by `(source_type, source_id, field_or_chunk_id)` into a single
+chip, and activating that chip highlights every one of its boxes and
+scrolls to their union.
+
+**Rationale.** `Citation.bbox` is one `BBox` and `BBox` is one rectangle.
+A two-line value has no single rectangle: the union covers the whitespace
+between the lines and runs the full column width on both, so highlighting
+it would claim ink that is not the value's. The alternative — letting the
+view split a union box by an assumed line height — would be the view
+inventing geometry, which is exactly what D3 keeps out of everything but
+the deterministic locate step. One citation per box keeps every rectangle
+something code actually found, and grouping at render time keeps the reader
+seeing one source rather than three.
+
+**Consequence, stated plainly:** none of the six committed doc-factory
+samples contains a wrapped field — the 0.2.0 `rendering` vocabulary has a
+`wrapped` member and no sample uses it — so the multi-box path is covered
+by unit tests (`tests/js/answer-view.test.mjs`) and is **not** exercised
+against ground truth in a browser. A factory scenario with a wrapped field
+would close that gap.
