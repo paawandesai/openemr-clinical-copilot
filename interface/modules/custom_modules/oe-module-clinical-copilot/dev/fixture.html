@@ -1,0 +1,233 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Clinical Co-Pilot — source view fixture</title>
+<link rel="icon" href="data:,">
+<!--
+  Local fixture mode for the source-grounded answer view (work order 11,
+  requirement 4). Loads a doc-factory sample PDF and an AnswerView built
+  from that sample's ground truth by agent/scripts/build_ui_fixtures.py.
+
+  This page is DEVELOPMENT ONLY. It is not under public/, nothing in the
+  module serves it, and it holds no credentials: the "documents" are the
+  six synthetic samples, which contain no real patient data. It exists so
+  the overlay can be seen, clicked and measured before the Week 2 graph or
+  the module's document route exist.
+
+  Serve it (same origin as the assets it imports):
+      node interface/modules/custom_modules/oe-module-clinical-copilot/dev/serve.mjs
+  then open http://127.0.0.1:8760/dev/fixture.html
+-->
+<link rel="stylesheet" href="../public/assets/w2/source-card.css">
+<style>
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background: #f4f6f8;
+    color: #182430;
+  }
+  @media (prefers-color-scheme: dark) {
+    body { background: #10161c; color: #e7edf2; }
+  }
+  header {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    align-items: center;
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid var(--ccw2-border, #dfe4e9);
+  }
+  header h1 { font-size: 1rem; margin: 0; }
+  .fixture-banner {
+    margin: 0;
+    padding: 0.4rem 1rem;
+    font-size: 0.8rem;
+    background: #fef3e0;
+    color: #6b3f00;
+    border-bottom: 1px solid #f3d38a;
+  }
+  @media (prefers-color-scheme: dark) {
+    .fixture-banner { background: #302505; color: #f2b944; border-bottom-color: #55420c; }
+  }
+  main { padding: 1rem; }
+  .fixture-meta { font-size: 0.8rem; color: var(--ccw2-muted, #5b6b7a); font-family: ui-monospace, Menlo, monospace; }
+</style>
+</head>
+<body>
+<p class="fixture-banner">
+  FIXTURE MODE — synthetic doc-factory samples, no patient data, no agent, no
+  OpenEMR session. Guideline evidence is placeholder text and is not clinical
+  guidance.
+</p>
+<header>
+  <h1>Source-grounded answer view</h1>
+  <label>Scenario <select id="scenario"></select></label>
+  <span class="fixture-meta" id="meta"></span>
+</header>
+
+<main>
+  <div id="card" class="ccw2-root">
+    <div class="ccw2-upload-slot"></div>
+    <div class="ccw2-layout">
+      <div class="ccw2-answer-slot"></div>
+      <div class="ccw2-viewer-slot ccw2-viewer"></div>
+    </div>
+  </div>
+</main>
+
+<script type="module">
+import {mountSourceCard} from '../public/assets/w2/source-card.mjs';
+import {staticDocumentSource} from '../public/assets/w2/document-viewer.mjs';
+import * as pdfjs from '../public/vendor/pdfjs/pdf.min.mjs';
+
+const BASE = './fixtures';
+const WORKER = '../public/vendor/pdfjs/pdf.worker.min.mjs';
+
+const picker = document.getElementById('scenario');
+const meta = document.getElementById('meta');
+const root = document.getElementById('card');
+
+/**
+ * The upload endpoint stub the work order allows for part 1: canned
+ * statuses, stepping pending -> in_progress -> complete so the control's
+ * polling path is exercised end to end without an agent.
+ */
+function stubUploadSource() {
+    const steps = ['pending', 'in_progress', 'complete'];
+    let index = 0;
+    return {
+        async upload() {
+            index = 0;
+            return {status: 'ok', document_id: 'fixture-upload-0001', kind: 'lab_pdf', extraction_status: steps[index], correlation_id: '00000000-0000-4000-8000-000000000000'};
+        },
+        async status(documentId) {
+            index = Math.min(index + 1, steps.length - 1);
+            return {
+                status: 'ok',
+                document_id: documentId,
+                kind: 'lab_pdf',
+                extraction_status: steps[index],
+                extraction_id: steps[index] === 'complete' ? 'w2x-00000000000000000000000000000000' : null,
+                failure_reason: null,
+                correlation_id: '00000000-0000-4000-8000-000000000000',
+            };
+        },
+    };
+}
+
+const card = mountSourceCard(root, {
+    pdfjs,
+    workerSrc: WORKER,
+    documentSource: staticDocumentSource((id) => `${BASE}/${encodeURIComponent(id)}/document.pdf`),
+    uploadSource: stubUploadSource(),
+    scale: 1.25,
+});
+
+const manifest = await (await fetch(`${BASE}/manifest.json`)).json();
+for (const entry of manifest.scenarios) {
+    const option = document.createElement('option');
+    option.value = entry.scenario_id;
+    option.textContent = `${entry.scenario_id} (${entry.doc_type}, ${entry.quality})`;
+    picker.appendChild(option);
+}
+
+let view = null;
+let truth = null;
+
+async function load(scenarioId) {
+    view = await (await fetch(`${BASE}/${scenarioId}/answer-view.json`)).json();
+    truth = await (await fetch(`${BASE}/${scenarioId}/ground-truth.json`)).json();
+    card.show(view);
+    const entry = manifest.scenarios.find((s) => s.scenario_id === scenarioId);
+    meta.textContent = `${entry.page_count} page(s) · ${entry.claims} claim(s) · ${entry.unsupported} unsupported · ${entry.lab_flags} flag row(s)${entry.scanned ? ' · scanned' : ''}`;
+    const url = new URL(window.location.href);
+    url.searchParams.set('scenario', scenarioId);
+    window.history.replaceState(null, '', url);
+}
+
+picker.addEventListener('change', () => load(picker.value));
+
+const wanted = new URL(window.location.href).searchParams.get('scenario');
+picker.value = manifest.scenarios.some((s) => s.scenario_id === wanted) ? wanted : manifest.scenarios[0].scenario_id;
+await load(picker.value);
+
+/**
+ * The hook the alignment check drives (dev/check-overlay-alignment.mjs).
+ *
+ * It deliberately reads back what is really in the DOM — the drawn boxes'
+ * own inline geometry — and the canvas's real pixels. A check that asked
+ * the transform what it had computed would be asking the code under test
+ * whether it agrees with itself.
+ */
+window.ccw2Fixture = {
+    manifest,
+    get scenario() { return picker.value; },
+    get view() { return view; },
+    get truth() { return truth; },
+    async load(scenarioId) {
+        picker.value = scenarioId;
+        await load(scenarioId);
+    },
+    /** Draw every located document citation on one page, return the boxes. */
+    async drawPage(page, scale) {
+        const citations = [];
+        for (const claim of [...view.answer.patient_facts, ...view.answer.guideline_evidence]) {
+            citations.push(...claim.citations);
+        }
+        for (const flag of view.lab_flags || []) {
+            if (flag.citation) {
+                citations.push(flag.citation);
+            }
+        }
+        for (const field of view.answer.unsupported) {
+            if (field.citation) {
+                citations.push(field.citation);
+            }
+        }
+        const located = citations.filter((c) => c.bbox && c.bbox.page === page);
+        const documentId = view.documents[0].document.document_id;
+        await card.viewer.showAll(documentId, located, page, scale);
+        return {
+            boxes: card.viewer.boxes(),
+            citations: located,
+            canvas: {
+                width: card.viewer.canvas.width,
+                height: card.viewer.canvas.height,
+                cssWidth: parseFloat(card.viewer.canvas.style.width),
+                cssHeight: parseFloat(card.viewer.canvas.style.height),
+            },
+        };
+    },
+    /**
+     * The fraction of pixels in a CSS-space rectangle that are darker than
+     * the local paper tone, plus that tone. Used to confirm a box is over
+     * ink and not over blank paper.
+     */
+    ink(rect) {
+        const canvas = card.viewer.canvas;
+        const ratio = canvas.width / parseFloat(canvas.style.width);
+        const x = Math.max(0, Math.round(rect.left * ratio));
+        const y = Math.max(0, Math.round(rect.top * ratio));
+        const w = Math.min(canvas.width - x, Math.max(1, Math.round(rect.width * ratio)));
+        const h = Math.min(canvas.height - y, Math.max(1, Math.round(rect.height * ratio)));
+        if (w <= 0 || h <= 0) {
+            return null;
+        }
+        const data = canvas.getContext('2d', {willReadFrequently: true}).getImageData(x, y, w, h).data;
+        const grey = [];
+        for (let i = 0; i < data.length; i += 4) {
+            grey.push(0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2]);
+        }
+        const sorted = [...grey].sort((a, b) => a - b);
+        const paper = sorted[Math.floor(sorted.length * 0.9)];
+        const threshold = paper - 60;
+        const dark = grey.filter((v) => v < threshold).length;
+        return {ratio: dark / grey.length, paper, pixels: grey.length};
+    },
+};
+window.dispatchEvent(new Event('ccw2-fixture-ready'));
+</script>
+</body>
+</html>

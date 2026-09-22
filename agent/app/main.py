@@ -4,6 +4,11 @@ FastAPI entrypoint — Clinical Co-Pilot agent service.
 Routes:
   GET  /health           liveness (app/health.py)
   GET  /ready            dependency readiness (app/health.py)
+  POST /documents        upload a document; extraction starts at upload,
+                         not at question time (D7, app/api/documents.py).
+                         STUB: canned statuses, no extraction yet.
+  GET  /documents/{id}/extraction
+                         where that extraction has got to
   POST /pre-visit-brief  the Pre-Visit Brief pipeline (app/api/pre_visit_brief.py)
   POST /pre-visit-brief/follow-up
                          one follow-up question on the brief's verified
@@ -29,6 +34,7 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 
 from app.api.conversation import router as conversation_router
+from app.api.documents import router as documents_router
 from app.api.follow_up import router as follow_up_router
 from app.api.pre_visit_brief import ApiError
 from app.api.pre_visit_brief import router as pre_visit_brief_router
@@ -90,3 +96,4 @@ app.include_router(health_router)
 app.include_router(pre_visit_brief_router)
 app.include_router(follow_up_router)
 app.include_router(conversation_router)
+app.include_router(documents_router)

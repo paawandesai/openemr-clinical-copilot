@@ -763,3 +763,189 @@ the value could be and refused to choose, which is a value that was not
 placed on a page, not a value the document lacks. `not_located` maps the
 same way. Neither ever becomes `missing` or `illegible`: those describe the
 document, and the locate step is not entitled to that judgement.
+
+---
+
+## D23 — The Week 2 UI extends the chart embed, and `AnswerView` is what it draws
+
+**Status:** DECIDED
+**Date:** 2026-09-22
+**Raised by:** work order 11 (UI part 1).
+
+**Decision:** The source-grounded answer view is built into the Week 1
+chart-embed module (`interface/modules/custom_modules/oe-module-clinical-copilot`),
+as a second patient-dashboard card, and **not** into the standalone UI
+(`agent/deploy/ui/index.html`). What it renders is a new contract,
+`AnswerView` (`app/models/w2/answer_view.py`): a `FinalAnswer` plus the
+`ViewerDocument`s, `EvidenceChunk`s and `ReportedFlagView`s needed to draw
+it, with validators that refuse an answer citing a source the view does not
+carry.
+
+**Rationale.** The work order asked for the chart embed "unless there is a
+clear reason to prefer the standalone UI". There is a clear reason the
+other way: the document bytes must be fetched server-side with the
+clinician's own authority (D28), and the standalone page has no OpenEMR
+session, no CSRF token and no ACL — it is a static file behind Caddy where
+the operator pastes a token. A proxy cannot exist there. The upload control
+has the same problem: it attaches a document to the patient whose chart is
+open, and only the module knows which patient that is
+(`ChartRequest::fromRequest()` refuses to answer for any other).
+
+`AnswerView` exists because `FinalAnswer` is complete as an accountability
+record and incomplete as something to draw, in three ways that are each a
+way the view could lie: a document citation names a page whose bytes and
+size the view must already have; a guideline citation carries its snippet
+but not its publisher, so a chip would quote with no attribution; and a
+`ReportedFlag` has to reach the renderer as a value, not as an empty
+string it would have to interpret (D20). Putting those checks in a model
+means they fail at the boundary rather than in JavaScript on a page a
+clinician is already reading.
+
+**Consequence:** the module now carries ES modules and a vendored library
+under `public/`, and `.mjs` is served as `text/javascript` by the
+container's Apache. The card registration and the three PHP routes are
+specified in `docs/w2/ui-integration.md` and were **not** written on
+`feat/w2-ui` — work order 09 owns all PHP in that module.
+
+---
+
+## D25 — PDF.js is vendored and pinned, not loaded from a CDN
+
+**Status:** DECIDED
+**Date:** 2026-09-22
+
+**Decision:** `pdfjs-dist` **6.3.289**, the `legacy/build` minified ES
+modules, committed under `public/vendor/pdfjs/` with their digests recorded
+in `PROVENANCE.md`. Apache-2.0, compatible with the fork's GPL-3.0.
+
+**Rationale.** The decision does not rest on CSP, and the work order's
+"state the CSP reasoning" has an honest answer: OpenEMR sends no
+`script-src` policy on the patient dashboard — the only
+`Content-Security-Policy` headers in the tree are `frame-ancestors 'none'`
+on `interface/login/login.php` and `portal/index.php` — so a CDN script
+would load. That is the problem rather than the permission. The library
+executes in the same document as the chart, so a CDN origin has script
+access to PHI on every chart open, with only its own integrity in between.
+Clinic installs are also routinely without egress, and every other
+front-end asset OpenEMR uses is served from its own webroot. Finally, when
+a rendered page is the evidence behind a clinical claim (invariant 2),
+which renderer drew it is part of the provenance, and a pinned file with a
+recorded digest answers that where `@latest` does not.
+
+**Consequence:** ~1.8 MB of vendored JavaScript, and an upgrade is a
+deliberate act that re-runs the overlay alignment check — the coordinate
+work depends on `page.view`, `page.rotate` and `viewport.transform`. The
+viewer cross-checks PDF.js's own `viewport.transform` against its
+reimplementation on every render and draws **no** boxes if they disagree,
+so a library change that moved every box surfaces as "no boxes and a
+message" rather than as boxes in plausible wrong places.
+
+---
+
+## D26 — A wrapped document field is one located citation per line box
+
+**Status:** DECIDED
+**Date:** 2026-09-22
+
+**Decision:** When an extracted value wraps across lines, the locate step
+emits **one `Citation` per line box**, all sharing `source_id`,
+`field_or_chunk_id` and `extraction_id`. The view groups a claim's
+citations by `(source_type, source_id, field_or_chunk_id)` into a single
+chip, and activating that chip highlights every one of its boxes and
+scrolls to their union.
+
+**Rationale.** `Citation.bbox` is one `BBox` and `BBox` is one rectangle.
+A two-line value has no single rectangle: the union covers the whitespace
+between the lines and runs the full column width on both, so highlighting
+it would claim ink that is not the value's. The alternative — letting the
+view split a union box by an assumed line height — would be the view
+inventing geometry, which is exactly what D3 keeps out of everything but
+the deterministic locate step. One citation per box keeps every rectangle
+something code actually found, and grouping at render time keeps the reader
+seeing one source rather than three.
+
+**Consequence, stated plainly:** none of the six committed doc-factory
+samples contains a wrapped field — the 0.2.0 `rendering` vocabulary has a
+`wrapped` member and no sample uses it — so the multi-box path is covered
+by unit tests (`tests/js/answer-view.test.mjs`) and is **not** exercised
+against ground truth in a browser. A factory scenario with a wrapped field
+would close that gap.
+
+---
+
+## D27 — Fixture ground truth is mapped into the rendered document's space
+
+**Status:** DECIDED
+**Date:** 2026-09-22
+**Raised by:** work order 07 (locate), during work order 11.
+
+**Decision:** `agent/scripts/build_ui_fixtures.py` maps every recorded
+`bbox` out of the clean layout and into the space of the file that will
+actually be rendered, through
+`transform.pages[n].pdf_points_to_image_px` and the pixel-to-point scale,
+**before** any contract object is built. The viewer's only transform is
+page space to CSS pixels, and it never learns which samples were scanned.
+The axis-aligned hull of the four mapped corners is what a `BBox` carries.
+
+**Rationale.** Ground truth records boxes on the clean layout
+(`coordinates.space: clean_pdf`) and a scanned scenario renders a skewed
+JPEG of that layout. Locate output is already in the scanned document's
+space, because the locate step matches against word boxes taken from the
+document it was handed. Doing the mapping in the fixture builder makes the
+fixture the same shape as production; doing it in the viewer would add a
+branch that only ever runs for fixtures, and would put factory metadata
+into the render path.
+
+The hull rather than two corners because skew turns a rectangle into a
+parallelogram. At 1.14 degrees on a 270pt-wide header that adds about 5pt
+of height. That is the honest answer for an axis-aligned box: it covers the
+ink, and it does not claim the ink is anywhere it is not.
+
+**How it is checked:** the scan mapping is implemented **twice** — once in
+the builder (Python) and once in the alignment checker
+(`dev/ground-truth-scan.mjs`) — and the check compares the drawn box
+against the checker's own expectation, so the two have to agree
+independently. A mutation that made the builder skip the transform failed
+only the two scanned scenarios, by 0.01–0.6px, and passed the ink check:
+the cross-implementation comparison was the only thing that caught it.
+
+---
+
+## D28 — The PDF preview is served by a module route, not by `GET /fhir/Binary/:id`
+
+**Status:** DECIDED — supersedes work order 11 requirement 4
+**Date:** 2026-09-22
+**Raised by:** work order 09 (write-back), during work order 11.
+
+**Numbering:** this entry was written as D24 on `feat/w2-ui` before the
+rebase, and D24 is taken on `main` by the locate work order (numbers,
+units, dates and flags are never near-matched). Following the convention
+that entry set: D23 and D25 are held by unmerged branches
+(`feat/w2-retrieval`, `feat/w2-writeback`), and D26 and D27 are this
+branch's own, so this takes **D28**, which collides with nothing known.
+Renumber at merge time if that order changes.
+
+**Decision:** The viewer fetches document bytes from
+`GET <module>/document?document_id=<int>`, a module route that checks the
+clinician's own session and the `patients`/`docs` ACL and streams the file
+server-side. `200` with `application/pdf`, `403` without the ACL, `404` for
+an unknown document. The token never reaches the browser, which was the
+part of requirement 4 that always mattered.
+
+**Rationale.** Requirement 4 named `GET /fhir/Binary/:id`. That route
+cannot serve a physician: for a non-patient request,
+`apis/routes/_rest_routes_fhir_r4_us_core_3_1_0.inc.php:285` runs
+`RestConfig::request_authorization_check($request, "admin", "users")`
+before `FhirDocumentRestController::downloadDocument()`, so it answers 403
+for exactly the users this feature exists for. The scope is not the
+obstacle — `user/Binary.read` is a real scope — the ACL is. This is the
+same shape as findings.md F-50: OpenEMR's authorization layer reasons about
+roles, not about "this patient", and a FHIR route inherits whatever
+coarse check was put on it.
+
+**Consequence for the viewer:** none, by construction. It asks a
+`DocumentSource` for an ArrayBuffer and does not know what is behind it;
+the module route and the fixture-mode file both satisfy the same two-method
+interface. The 403 and 404 cases are distinguished and say different
+things, because "you may not see this" and "this is gone" are different
+facts about a patient's record.

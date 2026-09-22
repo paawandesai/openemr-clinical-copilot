@@ -1,0 +1,420 @@
+/*!
+ * Clinical Co-Pilot: source-grounded answer view and PDF overlay.
+ *
+ * Every rule is under .ccw2-root so the chart page's own styles are not
+ * touched, and so the same stylesheet dresses the standalone fixture page.
+ * Colours come from custom properties with light defaults, which OpenEMR's
+ * dark themes can override by setting them on .ccw2-root.
+ *
+ * The three source types are told apart by colour AND by the word on the
+ * chip, never by colour alone: which kind of source a claim rests on is the
+ * thing invariant 3 protects, and roughly one man in twelve cannot read it
+ * out of a hue.
+ *
+ * @package   OpenEMR
+ * @link      https://www.open-emr.org
+ * @author    Paawan Desai <paawankdesai@gmail.com>
+ * @copyright Copyright (c) 2026 Paawan Desai <paawankdesai@gmail.com>
+ * @license   https://github.com/openemr/openemr/blob/master/LICENSE GNU General Public License 3
+ */
+
+.ccw2-root {
+  --ccw2-text: #182430;
+  --ccw2-muted: #5b6b7a;
+  --ccw2-border: #dfe4e9;
+  --ccw2-panel: #ffffff;
+  --ccw2-raised: #f4f6f8;
+  --ccw2-chart: #0e5f6e;
+  --ccw2-chart-bg: #e6f1f3;
+  --ccw2-document: #6b3fa0;
+  --ccw2-document-bg: #f0e9f9;
+  --ccw2-guideline: #7a5b00;
+  --ccw2-guideline-bg: #fdf3da;
+  --ccw2-warn: #9a5b00;
+  --ccw2-warn-bg: #fef3e0;
+  --ccw2-bad: #a3231f;
+  --ccw2-bad-bg: #fdecec;
+  --ccw2-good: #157a45;
+  --ccw2-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  color: var(--ccw2-text);
+}
+
+@media (prefers-color-scheme: dark) {
+  .ccw2-root:not([data-theme="light"]) {
+    --ccw2-text: #e7edf2;
+    --ccw2-muted: #9fadb9;
+    --ccw2-border: #29343f;
+    --ccw2-panel: #161e26;
+    --ccw2-raised: #10161c;
+    --ccw2-chart: #4fb3c4;
+    --ccw2-chart-bg: #17323a;
+    --ccw2-document: #b79be4;
+    --ccw2-document-bg: #241b33;
+    --ccw2-guideline: #f2c463;
+    --ccw2-guideline-bg: #302505;
+    --ccw2-warn: #f2b944;
+    --ccw2-warn-bg: #302505;
+    --ccw2-bad: #f3706b;
+    --ccw2-bad-bg: #341313;
+    --ccw2-good: #59d492;
+  }
+}
+
+.ccw2-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 1rem;
+  align-items: start;
+}
+
+@media (max-width: 62rem) {
+  .ccw2-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.ccw2-mono {
+  font-family: var(--ccw2-mono);
+  font-size: 0.82em;
+}
+
+.ccw2-prose {
+  margin: 0 0 0.75rem;
+}
+
+.ccw2-error {
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--ccw2-bad);
+  background: var(--ccw2-bad-bg);
+  border-radius: 6px;
+}
+
+/* --- sections ------------------------------------------------------------ */
+
+.ccw2-section {
+  border: 1px solid var(--ccw2-border);
+  border-left-width: 4px;
+  border-radius: 6px;
+  padding: 0.6rem 0.75rem;
+  margin-bottom: 0.75rem;
+  background: var(--ccw2-panel);
+}
+
+.ccw2-section--chart { border-left-color: var(--ccw2-chart); }
+.ccw2-section--document { border-left-color: var(--ccw2-document); }
+.ccw2-section--guideline { border-left-color: var(--ccw2-guideline); }
+.ccw2-section--unsupported { border-left-color: var(--ccw2-warn); }
+.ccw2-section--flags { border-left-color: var(--ccw2-muted); }
+
+.ccw2-section-heading {
+  margin: 0 0 0.25rem;
+  font-size: 0.95rem;
+  font-weight: 700;
+}
+
+.ccw2-section--chart .ccw2-section-heading { color: var(--ccw2-chart); }
+.ccw2-section--document .ccw2-section-heading { color: var(--ccw2-document); }
+.ccw2-section--guideline .ccw2-section-heading { color: var(--ccw2-guideline); }
+
+.ccw2-section-note,
+.ccw2-empty {
+  margin: 0 0 0.4rem;
+  font-size: 0.8rem;
+  color: var(--ccw2-muted);
+}
+
+.ccw2-claims {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.ccw2-claim + .ccw2-claim {
+  margin-top: 0.5rem;
+  padding-top: 0.5rem;
+  border-top: 1px dotted var(--ccw2-border);
+}
+
+.ccw2-claim-statement {
+  margin: 0 0 0.2rem;
+}
+
+/* --- chips --------------------------------------------------------------- */
+
+.ccw2-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+}
+
+.ccw2-chip {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.3rem;
+  border: 1px solid var(--ccw2-border);
+  border-radius: 999px;
+  padding: 0.1rem 0.55rem;
+  font-size: 0.75rem;
+  font-family: var(--ccw2-mono);
+  background: var(--ccw2-raised);
+  color: var(--ccw2-text);
+  cursor: pointer;
+}
+
+.ccw2-chip:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 1px;
+}
+
+/* The word, not only the colour. */
+.ccw2-chip-kind {
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-size: 0.65rem;
+  font-weight: 700;
+}
+
+.ccw2-chip--chart { border-color: var(--ccw2-chart); background: var(--ccw2-chart-bg); }
+.ccw2-chip--chart .ccw2-chip-kind { color: var(--ccw2-chart); }
+.ccw2-chip--document { border-color: var(--ccw2-document); background: var(--ccw2-document-bg); }
+.ccw2-chip--document .ccw2-chip-kind { color: var(--ccw2-document); }
+.ccw2-chip--guideline { border-color: var(--ccw2-guideline); background: var(--ccw2-guideline-bg); }
+.ccw2-chip--guideline .ccw2-chip-kind { color: var(--ccw2-guideline); }
+
+.ccw2-chip-detail {
+  flex-basis: 100%;
+  border-left: 3px solid var(--ccw2-border);
+  padding: 0.3rem 0 0.3rem 0.6rem;
+  margin: 0.2rem 0;
+}
+
+.ccw2-chip-meta {
+  display: block;
+  font-size: 0.75rem;
+  color: var(--ccw2-muted);
+}
+
+.ccw2-snippet {
+  margin: 0 0 0.25rem;
+  font-size: 0.85rem;
+  font-style: italic;
+}
+
+.ccw2-linklike {
+  background: none;
+  border: 0;
+  padding: 0;
+  color: inherit;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+/* --- unsupported --------------------------------------------------------- */
+
+.ccw2-claim--unsupported .ccw2-claim-statement { color: var(--ccw2-warn); }
+
+.ccw2-unsupported-reason,
+.ccw2-unverified {
+  margin: 0 0 0.2rem;
+  font-size: 0.8rem;
+}
+
+.ccw2-unverified-label {
+  font-weight: 700;
+  color: var(--ccw2-warn);
+}
+
+/* --- flag table ---------------------------------------------------------- */
+
+.ccw2-flags {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.8rem;
+}
+
+.ccw2-flags th,
+.ccw2-flags td {
+  text-align: left;
+  padding: 0.2rem 0.4rem;
+  border-bottom: 1px solid var(--ccw2-border);
+  vertical-align: top;
+}
+
+.ccw2-panel {
+  color: var(--ccw2-muted);
+  font-family: var(--ccw2-mono);
+  font-size: 0.75rem;
+}
+
+/* A row nobody printed a flag on is quieter — but still says, in words,
+   that nothing was reported. It is never styled as agreement. */
+.ccw2-flag-row--silent .ccw2-reported,
+.ccw2-flag-row--silent .ccw2-outcome {
+  color: var(--ccw2-muted);
+  font-style: italic;
+}
+
+.ccw2-reported--high,
+.ccw2-reported--low,
+.ccw2-reported--abnormal {
+  font-weight: 700;
+  color: var(--ccw2-bad);
+}
+
+.ccw2-outcome--agree { color: var(--ccw2-good); }
+
+.ccw2-outcome--disagree {
+  font-weight: 700;
+  color: var(--ccw2-bad);
+  background: var(--ccw2-bad-bg);
+}
+
+/* --- viewer -------------------------------------------------------------- */
+
+.ccw2-viewer {
+  border: 1px solid var(--ccw2-border);
+  border-radius: 6px;
+  background: var(--ccw2-panel);
+  padding: 0.5rem;
+  position: sticky;
+  top: 0.5rem;
+}
+
+.ccw2-viewer-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin-bottom: 0.4rem;
+}
+
+.ccw2-viewer-button {
+  border: 1px solid var(--ccw2-border);
+  background: var(--ccw2-raised);
+  color: var(--ccw2-text);
+  border-radius: 4px;
+  min-width: 1.9rem;
+  padding: 0.1rem 0.4rem;
+  cursor: pointer;
+}
+
+.ccw2-viewer-button:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.ccw2-viewer-page,
+.ccw2-viewer-zoom {
+  font-size: 0.8rem;
+  color: var(--ccw2-muted);
+  min-width: 5.5rem;
+}
+
+.ccw2-viewer-status {
+  margin: 0 0 0.4rem;
+  font-size: 0.8rem;
+  color: var(--ccw2-muted);
+}
+
+.ccw2-viewer-status--error {
+  color: var(--ccw2-bad);
+  font-weight: 700;
+}
+
+.ccw2-viewer-scroll {
+  position: relative;
+  overflow: auto;
+  max-height: 34rem;
+  background: var(--ccw2-raised);
+  border: 1px solid var(--ccw2-border);
+  border-radius: 4px;
+}
+
+/* The canvas and the box layer are the same size and share an origin: an
+   overlay rectangle is in CSS pixels from the page's top-left corner, which
+   is what bbox-overlay.mjs returns. */
+.ccw2-viewer-stage {
+  position: relative;
+  margin: 0 auto;
+}
+
+.ccw2-viewer-canvas {
+  display: block;
+}
+
+.ccw2-viewer-overlay {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.ccw2-box {
+  position: absolute;
+  border: 1.5px solid var(--ccw2-document);
+  border-radius: 2px;
+  background: rgba(107, 63, 160, 0.14);
+  box-sizing: border-box;
+}
+
+.ccw2-box--active {
+  border-width: 2.5px;
+  background: rgba(107, 63, 160, 0.26);
+  box-shadow: 0 0 0 3px rgba(107, 63, 160, 0.25);
+}
+
+/* A zero-width box is real data (an empty flag column). It is drawn as a
+   marker at its true position rather than widened into a claim about a
+   region the page does not have. */
+.ccw2-box--point {
+  border-style: dashed;
+  background: transparent;
+}
+
+/* --- upload -------------------------------------------------------------- */
+
+.ccw2-upload {
+  border: 1px solid var(--ccw2-border);
+  border-radius: 6px;
+  padding: 0.6rem 0.75rem;
+  margin-bottom: 0.75rem;
+  background: var(--ccw2-panel);
+}
+
+.ccw2-upload-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  align-items: end;
+}
+
+.ccw2-upload-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  font-size: 0.8rem;
+  color: var(--ccw2-muted);
+}
+
+.ccw2-upload-send {
+  border: 1px solid var(--ccw2-chart);
+  background: var(--ccw2-chart);
+  color: #fff;
+  border-radius: 4px;
+  padding: 0.25rem 0.9rem;
+  cursor: pointer;
+}
+
+.ccw2-upload-send:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.ccw2-upload-status {
+  margin: 0.4rem 0 0;
+  font-size: 0.8rem;
+  color: var(--ccw2-muted);
+}
+
+.ccw2-upload-status--error {
+  color: var(--ccw2-bad);
+  font-weight: 700;
+}

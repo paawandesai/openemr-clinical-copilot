@@ -1,0 +1,4 @@
+# Built by agent/scripts/build_ui_fixtures.py from the committed doc-factory
+# samples. Generated, reproducible, and about 1.5 MB of PDFs — rebuild it
+# rather than committing it.
+fixtures/

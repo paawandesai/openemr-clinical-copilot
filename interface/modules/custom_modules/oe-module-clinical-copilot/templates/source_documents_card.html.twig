@@ -1,0 +1,148 @@
+{#
+ # Clinical Co-Pilot: "Documents & Sources" card on the patient dashboard.
+ #
+ # The source-grounded answer view (work order 11): patient facts and
+ # guideline evidence in separate sections, citation chips, and a PDF page
+ # with the cited regions drawn on it.
+ #
+ # This template is markup only. It declares the three slots the JavaScript
+ # mounts into and hands it the endpoints and the translated strings; all of
+ # the behaviour is in public/assets/w2/.
+ #
+ # WIRING THIS UP IS NOT DONE HERE. The card is registered in
+ # src/Bootstrap.php and the three routes it names are PHP, both of which
+ # belong to the write-back work order. See docs/w2/ui-integration.md for
+ # the exact template variables this file expects and the route contracts
+ # the JavaScript depends on.
+ #
+ # TwigContainer environments do not autoescape: every value is escaped here.
+ #
+ # @package   OpenEMR
+ # @link      https://www.open-emr.org
+ # @author    Paawan Desai <paawankdesai@gmail.com>
+ # @copyright Copyright (c) 2026 Paawan Desai <paawankdesai@gmail.com>
+ # @license   https://github.com/openemr/openemr/blob/master/LICENSE GNU General Public License 3
+ #}
+{% extends "patient/card/card_base.html.twig" %}
+
+{% block content %}
+    <link rel="stylesheet" href="{{ stylesheetUrl|attr }}">
+    <div class="clinical-copilot-sources ccw2-root px-1" id="{{ (id ~ '_root')|attr }}"
+         data-pid="{{ pid|attr }}"
+         data-csrf-token="{{ csrfToken|attr }}"
+         data-document-endpoint="{{ documentEndpoint|attr }}"
+         data-upload-endpoint="{{ uploadEndpoint|attr }}"
+         data-status-endpoint="{{ statusEndpoint|attr }}"
+         data-worker-src="{{ pdfWorkerUrl|attr }}">
+
+        <div class="ccw2-upload-slot"></div>
+
+        <div class="ccw2-layout">
+            {# The answer, with its claims separated by where they came from. #}
+            <div class="ccw2-answer-slot" aria-live="polite">
+                <p class="ccw2-empty">{{ "Upload a lab report or an intake form, or ask a question, to see sourced answers here."|xlt }}</p>
+            </div>
+            {# The cited page, with the located regions drawn on it. #}
+            <div class="ccw2-viewer-slot ccw2-viewer"></div>
+        </div>
+
+        <p class="ccw2-section-note mt-2 mb-0">
+            {{ "Every statement above is shown with the source it rests on. Document values are shown with the page and region they were located on; a value that could not be located is listed as unsupported and is not a fact. Medications and allergies read from an uploaded form are never merged into this chart."|xlt }}
+        </p>
+    </div>
+
+    <script type="module">
+        import {mountFromDataset} from {{ scriptUrl|js_escape }};
+        import * as pdfjs from {{ pdfLibraryUrl|js_escape }};
+
+        mountFromDataset(document.getElementById({{ (id ~ '_root')|js_escape }}), pdfjs, {
+            chartHeading: {{ "Patient record — read from this chart"|xlj }},
+            chartEmpty: {{ "No chart facts in this answer."|xlj }},
+            documentHeading: {{ "From the uploaded document — not merged into the chart"|xlj }},
+            documentNote: {{ "These are what the document says. Medications and allergies on an intake form are never merged into the chart; where they differ from the record, both are shown for you to resolve."|xlj }},
+            documentEmpty: {{ "No document facts in this answer."|xlj }},
+            guidelineHeading: {{ "Guideline evidence — not about this patient"|xlj }},
+            guidelineNote: {{ "General guidance from a named source. It states nothing about the patient in front of you."|xlj }},
+            guidelineEmpty: {{ "No guideline evidence in this answer."|xlj }},
+            unsupportedHeading: {{ "Not supported by the document"|xlj }},
+            unsupportedNote: {{ "Values that could not be located on their page. These are disclosed rather than dropped, and none of them is a fact."|xlj }},
+            flagsHeading: {{ "Printed flags, checked against the values"|xlj }},
+            flagsNote: {{ "A blank flag column reports nothing; it is never read as normal. The check runs only where the laboratory actually printed a comparable flag."|xlj }},
+            columnTest: {{ "Test"|xlj }},
+            columnReported: {{ "Printed by the laboratory"|xlj }},
+            columnComputed: {{ "Computed from value and range"|xlj }},
+            columnOutcome: {{ "Check"|xlj }},
+            comparableCount: {{ "%comparable% of %rows% rows carried a comparable printed flag"|xlj }},
+            reasonNotLocated: {{ "read by the model, not found on the page"|xlj }},
+            reasonNotPresent: {{ "the document does not carry this field"|xlj }},
+            reasonIllegible: {{ "present as ink, not readable"|xlj }},
+            unverifiedValue: {{ "Unverified reading:"|xlj }},
+
+            {# D20: every ReportedFlag member has its own label, and the two
+             # that mean "nothing comparable was printed" say so. #}
+            flagNormal: {{ "Normal (printed)"|xlj }},
+            flagHigh: {{ "High (printed)"|xlj }},
+            flagLow: {{ "Low (printed)"|xlj }},
+            flagAbnormal: {{ "Abnormal (printed)"|xlj }},
+            flagNotReported: {{ "Not reported"|xlj }},
+            flagUnrecognised: {{ "Unrecognised glyph"|xlj }},
+            computedNormal: {{ "normal"|xlj }},
+            computedHigh: {{ "high"|xlj }},
+            computedLow: {{ "low"|xlj }},
+            computedAbnormal: {{ "abnormal"|xlj }},
+            computedIndeterminate: {{ "indeterminate"|xlj }},
+            outcomeAgree: {{ "agrees"|xlj }},
+            outcomeDisagree: {{ "DISAGREES"|xlj }},
+            outcomeNotReported: {{ "nothing printed to compare"|xlj }},
+            outcomeNotComputable: {{ "nothing to compute from"|xlj }},
+
+            page: {{ "p."|xlj }},
+            showSnippet: {{ "Show the passage"|xlj }},
+            hideSnippet: {{ "Hide the passage"|xlj }},
+            retrievedBy: {{ "Retrieved by"|xlj }},
+            unsupportedSchema: {{ "This answer is in a format this page cannot draw. Nothing is shown rather than something in the wrong place."|xlj }},
+
+            noDocument: {{ "Select a citation to see the page it came from."|xlj }},
+            loading: {{ "Loading the page..."|xlj }},
+            pageOf: {{ "Page %page% of %pages%"|xlj }},
+            previous: {{ "Previous page"|xlj }},
+            next: {{ "Next page"|xlj }},
+            zoomOut: {{ "Zoom out"|xlj }},
+            zoomIn: {{ "Zoom in"|xlj }},
+            forbidden: {{ "You do not have access to this document."|xlj }},
+            notFound: {{ "That document is no longer available."|xlj }},
+            unavailable: {{ "The document could not be fetched."|xlj }},
+            unreadable: {{ "The file could not be read as a PDF."|xlj }},
+            boxLabel: {{ "Cited region: %field%"|xlj }},
+            degenerate: {{ "This region has no width on the page - an empty column. It is marked, not widened."|xlj }},
+            rendererMismatch: {{ "The page was drawn by a renderer this overlay does not recognise, so no boxes are shown."|xlj }},
+
+            heading: {{ "Upload a document"|xlj }},
+            note: {{ "Extraction starts when the file is uploaded, not when you ask a question. A question asked before it finishes is answered as still processing."|xlj }},
+            kindLabel: {{ "Document type"|xlj }},
+            kindLabPdf: {{ "Lab report (PDF)"|xlj }},
+            kindIntakeForm: {{ "Intake form"|xlj }},
+            choose: {{ "Choose a file"|xlj }},
+            send: {{ "Upload"|xlj }},
+            noFile: {{ "No file chosen"|xlj }},
+            statusPending: {{ "Queued for extraction"|xlj }},
+            statusInProgress: {{ "Extracting..."|xlj }},
+            statusComplete: {{ "Extraction complete"|xlj }},
+            statusFailed: {{ "Extraction failed"|xlj }},
+            statusUnknown: {{ "Unknown extraction status"|xlj }},
+            uploading: {{ "Uploading..."|xlj }},
+            tooLarge: {{ "That file is larger than 25 MB."|xlj }},
+            notPdf: {{ "Only PDF files can be extracted."|xlj }},
+            uploadFailed: {{ "The upload was not accepted."|xlj }},
+            pollFailed: {{ "The extraction status could not be read. It may still be running."|xlj }},
+            pollTimedOut: {{ "Still extracting after five minutes. It has not failed; this page stopped asking."|xlj }},
+            reference: {{ "Reference:"|xlj }},
+            failureUnreadableFile: {{ "the file could not be read"|xlj }},
+            failureUnsupportedMimeType: {{ "that file type is not supported"|xlj }},
+            failureNoTextLayerAndOcrFailed: {{ "no text layer, and OCR could not read it"|xlj }},
+            failureModelOutputInvalid: {{ "the extractor returned something the schema rejects"|xlj }},
+            failurePageLimitExceeded: {{ "too many pages"|xlj }},
+            failureTimedOut: {{ "extraction timed out"|xlj }}
+        });
+    </script>
+{% endblock %}

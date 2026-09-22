@@ -23,17 +23,25 @@ Layout, and which invariant or decision each module answers to:
 | `workers`          | intake-extractor, evidence-retriever (D5), supervisor (D4) |
 | `writeback`        | D1's custom endpoint, ledger and idempotency (invariant 6) |
 | `answer`           | the final answer: claims, citations, separated lists     |
+| `answer_view`      | that answer plus the sources a UI needs to draw it        |
 | `factory_mapping`  | doc-factory ground truth -> schema instances             |
 
 They live under `app/models/` because that is where Week 1's contracts
 live (`claims.py`, `api.py`, `fhir_resources.py`, ...), in a `w2/`
-subpackage because there are eleven of them and Week 1's six are flat in
+subpackage because there are twelve of them and Week 1's six are flat in
 the parent. Nothing in Week 1 was moved.
 """
 
 from __future__ import annotations
 
 from app.models.w2.answer import FinalAnswer, GuidelineClaim, PatientFactClaim
+from app.models.w2.answer_view import (
+    ANSWER_VIEW_SCHEMA_VERSION,
+    AnswerView,
+    PageGeometry,
+    ReportedFlagView,
+    ViewerDocument,
+)
 from app.models.w2.base import W2Contract
 from app.models.w2.citations import (
     BBox,
@@ -124,10 +132,12 @@ from app.models.w2.writeback import (
 
 __all__ = [
     "ALLOWED_REASONS",
+    "ANSWER_VIEW_SCHEMA_VERSION",
     "COMPARABLE_REPORTED_FLAGS",
     "PATIENT_SOURCE_TYPES",
     "AbnormalFlag",
     "AbnormalFlagComputation",
+    "AnswerView",
     "BBox",
     "Citation",
     "ClinicalConcept",
@@ -167,12 +177,14 @@ __all__ = [
     "LabWriteBackResult",
     "LabWriteBackResultOutcome",
     "NumericLabValue",
+    "PageGeometry",
     "PatientFactClaim",
     "PerformingLab",
     "PresentedFact",
     "QualitativeLabValue",
     "ReferenceRange",
     "ReportedFlag",
+    "ReportedFlagView",
     "RetrievalMethod",
     "Route",
     "RoutingDecision",
@@ -182,6 +194,7 @@ __all__ = [
     "UnsupportedField",
     "UnsupportedFieldError",
     "UnsupportedReason",
+    "ViewerDocument",
     "W2Contract",
     "WriteBackDocument",
     "WriteOutcome",
