@@ -2026,11 +2026,17 @@ metabolic panel is 14 analytes.
 
 ---
 
-## D-NEXT (a) — The gate's rule order, and a Wilson floor that is a function of n
+## D28 — The gate's rule order, and a Wilson floor that is a function of n
 
 **Status:** DECIDED
 **Date:** 2026-09-22
-**Number assigned at merge.** Recorded from work order 10 (`feat/w2-eval-gate`).
+**Recorded from** work order 10 (`feat/w2-eval-gate`).
+
+**Numbering, for this entry and D29-D34.** The next free number against
+`main` after D24 is D25. D25, D26 and D27 are taken by unmerged branches —
+`feat/w2-retrieval` (D23-D25) and `feat/w2-ui` (D23-D27) — so this branch
+takes the block **D28-D34** and collides with none of them. Same convention
+D24 used and the same caveat: renumber at merge time if that order changes.
 
 **Decision:** `python -m evals.w2.gate` applies five rules in this fixed
 order, and the exit code is the verdict (0 pass, 1 blocked, 2 the gate could
@@ -2078,11 +2084,11 @@ impossible to keep.
 
 ---
 
-## D-NEXT (b) — The judge is a different Claude tier; `temperature 0` is not expressible
+## D29 — The judge is a different Claude tier; `temperature 0` is not expressible
 
-**Status:** DECIDED — its `known_limitation` paragraph is SUPERSEDED by D-NEXT (e)
+**Status:** DECIDED — its `known_limitation` paragraph is SUPERSEDED by D32
 **Date:** 2026-09-22
-**Number assigned at merge.** Recorded from work order 10.
+**Recorded from** work order 10.
 
 **Decision:** the judge tier runs `claude-haiku-4-5`, pinned to served version
 `claude-haiku-4-5-20251001`, with thinking off, a schema-constrained
@@ -2135,56 +2141,51 @@ begin with.
 
 ---
 
-## D-NEXT (c) — Box agreement is compared differently by page quality, and numerics are matched exactly
+## D30 — Box agreement is compared differently by page quality
 
 **Status:** DECIDED
 **Date:** 2026-09-22
 **Raised by:** the locate spike (07), during work order 10.
-**Number assigned at merge.**
 
-**Decision:** an eval that compares an extractor's bounding box against the
-doc-factory's ground truth uses a tolerance chosen by page quality.
+**Scope:** this is an **eval-side tolerance**, not a locate policy. What
+counts as a correct match is D24 (numbers, units, dates and lab flags are
+never near-matched); what counts as the *same box* is here.
 
-- **Clean page:** raw `IoU >= 0.5`. Both boxes come from the same PyMuPDF font
-  metrics, so they are directly comparable.
+**Decision:** an eval that compares a located bounding box against the
+doc-factory's ground truth chooses its tolerance by page quality.
+
+- **Clean page:** raw `IoU >= 0.5`. Both boxes come from the same PyMuPDF
+  font metrics, so they are directly comparable.
 - **Scanned page:** map the candidate box back through the ground truth's
-  `transform.pages[i].pdf_points_to_image_px` and require its **centre to fall
-  inside the ground-truth box** — equivalently, horizontal `IoU >= 0.9`. Raw
-  IoU is not used.
-
-**Numeric fields are matched exactly.** The fuzzy tier that makes OCR usable
-for words — edit distance, the 0/O 1/l 5/S 8/B confusion set, leading and
-trailing character slack — is excluded for numerics. A one-character-off
-numeric is `unlocated`.
+  `transform.pages[i].pdf_points_to_image_px` and require its **centre to
+  fall inside the ground-truth box** — equivalently, horizontal
+  `IoU >= 0.9`. Raw IoU is not used.
 
 **Rationale.** The spike measured Tesseract's boxes against the factory's on
-correct output: IoU median ~0.64, horizontal IoU ~0.95. Tesseract's boxes are
-ink-tight and the factory's are font-metric, so the vertical disagreement is
-the difference between the glyphs and the line box, not an error. A raw-IoU
-assertion there fails on output that is right, and an assertion that fails on
-correct output does not survive: it gets loosened until it tests nothing.
+*correct* output: IoU median ~0.64 against horizontal IoU ~0.95. Tesseract's
+boxes are ink-tight and the factory's are font-metric, so the vertical
+disagreement is the difference between the glyphs and the line box — not an
+error. A raw-IoU floor of 0.5 on a scan therefore goes red on work that is
+right, and an assertion that goes red on right answers does not get fixed.
+It gets lowered until it passes everything, and then it is testing nothing.
 
-Numerics are exact for the opposite reason. Attaching a box to a misread
-number is worse than finding nothing, because it converts the one signal that
-says "code could not place this" into positive evidence that it is on the
-page — a wrong lab value presented as a located fact with a citation a
-reviewer can click and confirm. Invariant 4 exists to make an unlocatable
-value unsupported; a fuzzy numeric match is a hole straight through it.
+D24's own evidence measures the same quantity from the other side: the share
+of located boxes over the right ink (`IoU >= 0.5`) rose 65.6% -> 70.4% on the
+heavy scan under the exact-only policy. That is a useful population
+statistic and it is not a per-case assertion, which is why this entry exists
+separately.
 
 **Where it is recorded:** `agent/evals/w2/rubrics/rubrics.json` under
-`locate_result` (`tolerance` and `numerics_are_exact`), and in the case specs
-for W2-C1 (clean), W2-C2 (scanned) and W2-C7 (the one-character-off numeric,
-critical). All three of those are `pending_sut`: the locate step does not
-exist yet, so the rule is written down before the code that would otherwise
-pick a tolerance by trying one.
+`locate_result.tolerance`, and in the case specs for W2-C1 (clean) and
+W2-C2/W2-C9 (scanned).
 
 ---
 
-## D-NEXT (d) — The gate has a fourth exit code, and `0` no longer means "nothing was checked"
+## D31 — The gate has a fourth exit code, and `0` no longer means "nothing was checked"
 
 **Status:** DECIDED
 **Date:** 2026-09-22
-**Number assigned at merge.** Recorded from work order 10, follow-up 2.
+**Recorded from** work order 10, follow-up 2.
 
 **Decision:** `python -m evals.w2.gate` exits:
 
@@ -2231,14 +2232,13 @@ reads, not buried in a config file.
 
 ---
 
-## D-NEXT (e) — A meta-check fixture is admitted by measurement, over five rounds
+## D32 — A meta-check fixture is admitted by measurement, over five rounds
 
-**Status:** DECIDED — its admission rule is SUPERSEDED by D-NEXT (g)
+**Status:** DECIDED — its admission rule is SUPERSEDED by D34
 **Date:** 2026-09-22
-**Supersedes:** the `known_limitation` paragraph of D-NEXT (b), and only that
-paragraph. The rest of (b) — the judge tier, the version pin, the cache key,
+**Supersedes:** the `known_limitation` paragraph of D29, and only that
+paragraph. The rest of D29 — the judge tier, the version pin, the cache key,
 the unavailability of `temperature 0` — stands unchanged.
-**Number assigned at merge.**
 
 **Decision:** a fixture enters category M only if both hold:
 
@@ -2256,7 +2256,7 @@ On that rule the set is eight: `fc_pass`, `fc_fail`, `sr_pass`, `sr_fail`,
 `fc_fail_added_clinical_judgement`, each measured at 5/5 rounds and 15/15
 votes under the committed prompt and `pass` under a generic rubric.
 
-**What D-NEXT (b) got wrong, and why.** (b) recorded that the
+**What D29 got wrong, and why.** It recorded that the
 `factually_consistent` half of the meta-check could not be closed: every
 candidate that discriminated appeared to sit on the model's decision boundary
 and to be unstable there. That conclusion was drawn from **single rounds of
@@ -2281,47 +2281,58 @@ informative:**
 
 ---
 
-## D-NEXT (f) — Exact-only matching covers four value classes, not just numerics
+## D33 — What the gate asserts about D24, and where
 
 **Status:** DECIDED
 **Date:** 2026-09-22
-**Extends** D-NEXT (c), which stated the rule for numerics only. (c) is not
-superseded: everything in it still holds.
-**Number assigned at merge.**
 
-**Decision:** the fuzzy locate tier is excluded for **numeric, unit, date and
-lab-flag** values, not numerics alone — matching
-`EXACT_ONLY_VALUE_CLASSES = {NUMERIC, UNIT, DATE, FLAG}` in
-`app/extraction/locate.py` on `feat/w2-locate`. The exclusion holds on any
-page, under any `FuzzyMode`, including `ALWAYS`. Value-preserving
-normalisation (`5` / `5.0` / `5.00`, unit spelling) is unaffected: the line is
-whether two strings denote the same thing, not whether they are spelled the
-same way.
+**Scope:** **D24 on `main` is the authoritative exact-only value-class
+policy.** This entry does not restate it, extend it, or vary it. It records
+only the eval-side half that D24 does not cover: which cases assert the
+policy, over what, and why those assertions are shaped the way they are.
+If the two ever disagree, D24 wins and these cases are wrong.
 
-W2-C7 asserts the numeric case against one fixture; **W2-C8** asserts the rule
-across all four classes and across the tier order, which is where it would be
-re-introduced. **W2-C9** carries the scanned-page box tolerance from (c) as a
-case of its own: centre-inside-ground-truth after the recorded transform, or
-horizontal IoU >= 0.9; raw IoU >= 0.5 on clean pages only (W2-C1).
+**Decision:** two pending cases carry the assertions.
 
-**Rationale.** A near miss changes the meaning in all four classes, not just
-in numbers. `mg/dL` read as `mg/dt` is a unit that does not exist; matched
-fuzzily it could land on a neighbouring column's unit. A collection date one
-digit out attaches a result to the wrong encounter. A flag `N` read as `H` —
-or the reverse — is the abnormality signal itself, and on Synthea data the lab
-PDF is the only place that signal exists. In every case the damage is not the
-misread but the bbox that follows it: a located fact with a citation a
-reviewer can click and confirm, built on a value that is not on the page.
+**W2-C8** asserts the policy across **all four classes and the whole tier
+order**, not against one fixture: a one-character-off candidate in a
+numeric, unit, date or flag field is located by no tier — not `exact`, not
+`numeric`, not `number_only`, and not `fuzzy` even under
+`FuzzyMode.ALWAYS`. It drives `locate()` directly rather than going through
+an extractor, because the tier order is where the policy would be
+re-introduced and a test that only exercises the default path would not see
+it. It is `critical`.
+
+**W2-C9** asserts D30's scanned-page box tolerance: centre-inside after the
+recorded transform, or horizontal `IoU >= 0.9`. Not `critical` — a
+tolerance that is too tight is a false alarm, not a missed leak.
+
+**W2-C7** predates both and stays: it is the single-fixture numeric case,
+kept because a named, readable example of the failure is worth having beside
+the exhaustive one. It is `critical`.
+
+**Rationale for asserting it at all, given D24 is already tested.**
+`agent/tests/test_locate_measurement.py` holds D24's thresholds against the
+locate module. That is the right place for it and it is not the same
+guarantee: those tests move with the branch that owns the module, and the
+gate's job is to notice when a *later* branch quietly relaxes something an
+earlier one established. The measurement suite says the policy works today;
+the gate says nobody removed it. Both, or neither is worth much.
+
+**Known overlap, stated rather than resolved.** W2-C8 and
+`test_locate_measurement.py` will fail together on the same regression. That
+is duplication and it is deliberate: `agent/tests/` is not gated and the
+cases are, so the duplicate is the copy an implementation session cannot
+weaken.
 
 ---
 
-## D-NEXT (g) — Stability and discrimination are measured separately, both over five rounds
+## D34 — Stability and discrimination are measured separately, both over five rounds
 
 **Status:** DECIDED
 **Date:** 2026-09-22
-**Supersedes:** the admission rule in D-NEXT (e). The fixture list and the
-rejected candidates recorded there stand, with one correction noted below.
-**Number assigned at merge.**
+**Supersedes:** the admission rule in D32. The fixture list and the rejected
+candidates recorded there stand, with one correction noted below.
 
 **Decision:** a meta-check fixture is admitted on one condition, and the *set*
 must satisfy a second:
@@ -2343,11 +2354,10 @@ prompt, and it is labelled so that nobody reads it as if it did.
 | `sr_fail`, `sr_fail_over_refusal` | discriminating (sr) |
 | `fc_pass`, `sr_pass`, `fc_fail`, `fc_fail_invented_unit_conversion` | alive-checks |
 
-**What D-NEXT (e) got wrong.** (e) stated a single two-part admission rule and
+**What D32 got wrong.** D32 stated a single two-part admission rule and
 claimed three discriminating `factually_consistent` fixtures. It measured
-*stability* over five rounds and *discrimination* over one — the same error it
-was written to correct, made on the other axis.
-`fc_fail_invented_unit_conversion` passed that one-round test and does not
+*stability* over five rounds and *discrimination* over one — the same error it was
+written to correct, made on the other axis. `fc_fail_invented_unit_conversion` passed that one-round test and does not
 hold up: a generic rubric grades it fail on two rounds in five, 7/15 votes. It
 stays in the set as an alive-check, because it is stable and because mg/dL vs
 mmol/L is a documented misread this suite exists to catch, but it is not a

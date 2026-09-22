@@ -8,7 +8,7 @@
     "scenario_ids": [
       "lab-scanned-heavy-abnormal-002"
     ],
-    "note": "Needs the locate step. Feed it a candidate numeric that differs from the page by one character — `111` against a drawn `11.1`, `70` against `76`, `3.1` against `8.1`. The fuzzy matching tier that makes OCR usable for words must be excluded for numeric fields: no edit-distance tolerance, no digit confusion set (0/O, 1/l, 5/S, 8/B), no leading- or trailing-character slack. What is NOT excluded, because it preserves the value: the numeric-form normalisation work order 07 already plans (`5` / `5.0` / `5.00`) and unit-spelling normalisation. The line is whether the candidate and the page denote the same number, not whether they are spelled the same way."
+    "note": "Needs the locate step. D24 is the policy — numbers, units, dates and lab flags are matched exactly or not at all — and this case is the single named numeric example of it (D33). Feed locate() a candidate that differs from the page by one character: `111` against a drawn `11.1`, `70` against `76`, `3.1` against `8.1`. No edit-distance tolerance, no digit confusion set (0/O, 1/l, 5/S, 8/B), no leading- or trailing-character slack. What is NOT excluded, because it preserves the value: the numeric-form normalisation the locate step already does (`5` / `5.0` / `5.00`) and unit-spelling normalisation. The line is whether the candidate and the page denote the same number, not whether they are spelled the same way."
   },
   "expected": "A one-character-off numeric value is NOT located on a scanned page. It comes back unlocated and is disclosed as unsupported, even where a box on the page is a near match and the fuzzy tier would accept it for a word.",
   "assertions": [
