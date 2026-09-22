@@ -42,7 +42,10 @@ def test_the_committed_artefacts_are_current() -> None:
     assert drifted == [], "regenerate with: cd agent && python scripts/export_w2_schemas.py"
 
 
-@pytest.mark.parametrize("name", ["lab_pdf", "intake_form"])
+@pytest.mark.parametrize(
+    "name",
+    ["lab_pdf", "intake_form", "lab_writeback_request", "lab_writeback_response"],
+)
 def test_each_schema_is_valid_json_and_self_describing(name: str) -> None:
     path = REPO_ROOT / "docs" / "w2" / "schemas" / f"{name}.schema.json"
     document = json.loads(path.read_text(encoding="utf-8"))
@@ -59,6 +62,34 @@ def test_the_shared_contract_pieces_appear_in_both(name: str) -> None:
     definitions = json.loads(path.read_text(encoding="utf-8"))["$defs"]
     for shared in ("Citation", "BBox", "FieldStatus", "SourceType", "SourceDocument"):
         assert shared in definitions
+
+
+def test_the_write_back_request_schema_requires_the_extractor_version() -> None:
+    """
+    The schema is what a non-Python consumer checks against, and the field
+    the endpoint now refuses a request without has to be visible there.
+    """
+    path = REPO_ROOT / "docs" / "w2" / "schemas" / "lab_writeback_request.schema.json"
+    document = json.loads(path.read_text(encoding="utf-8"))
+    assert "extractor_version" in document["required"]
+    assert document["properties"]["extractor_version"]["minLength"] == 1
+    # D22: shape only. The rule that extraction_id is document_extraction_id
+    # of (sha3_512, extractor_version) cannot be expressed here and lives in
+    # the model validator and in the PHP endpoint.
+    assert "document_extraction_id" not in json.dumps(document["properties"]["extraction_id"])
+
+
+def test_the_write_back_schemas_carry_the_key_shaped_fields() -> None:
+    directory = REPO_ROOT / "docs" / "w2" / "schemas"
+    request = json.loads((directory / "lab_writeback_request.schema.json").read_text("utf-8"))
+    response = json.loads((directory / "lab_writeback_response.schema.json").read_text("utf-8"))
+
+    result = request["$defs"]["LabWriteBackResult"]
+    assert {"idempotency_key", "extraction_id", "bbox", "page"} <= set(result["required"])
+
+    outcome = response["$defs"]["LabWriteBackResultOutcome"]
+    assert {"procedure_report_id", "procedure_result_id", "outcome"} <= set(outcome["required"])
+    assert set(response["$defs"]["WriteOutcome"]["enum"]) == {"created", "duplicate_ignored"}
 
 
 def test_generic_definitions_are_named_readably() -> None:

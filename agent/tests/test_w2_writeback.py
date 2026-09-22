@@ -10,6 +10,7 @@ can differ.
 
 from __future__ import annotations
 
+import json
 import re
 from datetime import date, datetime
 
@@ -39,6 +40,7 @@ OTHER_DIGEST = "b27ac9417c2ce8a3" + "4" * 112
 COLLECTED = date(2026, 8, 30)
 PATIENT = "a2c373ec-57bf-41cb-8767-94410dcf663d"
 CORRELATION_ID = "00000000-0000-4000-8000-000000000000"
+EXTRACTOR_VERSION = "vlm-1.0"
 BBOX = BBox(page=1, x0=270.437, y0=256.355, x1=280.0, y1=268.171)
 
 
@@ -80,7 +82,10 @@ def request(results: list[LabWriteBackResult] | None = None) -> LabWriteBackRequ
             content_base64="JVBERi0=",
         ),
         results=results if results is not None else [result()],
-        extraction_id=document_extraction_id(document_sha3_512=DIGEST, extractor_version="vlm-1.0"),
+        extraction_id=document_extraction_id(
+            document_sha3_512=DIGEST, extractor_version=EXTRACTOR_VERSION
+        ),
+        extractor_version=EXTRACTOR_VERSION,
         correlation_id=CORRELATION_ID,
     )
 
@@ -273,6 +278,81 @@ def test_a_retry_may_name_an_already_stored_document() -> None:
 
 def test_only_lab_documents_are_written_back() -> None:
     assert request().document_kind is DocumentKind.LAB_PDF
+
+
+# -- the extractor version --------------------------------------------------
+
+
+def test_a_request_states_which_extractor_produced_it() -> None:
+    """
+    `LabWriteBackLedgerRow` has always required `extractor_version`, and
+    until now nothing on the request could supply it — the endpoint had to
+    invent one or leave the column empty. Required here, with no default,
+    for the same reason the ledger requires it: an unstated extractor makes
+    every run look like the same run when a regression has to be traced back
+    to one.
+    """
+    payload = request().model_dump(mode="json")
+    del payload["extractor_version"]
+
+    with pytest.raises(ValidationError, match="extractor_version"):
+        LabWriteBackRequest.model_validate_json(json.dumps(payload))
+
+
+def test_an_empty_extractor_version_is_not_a_version() -> None:
+    payload = request().model_dump(mode="json")
+    payload["extractor_version"] = ""
+
+    with pytest.raises(ValidationError):
+        LabWriteBackRequest.model_validate_json(json.dumps(payload))
+
+
+def test_the_run_id_must_be_this_document_extracted_by_this_extractor() -> None:
+    """
+    With the extractor version on the request, `extraction_id` stops being
+    an assertion and becomes checkable: it is `document_extraction_id` of
+    the two things the request already carries. A caller that changes the
+    extractor without re-deriving the id is caught here rather than writing
+    rows the ledger attributes to the wrong run.
+    """
+    payload = request().model_dump(mode="json")
+    payload["extractor_version"] = "vlm-2.0"
+
+    with pytest.raises(ValidationError, match="not this document extracted by this"):
+        LabWriteBackRequest.model_validate_json(json.dumps(payload))
+
+
+def test_re_deriving_the_run_id_makes_the_new_extractor_valid() -> None:
+    payload = request().model_dump(mode="json")
+    payload["extractor_version"] = "vlm-2.0"
+    payload["extraction_id"] = document_extraction_id(
+        document_sha3_512=DIGEST, extractor_version="vlm-2.0"
+    )
+
+    parsed = LabWriteBackRequest.model_validate_json(json.dumps(payload))
+    assert parsed.extractor_version == "vlm-2.0"
+
+
+def test_the_request_can_fill_the_ledger_rows_extractor_version() -> None:
+    """The gap this closes: every ledger column now has a request field behind it."""
+    sent = request()
+    row = LabWriteBackLedgerRow(
+        idempotency_key=sent.results[0].idempotency_key,
+        extraction_id=sent.results[0].extraction_id,
+        document_sha3_512=sent.document.sha3_512,
+        document_id=2474,
+        patient_uuid=sent.patient_uuid,
+        test_code=sent.results[0].test_code,
+        collection_date=sent.results[0].collection_date,
+        page=sent.results[0].page,
+        bbox=sent.results[0].bbox,
+        procedure_order_id=8198,
+        procedure_report_id=762,
+        procedure_result_id=14849,
+        written_at=datetime(2026, 9, 22, 16, 12, 58),
+        extractor_version=sent.extractor_version,
+    )
+    assert row.extractor_version == EXTRACTOR_VERSION
 
 
 # -- what the column can hold -----------------------------------------------

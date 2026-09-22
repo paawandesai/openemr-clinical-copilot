@@ -1,0 +1,438 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://clinical-copilot.invalid/schemas/w2-contracts/lab_writeback_request/1.0.0",
+  "title": "LabWriteBackRequest",
+  "$defs": {
+    "AbnormalFlag": {
+      "description": "What a result is, relative to its reference range.\n\nFive members, not four, because `indeterminate` is a real answer \u2014 see\nthe module docstring on censored values. `openemr_abnormal_code()` maps\nthe four decidable ones onto OpenEMR's `proc_res_abnormal` list\n(`no | yes | high | low`, spike \u00a79) and refuses to map the fifth,\nbecause there is no column value that means \"we could not tell\" and\nwriting `no` would be a lie with a patient in it.",
+      "enum": [
+        "normal",
+        "high",
+        "low",
+        "abnormal",
+        "indeterminate"
+      ],
+      "title": "AbnormalFlag",
+      "type": "string"
+    },
+    "BBox": {
+      "additionalProperties": false,
+      "description": "A rectangle on a page, in PDF points.\n\nCoordinate convention, matching the doc-factory's recorded convention\nexactly (`agent/evals/w2/factory/groundtruth.py` COORDINATE_CONVENTION)\nso that ground truth and extractor output are directly comparable:\norigin top-left, y increasing downward \u2014 PyMuPDF page space, on the\noriginal clean layout rather than on a degraded scan.\n\n`x1 >= x0` and `y1 >= y0`, not `>`: a zero-width box is real data. The\nfactory emits one for every unflagged lab result (an empty flag column\nrenders as `[306.0, 256.398, 306.0, 268.24]`), and rejecting it would\nmake the contract unable to describe a normal lab row.",
+      "properties": {
+        "page": {
+          "description": "1-based page number within the source document.",
+          "minimum": 1,
+          "title": "Page",
+          "type": "integer"
+        },
+        "x0": {
+          "description": "Left edge, PDF points from the page's left edge.",
+          "minimum": 0,
+          "title": "X0",
+          "type": "number"
+        },
+        "y0": {
+          "description": "Top edge, PDF points from the page's top edge (y down).",
+          "minimum": 0,
+          "title": "Y0",
+          "type": "number"
+        },
+        "x1": {
+          "description": "Right edge; >= x0.",
+          "minimum": 0,
+          "title": "X1",
+          "type": "number"
+        },
+        "y1": {
+          "description": "Bottom edge; >= y0.",
+          "minimum": 0,
+          "title": "Y1",
+          "type": "number"
+        }
+      },
+      "required": [
+        "page",
+        "x0",
+        "y0",
+        "x1",
+        "y1"
+      ],
+      "title": "BBox",
+      "type": "object"
+    },
+    "Comparator": {
+      "description": "The censoring a lab report prints in front of a number. Values match\nFHIR's `Quantity.comparator` value set, because a written-back result\nsurfaces as `Observation.valueQuantity` (D1, spike \u00a75).",
+      "enum": [
+        "<",
+        "<=",
+        ">",
+        ">="
+      ],
+      "title": "Comparator",
+      "type": "string"
+    },
+    "DocumentKind": {
+      "description": "The two document kinds Week 2 extracts. Closed, because the supervisor\nroutes on it and the write-back path accepts exactly one of them: D2\nforbids intake data reaching the chart, and the type is where that is\nenforced (`LabWriteBackRequest` takes LAB_PDF and nothing else).",
+      "enum": [
+        "lab_pdf",
+        "intake_form"
+      ],
+      "title": "DocumentKind",
+      "type": "string"
+    },
+    "LabValue": {
+      "discriminator": {
+        "mapping": {
+          "numeric": "#/$defs/NumericLabValue",
+          "qualitative": "#/$defs/QualitativeLabValue"
+        },
+        "propertyName": "kind"
+      },
+      "oneOf": [
+        {
+          "$ref": "#/$defs/NumericLabValue"
+        },
+        {
+          "$ref": "#/$defs/QualitativeLabValue"
+        }
+      ]
+    },
+    "LabWriteBackResult": {
+      "additionalProperties": false,
+      "description": "One lab value to write, with everything the four-table insert needs and\neverything the ledger needs to trace it back to a page.\n\n`test_code` and `test_name` are both required because the spike found\n`procedure_result.result_code` and `result_text` are both required or\n\"the code is dropped and replaced with a null-flavor\" (\u00a79).\n\n`abnormal` may not be `indeterminate`: `openemr_abnormal_code()` refuses\nto map it, because `procedure_result.abnormal` has no value meaning \"we\ncould not tell\" and writing `no` would put a false normal in a chart.",
+      "properties": {
+        "test_code": {
+          "description": "LOINC code -> procedure_order_code.",
+          "minLength": 1,
+          "title": "Test Code",
+          "type": "string"
+        },
+        "test_name": {
+          "description": "-> procedure_result.result_text.",
+          "minLength": 1,
+          "title": "Test Name",
+          "type": "string"
+        },
+        "value": {
+          "$ref": "#/$defs/LabValue"
+        },
+        "unit": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Unit"
+        },
+        "reference_range": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ReferenceRange"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "collection_date": {
+          "format": "date",
+          "title": "Collection Date",
+          "type": "string"
+        },
+        "reported_at": {
+          "anyOf": [
+            {
+              "format": "date-time",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "-> procedure_report.date_report, which becomes both `effectiveDateTime` and `meta.lastUpdated` on the Observation (spike \u00a79).",
+          "title": "Reported At"
+        },
+        "abnormal": {
+          "$ref": "#/$defs/AbnormalFlag"
+        },
+        "page": {
+          "description": "Page of the source document this value came from.",
+          "minimum": 1,
+          "title": "Page",
+          "type": "integer"
+        },
+        "bbox": {
+          "$ref": "#/$defs/BBox",
+          "description": "Where on that page \u2014 D2's provenance requirement."
+        },
+        "idempotency_key": {
+          "description": "D1's UNIQUE key. Required, with no default: invariant 6 has no exceptions, and a default would be one.",
+          "minLength": 1,
+          "title": "Idempotency Key",
+          "type": "string"
+        },
+        "extraction_id": {
+          "description": "-> procedure_result.comments -> Observation.note[0].text.",
+          "pattern": "^w2x-[0-9a-f]{32}$",
+          "title": "Extraction Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "test_code",
+        "test_name",
+        "value",
+        "collection_date",
+        "abnormal",
+        "page",
+        "bbox",
+        "idempotency_key",
+        "extraction_id"
+      ],
+      "title": "LabWriteBackResult",
+      "type": "object"
+    },
+    "NumericLabValue": {
+      "additionalProperties": false,
+      "description": "A number, possibly censored: `89`, `<5`, `>1000`.",
+      "properties": {
+        "kind": {
+          "const": "numeric",
+          "default": "numeric",
+          "title": "Kind",
+          "type": "string"
+        },
+        "value": {
+          "title": "Value",
+          "type": "number"
+        },
+        "comparator": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Comparator"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "None for an exact reading; set for a censored one such as `<5`."
+        }
+      },
+      "required": [
+        "value"
+      ],
+      "title": "NumericLabValue",
+      "type": "object"
+    },
+    "QualitativeLabValue": {
+      "additionalProperties": false,
+      "description": "A term rather than a number: `positive`, `not detected`, `trace`.",
+      "properties": {
+        "kind": {
+          "const": "qualitative",
+          "default": "qualitative",
+          "title": "Kind",
+          "type": "string"
+        },
+        "text": {
+          "minLength": 1,
+          "title": "Text",
+          "type": "string"
+        }
+      },
+      "required": [
+        "text"
+      ],
+      "title": "QualitativeLabValue",
+      "type": "object"
+    },
+    "ReferenceRange": {
+      "additionalProperties": false,
+      "description": "The interval a result is judged against.\n\n`low`/`high` are the machine-comparable form; `text` is what the report\nactually printed, kept verbatim because it is what a citation quotes and\nbecause plenty of ranges (`Negative`, `See note`) have no numeric form\nat all. At least one of the three is required \u2014 an all-None reference\nrange is an extraction bug wearing a valid object's clothes.",
+      "properties": {
+        "low": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Inclusive lower bound.",
+          "title": "Low"
+        },
+        "high": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Inclusive upper bound.",
+          "title": "High"
+        },
+        "text": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "The range exactly as printed, e.g. `70 - 99` or `Negative`.",
+          "title": "Text"
+        },
+        "unit": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "The unit the bounds are in.",
+          "title": "Unit"
+        }
+      },
+      "title": "ReferenceRange",
+      "type": "object"
+    },
+    "WriteBackDocument": {
+      "additionalProperties": false,
+      "description": "The document half of the request.\n\nExactly one of `content_base64` and `existing_document_id`: a first\nattempt sends the bytes, a retry after a partial failure names the\ndocument OpenEMR already stored. `sha3_512` is required either way \u2014 it\nis the document idempotency key and the first component of every\nresult's key, so a request without it could not be made idempotent at\nall (invariant 6).",
+      "properties": {
+        "filename": {
+          "minLength": 1,
+          "title": "Filename",
+          "type": "string"
+        },
+        "mime_type": {
+          "description": "Check by content before sending: a type outside OpenEMR's `files_white_list` is rejected as an empty 404 with no error (spike \u00a710.6).",
+          "minLength": 1,
+          "title": "Mime Type",
+          "type": "string"
+        },
+        "sha3_512": {
+          "pattern": "^[0-9a-f]{128}$",
+          "title": "Sha3 512",
+          "type": "string"
+        },
+        "byte_length": {
+          "minimum": 1,
+          "title": "Byte Length",
+          "type": "integer"
+        },
+        "content_base64": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "The file, base64-encoded. Omit when retrying against an id.",
+          "title": "Content Base64"
+        },
+        "existing_document_id": {
+          "anyOf": [
+            {
+              "minimum": 1,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "`documents.id` of a file already stored for this patient.",
+          "title": "Existing Document Id"
+        },
+        "category_path": {
+          "default": "/Categories/Lab_Report",
+          "description": "OpenEMR document category the file is filed under.",
+          "minLength": 1,
+          "title": "Category Path",
+          "type": "string"
+        }
+      },
+      "required": [
+        "filename",
+        "mime_type",
+        "sha3_512",
+        "byte_length"
+      ],
+      "title": "WriteBackDocument",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Document plus lab results in; real ids out (D1).\n\nThe endpoint is transactional: the document and the whole\n`procedure_order -> ... -> procedure_result` chain are written together,\nso a partial write cannot leave results pointing at a document that was\nnever stored.",
+  "properties": {
+    "patient_uuid": {
+      "description": "FHIR Patient id. The endpoint resolves it to a pid; callers never send one.",
+      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
+      "title": "Patient Uuid",
+      "type": "string"
+    },
+    "document_kind": {
+      "$ref": "#/$defs/DocumentKind",
+      "default": "lab_pdf",
+      "description": "Lab reports only. See the module docstring on D2."
+    },
+    "document": {
+      "$ref": "#/$defs/WriteBackDocument"
+    },
+    "results": {
+      "items": {
+        "$ref": "#/$defs/LabWriteBackResult"
+      },
+      "minItems": 1,
+      "title": "Results",
+      "type": "array"
+    },
+    "extraction_id": {
+      "description": "The extraction run these results came from.",
+      "pattern": "^w2x-[0-9a-f]{32}$",
+      "title": "Extraction Id",
+      "type": "string"
+    },
+    "extractor_version": {
+      "description": "Which extractor produced this run. Required, with no default: the ledger row records it, and a default would make every unstated run look like the same one.",
+      "minLength": 1,
+      "title": "Extractor Version",
+      "type": "string"
+    },
+    "correlation_id": {
+      "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$",
+      "title": "Correlation Id",
+      "type": "string"
+    }
+  },
+  "required": [
+    "patient_uuid",
+    "document",
+    "results",
+    "extraction_id",
+    "extractor_version",
+    "correlation_id"
+  ],
+  "type": "object"
+}

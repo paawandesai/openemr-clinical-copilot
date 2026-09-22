@@ -120,6 +120,7 @@ def test_intake_documents_cannot_be_written_back() -> None:
     from app.models.w2.writeback import (
         LabWriteBackRequest,
         LabWriteBackResult,
+        document_extraction_id,
         lab_result_extraction_id,
         lab_result_idempotency_key,
     )
@@ -151,7 +152,10 @@ def test_intake_documents_cannot_be_written_back() -> None:
             "content_base64": "eA==",
         },
         "results": [result],
-        "extraction_id": EXTRACTION_ID,
+        "extraction_id": document_extraction_id(
+            document_sha3_512=digest, extractor_version="vlm-1.0"
+        ),
+        "extractor_version": "vlm-1.0",
         "correlation_id": "00000000-0000-4000-8000-000000000000",
     }
     # Identical payload, lab document: accepted.

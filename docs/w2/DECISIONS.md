@@ -1062,3 +1062,168 @@ recording the licence accurately and asking.
 **A human should confirm this.** If the answer is remove them, it is one
 edit to `sources.yaml` and a rebuild; the audit script, the licence enum
 and the verbatim-only plumbing all stay as they are.
+## D23 — The lab write-back endpoint ships as a custom module, not a core route
+
+**Status:** DECIDED
+**Date:** 2026-09-22
+**Implements:** D1 (superseding), whose "custom endpoint in the OpenEMR fork,
+protected by a new custom OAuth scope" this entry pins down.
+
+**Decision:**
+
+- The endpoint is **`POST /api/clinical-copilot/lab-writeback`**, registered by
+  the existing `oe-module-clinical-copilot` module through OpenEMR's own
+  extension points — `RestApiCreateEvent` for the route and `RestApiScopeEvent`
+  for the scope. No file under `apis/routes/` or `src/Common/Auth/` is edited.
+- The custom scope is **`user/lab-writeback.c`**.
+- The ledger is **`module_clinical_copilot_writeback_ledger`**, created by the
+  module's `sql/install.sql`, `UNIQUE` on `idempotency_key`.
+- A written-back result is created with **`procedure_report.review_status =
+  'received'`**, i.e. unreviewed.
+
+**Rationale:**
+
+*Module over core route.* Both extension points already exist and are
+dispatched on every relevant request: `StandardRouteFinder::find()` fires
+`RestApiCreateEvent` after loading the core route map, and
+`ScopeRepository::getCurrentSmartScopes()` fires `RestApiScopeEvent` — which is
+what dynamic client registration validates against and what the token endpoint
+grants from. Both reach the module because `interface/globals.php`, which
+constructs `ModulesApplication`, is loaded by `SiteSetupListener` for `/apis/`
+and `/oauth2/` alike. The route that results is dispatched, scope-checked and
+audited exactly like a core one — verified: a token without the scope is
+refused by `AuthorizationListener` with `scope user/lab-writeback.c not in
+access token`. Editing `apis/routes/_rest_routes_standard.inc.php` and
+`ServerScopeListEntity` would buy nothing and cost a permanent merge conflict
+against upstream in two files every rebase touches, in a fork whose whole
+history is one squashed import. It would also make the write-back
+unswitchable: the module can be disabled, a core route cannot. The Week 1
+chart embed is already this module, so this adds no new deployment unit.
+
+*The scope string is not free choice.* `HttpRestParsedRoute` takes the last
+non-parameter path segment as the resource and
+`HttpRestRouteHandler::checkSecurity()` maps POST to the `c` permission, so the
+route path and the scope are two spellings of one thing. `.c` rather than
+`.write` because create is all this endpoint does — a correction is a new
+document and a new extraction, never an edit of a value already in the chart —
+and `.write` would grant update and delete that nothing implements.
+
+*Unreviewed, deliberately.* `review_status = 'reviewed'` would put the result
+straight into **Procedures → Patient Results**, which is tempting and wrong: it
+asserts a clinician has reviewed a value no clinician has seen.
+`orders_results.php` skips `review_status = 'received'` in patient-results mode
+and shows it in review mode, so an extracted result lands in **Procedures →
+Pending Review** and moves to Patient Results when a clinician signs it. That
+is the same path a result arriving from a real lab interface takes.
+
+**Consequences, all verified on the local stack:**
+
+1. **The client also needs `api:oemr`.** `BearerTokenAuthorizationStrategy::
+   isValidRequestForUserRole()` rejects any `/api/` request whose token lacks
+   it, before the resource scope is looked at. A client registered with only
+   `openid user/lab-writeback.c` gets 403 on every call. Scopes are immutable
+   per client, so this is a registration-time decision.
+2. **The write-back client is a third local client**, separate from the read
+   client and the chart embed, exactly as D1's "human step" anticipated.
+   `skip_ehr_launch_authorization_flow` is **not** needed for it — that flag
+   exists for the embed's server-side loopback broker, and the write-back
+   client uses the password grant.
+3. **The endpoint requires two ACLs as well as the scope**, `patients`/`docs`
+   and `patients`/`lab`, both with `write`/`addonly`. A scope says what the
+   client application may ask for; an ACL says what this clinician may do.
+
+**Not settled here, and out of scope for the branch that wrote this:** batching
+several results into one request, and the agent-side client.
+
+---
+
+## D24 — The PDF preview reads through the module, not `GET /fhir/Binary/:id`
+
+**Status:** DECIDED — supersedes the read-back half of D1 (superseding). The
+document *write* path in D1 is unchanged; so is `Binary` as a read path for a
+caller that holds the `admin` ACL.
+**Date:** 2026-09-22
+
+**Decision:** The source-document preview is
+**`GET <module>/public/document.php?document_id=<int>`**, served inside the
+clinician's own OpenEMR session. It requires the `patients`/`docs` ACL — the
+one OpenEMR's own document viewer checks — and the document must belong to the
+patient whose chart is open. It serves `application/pdf` and nothing else.
+
+**Why D1's read-back does not work.** D1 says `GET /fhir/Binary/:id` "is also
+the source for the PDF preview", on the spike's evidence that it returns the
+bytes intact. It does — for an administrator. The route runs
+`RestConfig::request_authorization_check($request, "admin", "users")` for any
+non-patient request (`_rest_routes_fhir_r4_us_core_3_1_0.inc.php:285`), and a
+physician holds no `admin` ACL. Checked directly on the local stack:
+`admin/super`, `admin/users` and `admin/docs` are all false for `physician`,
+and the request returns **403 "Organization policy does not have permit access
+resource"**. The spike only saw it work because it ran as `admin`. Granting
+clinicians an `admin` ACL to read a PDF would be the wrong repair by a wide
+margin.
+
+**Why a module page and not another REST route.** The preview is rendered in
+the chart by a clinician who is already authenticated to OpenEMR. A REST route
+would need a brokered OAuth token for a browser `<embed>` that cannot carry an
+`Authorization` header, and would re-implement an authorization decision the
+session already answers. `brief.php` and `conversation.php` established the
+pattern; this follows it.
+
+**Three things it does deliberately:**
+
+1. **One answer for every way a document is not yours.** Missing, another
+   patient's, and deleted all return **404** with the same text. A document id
+   that exists for a patient is a fact about that patient, and an endpoint that
+   distinguished the cases would disclose it.
+2. **PDF only.** A stored document may be any type on the upload whitelist, and
+   streaming `text/html` or an SVG inline from OpenEMR's own origin is a
+   scripting vector on a trusted page. Anything else is **415**.
+3. **No CSRF token.** Reading changes nothing, a token in a query string leaks
+   through referrers and history, and OpenEMR's own retrieval does not use one.
+   The session and the ACL are the controls.
+
+**Not restricted to documents this module wrote.** A clinician with
+`patients`/`docs` can already open any of that patient's documents in
+OpenEMR's own viewer, so narrowing would protect nothing and would break the
+preview for a document uploaded any other way.
+
+---
+
+## D25 — A panel is one order, and one report+result per analyte
+
+**Status:** DECIDED
+**Date:** 2026-09-22
+
+**Decision:** One write-back request carries one document and N results. The
+results that are **new in that request** are written under **one new
+`procedure_order`**, with a `procedure_order_code` + `procedure_report` +
+`procedure_result` each, at sequence 1..N. Results already in the ledger are
+returned with the ids of the write that made them and nothing is inserted for
+them. The response's single `procedure_order_id` is the order this request
+created — or, when it created nothing, the order recorded for its first result.
+
+**Why one report per analyte rather than one report with N results.** A real
+laboratory interface files a panel as one report with many result rows, and
+that was the first shape tried. It loses the analyte's identity in the UI:
+`interface/orders/orders_results.php` groups by `procedure_order_code` and
+labels the group with `procedure_name`, so a panel under one code shows one
+name — the first analyte's, or an invented one — for every row beneath it. The
+extraction has no panel code to use instead (`LabResult.loinc_code` is
+per-row and assigned, and lab PDFs rarely print a panel LOINC). A code per
+analyte keeps each row named as the report named it, which is what the
+clinician checking the write needs to see. `ProcedureService::search()` joins
+report to order code on `procedure_order_seq`, so the sequences line up and the
+FHIR read emits one Observation per analyte either way.
+
+**Why idempotency is per result and not per request.** A request can legally
+repeat results and add others — a re-extraction that found one more analyte, or
+two requests overlapping on the same document. Replaying the whole request as a
+unit would either duplicate the repeats or refuse the additions. Per-result
+keys make the answer obvious: each row is created once, and a mixed request
+reports `created` and `duplicate_ignored` row by row. Verified on the local
+stack, including two identical requests fired together: the loser rolls back
+and returns the winner's ids, and exactly one chain exists afterwards.
+
+**Bound:** 100 results per request. Not a contract rule — a ceiling on how long
+one transaction may hold row locks across the procedure tables. A comprehensive
+metabolic panel is 14 analytes.
