@@ -134,7 +134,11 @@ EOF
 
 chmod +x "$HOOK"
 echo "install-w2-pre-push-hook: installed $HOOK"
-echo "install-w2-pre-push-hook: note — .git/hooks is shared by every worktree of $REPO_ROOT"
+# $REPO_ROOT is the CURRENT worktree, not the repository the hooks belong to —
+# naming it here read as "shared by every worktree of this worktree". Name the
+# directory itself, which is unambiguous from wherever the installer was run.
+echo "install-w2-pre-push-hook: note — this hooks directory is shared by every worktree:"
+echo "install-w2-pre-push-hook:   $HOOK_DIR"
 echo "install-w2-pre-push-hook: interpreter is \$W2_GATE_PYTHON, default python3"
 
 if [ "${1:-}" = "--verify" ]; then

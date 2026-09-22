@@ -51,11 +51,47 @@ class JudgeUnavailable(RuntimeError):
     """No credential. The judge tier is skipped with a visible notice."""
 
 
-#: Published price per million tokens for the pinned judge model, for the cost
-#: line the gate prints. A figure in a README goes stale silently; one beside
-#: the measured token counts at least fails loudly against the invoice.
-PRICE_PER_MTOK_INPUT = 1.0
-PRICE_PER_MTOK_OUTPUT = 5.0
+def price_per_mtok(config: dict[str, Any]) -> tuple[float, float]:
+    """
+    The (input, output) price per million tokens for the pinned judge model.
+
+    Raises rather than defaulting. A price table keyed by model id is only
+    useful if a model with no entry is an error: the alternative is a cost
+    line that reads $0.0000 after somebody changes the model, which is
+    indistinguishable from a run that made no calls and is exactly the kind
+    of number people quote in a report a year later.
+    """
+    model = config.get("model_version")
+    table = config.get("pricing_usd_per_mtok")
+    if not isinstance(table, dict) or not table:
+        raise GateError(
+            "judge_config.json has no `pricing_usd_per_mtok` table; the gate will not "
+            "report a cost it cannot compute"
+        )
+    entry = table.get(model)
+    if entry is None:
+        raise GateError(
+            f"judge_config.json pins model_version {model!r} and its "
+            f"`pricing_usd_per_mtok` table has no entry for it (it has "
+            f"{sorted(table)}). Add the price beside the model rather than letting "
+            "the run report $0.0000."
+        )
+    try:
+        return float(entry["input"]), float(entry["output"])
+    except (KeyError, TypeError, ValueError) as exc:
+        raise GateError(
+            f"the price entry for {model!r} is not a pair of numbers "
+            f"({{'input': ..., 'output': ...}}): {exc}"
+        ) from exc
+
+
+def check_pricing_config() -> None:
+    """
+    Startup check, run on every gate run — `--det-only` included, where the
+    judge itself is never constructed. A config error should surface on the
+    cheapest run, not only on the one that spends money.
+    """
+    price_per_mtok(load_judge_config())
 
 
 @dataclass(frozen=True)
@@ -113,6 +149,8 @@ class Judge:
         self.prompt_version: str = self.config["prompt_version"]
         self.model: str = self.config["model"]
         self.model_version: str = self.config["model_version"]
+        # Fails at construction, before a single call is billed.
+        self.price_in, self.price_out = price_per_mtok(self.config)
         self.cache_dir = cache_dir or JUDGE_CACHE
         self._client: Any | None = None
         self.calls_made = 0
@@ -203,9 +241,7 @@ class Judge:
 
     def estimated_cost_usd(self) -> float:
         """What this run's live judge calls cost, from the reported usage."""
-        return (
-            self.input_tokens * PRICE_PER_MTOK_INPUT + self.output_tokens * PRICE_PER_MTOK_OUTPUT
-        ) / 1_000_000
+        return (self.input_tokens * self.price_in + self.output_tokens * self.price_out) / 1_000_000
 
     def grade(self, case_id: str, rubric: str, payload: dict[str, Any]) -> JudgeVerdict:
         """Best of three, cached. Raises JudgeUnavailable with no credential."""

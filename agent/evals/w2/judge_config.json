@@ -75,5 +75,12 @@
       "blank flag column reported as normal": "The committed prompt graded it PASS, 12/15. The factually_consistent rubric does not enforce D20 at the prose level. A finding, not a fixture: blank-is-not-normal is held deterministically by W2-D2, and a judge is the wrong instrument for a safety rule a type can hold."
     },
     "why_five_rounds": "Three votes cannot separate a stable fixture from a borderline one, in either direction. Two fixtures now in the set were wrongly rejected on a single-round probe; one fixture was wrongly admitted as a detector on a single-round probe and demoted when the planted-regression harness failed to flip it. The measurement protocol is part of the decision, not a detail of it."
-  }
+  },
+  "pricing_usd_per_mtok": {
+    "claude-haiku-4-5-20251001": {
+      "input": 1.0,
+      "output": 5.0
+    }
+  },
+  "pricing_note": "Keyed by the same string as `model_version`, so changing the model and forgetting the price is a visible omission in one file rather than a silent $0.00 in a log. The gate refuses to start if the pinned model has no entry here — see evals/w2/gate/judge.py check_pricing_config(), which runs on every run including --det-only, and tests/test_w2_gate_pricing.py."
 }

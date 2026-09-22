@@ -202,6 +202,10 @@ def main(argv: list[str] | None = None) -> int:
         load_all_checks()
         cases = load_cases()
         categories_config = load_categories()
+        # Unconditional, and before anything is scored: a judge model with no
+        # price entry is a config error on --det-only too, where the judge is
+        # never constructed and would otherwise never be checked.
+        judge_module.check_pricing_config()
     except GateError as exc:
         print(f"gate error: {exc}", file=sys.stderr)
         return 2
