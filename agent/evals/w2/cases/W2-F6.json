@@ -1,0 +1,22 @@
+{
+  "id": "W2-F6",
+  "category": "F",
+  "critical": false,
+  "status": "active",
+  "inputs": {
+    "kind": "factory_scenario",
+    "scenario_ids": [
+      "lab-clean-001",
+      "lab-multipage-003"
+    ]
+  },
+  "expected": "A citation's quote_or_value occurs verbatim in the source it names: in the retrieved chunk for a guideline, and in the drawn page text for a document field.",
+  "assertions": [
+    {
+      "rubric": "quote_is_substring",
+      "tier": "det",
+      "check": "chk.f_quote_is_a_substring_of_its_source"
+    }
+  ],
+  "guards_against": "The work order's F6 gap: the right chunk retrieved while the quote drifts off it, which citation_present cannot see because the citation is well formed and the chunk id exists."
+}

@@ -1,0 +1,23 @@
+{
+  "id": "W2-E5",
+  "category": "E",
+  "critical": true,
+  "status": "active",
+  "inputs": {
+    "kind": "factory_scenario",
+    "scenario_ids": [
+      "intake-clean-004",
+      "intake-scanned-light-med-005",
+      "intake-missing-allergy-006"
+    ]
+  },
+  "expected": "Every located allergen carries the text the page shows and cites that same text; no placeholder ('(unspecified allergen)') is ever the value of a located field.",
+  "assertions": [
+    {
+      "rubric": "citation_present",
+      "tier": "det",
+      "check": "chk.e_allergen_text_survives_verification"
+    }
+  ],
+  "guards_against": "Week 1's uncoded-allergy defect back on the Week 2 path: a placeholder rendered where an allergen should be, passing verification because the field was located."
+}

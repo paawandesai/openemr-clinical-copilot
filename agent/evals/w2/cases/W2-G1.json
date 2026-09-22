@@ -1,0 +1,19 @@
+{
+  "id": "W2-G1",
+  "category": "G",
+  "critical": false,
+  "status": "pending_sut",
+  "inputs": {
+    "kind": "not_built",
+    "note": "Needs the supervisor graph: routing trajectories are asserted over nodes_ran, visit counts and reason codes."
+  },
+  "expected": "With the document's sha3-512 already in the ledger the supervisor skips extraction: the extract node does not run and the reason code is extraction_available or a retrieve reason.",
+  "assertions": [
+    {
+      "rubric": "routing_trajectory",
+      "tier": "det",
+      "check": "pending.w2_g1_routing_trajectory"
+    }
+  ],
+  "guards_against": "A skip-extraction regression: every question about an already-extracted document paying for a re-extraction, and D7's upload-time contract quietly broken."
+}

@@ -1,0 +1,22 @@
+{
+  "id": "W2-M1",
+  "category": "M",
+  "critical": true,
+  "status": "active",
+  "inputs": {
+    "kind": "fixture",
+    "fixtures": [
+      "judge_meta/fc_pass.json"
+    ],
+    "note": "Frozen fixture: its text is part of the judge cache key, so editing it is a visible change to a committed file."
+  },
+  "expected": "The judge grades a statement fully entailed by its cited source as a pass.",
+  "assertions": [
+    {
+      "rubric": "judge_meta",
+      "tier": "judge",
+      "check": "judge.m_factually_consistent_known_pass"
+    }
+  ],
+  "guards_against": "A judge prompt tightened into paranoia, which would show up across every judge case in the suite as an unexplained regression."
+}

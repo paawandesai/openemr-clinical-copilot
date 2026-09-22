@@ -1,0 +1,19 @@
+{
+  "id": "W2-F8",
+  "category": "F",
+  "critical": false,
+  "status": "active",
+  "inputs": {
+    "kind": "contract",
+    "note": "A document citation with no extraction_id, and chart/guideline citations carrying one."
+  },
+  "expected": "A document citation requires its extraction_id and the other two source types refuse it, so a document value can always be traced to the run that produced it.",
+  "assertions": [
+    {
+      "rubric": "provenance_roundtrip",
+      "tier": "det",
+      "check": "chk.f_extraction_id_is_document_only"
+    }
+  ],
+  "guards_against": "A document value with no route back to its extraction — the only link there is, since derivedFrom is not emitted."
+}

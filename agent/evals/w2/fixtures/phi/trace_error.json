@@ -1,0 +1,22 @@
+{
+  "fixture_id": "trace_error",
+  "arm": "seeded",
+  "note": "The error path. Highest-risk leak site in the literature after prompts: an exception message built by string-formatting whatever was in scope. Every reason here is a closed-enum member (ExtractionFailureReason, RoutingReasonCode), which is what makes the line loggable at all.",
+  "captured": {
+    "log.event": "intake_extractor.failed",
+    "log.level": "error",
+    "log.correlation_id": "4c547101-195d-47b2-bc4b-0db614573052",
+    "log.patient_uuid": "a2c373ec-57bf-41cb-8767-94410dcf663d",
+    "log.document_id": "intake-missing-allergy-006",
+    "log.failure_reason": "no_text_layer_and_ocr_failed",
+    "log.error_message": "extraction failed for document intake-missing-allergy-006 after 2 attempts (reason: no_text_layer_and_ocr_failed)",
+    "log.exception_type": "ExtractionFailed",
+    "log.stack_frames": [
+      "app/workers/intake_extractor.py:214 in _ocr_pages",
+      "app/workers/intake_extractor.py:141 in extract",
+      "app/graph/supervisor.py:88 in _extract_node"
+    ],
+    "trace.routing_decision": { "decision": "refuse", "reason_code": "extraction_failed" },
+    "trace.retry_count": 2
+  }
+}

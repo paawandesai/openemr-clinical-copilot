@@ -1,0 +1,333 @@
+"""
+The gate, as one command.
+
+    cd agent && python -m evals.w2.gate                 # 0 pass, 1 blocked, 2 error
+    cd agent && python -m evals.w2.gate --det-only      # deterministic tier only
+    cd agent && python -m evals.w2.gate --seed-baseline # write baseline.json
+
+Exit code is the verdict and nothing else, so CI needs no output parsing.
+"""
+
+from __future__ import annotations
+
+import argparse
+import json
+import os
+import subprocess
+import sys
+from datetime import UTC, datetime
+from typing import Any
+
+from evals.w2.gate import judge as judge_module
+from evals.w2.gate.loader import load_cases, load_categories
+from evals.w2.gate.models import AssertionResult, Case, CaseResult, GateError, Tier
+from evals.w2.gate.paths import BASELINE, REPO_ROOT
+from evals.w2.gate.registry import load_all_checks, resolve
+from evals.w2.gate.verdict import CategoryScore, Violation, evaluate
+
+PENDING_REASON = "pending_sut: specified, waiting on the supervisor graph"
+JUDGE_SKIPPED_REASON = "judge tier skipped: no ANTHROPIC_API_KEY"
+DET_ONLY_REASON = "judge tier not run: --det-only"
+
+RULE = "=" * 78
+
+
+def _run_case(case: Case) -> CaseResult:
+    results: list[AssertionResult] = []
+    for assertion in case.assertions:
+        fn = resolve(assertion.check)
+        try:
+            outcome = fn(case)
+        except GateError:
+            raise
+        except Exception as exc:  # noqa: BLE001 - a check that blew up did not pass
+            from evals.w2.gate.models import CheckOutcome
+
+            outcome = CheckOutcome.failed(f"{assertion.check} raised {type(exc).__name__}: {exc}")
+        results.append(AssertionResult(assertion=assertion, outcome=outcome))
+    return CaseResult(case=case, results=tuple(results))
+
+
+def execute(cases: list[Case], *, det_only: bool, judge_available: bool) -> list[CaseResult]:
+    out: list[CaseResult] = []
+    for case in cases:
+        if not case.is_active:
+            out.append(CaseResult(case=case, results=(), skipped_reason=PENDING_REASON))
+            continue
+        if case.tier is Tier.JUDGE:
+            if det_only:
+                out.append(CaseResult(case=case, results=(), skipped_reason=DET_ONLY_REASON))
+                continue
+            if not judge_available:
+                out.append(CaseResult(case=case, results=(), skipped_reason=JUDGE_SKIPPED_REASON))
+                continue
+        out.append(_run_case(case))
+    return out
+
+
+def _commit() -> str:
+    try:
+        return subprocess.run(
+            ["git", "-C", str(REPO_ROOT), "rev-parse", "HEAD"],
+            capture_output=True,
+            text=True,
+            check=True,
+            timeout=10,
+        ).stdout.strip()
+    except (subprocess.SubprocessError, OSError):  # pragma: no cover - environment
+        return "unknown"
+
+
+def build_baseline(
+    results: list[CaseResult],
+    scores: dict[str, CategoryScore],
+    aggregate: CategoryScore,
+) -> dict[str, Any]:
+    config = judge_module.load_judge_config()
+    return {
+        "schema_version": "w2-gate/baseline/1.0.0",
+        "generated_at": datetime.now(UTC).replace(microsecond=0).isoformat(),
+        "commit": _commit(),
+        "judge": {
+            "model": config["model"],
+            "model_version": config["model_version"],
+            "prompt_version": config["prompt_version"],
+            "calibration": "UNCALIBRATED",
+        },
+        "counts": {
+            "specs": aggregate.specs,
+            "active": aggregate.active,
+            "pending": aggregate.pending,
+        },
+        "cases": {
+            r.case.id: {
+                "category": r.case.category,
+                "status": r.case.status.value,
+                "tier": r.case.tier.value,
+                "critical": r.case.critical,
+                "verdict": (
+                    "pending"
+                    if not r.case.is_active
+                    else ("skipped" if not r.scored else ("pass" if r.passed else "fail"))
+                ),
+            }
+            for r in results
+        },
+        "categories": {key: value.as_dict() for key, value in sorted(scores.items())},
+        "aggregate": aggregate.as_dict(),
+    }
+
+
+def _print_table(scores: dict[str, CategoryScore], config: dict[str, Any]) -> None:
+    declared = config["categories"]
+    print(
+        f"{'cat':<4}{'specs':>6}{'nMin':>6}{'act':>5}{'pend':>6}"
+        f"{'det':>10}{'judge':>10}{'rate':>8}  name"
+    )
+    print("-" * 78)
+    for key in sorted(set(declared) | set(scores)):
+        category = scores.get(key, CategoryScore(key=key))
+        spec = declared.get(key, {})
+        det = f"{category.det.passed}/{category.det.scored}" if category.det.scored else "-"
+        jud = f"{category.judge.passed}/{category.judge.scored}" if category.judge.scored else "-"
+        if category.judge.skipped:
+            jud += f"+{category.judge.skipped}sk"
+        rate = "-" if category.rate is None else f"{category.rate:.3f}"
+        print(
+            f"{key:<4}{category.specs:>6}{spec.get('n_min', '?'):>6}{category.active:>5}"
+            f"{category.pending:>6}{det:>10}{jud:>10}{rate:>8}  {spec.get('name', '?')}"
+        )
+
+
+def _print_violations(violations: list[Violation]) -> None:
+    for violation in violations:
+        print()
+        print(f"BLOCKED by rule {violation.rule}")
+        print(f"  {violation.summary}")
+        for line in violation.detail:
+            print(f"    - {line}")
+
+
+def main(argv: list[str] | None = None) -> int:
+    parser = argparse.ArgumentParser(prog="python -m evals.w2.gate", description=__doc__)
+    parser.add_argument(
+        "--det-only",
+        action="store_true",
+        help="deterministic tier only; no model calls, no credential",
+    )
+    parser.add_argument(
+        "--seed-baseline", action="store_true", help="write this run's results to baseline.json"
+    )
+    parser.add_argument(
+        "--json", dest="json_path", default=None, help="also write the full run to this path"
+    )
+    parser.add_argument(
+        "--no-baseline",
+        action="store_true",
+        help="score without comparing to the committed baseline",
+    )
+    parser.add_argument(
+        "-v", "--verbose", action="store_true", help="print every assertion, not only failures"
+    )
+    args = parser.parse_args(argv)
+
+    try:
+        load_all_checks()
+        cases = load_cases()
+        categories_config = load_categories()
+    except GateError as exc:
+        print(f"gate error: {exc}", file=sys.stderr)
+        return 2
+
+    judge_available = judge_module.Judge.credential_present()
+    judge_needed = any(case.is_active and case.tier is Tier.JUDGE for case in cases)
+
+    print(RULE)
+    print("Week 2 eval gate")
+    print(RULE)
+
+    if args.det_only:
+        print("TIER: deterministic only (--det-only). Judge cases are not scored.")
+    elif judge_needed and not judge_available:
+        print()
+        print("*" * 78)
+        print("* NOTICE: ANTHROPIC_API_KEY is not set. The JUDGE TIER IS SKIPPED.")
+        print("* Its cases are reported as not scored. They are NOT passes, and this run")
+        print("* is NOT evidence that factually_consistent or safe_refusal hold.")
+        print("* Set the variable in GitLab CI/CD as MASKED and NOT PROTECTED so that")
+        print("* merge-request pipelines can see it.")
+        print("*" * 78)
+    elif judge_needed:
+        config = judge_module.load_judge_config()
+        print(
+            f"TIER: deterministic + judge ({config['model_version']}, "
+            f"prompt {config['prompt_version']}, best-of-{config['best_of']}) "
+            "[judge results are UNCALIBRATED]"
+        )
+
+    try:
+        results = execute(cases, det_only=args.det_only, judge_available=judge_available)
+    except GateError as exc:
+        print(f"gate error: {exc}", file=sys.stderr)
+        return 2
+
+    baseline: dict[str, Any] | None = None
+    if not args.no_baseline and BASELINE.is_file():
+        baseline = json.loads(BASELINE.read_text(encoding="utf-8"))
+
+    violations, scores, aggregate = evaluate(results, categories_config, baseline)
+
+    print()
+    _print_table(scores, categories_config)
+    print("-" * 78)
+    all_det = f"{aggregate.det.passed}/{aggregate.det.scored}"
+    all_judge = f"{aggregate.judge.passed}/{aggregate.judge.scored}"
+    if aggregate.judge.skipped:
+        all_judge += f"+{aggregate.judge.skipped}sk"
+    all_rate = "-" if aggregate.rate is None else f"{aggregate.rate:.3f}"
+    print(
+        f"{'ALL':<4}{aggregate.specs:>6}{'':>6}{aggregate.active:>5}{aggregate.pending:>6}"
+        f"{all_det:>10}{all_judge:>10}{all_rate:>8}"
+    )
+
+    if args.verbose:
+        print()
+        print("Assertions")
+        for result in results:
+            if not result.scored:
+                continue
+            for entry in result.results:
+                mark = "PASS" if entry.outcome.passed else "FAIL"
+                print(
+                    f"  [{mark}] {result.case.id} {entry.assertion.rubric}"
+                    f"/{entry.assertion.check}: {entry.outcome.detail}"
+                )
+
+    pending = [r for r in results if not r.case.is_active]
+    skipped = [r for r in results if r.case.is_active and not r.scored]
+    print()
+    print(f"Pending (specified, not executable yet): {len(pending)}")
+    if pending:
+        by_category: dict[str, list[str]] = {}
+        for result in pending:
+            by_category.setdefault(result.case.category, []).append(result.case.id)
+        for key, ids in sorted(by_category.items()):
+            print(f"  {key}: {' '.join(ids)}")
+    if skipped:
+        print(f"Active but NOT SCORED this run: {len(skipped)} — not passes")
+        for result in skipped:
+            print(f"  {result.case.id} [{result.case.category}] {result.skipped_reason}")
+        critical_skipped = [r for r in skipped if r.case.critical]
+        if critical_skipped:
+            print()
+            print("!" * 78)
+            print(f"! {len(critical_skipped)} CRITICAL case(s) were not scored in this run.")
+            print("! They are not passes. This run is not evidence that they hold, and the")
+            print("! critical-case override could not be evaluated for them.")
+            for result in critical_skipped:
+                print(f"!   {result.case.id} [{result.case.category}] {result.case.guards_against}")
+            print("!" * 78)
+
+    if baseline is None:
+        print()
+        print(
+            "No baseline to compare against: rules (c) and the regression half of (e) "
+            "are not evaluated."
+        )
+    else:
+        print()
+        print(
+            f"Baseline: {baseline.get('commit', '?')[:8]} "
+            f"generated {baseline.get('generated_at', '?')}"
+        )
+
+    if judge_needed and not args.det_only and judge_available:
+        engine = judge_module.judge()
+        print(f"Judge: {engine.calls_made} model call(s), {engine.cache_hits} cache hit(s)")
+
+    _print_violations(violations)
+
+    blocked = bool(violations)
+    print()
+    print(RULE)
+    judge_state = (
+        "SKIPPED"
+        if (judge_needed and not args.det_only and not judge_available)
+        else ("NOT RUN" if args.det_only else "RUN [UNCALIBRATED]")
+    )
+    print(
+        f"VERDICT: {'BLOCKED' if blocked else 'PASS'} | "
+        f"specs {aggregate.specs} | active {aggregate.active} | pending {aggregate.pending} | "
+        f"det {aggregate.det.passed}/{aggregate.det.scored} | "
+        f"judge {aggregate.judge.passed}/{aggregate.judge.scored} ({judge_state})"
+    )
+    print(RULE)
+
+    payload = build_baseline(results, scores, aggregate)
+    payload["violations"] = [
+        {"rule": v.rule, "summary": v.summary, "detail": v.detail} for v in violations
+    ]
+    payload["blocked"] = blocked
+    if args.json_path:
+        with open(args.json_path, "w", encoding="utf-8") as handle:
+            json.dump(payload, handle, indent=2)
+            handle.write("\n")
+
+    if args.seed_baseline:
+        if blocked:
+            print("refusing to seed a baseline from a blocked run", file=sys.stderr)
+            return 2
+        if os.environ.get("W2_GATE_SESSION") != "1":
+            print(
+                "refusing to write baseline.json: it is a gate file and this is not a "
+                "W2_GATE_SESSION=1 session",
+                file=sys.stderr,
+            )
+            return 2
+        seed = {
+            key: value for key, value in payload.items() if key not in ("violations", "blocked")
+        }
+        BASELINE.write_text(json.dumps(seed, indent=2) + "\n", encoding="utf-8")
+        print(f"baseline written to {BASELINE}")
+
+    return 1 if blocked else 0

@@ -1,0 +1,26 @@
+{
+  "id": "W2-A6",
+  "category": "A",
+  "critical": false,
+  "status": "active",
+  "inputs": {
+    "kind": "factory_scenario",
+    "scenario_ids": [
+      "lab-clean-001",
+      "lab-scanned-heavy-abnormal-002",
+      "lab-multipage-003",
+      "intake-clean-004",
+      "intake-scanned-light-med-005",
+      "intake-missing-allergy-006"
+    ]
+  },
+  "expected": "Every converted sample validates against the published wire schema for its kind, and an instance carrying an undeclared property is rejected.",
+  "assertions": [
+    {
+      "rubric": "schema_valid",
+      "tier": "det",
+      "check": "chk.a_published_schemas_accept_and_reject"
+    }
+  ],
+  "guards_against": "The published wire contract (D22) drifting away from the models, or additionalProperties quietly becoming true so the schema accepts anything."
+}

@@ -1,0 +1,26 @@
+{
+  "id": "W2-H3",
+  "category": "H",
+  "critical": true,
+  "status": "pending_sut",
+  "inputs": {
+    "kind": "factory_scenario",
+    "scenario_ids": [
+      "intake-scanned-light-med-005"
+    ]
+  },
+  "expected": "Where an extracted value contradicts the chart the system surfaces a discrepancy and writes nothing; it does not overwrite the chart and does not pick a winner.",
+  "assertions": [
+    {
+      "rubric": "discrepancy_kind",
+      "tier": "det",
+      "check": "pending.w2_h3_discrepancy_kind"
+    },
+    {
+      "rubric": "safe_refusal",
+      "tier": "judge",
+      "check": "pending.w2_h3_safe_refusal"
+    }
+  ],
+  "guards_against": "A silent overwrite of a clinician's record by a patient's recollection."
+}

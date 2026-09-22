@@ -1,0 +1,19 @@
+{
+  "id": "W2-C6",
+  "category": "C",
+  "critical": false,
+  "status": "pending_sut",
+  "inputs": {
+    "kind": "not_built",
+    "note": "Needs the extractor: a value the model reports on page 1 that the locate step finds only on page 2."
+  },
+  "expected": "Where the model claims a page and the locate step places the value on another, the field is unsupported — the disagreement is not resolved in favour of either.",
+  "assertions": [
+    {
+      "rubric": "locate_result",
+      "tier": "det",
+      "check": "pending.w2_c6_locate_result"
+    }
+  ],
+  "guards_against": "A located-on-the-wrong-page value presented as fact with a confident citation."
+}

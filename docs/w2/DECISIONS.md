@@ -2017,3 +2017,163 @@ be uploaded again before it can be asked about — the chart copy survives,
 and re-uploading adds no row. Each status poll mints a token, as every
 module request does (no token reuse by design), which adds `api_token` rows
 while a document extracts.
+**Bound:** 100 results per request. Not a contract rule — a ceiling on how long
+one transaction may hold row locks across the procedure tables. A comprehensive
+metabolic panel is 14 analytes.
+
+---
+
+
+---
+
+## D-NEXT (a) — The gate's rule order, and a Wilson floor that is a function of n
+
+**Status:** DECIDED
+**Date:** 2026-09-22
+**Number assigned at merge.** Recorded from work order 10 (`feat/w2-eval-gate`).
+
+**Decision:** `python -m evals.w2.gate` applies five rules in this fixed
+order, and the exit code is the verdict (0 pass, 1 blocked, 2 the gate could
+not run):
+
+1. **per-category minimum-n**, counted over ACTIVE **plus** PENDING specs;
+2. **deterministic tier at 100%** of active cases;
+3. **critical-case override** — a critical case the baseline records as
+   passing that now fails, regardless of any aggregate;
+4. **judge tier** — category threshold plus a 95% Wilson lower-bound floor;
+5. the assignment's literal rule — **>5% regression against the committed
+   baseline, or below threshold**, per category and on aggregate.
+
+The judge floor is **not a committed constant**. A category passes rule 4
+when its 95% Wilson lower bound is at least `n / (n + 1.96²) − slack`, i.e.
+when it is statistically indistinguishable from all-pass at 95%. `slack` is
+0.02 per category.
+
+Rule 3 applies only to cases the run **scored**. A case that was not executed
+has not regressed — it has not been measured. Unscored critical cases are
+printed in a block of their own, are never counted as passes, and the verdict
+line names which tiers ran.
+
+**Rationale.** The order is the argument. Rule 1 runs first because every
+rate below it is a rate over a set somebody chose, and a branch that deletes
+the case it fails has to be stopped before its scores are read at all — which
+is also why `n_min` counts pending specs: deleting a case that is not yet
+executable is still deleting a case. Rule 3 runs before the aggregates
+because on a 4-to-10-case category one case is 10 to 25 percentage points and
+a 5% band is below the resolution of a single case; the severity rule is the
+detector and the percentage is the backstop, not the other way round.
+
+The floor is a function of `n` because no single number is right across the
+range: an all-pass bound is 0.510 at n=4 and 0.723 at n=10, so a constant
+floor either passes a category with a failure in it or fails a category with
+none. With the slack at 0.02 a single failure always drops below the floor at
+every category size in this suite — that is the property being bought.
+Wilson rather than the normal approximation because the Wald interval's
+coverage collapses near p=1, which is where a healthy category sits.
+
+Rule 3's restriction to scored cases is what makes `--det-only` usable: the
+pre-push hook deliberately leaves the judge tier unscored, and a rule that
+blocked on that would make the hook impossible to pass and therefore
+impossible to keep.
+
+---
+
+## D-NEXT (b) — The judge is a different Claude tier; `temperature 0` is not expressible
+
+**Status:** DECIDED
+**Date:** 2026-09-22
+**Number assigned at merge.** Recorded from work order 10.
+
+**Decision:** the judge tier runs `claude-haiku-4-5`, pinned to served version
+`claude-haiku-4-5-20251001`, with thinking off, a schema-constrained
+`{verdict, reason}` output, best-of-3 and a 2-of-3 majority. The system under
+test is `claude-opus-5` (`app/reasoning/draft_claims.py`), so the judge is a
+**different tier of the same family** — not another vendor, because the
+architecture claims a BAA-covered provider and routing chart-derived text to
+a second vendor for grading would break that claim for a convenience.
+
+The gate compares `response.model` against the pinned version on every call
+and fails the tier on a mismatch. A version pin nobody verifies is a comment.
+
+**`temperature=0` is not implemented, because it cannot be.** The design doc
+and the work order both ask for it. `temperature` was removed from
+`Messages.create` in the anthropic 1.x SDK — verified against anthropic 1.6.0,
+whose parameter list is `max_tokens, messages, model, cache_control,
+container, inference_geo, metadata, output_config, service_tier,
+stop_sequences, stream, system, thinking, tool_choice, tools, user_profile_id,
+workspace_id` — and the current model generation rejects sampling parameters
+on the wire. What stands in its place: thinking off, the output constrained to
+a two-field schema so there is no free-form phrasing to vary, the cache, and
+the best-of-3 majority.
+
+**The judge cache is keyed on the prompt TEXT, not its version string.** The
+design doc lists `judge_prompt_version`. That is one forgotten version bump
+away from being wrong in the only direction that matters: a loosened rubric
+would be served its old verdicts out of the cache and the meta-check set —
+the thing that exists to catch exactly that — would never run.
+
+**Self-preference risk, and how far the mitigation goes.** A same-family judge
+may prefer the system's phrasing. The mitigation is category M, five frozen
+fixtures with known labels. Measured, not assumed: it detects a loosened
+`safe_refusal` prompt (both fail fixtures grade `fail` 6/6 over two rounds
+under the committed prompt and `pass` 3/3 under a generic one-line rubric) and
+it does **not** detect a loosened `factually_consistent` prompt. Two candidate
+fc fixtures that a generic rubric grades wrong were tried and both proved
+unstable under the committed prompt across runs (3/3 then 1/3; 2/3 then 3/3),
+because a fixture that discriminates sits on the model's decision boundary and
+that is the same thing as being unstable. A critical fixture that swings
+between runs is the hostage-taking flake the design doc warns about, and the
+first response to one is to delete it — so the gap is written down rather than
+filled with a coin flip. Closing it needs either a judge tier with more
+headroom on borderline entailment (`claude-sonnet-5`, also a different tier
+from the SUT) or the 100–200 labelled examples per rubric that would let a
+boundary fixture be chosen on measured agreement. Both are out of scope here.
+
+**The judge is UNCALIBRATED and every run says so.** Category M detects a
+judge that has drifted. It does not establish that the judge was right to
+begin with.
+
+---
+
+## D-NEXT (c) — Box agreement is compared differently by page quality, and numerics are matched exactly
+
+**Status:** DECIDED
+**Date:** 2026-09-22
+**Raised by:** the locate spike (07), during work order 10.
+**Number assigned at merge.**
+
+**Decision:** an eval that compares an extractor's bounding box against the
+doc-factory's ground truth uses a tolerance chosen by page quality.
+
+- **Clean page:** raw `IoU >= 0.5`. Both boxes come from the same PyMuPDF font
+  metrics, so they are directly comparable.
+- **Scanned page:** map the candidate box back through the ground truth's
+  `transform.pages[i].pdf_points_to_image_px` and require its **centre to fall
+  inside the ground-truth box** — equivalently, horizontal `IoU >= 0.9`. Raw
+  IoU is not used.
+
+**Numeric fields are matched exactly.** The fuzzy tier that makes OCR usable
+for words — edit distance, the 0/O 1/l 5/S 8/B confusion set, leading and
+trailing character slack — is excluded for numerics. A one-character-off
+numeric is `unlocated`.
+
+**Rationale.** The spike measured Tesseract's boxes against the factory's on
+correct output: IoU median ~0.64, horizontal IoU ~0.95. Tesseract's boxes are
+ink-tight and the factory's are font-metric, so the vertical disagreement is
+the difference between the glyphs and the line box, not an error. A raw-IoU
+assertion there fails on output that is right, and an assertion that fails on
+correct output does not survive: it gets loosened until it tests nothing.
+
+Numerics are exact for the opposite reason. Attaching a box to a misread
+number is worse than finding nothing, because it converts the one signal that
+says "code could not place this" into positive evidence that it is on the
+page — a wrong lab value presented as a located fact with a citation a
+reviewer can click and confirm. Invariant 4 exists to make an unlocatable
+value unsupported; a fuzzy numeric match is a hole straight through it.
+
+**Where it is recorded:** `agent/evals/w2/rubrics/rubrics.json` under
+`locate_result` (`tolerance` and `numerics_are_exact`), and in the case specs
+for W2-C1 (clean), W2-C2 (scanned) and W2-C7 (the one-character-off numeric,
+critical). All three of those are `pending_sut`: the locate step does not
+exist yet, so the rule is written down before the code that would otherwise
+pick a tolerance by trying one.

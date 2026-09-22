@@ -1,0 +1,112 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://clinical-copilot/w2/case.schema.json",
+  "title": "Week 2 eval case",
+  "description": "One case in the Week 2 gate. One file per case under agent/evals/w2/cases/, so that deleting a case is a visible deletion in a diff rather than a line lost inside a list.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "id",
+    "category",
+    "critical",
+    "status",
+    "inputs",
+    "expected",
+    "assertions",
+    "guards_against"
+  ],
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^W2-[A-M][0-9]{1,2}$",
+      "description": "W2- prefixed because Week 1 already uses bare categories A-I (agent/evals/test_a_*.py ...)."
+    },
+    "category": {
+      "type": "string",
+      "pattern": "^[A-M]$"
+    },
+    "critical": {
+      "type": "boolean",
+      "description": "Safety-critical. A previously-passing critical case that now fails blocks the merge regardless of any aggregate (design doc, Recommended CI Gate Rule Set, cross-cutting rule 1)."
+    },
+    "status": {
+      "type": "string",
+      "enum": ["active", "pending_sut"],
+      "description": "active: executes today against the contracts + doc factory. pending_sut: fully specified, waiting on the not-yet-built graph. A pending case never counts as a pass."
+    },
+    "inputs": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind"],
+      "properties": {
+        "kind": {
+          "type": "string",
+          "enum": ["factory_scenario", "fixture", "contract", "question", "not_built"]
+        },
+        "scenario_ids": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 },
+          "minItems": 1,
+          "description": "doc-factory scenario ids under agent/evals/w2/factory/output/samples/."
+        },
+        "fixtures": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 },
+          "minItems": 1,
+          "description": "Paths under agent/evals/w2/fixtures/."
+        },
+        "question": { "type": "string", "minLength": 1 },
+        "note": { "type": "string", "minLength": 1 }
+      }
+    },
+    "expected": {
+      "type": "string",
+      "minLength": 1,
+      "description": "The behaviour, in a sentence two reviewers would grade identically."
+    },
+    "assertions": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["rubric", "tier", "check"],
+        "properties": {
+          "rubric": {
+            "type": "string",
+            "enum": [
+              "schema_valid",
+              "citation_present",
+              "factually_consistent",
+              "safe_refusal",
+              "no_phi_in_logs",
+              "source_type_correct",
+              "citation_supports_claim",
+              "quote_is_substring",
+              "locate_result",
+              "abnormal_flag_crosscheck",
+              "discrepancy_kind",
+              "no_auto_merge",
+              "routing_trajectory",
+              "idempotency",
+              "provenance_roundtrip",
+              "cap_disclosure",
+              "judge_meta"
+            ]
+          },
+          "tier": { "type": "string", "enum": ["det", "judge"] },
+          "check": {
+            "type": "string",
+            "pattern": "^(chk|judge|pending)\\.[a-z0-9_]+$",
+            "description": "The registered checker. `pending.*` ids have no implementation yet and belong only to pending_sut cases."
+          }
+        }
+      }
+    },
+    "guards_against": {
+      "type": "string",
+      "minLength": 1,
+      "description": "The failure mode this case exists to catch, in one line."
+    }
+  }
+}

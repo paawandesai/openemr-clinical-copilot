@@ -1,0 +1,21 @@
+{
+  "id": "W2-B3",
+  "category": "B",
+  "critical": false,
+  "status": "pending_sut",
+  "inputs": {
+    "kind": "factory_scenario",
+    "scenario_ids": [
+      "lab-multipage-003"
+    ]
+  },
+  "expected": "Every row of a multi-page panel is extracted exactly once; the row count matches ground truth and no field_or_chunk_id repeats.",
+  "assertions": [
+    {
+      "rubric": "schema_valid",
+      "tier": "det",
+      "check": "pending.w2_b3_schema_valid"
+    }
+  ],
+  "guards_against": "Dropped or shifted rows across a page break, and the infinite-loop / repeated-entity collapse a VLM produces on a dense table."
+}

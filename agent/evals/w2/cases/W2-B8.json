@@ -1,0 +1,19 @@
+{
+  "id": "W2-B8",
+  "category": "B",
+  "critical": false,
+  "status": "pending_sut",
+  "inputs": {
+    "kind": "not_built",
+    "note": "Needs a factory scenario rendering a censored result (`<5`). No committed sample carries one."
+  },
+  "expected": "A censored result keeps its comparator: `<5` is a NumericLabValue with comparator '<', never widened to 5.",
+  "assertions": [
+    {
+      "rubric": "schema_valid",
+      "tier": "det",
+      "check": "pending.w2_b8_schema_valid"
+    }
+  ],
+  "guards_against": "A censored value silently becoming an exact one, which makes an undecidable flag look decidable."
+}

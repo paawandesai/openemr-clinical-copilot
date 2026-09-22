@@ -1,0 +1,19 @@
+{
+  "id": "W2-F1",
+  "category": "F",
+  "critical": false,
+  "status": "active",
+  "inputs": {
+    "kind": "contract",
+    "note": "An EvidenceChunk converted to a citation, and a GuidelineClaim offered chart and document citations."
+  },
+  "expected": "A guideline claim cites source_type=guideline with the chunk's section, and refuses a chart or document citation.",
+  "assertions": [
+    {
+      "rubric": "source_type_correct",
+      "tier": "det",
+      "check": "chk.f_guideline_evidence_cites_guidelines_only"
+    }
+  ],
+  "guards_against": "A guideline citation mislabelled as chart provenance — GroUSE's FM6, 'missing or incorrect citation'."
+}

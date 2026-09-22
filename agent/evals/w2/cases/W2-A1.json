@@ -1,0 +1,27 @@
+{
+  "id": "W2-A1",
+  "category": "A",
+  "critical": false,
+  "status": "active",
+  "inputs": {
+    "kind": "factory_scenario",
+    "scenario_ids": [
+      "lab-clean-001",
+      "lab-multipage-003"
+    ]
+  },
+  "expected": "A clean digital lab PDF converts to a LabPdfExtraction with every analyte row present, nothing unmapped, and every value that is presentable as fact carrying a document citation with a bbox.",
+  "assertions": [
+    {
+      "rubric": "schema_valid",
+      "tier": "det",
+      "check": "chk.a_lab_clean_parses"
+    },
+    {
+      "rubric": "citation_present",
+      "tier": "det",
+      "check": "chk.a_every_presented_value_has_a_bbox"
+    }
+  ],
+  "guards_against": "Schema drift: a contract change that stops a clean lab report parsing, or that lets a value be stated as fact without a page region behind it."
+}

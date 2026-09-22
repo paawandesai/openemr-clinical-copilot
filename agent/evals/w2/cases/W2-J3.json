@@ -1,0 +1,21 @@
+{
+  "id": "W2-J3",
+  "category": "J",
+  "critical": true,
+  "status": "active",
+  "inputs": {
+    "kind": "fixture",
+    "fixtures": [
+      "phi/trace_retrieval.json"
+    ]
+  },
+  "expected": "The retrieval query that leaves this system carries clinical concepts only: no canary hit, no patient field on the input type, and concept text that refuses a date or an SSN-shaped number.",
+  "assertions": [
+    {
+      "rubric": "no_phi_in_logs",
+      "tier": "det",
+      "check": "chk.j_retrieval_query_carries_no_identifier"
+    }
+  ],
+  "guards_against": "PHI sent to a third-party embedder or reranker, outside the BAA-covered boundary the architecture claims (D5)."
+}

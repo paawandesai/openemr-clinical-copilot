@@ -24,7 +24,8 @@ cd "$REPO_ROOT" || exit 1
 
 # Named in CLAUDE.md as being built. Absent on purpose, for now.
 PLANNED=(
-  'agent/evals/w2/baseline.json'
+  # (empty) — agent/evals/w2/baseline.json lived here until work order 10
+  # seeded it. This check is what noticed.
 )
 
 # Named in CLAUDE.md as living on another branch (the relocation note). Written

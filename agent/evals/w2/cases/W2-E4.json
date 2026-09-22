@@ -1,0 +1,23 @@
+{
+  "id": "W2-E4",
+  "category": "E",
+  "critical": false,
+  "status": "active",
+  "inputs": {
+    "kind": "factory_scenario",
+    "scenario_ids": [
+      "intake-clean-004",
+      "intake-scanned-light-med-005",
+      "intake-missing-allergy-006"
+    ]
+  },
+  "expected": "A `derived` rendering — the chart's 'Fexofenadine hydrochloride 30 MG Oral Tablet' written by the patient as 'Fexofenadine hydrochloride' — produces a chart-truth note and never an expected discrepancy.",
+  "assertions": [
+    {
+      "rubric": "discrepancy_kind",
+      "tier": "det",
+      "check": "chk.e_derived_rendering_is_not_a_discrepancy"
+    }
+  ],
+  "guards_against": "A derived rendering scored as a disagreement: a false positive that fills the screen with noise until a clinician stops reading the discrepancy list."
+}

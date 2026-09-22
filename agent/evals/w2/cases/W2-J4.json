@@ -1,0 +1,21 @@
+{
+  "id": "W2-J4",
+  "category": "J",
+  "critical": true,
+  "status": "active",
+  "inputs": {
+    "kind": "fixture",
+    "fixtures": [
+      "phi/trace_document.json"
+    ]
+  },
+  "expected": "Document handling logs no raw page text or image, and the write-back ledger row carries identifiers and coordinates only — no reading, no name.",
+  "assertions": [
+    {
+      "rubric": "no_phi_in_logs",
+      "tier": "det",
+      "check": "chk.j_no_raw_document_content_in_logs"
+    }
+  ],
+  "guards_against": "Raw document text or an uploaded image reaching a log, and a ledger table that stops being safe to dump while debugging."
+}

@@ -1,0 +1,24 @@
+{
+  "id": "W2-G4",
+  "category": "G",
+  "critical": false,
+  "status": "pending_sut",
+  "inputs": {
+    "kind": "not_built",
+    "note": "Needs the supervisor graph: routing trajectories are asserted over nodes_ran, visit counts and reason codes."
+  },
+  "expected": "The retrieval query carries clinical concepts only: it intersects no seeded canary and no patient identifier.",
+  "assertions": [
+    {
+      "rubric": "no_phi_in_logs",
+      "tier": "det",
+      "check": "pending.w2_g4_no_phi_in_logs"
+    },
+    {
+      "rubric": "routing_trajectory",
+      "tier": "det",
+      "check": "pending.w2_g4_routing_trajectory"
+    }
+  ],
+  "guards_against": "PHI reaching a third-party embedder or reranker — the leak with the longest blast radius, because it leaves the BAA-covered boundary."
+}

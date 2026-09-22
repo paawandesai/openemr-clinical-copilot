@@ -1,0 +1,21 @@
+{
+  "id": "W2-E2",
+  "category": "E",
+  "critical": false,
+  "status": "active",
+  "inputs": {
+    "kind": "factory_scenario",
+    "scenario_ids": [
+      "intake-missing-allergy-006"
+    ]
+  },
+  "expected": "An allergy the chart records and the form omits is an `omitted` discrepancy with the chart side only; a document citation on it is rejected, because there is no page to point at.",
+  "assertions": [
+    {
+      "rubric": "discrepancy_kind",
+      "tier": "det",
+      "check": "chk.e_omitted_has_a_chart_side_only"
+    }
+  ],
+  "guards_against": "A missed omission, or an omission cited to a page that does not contain it."
+}

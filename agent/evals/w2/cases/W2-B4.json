@@ -1,0 +1,26 @@
+{
+  "id": "W2-B4",
+  "category": "B",
+  "critical": false,
+  "status": "pending_sut",
+  "inputs": {
+    "kind": "factory_scenario",
+    "scenario_ids": [
+      "intake-missing-allergy-006"
+    ]
+  },
+  "expected": "A field scribbled out on the page comes back illegible with no value at all — not the chart's value, not a plausible one — and is disclosed as unsupported.",
+  "assertions": [
+    {
+      "rubric": "locate_result",
+      "tier": "det",
+      "check": "pending.w2_b4_locate_result"
+    },
+    {
+      "rubric": "factually_consistent",
+      "tier": "judge",
+      "check": "pending.w2_b4_factually_consistent"
+    }
+  ],
+  "guards_against": "An invented value on an illegible field: rare but real, and overconfident precisely on the lowest-quality scans."
+}

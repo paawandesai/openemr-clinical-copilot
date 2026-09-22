@@ -1,0 +1,21 @@
+{
+  "id": "W2-B7",
+  "category": "B",
+  "critical": false,
+  "status": "pending_sut",
+  "inputs": {
+    "kind": "factory_scenario",
+    "scenario_ids": [
+      "lab-clean-001"
+    ]
+  },
+  "expected": "The reference range is kept as printed in ReferenceRange.text even where the numeric bounds parse, because the text is what a citation quotes.",
+  "assertions": [
+    {
+      "rubric": "citation_present",
+      "tier": "det",
+      "check": "pending.w2_b7_citation_present"
+    }
+  ],
+  "guards_against": "A parsed range replacing the printed one, so a citation quotes something the page does not say."
+}

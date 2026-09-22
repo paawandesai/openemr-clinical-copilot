@@ -72,7 +72,15 @@ they miss, and the merge check: [`docs/w2/GATE.md`](docs/w2/GATE.md).
 | Structured logging + correlation id | `agent/app/middleware/{logging,correlation}.py` |
 | Week 1 eval suite (live, costs model calls) | `agent/evals/` — see `agent/evals/README.md`, harness in `agent/evals/{harness,invariants,oracle}.py` |
 | Week 1 unit tests (no network, no credentials) | `agent/tests/` |
-| Week 2 evals (being built) | `agent/evals/w2/` — `factory/`, `staging/`, `cases/`, `rubrics/`, `baseline.json`, `judge_config.*` |
+| Week 2 evals | `agent/evals/w2/` — see [`agent/evals/w2/README.md`](agent/evals/w2/README.md) |
+| **Week 2 gate machinery** (loader, checkers, judge, verdict) | `agent/evals/w2/gate/` — entry point `agent/evals/w2/gate/run.py` |
+| Gate rules, in the order they are applied | `agent/evals/w2/gate/verdict.py` |
+| Rubric checkers | `agent/evals/w2/gate/checks_{a,c,d,e,f,j,k,m}.py`, `phi_scanner.py` |
+| Judge tier (pinned model, best-of-3, cache) | `agent/evals/w2/gate/judge.py`, `agent/evals/w2/judge_config.json` |
+| Planted-regression proof, and its committed output | `agent/evals/w2/gate/planted_regressions.py`, `docs/w2/EVAL_GATE_EVIDENCE.md` |
+| Eval design research this implements | `docs/w2/EVAL_DESIGN.md` |
+| CI pipeline (gate file) | `.gitlab-ci.yml` |
+| Pre-push hook installer (deterministic tier) | `scripts/install-w2-pre-push-hook.sh` |
 | Python tooling config (ruff + pytest) | `agent/pyproject.toml`, `agent/requirements-dev.txt` |
 | Gate hook, and the merge check that reads its globs | `.claude/hooks/gate-guard.sh`, `scripts/gate-diff.sh` |
 | **The gate in full** — gated paths, both hooks, their limits | `docs/w2/GATE.md` |
@@ -107,7 +115,18 @@ cd agent && python -m ruff check .            # add --fix for the safe fixes
 scripts/gate-diff.sh <branch>       # nonzero if the branch touches gate files
 scripts/check-claude-paths.sh       # every path named in this file still exists
 
-# Week 2 eval gate — NOT IMPLEMENTED YET. Do not invent one; report it missing.
+# Week 2 eval gate — one command, exit code IS the verdict (0 pass, 1 blocked,
+# 2 the gate could not run). Deterministic tier is offline: no credential, no
+# model call. The judge tier needs ANTHROPIC_API_KEY and is skipped with a
+# loud notice without it — skipped cases are never passes.
+cd agent && python -m evals.w2.gate              # both tiers
+cd agent && python -m evals.w2.gate --det-only   # deterministic only, ~1s, free
+cd agent && python -m evals.w2.gate -v           # every assertion, not only failures
+# Proof that the gate catches anything (copies the tree, plants one regression
+# at a time, reruns; needs ANTHROPIC_API_KEY). Output: docs/w2/EVAL_GATE_EVIDENCE.md
+cd agent && python -m evals.w2.gate.planted_regressions --out ../docs/w2/EVAL_GATE_EVIDENCE.md
+# Run the deterministic tier before every push:
+scripts/install-w2-pre-push-hook.sh
 
 # PHP side (needs the OpenEMR container — see docs/openemr-dev-guide.md):
 composer phpstan

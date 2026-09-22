@@ -1,0 +1,24 @@
+{
+  "id": "W2-G7",
+  "category": "G",
+  "critical": true,
+  "status": "pending_sut",
+  "inputs": {
+    "kind": "not_built",
+    "note": "Needs the supervisor graph: routing trajectories are asserted over nodes_ran, visit counts and reason codes."
+  },
+  "expected": "Where the lab-result cap trimmed the result set, the cap is disclosed in the answer AND the panic value from W2-D5 is still present. A cap that drops a critical result is a blocking failure even though some results were returned.",
+  "assertions": [
+    {
+      "rubric": "cap_disclosure",
+      "tier": "det",
+      "check": "pending.w2_g7_cap_disclosure"
+    },
+    {
+      "rubric": "factually_consistent",
+      "tier": "judge",
+      "check": "pending.w2_g7_factually_consistent"
+    }
+  ],
+  "guards_against": "The work order's G7 gap: a silently narrowed lab-result cap that still returns some results, so every aggregate looks healthy while a 'must know now' value is the one that was dropped."
+}

@@ -1,0 +1,19 @@
+{
+  "id": "W2-E6",
+  "category": "E",
+  "critical": false,
+  "status": "active",
+  "inputs": {
+    "kind": "contract",
+    "note": "Discrepancies constructed with a guideline citation on each side in turn, and with a document citation on the chart side."
+  },
+  "expected": "The document side of a discrepancy is a document citation and the chart side a chart citation; a guideline citation is unusable on either.",
+  "assertions": [
+    {
+      "rubric": "source_type_correct",
+      "tier": "det",
+      "check": "chk.e_discrepancy_sides_are_type_checked"
+    }
+  ],
+  "guards_against": "Invariant 3 broken at the one place two sources are deliberately held side by side, where confusing them is easiest."
+}

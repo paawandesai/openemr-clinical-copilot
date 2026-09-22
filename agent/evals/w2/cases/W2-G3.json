@@ -1,0 +1,19 @@
+{
+  "id": "W2-G3",
+  "category": "G",
+  "critical": false,
+  "status": "pending_sut",
+  "inputs": {
+    "kind": "not_built",
+    "note": "Needs the supervisor graph: routing trajectories are asserted over nodes_ran, visit counts and reason codes."
+  },
+  "expected": "A guideline question calls the retriever exactly once with rerank on and returns a non-empty chunk set.",
+  "assertions": [
+    {
+      "rubric": "routing_trajectory",
+      "tier": "det",
+      "check": "pending.w2_g3_routing_trajectory"
+    }
+  ],
+  "guards_against": "The retriever or the reranker switched off, which shows up as a quality drop everywhere and as a failure nowhere."
+}

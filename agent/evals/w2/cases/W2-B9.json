@@ -1,0 +1,19 @@
+{
+  "id": "W2-B9",
+  "category": "B",
+  "critical": false,
+  "status": "pending_sut",
+  "inputs": {
+    "kind": "not_built",
+    "note": "Needs a factory scenario with a qualitative result (`Not Detected`)."
+  },
+  "expected": "A qualitative result is extracted as a QualitativeLabValue and is not coerced into a number.",
+  "assertions": [
+    {
+      "rubric": "schema_valid",
+      "tier": "det",
+      "check": "pending.w2_b9_schema_valid"
+    }
+  ],
+  "guards_against": "A term coerced to a number, or dropped because it would not parse."
+}

@@ -1,0 +1,19 @@
+{
+  "id": "W2-C3",
+  "category": "C",
+  "critical": true,
+  "status": "active",
+  "inputs": {
+    "kind": "contract",
+    "note": "An ExtractedField in the `unlocated` status, and a PresentedFact constructed from a citation with no bbox."
+  },
+  "expected": "A value the model read and code could not place is not presentable, is not a PresentedFact, raises from require_presented_fact(), and is disclosed as not_located_on_page with the reading kept under a name that says it is unverified.",
+  "assertions": [
+    {
+      "rubric": "locate_result",
+      "tier": "det",
+      "check": "chk.c_unlocated_is_never_a_fact"
+    }
+  ],
+  "guards_against": "An unlocated value let through as fact — invariant 4's central failure, and the one a widened PRESENTABLE_STATUSES causes in one line."
+}

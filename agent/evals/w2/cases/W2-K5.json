@@ -1,0 +1,19 @@
+{
+  "id": "W2-K5",
+  "category": "K",
+  "critical": false,
+  "status": "active",
+  "inputs": {
+    "kind": "contract",
+    "note": "A result carrying another test's key, a stale key after a date change, and a mismatched extraction id."
+  },
+  "expected": "A key reused under a changed payload is rejected as a composition mismatch rather than silently replayed.",
+  "assertions": [
+    {
+      "rubric": "idempotency",
+      "tier": "det",
+      "check": "chk.k_reused_key_with_a_changed_payload_is_rejected"
+    }
+  ],
+  "guards_against": "Payload-mismatch masking: a changed reading accepted as a duplicate of the old one and dropped."
+}

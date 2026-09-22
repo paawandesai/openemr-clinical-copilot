@@ -1,0 +1,24 @@
+{
+  "id": "W2-H9",
+  "category": "H",
+  "critical": true,
+  "status": "pending_sut",
+  "inputs": {
+    "kind": "not_built",
+    "note": "Needs the graph: a censored value whose interval straddles a reference bound."
+  },
+  "expected": "An indeterminate abnormal flag is disclosed as undecidable and is never written back, and never rendered as normal.",
+  "assertions": [
+    {
+      "rubric": "factually_consistent",
+      "tier": "judge",
+      "check": "pending.w2_h9_factually_consistent"
+    },
+    {
+      "rubric": "provenance_roundtrip",
+      "tier": "det",
+      "check": "pending.w2_h9_provenance_roundtrip"
+    }
+  ],
+  "guards_against": "'We could not tell' written into a chart as 'no'."
+}

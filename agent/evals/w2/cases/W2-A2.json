@@ -1,0 +1,21 @@
+{
+  "id": "W2-A2",
+  "category": "A",
+  "critical": false,
+  "status": "active",
+  "inputs": {
+    "kind": "factory_scenario",
+    "scenario_ids": [
+      "intake-clean-004"
+    ]
+  },
+  "expected": "A clean intake form converts to an IntakeFormExtraction with medications and allergies as written, nothing unmapped, and every drawn text field declaring a known rendering (verbatim | derived | wrapped | truncated).",
+  "assertions": [
+    {
+      "rubric": "schema_valid",
+      "tier": "det",
+      "check": "chk.a_intake_clean_parses"
+    }
+  ],
+  "guards_against": "A factory field silently dropped by the adapter, or a drawn value whose relation to the chart is undeclared so a reader has to infer it from the strings."
+}

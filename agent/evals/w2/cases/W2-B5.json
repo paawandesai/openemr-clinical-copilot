@@ -1,0 +1,21 @@
+{
+  "id": "W2-B5",
+  "category": "B",
+  "critical": false,
+  "status": "pending_sut",
+  "inputs": {
+    "kind": "factory_scenario",
+    "scenario_ids": [
+      "lab-scanned-heavy-abnormal-002"
+    ]
+  },
+  "expected": "An ambiguously rendered collection date is either parsed to the ISO date ground truth records or flagged unsupported; it is never guessed into the wrong century or the wrong day/month order.",
+  "assertions": [
+    {
+      "rubric": "schema_valid",
+      "tier": "det",
+      "check": "pending.w2_b5_schema_valid"
+    }
+  ],
+  "guards_against": "Date-format ambiguity read as fact."
+}

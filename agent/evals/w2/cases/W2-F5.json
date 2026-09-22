@@ -1,0 +1,19 @@
+{
+  "id": "W2-F5",
+  "category": "F",
+  "critical": false,
+  "status": "active",
+  "inputs": {
+    "kind": "contract",
+    "note": "PatientFactClaim and GuidelineClaim constructed with an empty citation list."
+  },
+  "expected": "An uncited clinical claim is not expressible: both claim types require at least one citation, so the render step has nothing to render one from.",
+  "assertions": [
+    {
+      "rubric": "citation_present",
+      "tier": "det",
+      "check": "chk.f_every_claim_carries_a_citation"
+    }
+  ],
+  "guards_against": "Stripped citations — the regression that would otherwise look like a small drop in output quality rather than a contract violation."
+}

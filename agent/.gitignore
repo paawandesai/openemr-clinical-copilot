@@ -15,3 +15,7 @@ deploy/docker-compose.override.yml
 # seconds (app/retrieval/dense.py). Cached per (model, corpus fingerprint),
 # so a stale cache cannot be read.
 app/retrieval/corpus/.cache/
+
+# The eval gate's judge cache. Generated per machine, keyed on (case, output, prompt text, model version);
+# committing it would let a stale verdict outlive the thing that produced it.
+evals/w2/.judge_cache/

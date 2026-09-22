@@ -1,0 +1,19 @@
+{
+  "id": "W2-K2",
+  "category": "K",
+  "critical": true,
+  "status": "pending_sut",
+  "inputs": {
+    "kind": "not_built",
+    "note": "Needs the custom endpoint (D1) and a real ledger: two concurrent submissions of the same key."
+  },
+  "expected": "Concurrent duplicate submits commit exactly one row; the second receives the first's ids rather than creating its own.",
+  "assertions": [
+    {
+      "rubric": "idempotency",
+      "tier": "det",
+      "check": "pending.w2_k2_idempotency"
+    }
+  ],
+  "guards_against": "The race between the initial lookup and the durable write — where idempotency defects actually live, and which a replayed 200 does not detect."
+}

@@ -1,0 +1,19 @@
+{
+  "id": "W2-F3",
+  "category": "F",
+  "critical": false,
+  "status": "active",
+  "inputs": {
+    "kind": "contract",
+    "note": "A FinalAnswer carrying one chart claim and one guideline claim."
+  },
+  "expected": "An answer mixing a patient value with a guideline recommendation keeps them in separate lists, each claim correctly typed and separately citable.",
+  "assertions": [
+    {
+      "rubric": "source_type_correct",
+      "tier": "det",
+      "check": "chk.f_mixed_answer_keeps_the_lists_separate"
+    }
+  ],
+  "guards_against": "Citation bleed across source types in a single answer."
+}

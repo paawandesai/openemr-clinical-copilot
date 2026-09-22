@@ -1,0 +1,19 @@
+{
+  "id": "W2-F4",
+  "category": "F",
+  "critical": false,
+  "status": "pending_sut",
+  "inputs": {
+    "kind": "not_built",
+    "note": "Needs the retrieval graph: a planted answer whose cited chunk does not support it."
+  },
+  "expected": "Where a claim's cited chunk does not entail it, the judge marks it unfaithful. This case is should-fail-if-shipped.",
+  "assertions": [
+    {
+      "rubric": "citation_supports_claim",
+      "tier": "judge",
+      "check": "pending.w2_f4_citation_supports_claim"
+    }
+  ],
+  "guards_against": "The reranker switched off, or grounding weakened so a plausible chunk is cited for an unsupported claim — read alone, faithfulness scores ~0.98 with no context at all."
+}

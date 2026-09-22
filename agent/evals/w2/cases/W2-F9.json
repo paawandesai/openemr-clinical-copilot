@@ -1,0 +1,19 @@
+{
+  "id": "W2-F9",
+  "category": "F",
+  "critical": false,
+  "status": "active",
+  "inputs": {
+    "kind": "contract",
+    "note": "Every Week 1 Claim value shape round-tripped through Citation, including value=None."
+  },
+  "expected": "Week 1 claims round-trip through the Week 2 citation contract without loss, including the nameless-record case; a document citation refuses to become a Week 1 chart Claim.",
+  "assertions": [
+    {
+      "rubric": "citation_present",
+      "tier": "det",
+      "check": "chk.f_week1_claims_round_trip"
+    }
+  ],
+  "guards_against": "The Week 1 bridge drifting, or a document citation converted into a chart claim by inventing a resource_type."
+}

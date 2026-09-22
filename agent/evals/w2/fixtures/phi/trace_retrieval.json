@@ -1,0 +1,24 @@
+{
+  "fixture_id": "trace_retrieval",
+  "arm": "seeded",
+  "note": "The retrieval query as it leaves this system. D5: concepts only. This bundle is the one that reaches a third-party embedder or reranker, so it is the leak site with the longest blast radius.",
+  "captured": {
+    "log.event": "evidence_retriever.query",
+    "log.correlation_id": "4c547101-195d-47b2-bc4b-0db614573052",
+    "retrieval.concepts": [
+      { "text": "type 2 diabetes mellitus", "code_system": "snomed", "code": "44054006" },
+      { "text": "haemoglobin A1c target", "code_system": null, "code": null },
+      { "text": "metformin", "code_system": "rxnorm", "code": "6809" }
+    ],
+    "retrieval.query_string": "type 2 diabetes mellitus haemoglobin A1c target metformin",
+    "retrieval.top_k": 10,
+    "retrieval.method": "hybrid",
+    "retrieval.rerank": true,
+    "retrieval.hits": 6,
+    "retrieval.chunk_ids": ["ada-2026-s6-0004", "ada-2026-s6-0011", "uspstf-dm-0002"],
+    "reranker.request_payload": {
+      "query": "type 2 diabetes mellitus haemoglobin A1c target metformin",
+      "documents": 24
+    }
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "fixture_id": "canary_patient",
+  "note": "Sentinel values seeded into one synthetic patient. None of these strings has any legitimate reason to appear in a log line, a trace field, a retrieval query or an error message, so an exact match for any of them is a leak and not a judgement call. CanaryBench / phi-canary use exactly this construction.",
+  "patient_uuid": "a2c373ec-57bf-41cb-8767-94410dcf663d",
+  "canaries": {
+    "mrn": "ZZCANARY7413MRN",
+    "name": "Quenby Vandermolen-Ashgrove",
+    "given_name": "Quenby",
+    "family_name": "Vandermolen-Ashgrove",
+    "date_of_birth": "1971-04-02",
+    "ssn": "999-41-7772",
+    "phone": "555-0142-9930",
+    "email": "q.vandermolen-ashgrove@example.invalid",
+    "street": "8814 Kestrel Hollow Terrace",
+    "free_text_finding": "recurrent nocturnal palpitations since the Brindlemere move"
+  }
+}

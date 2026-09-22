@@ -1,0 +1,21 @@
+{
+  "id": "W2-J5",
+  "category": "J",
+  "critical": true,
+  "status": "active",
+  "inputs": {
+    "kind": "fixture",
+    "fixtures": [
+      "phi/trace_control_clean.json"
+    ]
+  },
+  "expected": "The matched no-canary control produces zero hits: the scanner's false-positive rate on clean logs is zero.",
+  "assertions": [
+    {
+      "rubric": "no_phi_in_logs",
+      "tier": "det",
+      "check": "chk.j_control_arm_is_quiet"
+    }
+  ],
+  "guards_against": "Scanner miscalibration. A detector that cries wolf on clean logs is a detector somebody switches off, and its silence afterwards means nothing."
+}

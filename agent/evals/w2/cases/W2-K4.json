@@ -1,0 +1,19 @@
+{
+  "id": "W2-K4",
+  "category": "K",
+  "critical": false,
+  "status": "pending_sut",
+  "inputs": {
+    "kind": "not_built",
+    "note": "Needs the custom endpoint: a forced failure between the document insert and the procedure_result insert."
+  },
+  "expected": "A partial failure mid-write leaves no orphan rows: the document and the whole procedure_order -> procedure_result chain commit together or not at all.",
+  "assertions": [
+    {
+      "rubric": "idempotency",
+      "tier": "det",
+      "check": "pending.w2_k4_idempotency"
+    }
+  ],
+  "guards_against": "Orphan rows: results pointing at a document that was never stored, or a document with results that never arrived."
+}

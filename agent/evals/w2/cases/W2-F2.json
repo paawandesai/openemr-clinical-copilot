@@ -1,0 +1,19 @@
+{
+  "id": "W2-F2",
+  "category": "F",
+  "critical": false,
+  "status": "active",
+  "inputs": {
+    "kind": "contract",
+    "note": "PatientFactClaim offered a guideline citation, and offered chart and document citations in one claim."
+  },
+  "expected": "A patient fact cites chart or document and never a guideline, and a single claim draws on one source type (D17).",
+  "assertions": [
+    {
+      "rubric": "source_type_correct",
+      "tier": "det",
+      "check": "chk.f_patient_facts_never_cite_a_guideline"
+    }
+  ],
+  "guards_against": "General guidance presented as a fact about this patient, and a sentence with two provenances that reads as having one."
+}

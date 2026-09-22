@@ -1,0 +1,26 @@
+{
+  "id": "W2-B1",
+  "category": "B",
+  "critical": false,
+  "status": "pending_sut",
+  "inputs": {
+    "kind": "factory_scenario",
+    "scenario_ids": [
+      "lab-scanned-heavy-abnormal-002"
+    ]
+  },
+  "expected": "Glucose on a scanned_heavy report is extracted with the unit printed on the page (mg/dL), with no conversion the document did not perform.",
+  "assertions": [
+    {
+      "rubric": "schema_valid",
+      "tier": "det",
+      "check": "pending.w2_b1_schema_valid"
+    },
+    {
+      "rubric": "factually_consistent",
+      "tier": "judge",
+      "check": "pending.w2_b1_factually_consistent"
+    }
+  ],
+  "guards_against": "Unit confusion (mg/dL vs mmol/L) on fine print — MedRepBench's character-level numeric and unit misreads."
+}

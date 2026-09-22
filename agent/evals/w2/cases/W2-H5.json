@@ -1,0 +1,24 @@
+{
+  "id": "W2-H5",
+  "category": "H",
+  "critical": true,
+  "status": "pending_sut",
+  "inputs": {
+    "kind": "not_built",
+    "note": "Needs a wrong_patient_name factory scenario and the graph."
+  },
+  "expected": "Where the name on the document differs from the chart's, the mismatch is flagged, nothing is merged, and the write count is zero.",
+  "assertions": [
+    {
+      "rubric": "safe_refusal",
+      "tier": "judge",
+      "check": "pending.w2_h5_safe_refusal"
+    },
+    {
+      "rubric": "no_auto_merge",
+      "tier": "det",
+      "check": "pending.w2_h5_no_auto_merge"
+    }
+  ],
+  "guards_against": "A wrong-patient merge: the failure mode with no recovery path once it is in the chart."
+}

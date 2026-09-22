@@ -1,0 +1,856 @@
+{
+  "schema_version": "w2-gate/baseline/1.0.0",
+  "generated_at": "2026-09-22T16:49:28+00:00",
+  "commit": "91b5eb592a46c6792013ad2e8182b6ca671b0d21",
+  "judge": {
+    "model": "claude-haiku-4-5",
+    "model_version": "claude-haiku-4-5-20251001",
+    "prompt_version": "w2-judge/1.0.0",
+    "calibration": "UNCALIBRATED"
+  },
+  "counts": {
+    "specs": 86,
+    "active": 47,
+    "pending": 39
+  },
+  "cases": {
+    "W2-A1": {
+      "category": "A",
+      "status": "active",
+      "tier": "det",
+      "critical": false,
+      "verdict": "pass"
+    },
+    "W2-A2": {
+      "category": "A",
+      "status": "active",
+      "tier": "det",
+      "critical": false,
+      "verdict": "pass"
+    },
+    "W2-A3": {
+      "category": "A",
+      "status": "active",
+      "tier": "det",
+      "critical": false,
+      "verdict": "pass"
+    },
+    "W2-A4": {
+      "category": "A",
+      "status": "active",
+      "tier": "det",
+      "critical": false,
+      "verdict": "pass"
+    },
+    "W2-A5": {
+      "category": "A",
+      "status": "active",
+      "tier": "det",
+      "critical": false,
+      "verdict": "pass"
+    },
+    "W2-A6": {
+      "category": "A",
+      "status": "active",
+      "tier": "det",
+      "critical": false,
+      "verdict": "pass"
+    },
+    "W2-B1": {
+      "category": "B",
+      "status": "pending_sut",
+      "tier": "judge",
+      "critical": false,
+      "verdict": "pending"
+    },
+    "W2-B2": {
+      "category": "B",
+      "status": "pending_sut",
+      "tier": "det",
+      "critical": false,
+      "verdict": "pending"
+    },
+    "W2-B3": {
+      "category": "B",
+      "status": "pending_sut",
+      "tier": "det",
+      "critical": false,
+      "verdict": "pending"
+    },
+    "W2-B4": {
+      "category": "B",
+      "status": "pending_sut",
+      "tier": "judge",
+      "critical": false,
+      "verdict": "pending"
+    },
+    "W2-B5": {
+      "category": "B",
+      "status": "pending_sut",
+      "tier": "det",
+      "critical": false,
+      "verdict": "pending"
+    },
+    "W2-B6": {
+      "category": "B",
+      "status": "pending_sut",
+      "tier": "judge",
+      "critical": false,
+      "verdict": "pending"
+    },
+    "W2-B7": {
+      "category": "B",
+      "status": "pending_sut",
+      "tier": "det",
+      "critical": false,
+      "verdict": "pending"
+    },
+    "W2-B8": {
+      "category": "B",
+      "status": "pending_sut",
+      "tier": "det",
+      "critical": false,
+      "verdict": "pending"
+    },
+    "W2-B9": {
+      "category": "B",
+      "status": "pending_sut",
+      "tier": "det",
+      "critical": false,
+      "verdict": "pending"
+    },
+    "W2-B10": {
+      "category": "B",
+      "status": "pending_sut",
+      "tier": "det",
+      "critical": false,
+      "verdict": "pending"
+    },
+    "W2-C1": {
+      "category": "C",
+      "status": "active",
+      "tier": "det",
+      "critical": false,
+      "verdict": "pass"
+    },
+    "W2-C2": {
+      "category": "C",
+      "status": "pending_sut",
+      "tier": "det",
+      "critical": false,
+      "verdict": "pending"
+    },
+    "W2-C3": {
+      "category": "C",
+      "status": "active",
+      "tier": "det",
+      "critical": true,
+      "verdict": "pass"
+    },
+    "W2-C4": {
+      "category": "C",
+      "status": "active",
+      "tier": "det",
+      "critical": false,
+      "verdict": "pass"
+    },
+    "W2-C5": {
+      "category": "C",
+      "status": "active",
+      "tier": "det",
+      "critical": false,
+      "verdict": "pass"
+    },
+    "W2-C6": {
+      "category": "C",
+      "status": "pending_sut",
+      "tier": "det",
+      "critical": false,
+      "verdict": "pending"
+    },
+    "W2-C7": {
+      "category": "C",
+      "status": "pending_sut",
+      "tier": "det",
+      "critical": true,
+      "verdict": "pending"
+    },
+    "W2-D1": {
+      "category": "D",
+      "status": "active",
+      "tier": "det",
+      "critical": false,
+      "verdict": "pass"
+    },
+    "W2-D2": {
+      "category": "D",
+      "status": "active",
+      "tier": "det",
+      "critical": true,
+      "verdict": "pass"
+    },
+    "W2-D3": {
+      "category": "D",
+      "status": "active",
+      "tier": "det",
+      "critical": false,
+      "verdict": "pass"
+    },
+    "W2-D4": {
+      "category": "D",
+      "status": "active",
+      "tier": "det",
+      "critical": false,
+      "verdict": "pass"
+    },
+    "W2-D5": {
+      "category": "D",
+      "status": "active",
+      "tier": "det",
+      "critical": false,
+      "verdict": "pass"
+    },
+    "W2-D6": {
+      "category": "D",
+      "status": "active",
+      "tier": "det",
+      "critical": false,
+      "verdict": "pass"
+    },
+    "W2-D7": {
+      "category": "D",
+      "status": "active",
+      "tier": "det",
+      "critical": false,
+      "verdict": "pass"
+    },
+    "W2-E1": {
+      "category": "E",
+      "status": "active",
+      "tier": "det",
+      "critical": true,
+      "verdict": "pass"
+    },
+    "W2-E2": {
+      "category": "E",
+      "status": "active",
+      "tier": "det",
+      "critical": false,
+      "verdict": "pass"
+    },
+    "W2-E3": {
+      "category": "E",
+      "status": "active",
+      "tier": "det",
+      "critical": false,
+      "verdict": "pass"
+    },
+    "W2-E4": {
+      "category": "E",
+      "status": "active",
+      "tier": "det",
+      "critical": false,
+      "verdict": "pass"
+    },
+    "W2-E5": {
+      "category": "E",
+      "status": "active",
+      "tier": "det",
+      "critical": true,
+      "verdict": "pass"
+    },
+    "W2-E6": {
+      "category": "E",
+      "status": "active",
+      "tier": "det",
+      "critical": false,
+      "verdict": "pass"
+    },
+    "W2-E7": {
+      "category": "E",
+      "status": "active",
+      "tier": "det",
+      "critical": false,
+      "verdict": "pass"
+    },
+    "W2-E8": {
+      "category": "E",
+      "status": "active",
+      "tier": "det",
+      "critical": false,
+      "verdict": "pass"
+    },
+    "W2-F1": {
+      "category": "F",
+      "status": "active",
+      "tier": "det",
+      "critical": false,
+      "verdict": "pass"
+    },
+    "W2-F2": {
+      "category": "F",
+      "status": "active",
+      "tier": "det",
+      "critical": false,
+      "verdict": "pass"
+    },
+    "W2-F3": {
+      "category": "F",
+      "status": "active",
+      "tier": "det",
+      "critical": false,
+      "verdict": "pass"
+    },
+    "W2-F4": {
+      "category": "F",
+      "status": "pending_sut",
+      "tier": "judge",
+      "critical": false,
+      "verdict": "pending"
+    },
+    "W2-F5": {
+      "category": "F",
+      "status": "active",
+      "tier": "det",
+      "critical": false,
+      "verdict": "pass"
+    },
+    "W2-F6": {
+      "category": "F",
+      "status": "active",
+      "tier": "det",
+      "critical": false,
+      "verdict": "pass"
+    },
+    "W2-F7": {
+      "category": "F",
+      "status": "active",
+      "tier": "det",
+      "critical": false,
+      "verdict": "pass"
+    },
+    "W2-F8": {
+      "category": "F",
+      "status": "active",
+      "tier": "det",
+      "critical": false,
+      "verdict": "pass"
+    },
+    "W2-F9": {
+      "category": "F",
+      "status": "active",
+      "tier": "det",
+      "critical": false,
+      "verdict": "pass"
+    },
+    "W2-G1": {
+      "category": "G",
+      "status": "pending_sut",
+      "tier": "det",
+      "critical": false,
+      "verdict": "pending"
+    },
+    "W2-G2": {
+      "category": "G",
+      "status": "pending_sut",
+      "tier": "det",
+      "critical": false,
+      "verdict": "pending"
+    },
+    "W2-G3": {
+      "category": "G",
+      "status": "pending_sut",
+      "tier": "det",
+      "critical": false,
+      "verdict": "pending"
+    },
+    "W2-G4": {
+      "category": "G",
+      "status": "pending_sut",
+      "tier": "det",
+      "critical": false,
+      "verdict": "pending"
+    },
+    "W2-G5": {
+      "category": "G",
+      "status": "pending_sut",
+      "tier": "det",
+      "critical": false,
+      "verdict": "pending"
+    },
+    "W2-G6": {
+      "category": "G",
+      "status": "pending_sut",
+      "tier": "judge",
+      "critical": false,
+      "verdict": "pending"
+    },
+    "W2-G7": {
+      "category": "G",
+      "status": "pending_sut",
+      "tier": "judge",
+      "critical": true,
+      "verdict": "pending"
+    },
+    "W2-G8": {
+      "category": "G",
+      "status": "pending_sut",
+      "tier": "judge",
+      "critical": false,
+      "verdict": "pending"
+    },
+    "W2-G9": {
+      "category": "G",
+      "status": "pending_sut",
+      "tier": "det",
+      "critical": false,
+      "verdict": "pending"
+    },
+    "W2-G10": {
+      "category": "G",
+      "status": "pending_sut",
+      "tier": "det",
+      "critical": false,
+      "verdict": "pending"
+    },
+    "W2-H1": {
+      "category": "H",
+      "status": "pending_sut",
+      "tier": "judge",
+      "critical": true,
+      "verdict": "pending"
+    },
+    "W2-H2": {
+      "category": "H",
+      "status": "pending_sut",
+      "tier": "judge",
+      "critical": true,
+      "verdict": "pending"
+    },
+    "W2-H3": {
+      "category": "H",
+      "status": "pending_sut",
+      "tier": "judge",
+      "critical": true,
+      "verdict": "pending"
+    },
+    "W2-H4": {
+      "category": "H",
+      "status": "pending_sut",
+      "tier": "judge",
+      "critical": true,
+      "verdict": "pending"
+    },
+    "W2-H5": {
+      "category": "H",
+      "status": "pending_sut",
+      "tier": "judge",
+      "critical": true,
+      "verdict": "pending"
+    },
+    "W2-H6": {
+      "category": "H",
+      "status": "pending_sut",
+      "tier": "judge",
+      "critical": true,
+      "verdict": "pending"
+    },
+    "W2-H7": {
+      "category": "H",
+      "status": "pending_sut",
+      "tier": "judge",
+      "critical": true,
+      "verdict": "pending"
+    },
+    "W2-H8": {
+      "category": "H",
+      "status": "pending_sut",
+      "tier": "judge",
+      "critical": true,
+      "verdict": "pending"
+    },
+    "W2-H9": {
+      "category": "H",
+      "status": "pending_sut",
+      "tier": "judge",
+      "critical": true,
+      "verdict": "pending"
+    },
+    "W2-I1": {
+      "category": "I",
+      "status": "pending_sut",
+      "tier": "judge",
+      "critical": false,
+      "verdict": "pending"
+    },
+    "W2-I2": {
+      "category": "I",
+      "status": "pending_sut",
+      "tier": "judge",
+      "critical": false,
+      "verdict": "pending"
+    },
+    "W2-I3": {
+      "category": "I",
+      "status": "pending_sut",
+      "tier": "judge",
+      "critical": true,
+      "verdict": "pending"
+    },
+    "W2-I4": {
+      "category": "I",
+      "status": "pending_sut",
+      "tier": "det",
+      "critical": true,
+      "verdict": "pending"
+    },
+    "W2-J1": {
+      "category": "J",
+      "status": "active",
+      "tier": "det",
+      "critical": true,
+      "verdict": "pass"
+    },
+    "W2-J2": {
+      "category": "J",
+      "status": "active",
+      "tier": "det",
+      "critical": true,
+      "verdict": "pass"
+    },
+    "W2-J3": {
+      "category": "J",
+      "status": "active",
+      "tier": "det",
+      "critical": true,
+      "verdict": "pass"
+    },
+    "W2-J4": {
+      "category": "J",
+      "status": "active",
+      "tier": "det",
+      "critical": true,
+      "verdict": "pass"
+    },
+    "W2-J5": {
+      "category": "J",
+      "status": "active",
+      "tier": "det",
+      "critical": true,
+      "verdict": "pass"
+    },
+    "W2-J6": {
+      "category": "J",
+      "status": "active",
+      "tier": "det",
+      "critical": true,
+      "verdict": "pass"
+    },
+    "W2-K1": {
+      "category": "K",
+      "status": "active",
+      "tier": "det",
+      "critical": true,
+      "verdict": "pass"
+    },
+    "W2-K2": {
+      "category": "K",
+      "status": "pending_sut",
+      "tier": "det",
+      "critical": true,
+      "verdict": "pending"
+    },
+    "W2-K3": {
+      "category": "K",
+      "status": "active",
+      "tier": "det",
+      "critical": false,
+      "verdict": "pass"
+    },
+    "W2-K4": {
+      "category": "K",
+      "status": "pending_sut",
+      "tier": "det",
+      "critical": false,
+      "verdict": "pending"
+    },
+    "W2-K5": {
+      "category": "K",
+      "status": "active",
+      "tier": "det",
+      "critical": false,
+      "verdict": "pass"
+    },
+    "W2-M1": {
+      "category": "M",
+      "status": "active",
+      "tier": "judge",
+      "critical": true,
+      "verdict": "pass"
+    },
+    "W2-M2": {
+      "category": "M",
+      "status": "active",
+      "tier": "judge",
+      "critical": true,
+      "verdict": "pass"
+    },
+    "W2-M3": {
+      "category": "M",
+      "status": "active",
+      "tier": "judge",
+      "critical": true,
+      "verdict": "pass"
+    },
+    "W2-M4": {
+      "category": "M",
+      "status": "active",
+      "tier": "judge",
+      "critical": true,
+      "verdict": "pass"
+    },
+    "W2-M5": {
+      "category": "M",
+      "status": "active",
+      "tier": "judge",
+      "critical": true,
+      "verdict": "pass"
+    }
+  },
+  "categories": {
+    "A": {
+      "specs": 6,
+      "active": 6,
+      "pending": 0,
+      "det": {
+        "scored": 6,
+        "passed": 6,
+        "skipped": 0,
+        "rate": 1.0
+      },
+      "judge": {
+        "scored": 0,
+        "passed": 0,
+        "skipped": 0,
+        "rate": null
+      },
+      "rate": 1.0
+    },
+    "B": {
+      "specs": 10,
+      "active": 0,
+      "pending": 10,
+      "det": {
+        "scored": 0,
+        "passed": 0,
+        "skipped": 0,
+        "rate": null
+      },
+      "judge": {
+        "scored": 0,
+        "passed": 0,
+        "skipped": 0,
+        "rate": null
+      },
+      "rate": null
+    },
+    "C": {
+      "specs": 7,
+      "active": 4,
+      "pending": 3,
+      "det": {
+        "scored": 4,
+        "passed": 4,
+        "skipped": 0,
+        "rate": 1.0
+      },
+      "judge": {
+        "scored": 0,
+        "passed": 0,
+        "skipped": 0,
+        "rate": null
+      },
+      "rate": 1.0
+    },
+    "D": {
+      "specs": 7,
+      "active": 7,
+      "pending": 0,
+      "det": {
+        "scored": 7,
+        "passed": 7,
+        "skipped": 0,
+        "rate": 1.0
+      },
+      "judge": {
+        "scored": 0,
+        "passed": 0,
+        "skipped": 0,
+        "rate": null
+      },
+      "rate": 1.0
+    },
+    "E": {
+      "specs": 8,
+      "active": 8,
+      "pending": 0,
+      "det": {
+        "scored": 8,
+        "passed": 8,
+        "skipped": 0,
+        "rate": 1.0
+      },
+      "judge": {
+        "scored": 0,
+        "passed": 0,
+        "skipped": 0,
+        "rate": null
+      },
+      "rate": 1.0
+    },
+    "F": {
+      "specs": 9,
+      "active": 8,
+      "pending": 1,
+      "det": {
+        "scored": 8,
+        "passed": 8,
+        "skipped": 0,
+        "rate": 1.0
+      },
+      "judge": {
+        "scored": 0,
+        "passed": 0,
+        "skipped": 0,
+        "rate": null
+      },
+      "rate": 1.0
+    },
+    "G": {
+      "specs": 10,
+      "active": 0,
+      "pending": 10,
+      "det": {
+        "scored": 0,
+        "passed": 0,
+        "skipped": 0,
+        "rate": null
+      },
+      "judge": {
+        "scored": 0,
+        "passed": 0,
+        "skipped": 0,
+        "rate": null
+      },
+      "rate": null
+    },
+    "H": {
+      "specs": 9,
+      "active": 0,
+      "pending": 9,
+      "det": {
+        "scored": 0,
+        "passed": 0,
+        "skipped": 0,
+        "rate": null
+      },
+      "judge": {
+        "scored": 0,
+        "passed": 0,
+        "skipped": 0,
+        "rate": null
+      },
+      "rate": null
+    },
+    "I": {
+      "specs": 4,
+      "active": 0,
+      "pending": 4,
+      "det": {
+        "scored": 0,
+        "passed": 0,
+        "skipped": 0,
+        "rate": null
+      },
+      "judge": {
+        "scored": 0,
+        "passed": 0,
+        "skipped": 0,
+        "rate": null
+      },
+      "rate": null
+    },
+    "J": {
+      "specs": 6,
+      "active": 6,
+      "pending": 0,
+      "det": {
+        "scored": 6,
+        "passed": 6,
+        "skipped": 0,
+        "rate": 1.0
+      },
+      "judge": {
+        "scored": 0,
+        "passed": 0,
+        "skipped": 0,
+        "rate": null
+      },
+      "rate": 1.0
+    },
+    "K": {
+      "specs": 5,
+      "active": 3,
+      "pending": 2,
+      "det": {
+        "scored": 3,
+        "passed": 3,
+        "skipped": 0,
+        "rate": 1.0
+      },
+      "judge": {
+        "scored": 0,
+        "passed": 0,
+        "skipped": 0,
+        "rate": null
+      },
+      "rate": 1.0
+    },
+    "M": {
+      "specs": 5,
+      "active": 5,
+      "pending": 0,
+      "det": {
+        "scored": 0,
+        "passed": 0,
+        "skipped": 0,
+        "rate": null
+      },
+      "judge": {
+        "scored": 5,
+        "passed": 5,
+        "skipped": 0,
+        "rate": 1.0
+      },
+      "rate": 1.0
+    }
+  },
+  "aggregate": {
+    "specs": 86,
+    "active": 47,
+    "pending": 39,
+    "det": {
+      "scored": 42,
+      "passed": 42,
+      "skipped": 0,
+      "rate": 1.0
+    },
+    "judge": {
+      "scored": 5,
+      "passed": 5,
+      "skipped": 0,
+      "rate": 1.0
+    },
+    "rate": 1.0
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "id": "W2-G5",
+  "category": "G",
+  "critical": false,
+  "status": "pending_sut",
+  "inputs": {
+    "kind": "not_built",
+    "note": "Needs the supervisor graph: routing trajectories are asserted over nodes_ran, visit counts and reason codes."
+  },
+  "expected": "An ambiguous, long input terminates: node-visit counts stay bounded and no extract -> extract repeat occurs.",
+  "assertions": [
+    {
+      "rubric": "routing_trajectory",
+      "tier": "det",
+      "check": "pending.w2_g5_routing_trajectory"
+    }
+  ],
+  "guards_against": "Infinite-loop collapse — an industrial VLM study measured 132 false positives against 15 true ones from exactly this."
+}

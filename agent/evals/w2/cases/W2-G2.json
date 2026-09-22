@@ -1,0 +1,19 @@
+{
+  "id": "W2-G2",
+  "category": "G",
+  "critical": false,
+  "status": "pending_sut",
+  "inputs": {
+    "kind": "not_built",
+    "note": "Needs the supervisor graph: routing trajectories are asserted over nodes_ran, visit counts and reason codes."
+  },
+  "expected": "A pure chart lookup does not call the retriever: the retrieve node is absent and the reason code is chart_only_question.",
+  "assertions": [
+    {
+      "rubric": "routing_trajectory",
+      "tier": "det",
+      "check": "pending.w2_g2_routing_trajectory"
+    }
+  ],
+  "guards_against": "Over-retrieval: sending clinical concepts to a third-party service for a question the chart already answers."
+}

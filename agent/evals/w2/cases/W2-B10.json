@@ -1,0 +1,19 @@
+{
+  "id": "W2-B10",
+  "category": "B",
+  "critical": false,
+  "status": "pending_sut",
+  "inputs": {
+    "kind": "not_built",
+    "note": "Needs the extractor: a forced invalid model output."
+  },
+  "expected": "Unparseable extractor output produces status=failed with failure_reason=model_output_invalid and no payload at all (D7).",
+  "assertions": [
+    {
+      "rubric": "schema_valid",
+      "tier": "det",
+      "check": "pending.w2_b10_schema_valid"
+    }
+  ],
+  "guards_against": "A partial extraction returned alongside a non-complete status — up to 73.7% unparseable JSON has been measured for some models on medical IE."
+}

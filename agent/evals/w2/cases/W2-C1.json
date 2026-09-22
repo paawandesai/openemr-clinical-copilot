@@ -1,0 +1,23 @@
+{
+  "id": "W2-C1",
+  "category": "C",
+  "critical": false,
+  "status": "active",
+  "inputs": {
+    "kind": "factory_scenario",
+    "scenario_ids": [
+      "lab-clean-001",
+      "intake-clean-004"
+    ],
+    "note": "Clean pages only. Both the factory's boxes and a text-layer extractor's come from the same font metrics here, so raw IoU is a fair comparison on this input and raw IoU >= 0.5 is the tolerance once the locate step exists. Scanned pages use the centre-inside rule instead — see W2-C2."
+  },
+  "expected": "A field is `located` only when it carries a document citation with a bbox, and the clean samples' drawn fields do carry one.",
+  "assertions": [
+    {
+      "rubric": "locate_result",
+      "tier": "det",
+      "check": "chk.c_located_requires_a_bbox"
+    }
+  ],
+  "guards_against": "The locate step disabled, or the `located` rule loosened so a label can be applied without a page region behind it."
+}

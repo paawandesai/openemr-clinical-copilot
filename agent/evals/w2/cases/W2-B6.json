@@ -1,0 +1,26 @@
+{
+  "id": "W2-B6",
+  "category": "B",
+  "critical": false,
+  "status": "pending_sut",
+  "inputs": {
+    "kind": "factory_scenario",
+    "scenario_ids": [
+      "lab-scanned-heavy-abnormal-002"
+    ]
+  },
+  "expected": "On an image-only PDF the OCR path yields the values the clean reference layout carries, or flags them unsupported. It never yields a silently different number.",
+  "assertions": [
+    {
+      "rubric": "schema_valid",
+      "tier": "det",
+      "check": "pending.w2_b6_schema_valid"
+    },
+    {
+      "rubric": "factually_consistent",
+      "tier": "judge",
+      "check": "pending.w2_b6_factually_consistent"
+    }
+  ],
+  "guards_against": "A degraded scan producing a confident wrong reading rather than an honest failure — the mode that is unrecoverable because Synthea carries no ranges to contradict it."
+}

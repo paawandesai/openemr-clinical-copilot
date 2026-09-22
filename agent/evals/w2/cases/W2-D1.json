@@ -1,0 +1,22 @@
+{
+  "id": "W2-D1",
+  "category": "D",
+  "critical": false,
+  "status": "active",
+  "inputs": {
+    "kind": "factory_scenario",
+    "scenario_ids": [
+      "lab-scanned-heavy-abnormal-002",
+      "lab-multipage-003"
+    ]
+  },
+  "expected": "Where the laboratory printed H and the value is above its reference interval, the cross-check outcome is `agree`, and rows in the committed samples do agree.",
+  "assertions": [
+    {
+      "rubric": "abnormal_flag_crosscheck",
+      "tier": "det",
+      "check": "chk.d_printed_flag_agrees_with_computed"
+    }
+  ],
+  "guards_against": "The abnormal-flag cross-check removed, or quietly stopped running, so the only abnormality signal in the system goes unverified."
+}

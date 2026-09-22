@@ -1,0 +1,23 @@
+{
+  "id": "W2-D6",
+  "category": "D",
+  "critical": false,
+  "status": "active",
+  "inputs": {
+    "kind": "factory_scenario",
+    "scenario_ids": [
+      "lab-clean-001",
+      "lab-scanned-heavy-abnormal-002",
+      "lab-multipage-003"
+    ]
+  },
+  "expected": "Flag agreement is computed only over rows whose reported flag is in COMPARABLE_REPORTED_FLAGS, its denominator is reported with it, and no row records agreement with a non-comparable flag.",
+  "assertions": [
+    {
+      "rubric": "abnormal_flag_crosscheck",
+      "tier": "det",
+      "check": "chk.d_agreement_is_computed_over_comparable_rows_only"
+    }
+  ],
+  "guards_against": "A flag-agreement rate read as 'the extractor read the flags' — D20's stated consequence. 100% over four rows is not the claim 100% over four hundred is."
+}

@@ -1,0 +1,21 @@
+{
+  "id": "W2-B2",
+  "category": "B",
+  "critical": false,
+  "status": "pending_sut",
+  "inputs": {
+    "kind": "factory_scenario",
+    "scenario_ids": [
+      "lab-scanned-heavy-abnormal-002"
+    ]
+  },
+  "expected": "Where the value column sits next to the reference range, the extracted value is the result and not a range bound.",
+  "assertions": [
+    {
+      "rubric": "schema_valid",
+      "tier": "det",
+      "check": "pending.w2_b2_schema_valid"
+    }
+  ],
+  "guards_against": "Range-misread-as-value: RJUA-MedDQA's documented failure when the item name is not located correctly."
+}
