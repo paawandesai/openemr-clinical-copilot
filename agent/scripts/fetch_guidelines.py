@@ -177,6 +177,25 @@ HEADING_TAGS = frozenset({"h1", "h2", "h3", "h4", "h5", "h6"})
 #: whole document, which is noisier but never empty.
 ROOT_PREFERENCE = ("main", "article")
 
+#: Blocks carrying a rights notice are dropped from the corpus text.
+#:
+#: Two real cases, both found by `scripts/audit_corpus_licensing.py`:
+#: nhlbi.nih.gov captions its embedded animations "Medical Animation
+#: Copyright (c) Nucleus Medical Media, All rights reserved" — a third
+#: party's notice for a video this corpus does not carry — and the JAMA-
+#: published USPSTF statements carry the AMA/US-Government joint copyright
+#: in a paragraph of publication metadata.
+#:
+#: Neither is clinical guidance, and leaving either in means a retrieval
+#: query can surface "All rights reserved" as evidence and a citation can
+#: quote it back to a clinician. The licence itself is not being discarded:
+#: it is recorded per source in `corpus/sources.yaml`, which is where a
+#: reviewer looks for it.
+RIGHTS_NOTICE = re.compile(
+    r"all rights reserved|medical animation copyright|\(c\)\s*\d{4}\s+AMA",
+    re.IGNORECASE,
+)
+
 #: Below this many blocks, a content root is assumed to be a decorative
 #: wrapper rather than the article, and the next root is tried.
 MIN_BLOCKS_FOR_ROOT = 8
@@ -350,6 +369,8 @@ def html_to_markdown(html: str) -> tuple[str, dict[str, str]]:
     recent: list[str] = []
     for block in blocks:
         if len(block.text) < 2:
+            continue
+        if RIGHTS_NOTICE.search(block.text):
             continue
         # Site chrome repeats; body text does not repeat verbatim inside a
         # four-block window.

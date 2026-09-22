@@ -45,10 +45,19 @@ CLINICAL_CONCEPTS = [
     "TSH 8.2 mIU/L",
 ]
 
-IDENTIFIER_SHAPED = [
+#: Shapes the CONTRACT type rejects on its own
+#: (app/models/w2/workers.py ClinicalConcept). A concept carrying one of
+#: these never reaches the retrieval layer.
+CONTRACT_REJECTS = [
     ("patient born 1962-03-14", "iso_date"),
     ("A1c drawn 3/14/2026", "slashed_date"),
     ("SSN 123-45-6789", "ssn"),
+]
+
+#: Shapes this guard adds on top. The contract accepts them — none is a
+#: date or an SSN — and `build_query` does not, which is the whole reason
+#: the guard exists in the retrieval layer as well as on the type.
+GUARD_ADDS = [
     ("contact jane.doe@example.com", "email"),
     ("call 415-555-0100 with results", "phone"),
     ("MRN for this patient", "mrn_label"),
@@ -58,6 +67,8 @@ IDENTIFIER_SHAPED = [
     ("visit on August 3, 1971", "month_name_date"),
 ]
 
+IDENTIFIER_SHAPED = CONTRACT_REJECTS + GUARD_ADDS
+
 
 @pytest.mark.parametrize("text", CLINICAL_CONCEPTS)
 def test_clinical_concepts_pass(text):
@@ -66,12 +77,32 @@ def test_clinical_concepts_pass(text):
 
 
 @pytest.mark.parametrize(("text", "rule"), IDENTIFIER_SHAPED)
-def test_identifier_shapes_are_blocked(text, rule):
+def test_identifier_shapes_are_blocked_by_the_guard(text, rule):
     assert rule in find_identifier_shapes(text)
     with pytest.raises(IdentifierInQueryError):
         assert_concept_only(text)
+    with pytest.raises(IdentifierInQueryError):
+        build_query([text])
+
+
+@pytest.mark.parametrize(("text", "rule"), CONTRACT_REJECTS)
+def test_the_contract_type_rejects_dates_and_ssns_on_its_own(text, rule):
+    """The structural half of D5: these never reach the retrieval layer."""
     with pytest.raises(ValidationError):
         ClinicalConcept(text=text)
+
+
+@pytest.mark.parametrize(("text", "rule"), GUARD_ADDS)
+def test_the_guard_is_strictly_wider_than_the_contract(text, rule):
+    """
+    The contract accepts these — they are not dates or SSNs — and the
+    guard does not. That asymmetry is deliberate and is the reason the
+    check exists in both places; a test that asserted the two agreed
+    would be asserting the guard adds nothing.
+    """
+    ClinicalConcept(text=text)
+    with pytest.raises(IdentifierInQueryError):
+        build_query([text])
 
 
 @pytest.mark.parametrize(("text", "rule"), IDENTIFIER_SHAPED)
@@ -118,9 +149,14 @@ def test_build_query_refuses_an_empty_concept_list():
 
 
 def test_a_code_needs_its_code_system():
+    """Contract behaviour, asserted here because retrieval relies on it."""
     ClinicalConcept(text="type 2 diabetes", code_system="snomed", code="44054006")
     with pytest.raises(ValidationError):
         ClinicalConcept(text="type 2 diabetes", code="44054006")
+
+
+def test_clinical_concept_is_the_contract_type_not_a_local_copy():
+    assert ClinicalConcept.__module__ == "app.models.w2.workers"
 
 
 def test_every_staged_dev_query_is_concept_only():

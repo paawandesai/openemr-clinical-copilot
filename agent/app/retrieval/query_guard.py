@@ -25,21 +25,34 @@ to begin with; this is the second layer, not the first.
 The two patterns the contract's `ClinicalConcept` already rejects (dates
 and SSNs) are reproduced here with the same meaning, so that a concept
 accepted at the graph boundary is never rejected here for a reason the
-contract does not share.
+contract does not share. `ClinicalConcept` itself is imported from the
+contract and re-exported, not redefined: two validators for one idea is
+how they diverge.
 """
 
 from __future__ import annotations
 
 import re
-from typing import Self
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
+from app.models.w2.workers import ClinicalConcept
 
-#: Longest text a single clinical concept needs. The contract caps
-#: `ClinicalConcept.text` at 120 characters; matched here, because the
-#: cheapest way to smuggle a chart note into a query is to call it a
-#: concept.
-MAX_CONCEPT_CHARS = 120
+#: Longest text a single clinical concept needs. Read off the contract's
+#: own `ClinicalConcept.text` constraint rather than repeated as a number,
+#: so the two cannot drift.
+MAX_CONCEPT_CHARS: int = next(
+    m.max_length
+    for m in ClinicalConcept.model_fields["text"].metadata
+    if getattr(m, "max_length", None) is not None
+)
+
+__all__ = [
+    "MAX_CONCEPT_CHARS",
+    "ClinicalConcept",
+    "IdentifierInQueryError",
+    "assert_concept_only",
+    "build_query",
+    "find_identifier_shapes",
+]
 
 
 class IdentifierInQueryError(ValueError):
@@ -96,32 +109,6 @@ def assert_concept_only(text: str) -> None:
             f"identifier-shaped text in a retrieval query (rules: {', '.join(hits)}); "
             "D5 forbids a patient identifier in a query that leaves this system"
         )
-
-
-class ClinicalConcept(BaseModel):
-    """
-    One concept a retrieval query is built from — the contract's
-    `ClinicalConcept`, with the guard above as its validator.
-    """
-
-    model_config = ConfigDict(extra="forbid", frozen=True)
-
-    text: str = Field(min_length=1, max_length=MAX_CONCEPT_CHARS)
-    code_system: str | None = Field(default=None, min_length=1)
-    code: str | None = Field(default=None, min_length=1)
-
-    @field_validator("text")
-    @classmethod
-    def _concept_only(cls, value: str) -> str:
-        assert_concept_only(value)
-        return value
-
-    @model_validator(mode="after")
-    def _code_pairs(self) -> Self:
-        """Mirrors the contract: a code without its system is unresolvable."""
-        if (self.code is None) != (self.code_system is None):
-            raise ValueError("code and code_system are given together or not at all")
-        return self
 
 
 def build_query(concepts: list[ClinicalConcept] | list[str]) -> str:

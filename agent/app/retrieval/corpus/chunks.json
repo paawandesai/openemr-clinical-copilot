@@ -1,11 +1,11 @@
 {
   "schema_version": 1,
   "as_of": "2026-09-22",
-  "sources_sha256": "7d44b2d4f22fc228e6276333dfe2fda0dc7c82e8d7e5810377f3d1dffdf3302e",
-  "documents_sha256": "152653224db817f9e6f45cf0f32a4ce552fef22a1f490917c660fd0312b45500",
+  "sources_sha256": "d1cf078bb8a9c4a76a6466ec21b28859d3586b7c05d02894163f0274ecf1b9e9",
+  "documents_sha256": "de5158a0a342253d909d2d97ae9bff707a42a8ddcc8e63f9922554483179a85d",
   "document_count": 28,
-  "chunk_count": 696,
-  "total_chars": 605429,
+  "chunk_count": 693,
+  "total_chars": 602041,
   "chunks": [
     {
       "chunk_id": "uspstf-diabetes-screening#fa9fa3dd983f7554",
@@ -944,17 +944,6 @@
       "char_end": 34975
     },
     {
-      "chunk_id": "uspstf-statin-primary-prevention#79edadc3a161b409",
-      "guideline_id": "uspstf-statin-primary-prevention",
-      "section_path": [
-        "Statin Use for the Primary Prevention of Cardiovascular Disease in Adults: Preventive Medication",
-        "Response to Public Comment"
-      ],
-      "text": "Additional Information: The US Preventive Services Task Force (USPSTF) makes recommendations about the effectiveness of specific preventive care services for patients without obvious related signs or symptoms. It bases its recommendations on the evidence of both the benefits and harms of the service and an assessment of the balance. The USPSTF does not consider the costs of providing a service in this assessment. The USPSTF recognizes that clinical decisions involve more considerations than evidence alone. Clinicians should understand the evidence but individualize decision-making to the specific patient or situation. Similarly, the USPSTF notes that policy and coverage decisions involve considerations in addition to the evidence of clinical benefits and harms. Published by JAMA®—Journal of the American Medical Association under arrangement with the Agency for Healthcare Research and Quality (AHRQ). ©2022 AMA and United States Government, as represented by the Secretary of the Department of Health and Human Services (HHS), by assignment from the members of the United States Preventive Services Task Force (USPSTF). All rights reserved.",
-      "char_start": 34977,
-      "char_end": 36129
-    },
-    {
       "chunk_id": "uspstf-statin-primary-prevention#81e12db675bdf319",
       "guideline_id": "uspstf-statin-primary-prevention",
       "section_path": [
@@ -962,8 +951,8 @@
         "Response to Public Comment"
       ],
       "text": "Copyright Notice: USPSTF recommendations are based on a rigorous review of existing peer-reviewed evidence and are intended to help primary care clinicians and patients decide together whether a preventive service is right for a patient's needs. To encourage widespread discussion, consideration, adoption, and implementation of USPSTF recommendations, AHRQ permits members of the public to reproduce, redistribute, publicly display, and incorporate USPSTF work into other materials provided that it is reproduced without any changes to the work of portions thereof, except as permitted as fair use under the US Copyright Act.\nAHRQ and the US Department of Health and Human Services cannot endorse, or appear to endorse, derivative or excerpted materials, and they cannot be held liable for the content or use of adapted products that are incorporated on other Web sites. Any adaptations of these electronic documents and resources must include a disclaimer to this effect. Advertising or implied endorsement for any commercial products or services is strictly prohibited.",
-      "char_start": 36131,
-      "char_end": 37204
+      "char_start": 34977,
+      "char_end": 36050
     },
     {
       "chunk_id": "uspstf-statin-primary-prevention#ee797dc7f5770244",
@@ -973,8 +962,8 @@
         "Response to Public Comment"
       ],
       "text": "This work may not be reproduced, reprinted, or redistributed for a fee, nor may the work be sold for profit or incorporated into a profit-making venture without the express written permission of AHRQ. This work is subject to the restrictions of Section 1140 of the Social Security Act, 42 U.S.C. §320b-10. When parts of a recommendation statement are used or quoted, the USPSTF Web page should be cited as the source.\nReferences\n1.\nHeron M.\nDeaths: leading causes for 2017.\nNatl Vital Stat Rep.\n2019;68(6):1-77.\n2.\nXu J, Murphy S, Kochanek K, Arias E.\nMortality in the United States, 2018.\nNCHS Data Brief.\n2020;(355):1-8.\n3.\nVirani SS, Alonso A, Benjamin EJ, et al; American Heart Association Council on Epidemiology and Prevention Statistics Committee and Stroke Statistics Subcommittee.\nHeart disease and stroke statistics—2020 update: a report from the American Heart Association.\nCirculation.\n2020;141(9):e139-e596.\n4.\nVirani SS, Alonso A, Aparicio HJ, et al; American Heart Association Council on Epidemiology and Prevention Statistics Committee and Stroke Statistics Subcommittee.\nHeart disease and stroke statistics—2021 update: a report from the American Heart Association.\nCirculation.\n2021;143(8):e254-e743.\n5.\nU.S.\nPreventive Services Task Force.\nProcedure Manual.\nUpdated May 2021.\nAccessed February 3, 2022.",
-      "char_start": 37206,
-      "char_end": 38529
+      "char_start": 36052,
+      "char_end": 37375
     },
     {
       "chunk_id": "uspstf-statin-primary-prevention#1987451034b8bc53",
@@ -984,8 +973,8 @@
         "Response to Public Comment"
       ],
       "text": "https://uspreventiveservicestaskforce.org/uspstf/about-uspstf/methods-and-processes/procedure-manual 6.\nGoff DC Jr, Lloyd-Jones DM, Bennett G, et al.\n2013 ACC/AHA guideline on the assessment of cardiovascular risk: a report of the American College of Cardiology/American Heart Association Task Force on Practice Guidelines.\nCirculation.\n2014;129(25 Suppl 2):S49-73.\n7.\nDeFilippis AP, Young R, Carrubba CJ, et al.\nAn analysis of calibration and discrimination among multiple cardiovascular risk scores in a modern multiethnic cohort.\nAnn Intern Med.\n2015;162(4):266-275.\n8.\nCook NR, Ridker PM.\nCalibration of the pooled cohort equations for atherosclerotic cardiovascular disease: an update.\nAnn Intern Med.\n2016;165(11):786-794.\n9.\nRana JS, Tabada GH, Solomon MD, et al.\nAccuracy of the atherosclerotic cardiovascular risk equation in a large contemporary, multiethnic population.\nJ Am Coll Cardiol.\n2016;67(18):2118-2130.\n10.\nDalton JE, Perzynski AT, Zidar DA, et al.\nAccuracy of cardiovascular risk prediction varies by neighborhood socioeconomic position: a retrospective cohort study.\nAnn Intern Med.\n2017;167(7):456-464.\n11.\nColantonio LD, Richman JS, Carson AP, et al.\nPerformance of the atherosclerotic cardiovascular disease pooled cohort risk equations by social deprivation status.\nJ Am Heart Assoc.\n2017;6(3):e005676.\n12.\nUS Preventive Services Task Force.",
-      "char_start": 38530,
-      "char_end": 39897
+      "char_start": 37376,
+      "char_end": 38743
     },
     {
       "chunk_id": "uspstf-statin-primary-prevention#cd4e8882d41204fa",
@@ -995,8 +984,8 @@
         "Response to Public Comment"
       ],
       "text": "Collaboration and shared decision-making between patients and clinicians in preventive health care decisions and US Preventive Services Task Force recommendations.\nJAMA.\n2022;327(12):1171-1176.\n13.\nChou R, Cantor A, Dana T, et al.\nStatin Use for the Primary Prevention of Cardiovascular Disease in Adults: A Systematic Review for the U.S.\nPreventive Services Task Force.\nEvidence Synthesis No.\n219.\nAgency for Healthcare Research and Quality; 2022.\nAHRQ publication No.\n22-05291-EF-1.\n14.\nDorsch MP, Lester CA, Ding Y, Joseph M, Brook RD.\nEffects of race on statin prescribing for primary prevention with high atherosclerotic cardiovascular disease risk in a large healthcare system.\nJ Am Heart Assoc.\n2019;8(22):e014709.\n15.\nSchroff P, Gamboa CM, Durant RW, Oikeh A, Richman JS, Safford MM.\nVulnerabilities to health disparities and statin use in the REGARDS (Reasons for Geographic and Racial Differences in Stroke) study.\nJ Am Heart Assoc.\n2017;6(9):e005449.\n16.\nGamboa CM, Colantonio LD, Brown TM, Carson AP, Safford MM.\nRace-sex differences in statin use and low-density lipoprotein cholesterol control among people with diabetes mellitus in the Reasons for Geographic and Racial Differences in Stroke study.\nJ Am Heart Assoc.\n2017;6(5):e004264.\n17.\nGu A, Kamat S, Argulian E.",
-      "char_start": 39898,
-      "char_end": 41179
+      "char_start": 38744,
+      "char_end": 40025
     },
     {
       "chunk_id": "uspstf-statin-primary-prevention#a1bd590308100da7",
@@ -1006,8 +995,8 @@
         "Response to Public Comment"
       ],
       "text": "Trends and disparities in statin use and low-density lipoprotein cholesterol levels among US patients with diabetes, 1999-2014.\nDiabetes Res Clin Pract.\n2018;139:1-10.\n18.\nWall HK, Ritchey MD, Gillespie C, Omura JD, Jamal A, George MG.\nVital Signs: prevalence of key cardiovascular disease risk factors for Million Hearts 2022 - United States, 2011-2016.\nMMWR Morb Mortal Wkly Rep.\n2018;67(35):983-991.\n19.\nNational Center for Health Statistics.\nHealth, United States, 2019: Table 7: Leading Causes of Death and Numbers of Deaths, by Age: United States, 1980 and 2018.\nAccessed February 3, 2022.\nhttps://www.cdc.gov/nchs/data/hus/2019/007-508.pdf 20.\nRidker PM, Danielson E, Fonseca FA, et al; JUPITER Study Group.\nRosuvastatin to prevent vascular events in men and women with elevated C-reactive protein.\nN Engl J Med.\n2008;359(21):2195-2207.\n21.\nRidker PM, Pradhan A, MacFadyen JG, Libby P, Glynn RJ.\nCardiovascular benefits and diabetes risks of statin therapy in primary prevention: an analysis from the JUPITER trial.\nLancet.\n2012;380(9841):565-571.\n22.\nPanozzo CA, Curtis LH, Marshall J, et al.\nIncidence of statin use in older adults with and without cardiovascular disease and diabetes mellitus, January 2008–March 2018.\nPLoS One.\n2019;14(12):e0223515.\n23.\nUS Preventive Services Task Force.",
-      "char_start": 41180,
-      "char_end": 42479
+      "char_start": 40026,
+      "char_end": 41325
     },
     {
       "chunk_id": "uspstf-statin-primary-prevention#9c7bc18c40f3c5e0",
@@ -1017,8 +1006,8 @@
         "Response to Public Comment"
       ],
       "text": "Aspirin use to prevent cardiovascular disease: US Preventive Services Task Force recommendation statement.\nJAMA.\n2022;327(16):1577-1584.\n24.\nUS Preventive Services Task Force.\nScreening for hypertension in adults: US Preventive Services Task Force reaffirmation recommendation statement.\nJAMA.\n2021;325(16):1650-1656.\n25.\nUS Preventive Services Task Force.\nScreening for prediabetes and type 2 diabetes: US Preventive Services Task Force recommendation statement.\nJAMA.\n2021;326(8):736-743.\n26.\nUS Preventive Services Task Force.\nInterventions for tobacco smoking cessation in adults, including pregnant persons: US Preventive Services Task Force recommendation statement.\nJAMA.\n2021;325(3):265-279.\n27.\nUS Preventive Services Task Force.\nBehavioral counseling interventions to promote a healthy diet and physical activity for cardiovascular disease prevention in adults with cardiovascular risk factors: US Preventive Services Task Force recommendation statement.\nJAMA.\n2020;324(20):2069-2075.\n28.\nUS Preventive Services Task Force.\nBehavioral counseling to promote a healthful diet and physical activity for cardiovascular disease prevention in adults without cardiovascular risk factors: US Preventive Services Task Force recommendation statement.\nJAMA.\n2017;318(2):167-174.\n29.\nUS Preventive Services Task Force.",
-      "char_start": 42480,
-      "char_end": 43796
+      "char_start": 41326,
+      "char_end": 42642
     },
     {
       "chunk_id": "uspstf-statin-primary-prevention#9221499ee367003a",
@@ -1028,8 +1017,8 @@
         "Response to Public Comment"
       ],
       "text": "Behavioral weight loss interventions to prevent obesity-related morbidity and mortality in adults: US Preventive Services Task Force recommendation statement.\nJAMA.\n2018;320(11):1163-1171.\n30.\nUS Preventive Services Task Force.\nStatin use for the primary prevention of cardiovascular disease in adults: US Preventive Services Task Force recommendation statement.\nJAMA.\n2016;316(19):1997-2007.\n31.\nChou R, Cantor A, Dana T, et al.\nStatin use for the primary prevention of cardiovascular disease in adults: updated evidence report and systematic review for the US Preventive Services Task Force.\nJAMA.\nPublished August 23, 2022.\n32.\nShepherd J, Blauw GJ, Murphy MB; PROSPER Study Group.\nPravastatin in elderly individuals at risk of vascular disease (PROSPER): a randomised controlled trial.\nLancet.\n2002;360(9346):1623-1630.\n33.\nShepherd J, Cobbe SM, Ford I, et al; West of Scotland Coronary Prevention Study Group.\nPrevention of coronary heart disease with pravastatin in men with hypercholesterolemia.\nN Engl J Med.\n1995;333(20):1301-1307.\n34.\nHan BH, Sutin D, Williamson JD, et al; ALLHAT Collaborative Research Group.\nEffect of statin treatment vs usual care on primary cardiovascular prevention among older adults: the ALLHAT-LLT randomized clinical trial.\nJAMA Intern Med.\n2017;177(7):955-965.\n35.\nALLHAT Officers and Coordinators for the ALLHAT Collaborative Research Group.",
-      "char_start": 43797,
-      "char_end": 45177
+      "char_start": 42643,
+      "char_end": 44023
     },
     {
       "chunk_id": "uspstf-statin-primary-prevention#ec0e86d9d996d18c",
@@ -1039,8 +1028,8 @@
         "Response to Public Comment"
       ],
       "text": "Major outcomes in moderately hypercholesterolemic, hypertensive patients randomized to pravastatin vs usual care: the Antihypertensive and Lipid-Lowering Treatment to Prevent Heart Attack Trial (ALLHAT-LLT).\nJAMA.\n2002;288(23):2998-3007.\n36.\nMacedo AF, Taylor F, Casas JP, Adler A, Prieto-Merino D, Ebrahim S.\nUnintended effects of statins from observational studies in the general population: systematic review and meta-analysis.\nBMC Med.\n2014;12(51).\n37.\nJick SS, Bradbury BD.\nStatins and newly diagnosed diabetes.\nBr J Clin Pharmacol.\n2004;58(3):303-309.\n38.\nCulver AL, Ockene IS, Balasubramanian R, et al.\nStatin use and risk of diabetes mellitus in postmenopausal women in the Women’s Health Initiative.\nArch Intern Med.\n2012;172(2):144-152.\n39.\nPorath A, Arbelle JE, Fund N, Cohen A, Mosseri M.\nStatin therapy: diabetes mellitus risk and cardiovascular benefit in primary prevention.\nIsr Med Assoc J.\n2018;20(8):480-485.\n40.\nYusuf S, Bosch J, Dagenais G, et al; HOPE-3 Investigators.\nCholesterol lowering in intermediate-risk persons without cardiovascular disease.\nN Engl J Med.\n2016;374(21):2021-2031.\n41.\nUS Preventive Services Task Force.\nRisk assessment for cardiovascular disease with nontraditional risk factors: US Preventive Services Task Force recommendation statement.\nJAMA.\n2018;320(3):272-280.\n42.\nGrundy SM, Stone NJ, Bailey AL, et al.",
-      "char_start": 45178,
-      "char_end": 46533
+      "char_start": 44024,
+      "char_end": 45379
     },
     {
       "chunk_id": "uspstf-statin-primary-prevention#05f5c63ad4f5bb0b",
@@ -1050,8 +1039,8 @@
         "Response to Public Comment"
       ],
       "text": "2018 AHA/ACC/AACVPR/AAPA/ABC/ACPM/ADA/AGS/APhA/ASPC/NLA/PCNA guideline on the management of blood cholesterol: a report of the American College of Cardiology/American Heart Association Task Force on Clinical Practice Guidelines.\nCirculation.\n2019;139:e1082–1143.\n43.\nArnett DK, Blumenthal RS, Albert MA, et al.\n2019 ACC/AHA Guideline on the primary prevention of cardiovascular disease: a report of the American College of Cardiology/American Heart Association Task Force on Clinical Practice Guidelines.\nCirculation.\n2019;140(11):e596-e646.\n44.\nDepartment of Veterans Affairs.\nDepartment of Defense.\nVA/DoD Clinical Practice Guideline for the Management of Dyslipidemia for Cardiovascular Risk Reduction.\n2014.\nAccessed February 3, 2022.\nhttps://www.healthquality.va.gov/guidelines/CD/lipids/VADoDDyslipidemiaCPG2014.pdf\nTable. Summary of USPSTF Rationale\nRationale\nAssessment\nBenefits of statin use\n- Convincing evidence that statin use reduces the probability of CVD events (myocardial infarction or ischemic stroke) and all-cause mortality by at least a moderate amount in adults aged 40 to 75 years with no history of CVD and who have 1 or more CVD risk factors (ie, dyslipidemia, diabetes, hypertension, or smoking) and an estimated 10-year CVD event risk of 10% or greater.",
-      "char_start": 46534,
-      "char_end": 47819
+      "char_start": 45380,
+      "char_end": 46665
     },
     {
       "chunk_id": "uspstf-statin-primary-prevention#26f4fe614ac11d24",
@@ -1061,8 +1050,8 @@
         "Response to Public Comment"
       ],
       "text": "- Convincing evidence that statin use reduces the probability of CVD events (myocardial infarction or ischemic stroke) and all-cause mortality by at least a small amount in adults aged 40 to 75 years with no history of CVD and who have 1 or more CVD risk factors (ie, dyslipidemia, diabetes, hypertension, or smoking) and an estimated 10-year CVD event risk of 7.5% to less than 10%.\n- Inadequate evidence to conclude whether initiating statin use in adults 76 years or older with no history of CVD and who are not already taking a statin is beneficial in reducing the incidence of CVD events and mortality\nHarms of statin use\n- Convincing evidence that the harms of statin use in adults aged 40 to 75 years are at most small.\n- Inadequate evidence on the harms of statin use for the primary prevention of CVD events in adults 76 years or older.\nUSPSTF assessment\n- The USPSTF concludes with moderate certainty that statin use for the prevention of CVD events and all-cause mortality in adults aged 40 to 75 years with no history of CVD and who have 1 or more CVD risk factors (ie, dyslipidemia, diabetes, hypertension, or smoking) and an estimated 10-year CVD event risk of 10% or greater has at least a moderate net benefit.",
-      "char_start": 47820,
-      "char_end": 49050
+      "char_start": 46666,
+      "char_end": 47896
     },
     {
       "chunk_id": "uspstf-statin-primary-prevention#9362c111468f19a9",
@@ -1072,8 +1061,8 @@
         "Response to Public Comment"
       ],
       "text": "- The USPSTF concludes with moderate certainty that statin use for the prevention of CVD events and mortality in adults aged 40 to 75 years with no history of CVD and who have 1 or more CVD risk factors (ie, dyslipidemia, diabetes, hypertension, or smoking) and an estimated 10-year CVD event risk of 7.5% to less than 10% has at least a small net benefit. The decision to initiate therapy should depend on individual patient preference for a potential small benefit relative to the potential harms and inconvenience of taking a daily medication.\n- The USPSTF concludes that the evidence is insufficient to determine the balance of benefits and harms of statin use for the primary prevention of CVD events and mortality in adults 76 years or older with no history of CVD.\nAbbreviations: CVD, cardiovascular disease; USPSTF, US Preventive Services Task Force.",
-      "char_start": 49051,
-      "char_end": 49910
+      "char_start": 47897,
+      "char_end": 48756
     },
     {
       "chunk_id": "uspstf-hypertension-screening#7e2a185918427d33",
@@ -3202,8 +3191,8 @@
         "August 20, 2024"
       ],
       "text": "Recommendations made by the USPSTF are independent of the U.S. government. They should not be construed as an official position of the Agency for Healthcare Research and Quality or the U.S. Department of Health and Human Services.\nRead the Full Recommendation Read the Full Recommendation in JAMA (FREE) Download JAMA PDF",
-      "char_start": 228,
-      "char_end": 550
+      "char_start": 247,
+      "char_end": 569
     },
     {
       "chunk_id": "uspstf-iron-deficiency-anemia-pregnancy#22a8537c692c6113",
@@ -3213,8 +3202,8 @@
         "Recommendation Summary"
       ],
       "text": "Population\nRecommendation\nGrade\nAsymptomatic pregnant adolescents and adults\nThe USPSTF concludes that the current evidence is insufficient to assess the balance of benefits and harms of screening for iron deficiency and iron deficiency anemia in pregnant persons to prevent adverse maternal and infant health outcomes.\nThe USPSTF concludes that the current evidence is insufficient to assess the balance of benefits and harms of routine iron supplementation in pregnant persons to prevent adverse maternal and infant health outcomes.",
-      "char_start": 580,
-      "char_end": 1119
+      "char_start": 599,
+      "char_end": 1138
     },
     {
       "chunk_id": "uspstf-iron-deficiency-anemia-pregnancy#ca8be54bdd301927",
@@ -3224,8 +3213,8 @@
         "Clinician Summary"
       ],
       "text": "What does the USPSTF recommend?\nFor asymptomatic pregnant adolescents and adults: The current evidence is insufficient to assess the balance of benefits and harms of screening for iron deficiency and iron deficiency anemia in pregnant persons. Grade: I statement The current evidence is insufficient to assess the balance of benefits and harms of routine iron supplementation in pregnant persons. Grade: I statement\nTo whom does this recommendation apply?\n- This recommendation applies to asymptomatic pregnant adolescents and adults.\n- This recommendation does not apply to pregnant persons who are severely malnourished, have symptoms of iron deficiency or iron deficiency anemia, or have specific hematologic conditions (eg, sickle cell disease) or nutritional deficiencies that may increase their need for iron.\nWhat’s new?\nThis recommendation is consistent with the 2015 recommendation statement on screening and supplementation for iron deficiency anemia during pregnancy.\nHow to implement this recommendation?\n- There is insufficient evidence to recommend for or against screening or supplementation during pregnancy for iron deficiency with or without anemia.\n- More research is needed to determine the benefits of screening or supplementation for iron deficiency with or without anemia during pregnancy to prevent adverse maternal and infant health outcomes.",
-      "char_start": 1144,
-      "char_end": 2518
+      "char_start": 1163,
+      "char_end": 2537
     },
     {
       "chunk_id": "uspstf-iron-deficiency-anemia-pregnancy#7ebf59c1b589fad2",
@@ -3235,8 +3224,8 @@
         "Clinician Summary"
       ],
       "text": "- Screening for iron deficiency and iron deficiency anemia often includes measurement of hematologic indices (eg, hemoglobin, hematocrit, and ferritin values as proxies of iron deficiency anemia), and an abnormal screening test result may be followed by treatment with iron therapy.\n- Supplementation refers to routine provision of low-dose supplemental iron or intake of iron-fortified foods, without specifically measuring hematologic indices.\n- Other organizations’ guidelines on screening and supplementation vary. However, screening and supplementation for iron deficiency with or without anemia during pregnancy is common.\n- In the absence of evidence, clinicians should use their clinical judgement regarding whether to screen for iron deficiency and iron deficiency anemia and whether to provide routine iron supplementation during pregnancy.\nWhat additional information should clinicians know about this recommendation?\n- Based on recent survey data, Black and Mexican American pregnant persons are disproportionately affected by iron deficiency anemia in pregnancy, with social determinants of health as possible contributors to these disparities.\n- Iron is necessary for production of hemoglobin, an essential protein in blood required to transport oxygen throughout the body.\n- Iron deficiency refers to depletion of iron stores and may progress to iron deficiency anemia.",
-      "char_start": 2519,
-      "char_end": 3905
+      "char_start": 2538,
+      "char_end": 3924
     },
     {
       "chunk_id": "uspstf-iron-deficiency-anemia-pregnancy#5416b7f94ca80b91",
@@ -3246,8 +3235,8 @@
         "Clinician Summary"
       ],
       "text": "Why is this recommendation and topic important?\n- The overall prevalence of iron deficiency and iron deficiency anemia is uncertain; however, prevalence increases over the course of pregnancy.\n- According to National Health and Nutrition Examination Survey data from 1999 to 2006, overall estimated prevalence of iron deficiency during pregnancy is near 18% and increases across the 3 trimesters of pregnancy (from 6.9% to 14.3% to 28.4%).\n- An estimated 5% of pregnant persons have iron deficiency anemia.\nWhat are other relevant USPSTF recommendations?\nThe USPSTF has issued separate recommendations on screening for iron deficiency anemia in children aged 6 to 24 months and folic acid supplementation to prevent neural tube defects in persons who plan to or could become pregnant.\nWhat are additional tools and resources?\n- The National Institutes of Health’s Office of Dietary Supplements provides a fact sheet on iron for consumers in English (https://ods.od.nih.gov/factsheets/Iron-Consumer) and Spanish (https://ods.od.nih.gov/factsheets/Iron-DatosEnEspanol) and for clinicians (https://ods.od.nih.gov/factsheets/Iron-HealthProfessional).\n- The US Department of Health and Human Services’ Office on Women’s Health provides a fact sheet about iron deficiency anemia for patients (https://www.womenshealth.gov/a-z-topics/iron-deficiency-anemia).\nWhere to read the full recommendation statement?",
-      "char_start": 3907,
-      "char_end": 5313
+      "char_start": 3926,
+      "char_end": 5332
     },
     {
       "chunk_id": "uspstf-iron-deficiency-anemia-pregnancy#a693e8fb0a4eceeb",
@@ -3257,8 +3246,8 @@
         "Clinician Summary"
       ],
       "text": "Visit the USPSTF website (https://www.uspreventiveservicestaskforce.org/) or the JAMA website (https://jamanetwork.com/collections/44068/united-states-preventive-services-task-force) to read the full recommendation statement. This includes more details on the rationale of the recommendation, including benefits and harms; supporting evidence; and recommendations of others.\nThe USPSTF recognizes that clinical decisions involve more considerations than evidence alone. Clinicians should understand the evidence but individualize decision-making to the specific patient or situation.\n- View the Clinician Summary in PDF",
-      "char_start": 5315,
-      "char_end": 5936
+      "char_start": 5334,
+      "char_end": 5955
     },
     {
       "chunk_id": "uspstf-iron-deficiency-anemia-pregnancy#13516f7827dab5e5",
@@ -3268,8 +3257,8 @@
         "Additional Information"
       ],
       "text": "- Supporting Evidence and Research Taxonomy\n- Related Resources & Tools\n- Final Evidence Review (August 20, 2024)\n- Evidence Summary (August 20, 2024)\n- Evidence Gaps Taxonomy Table (August 20, 2024)\n- Final Research Plan (July 07, 2022)\nTools\n- California Maternal Quality Care Collaborative Toolkit - For Providers\n- Perinatal Quality Collaboratives (CDC) - For Providers\n- Iron Fact Sheet for Clinicians - For Providers\n- Hierro hoja informativa para consumidores\n- Iron Deficiency Anemia (Office on Women's Health)\n- Iron Fact Sheet for Consumers\n- JAMA Patient Page: Screening for Iron Deficiency and Iron Deficiency Anemia During Pregnancy\n- JAMA Podcast: Iron Deficiency During Pregnancy",
-      "char_start": 5966,
-      "char_end": 6662
+      "char_start": 5985,
+      "char_end": 6681
     },
     {
       "chunk_id": "uspstf-iron-deficiency-anemia-pregnancy#980755631d89ec06",
@@ -3279,8 +3268,8 @@
         "Recommendation Information"
       ],
       "text": "Table of Contents\nPDF Version and JAMA Link\nArchived Versions\n- Preamble\n- Importance\n- USPSTF Assessment of Magnitude of Net Benefit\n- Practice Considerations\n- Update of Previous USPSTF Recommendation\n- Supporting Evidence\n- Research Needs and Gaps\n- Recommendations of Others\n- Authors of the Recommendation Statement\n- Copyright and Source Information\n- References\n- View the Recommendation in PDF Format\nTo read the recommendation statement in JAMA, select here.\nTo read the evidence summary in JAMA, select here.\n- (September 2015)\n- (May 2006)\n- (January 1996)",
-      "char_start": 6696,
-      "char_end": 7269
+      "char_start": 6715,
+      "char_end": 7288
     },
     {
       "chunk_id": "uspstf-iron-deficiency-anemia-pregnancy#e41052a737ac88a8",
@@ -3290,8 +3279,8 @@
         "Full Recommendation:"
       ],
       "text": "Recommendations made by the USPSTF are independent of the U.S. government. They should not be construed as an official position of the Agency for Healthcare Research and Quality or the U.S. Department of Health and Human Services.\nPreamble\nThe US Preventive Services Task Force (USPSTF) makes recommendations about the effectiveness of specific preventive care services for patients without obvious related signs or symptoms to improve the health of people nationwide.\nIt bases its recommendations on the evidence of both the benefits and harms of the service and an assessment of the balance. The USPSTF does not consider the costs of providing a service in this assessment.\nThe USPSTF recognizes that clinical decisions involve more considerations than evidence alone. Clinicians should understand the evidence but individualize decision making to the specific patient or situation. Similarly, the USPSTF notes that policy and coverage decisions involve considerations in addition to the evidence of clinical benefits and harms.",
-      "char_start": 7297,
-      "char_end": 8331
+      "char_start": 7316,
+      "char_end": 8350
     },
     {
       "chunk_id": "uspstf-iron-deficiency-anemia-pregnancy#c9dc261f43cccb8f",
@@ -3301,8 +3290,8 @@
         "Full Recommendation:"
       ],
       "text": "The USPSTF is committed to mitigating the health inequities that prevent many people from fully benefiting from preventive services. Systemic or structural racism results in policies and practices, including health care delivery, that can lead to inequities in health. The USPSTF recognizes that race, ethnicity, and gender are all social rather than biological constructs. However, they are also often important predictors of health risk. The USPSTF is committed to helping reverse the negative impacts of systemic and structural racism, gender-based discrimination, bias, and other sources of health inequities, and their effects on health, throughout its work.\nImportance",
-      "char_start": 8333,
-      "char_end": 9008
+      "char_start": 8352,
+      "char_end": 9027
     },
     {
       "chunk_id": "uspstf-iron-deficiency-anemia-pregnancy#23abf3fa43149960",
@@ -3312,8 +3301,8 @@
         "Full Recommendation:"
       ],
       "text": "The aim of routine screening or iron supplementation for treatment of iron deficiency and iron deficiency anemia during pregnancy is to improve maternal and infant health outcomes. Iron deficiency is the leading cause of anemia during pregnancy.1 According to National Health and Nutrition Examination Survey (NHANES) data from 1999 to 2006, overall estimated prevalence of iron deficiency during pregnancy is near 18% and increases across the 3 trimesters of pregnancy (from 6.9% to 14.3% to 28.4%).2 An estimated 5% of pregnant persons have iron deficiency anemia.1,2 In the US, there are disparities in prevalence of iron deficiency anemia by race, ethnicity, and social factors (eg, socioeconomic status, nutritional status, and food insecurity).1,2\nUSPSTF Assessment of Magnitude of Net Benefit\nDue to lack of available data, the USPSTF concludes that the current evidence is insufficient, and the balance of benefits and harms of screening for iron deficiency and iron deficiency anemia in asymptomatic pregnant persons on maternal and infant health outcomes cannot be determined (I statement).\nDue to lack of available data, the USPSTF concludes that the current evidence is insufficient, and the balance of benefits and harms of iron supplementation in asymptomatic pregnant persons on maternal and infant health outcomes cannot be determined (I statement).",
-      "char_start": 9010,
-      "char_end": 10378
+      "char_start": 9029,
+      "char_end": 10397
     },
     {
       "chunk_id": "uspstf-iron-deficiency-anemia-pregnancy#08e4ead28fa51fab",
@@ -3323,8 +3312,8 @@
         "Full Recommendation:"
       ],
       "text": "See Table 1 for more information on the USPSTF recommendation rationale and assessment. For more details on the methods the USPSTF uses to determine the net benefit, see the USPSTF Procedure Manual.3\nPractice Considerations",
-      "char_start": 10380,
-      "char_end": 10604
+      "char_start": 10399,
+      "char_end": 10623
     },
     {
       "chunk_id": "uspstf-iron-deficiency-anemia-pregnancy#b2674db01097dbc9",
@@ -3334,8 +3323,8 @@
         "Patient Population Under Consideration"
       ],
       "text": "This recommendation applies to asymptomatic pregnant adolescents and adults. This recommendation does not apply to pregnant persons who are severely malnourished, have symptoms of iron deficiency or iron deficiency anemia, or have specific hematologic conditions (eg, sickle cell anemia) or nutritional deficiencies that may increase their need for iron.",
-      "char_start": 10650,
-      "char_end": 11004
+      "char_start": 10669,
+      "char_end": 11023
     },
     {
       "chunk_id": "uspstf-iron-deficiency-anemia-pregnancy#aeb21f745fae8d7c",
@@ -3345,8 +3334,8 @@
         "Definitions"
       ],
       "text": "Iron is necessary for production of hemoglobin, an essential protein in blood required to transport oxygen throughout the body. Iron is also necessary for the production of additional proteins that are vital to various metabolic pathways.4 Iron deficiency refers to depletion of iron stores and may progress to iron deficiency anemia.1 Increased demands for iron during pregnancy enhances vulnerability to iron deficiency and iron deficiency anemia.1 While iron deficiency is a leading cause of anemia, other conditions may also cause anemia. Screening for iron deficiency and iron deficiency anemia often includes measurement of hematologic indices (eg, hemoglobin level or hematocrit as proxies of iron deficiency anemia), and an abnormal screening test result may be followed by treatment with iron therapy.1 To establish the presence of iron deficiency or iron deficiency anemia, levels of iron biomarkers (eg, ferritin) may be measured, although there is no consensus on the exact ferritin level that is indicative of iron deficiency.1 Supplementation refers to routine provision of low-dose supplemental iron or intake of iron-fortified foods without specifically measuring hematologic indices.1",
-      "char_start": 11023,
-      "char_end": 12224
+      "char_start": 11042,
+      "char_end": 12243
     },
     {
       "chunk_id": "uspstf-iron-deficiency-anemia-pregnancy#2c7c865bb0e968fa",
@@ -3356,8 +3345,8 @@
         "Suggestions for Practice Regarding the I Statements"
       ],
       "text": "In deciding whether to screen or supplement for iron deficiency with or without anemia during pregnancy, clinicians caring for pregnant persons should consider the following.\nPotential Preventable Burden\nThe overall prevalence of iron deficiency anemia is uncertain due to the absence of universally accepted cutoffs in surveillance systems, older data, and use of hematologic indices as proxies rather than iron biomarkers to assess iron deficiency.2,5 It is known, however, that the prevalence increases through pregnancy.1 Based on recent survey data, Black and Mexican American pregnant persons are disproportionately affected by iron deficiency anemia in pregnancy, with social determinants of health as possible contributors to these disparities.1,2 However, factors such as nutritional status, food insecurity, or access to health care were not reported in the survey data.1,2",
-      "char_start": 12283,
-      "char_end": 13173
+      "char_start": 12302,
+      "char_end": 13192
     },
     {
       "chunk_id": "uspstf-iron-deficiency-anemia-pregnancy#983a6ddc43d69dcf",
@@ -3367,8 +3356,8 @@
         "Suggestions for Practice Regarding the I Statements"
       ],
       "text": "The USPSTF found limited evidence on current methods, including questionnaires and risk prediction tools, to identify pregnant persons at increased risk for iron deficiency with or without anemia. Commonly cited risk factors include a diet low in iron-rich foods (eg, vegan diet with inadequate sources of iron), gastrointestinal conditions or medications that can decrease iron absorption (eg, antacids), or a short interval between pregnancies.1 Tobacco use and living at a high altitude may affect hematologic indices and interpretation of test results due to increases in hematocrit and hemoglobin values.1 The evidence review identified 3 studies reporting strategies to predict iron deficiency or iron deficiency anemia during pregnancy.1 Generally, in all 3 studies,6-8 evidence was insufficient to evaluate the accuracy of risk prediction tools.1",
-      "char_start": 13175,
-      "char_end": 14029
+      "char_start": 13194,
+      "char_end": 14048
     },
     {
       "chunk_id": "uspstf-iron-deficiency-anemia-pregnancy#07a97ede7ebcb0c8",
@@ -3379,8 +3368,8 @@
         "Potential Harms"
       ],
       "text": "Potential screening approaches to identify asymptomatic pregnant persons with iron deficiency or iron deficiency anemia are unlikely to cause serious harms, but evidence is limited. For example, reviewed evidence did not report risk of iron overload.1 Common adverse effects of iron supplementation or treatment include gastrointestinal tract symptoms such as nausea, constipation, abdominal pain, and vomiting.1",
-      "char_start": 14053,
-      "char_end": 14465
+      "char_start": 14072,
+      "char_end": 14484
     },
     {
       "chunk_id": "uspstf-iron-deficiency-anemia-pregnancy#a2e62b5f368b127a",
@@ -3391,8 +3380,8 @@
         "Current Practice"
       ],
       "text": "The USPSTF found limited evidence on current practices of screening and supplementation to prevent adverse maternal or infant health outcomes from iron deficiency or iron deficiency anemia.\nClinical practice guidelines on screening and supplementation vary (see the Recommendations of Others section for additional information).1,9 However, screening and supplementation are common.\nFor screening, a surveillance report among Special Supplemental Nutrition Program for Women, Infants, and Children (WIC) participants reported that more than one-half of enrolled pregnant persons (53%) underwent hemoglobin testing during their first trimester in 2018.1,10 There may be other reasons that clinicians measure hematologic indices, such as to prepare for cesarean delivery or anticipated blood loss during delivery.\nThere is evidence for racial and ethnic disparities in screening rates.",
-      "char_start": 14490,
-      "char_end": 15373
+      "char_start": 14509,
+      "char_end": 15392
     },
     {
       "chunk_id": "uspstf-iron-deficiency-anemia-pregnancy#43d2e5ad065392d0",
@@ -3403,8 +3392,8 @@
         "Current Practice"
       ],
       "text": "In a US study11 (n = 268,594) of Medicaid recipients across 4 states, Asian/Pacific Islander, Black, and Hispanic participants were less likely to receive a complete blood cell count in 3 of 4 states surveyed compared with White participants (raw odds ratios [ORs], 0.51 to 0.92).1 For supplementation, according to NHANES data from 1996 to 2006, many pregnant persons (77%) reported using a supplement, often containing iron, within the previous 30 days.1,12 Use of iron supplements may differ by race, geography, and social factors.1 For example, in a study using NHANES survey data from 1999 to 2010, pregnant persons who were food insecure had lower mean iron intake from supplements compared with pregnant persons who were food secure.1,13 Pregnant persons may be screened (eg, with measurement of hematologic indices in the first trimester) and supplemented (eg, with prenatal vitamins) concurrently.",
-      "char_start": 15374,
-      "char_end": 16280
+      "char_start": 15393,
+      "char_end": 16299
     },
     {
       "chunk_id": "uspstf-iron-deficiency-anemia-pregnancy#b65df89c35e43191",
@@ -3414,8 +3403,8 @@
         "Additional Tools and Resources"
       ],
       "text": "The Centers for Disease Control and Prevention includes resources on perinatal quality collaboratives (https://www.cdc.gov/maternal-infant-health/pqc/index.html), including state collaborative toolkits, such as the California Maternal Quality Care Collaborative toolkit on improving the health care response to obstetric hemorrhage (https://www.cmqcc.org/resources-tool-kits/toolkits/ob-hemorrhage-toolkit).\nThe National Institutes of Health’s Office of Dietary Supplements provides a fact sheet on iron for consumers in English (https://ods.od.nih.gov/factsheets/Iron-Consumer/) and Spanish (https://ods.od.nih.gov/factsheets/Iron-DatosEnEspanol/) and for clinicians (https://ods.od.nih.gov/factsheets/Iron-HealthProfessional/).\nThe US Department of Health and Human Services’ Office on Women’s Health provides a fact sheet about iron deficiency anemia for patients (https://www.womenshealth.gov/a-z-topics/iron-deficiency-anemia).",
-      "char_start": 16318,
-      "char_end": 17252
+      "char_start": 16337,
+      "char_end": 17271
     },
     {
       "chunk_id": "uspstf-iron-deficiency-anemia-pregnancy#5c39b7e503df22ba",
@@ -3425,8 +3414,8 @@
         "Other Related USPSTF Recommendations"
       ],
       "text": "The USPSTF has issued separate recommendations on screening for iron deficiency anemia in children aged 6 to 24 months14 and folic acid supplementation to prevent neural tube defects in persons who plan to or could become pregnant.15\nUpdate of Previous USPSTF Recommendation\nThis recommendation is consistent with the 2015 recommendation statement on screening and supplementation for iron deficiency anemia in pregnancy. In 2015, the USPSTF concluded that the current evidence was insufficient to assess the balance of benefits and harms of screening for iron deficiency anemia in pregnant women to prevent adverse maternal health and birth outcomes (I statement).16 The USPSTF also concluded that the current evidence was insufficient to assess the balance of benefits and harms of routine iron supplementation for iron deficiency anemia in pregnant women to prevent adverse maternal health and birth outcomes (I statement).16\nSupporting Evidence",
-      "char_start": 17296,
-      "char_end": 18247
+      "char_start": 17315,
+      "char_end": 18266
     },
     {
       "chunk_id": "uspstf-iron-deficiency-anemia-pregnancy#9af63d2270ffb55d",
@@ -3436,8 +3425,8 @@
         "Scope of Review"
       ],
       "text": "The USPSTF commissioned a systematic review1,17 to update its 2015 recommendation on screening and supplementation for iron deficiency anemia during pregnancy. In this current recommendation, the USPSTF broadened its review to include iron deficiency without anemia; it reviewed evidence on the benefits and harms of screening and supplementation for iron deficiency with and without anemia on maternal and infant health outcomes in asymptomatic pregnant persons. To assist with efforts to generalize the evidence to an asymptomatic US pregnant population, the USPSTF considered studies conducted in settings similar to the US (ie, categorized as “high” or “very high” on the United Nations Human Development Index). In addition, to address critical gaps in the evidence identified in 2015,18 the USPSTF sought evidence on the association between change in maternal iron status and improvement in infant and maternal outcomes in pregnant persons with iron deficiency with or without anemia. Eligible study designs for the review included randomized clinical trials (RCTs), controlled observational studies, and large uncontrolled observational studies on harms.1,17",
-      "char_start": 18270,
-      "char_end": 19435
+      "char_start": 18289,
+      "char_end": 19454
     },
     {
       "chunk_id": "uspstf-iron-deficiency-anemia-pregnancy#2a9fd02315fb1f05",
@@ -3447,8 +3436,8 @@
         "Benefits of Screening (Early Detection) and Treatment"
       ],
       "text": "The review found no evidence on the benefits of screening and treatment for screen-detected iron deficiency and iron deficiency anemia during pregnancy on maternal and infant health outcomes.1,17 A single observational study addressed the association between change in maternal iron status in pregnant persons with iron deficiency with or without anemia and clinical outcomes.1,17 In the study19 (n = 20,690) in pregnant persons responding to treatment (defined as persons with a normal hemoglobin value at delivery who reported taking iron supplementation), therapy was associated with reduction in the odds of preeclampsia (adjusted odds ratio [OR], 0.75 [95% CI, 0.61-0.91]) and preterm birth (adjusted OR, 0.59 [95% CI, 0.47-0.72]) compared with persons without anemia.1,17,19 Nonresponse to therapy or untreated anemia was also associated with increased risk of preterm birth and preeclampsia (adjusted OR, 1.44 [95% CI, 1.16-1.76] and 1.45 [95% CI, 1.26-1.67], respectively) compared with no anemia.1,17,19 Comparison on these outcomes between pregnant persons taking iron therapy (whether or not successfully treated) with persons not taking iron therapy was not reported, limiting assessment of the association between iron therapy and improvement in health outcomes.1,17 Additional limitations to generalizing the study’s findings included the definition of anemia (based on reported iron intake) and unclear or unreported iron dose, timing, and therapy duration.1,17",
-      "char_start": 19496,
-      "char_end": 20972
+      "char_start": 19515,
+      "char_end": 20991
     },
     {
       "chunk_id": "uspstf-iron-deficiency-anemia-pregnancy#2d94a60c7609e6a1",
@@ -3459,8 +3448,8 @@
         "Maternal Health Outcomes"
       ],
       "text": "The review identified 16 studies comparing the effects of routine iron supplementation with no supplementation during pregnancy.1,17 Timing of starting supplementation varied across studies, from the first prenatal visit to 20 weeks’ gestation, and continued to delivery.1,17 Across the 16 studies, evidence on the effects of iron supplementation during pregnancy on maternal or infant health outcomes was limited, inconsistent, or without clear benefit.1,17 One trial (n = 430) reported no differences in maternal quality of life (across 8 health concepts) with iron supplementation compared with placebo.1,17,20 Five trials21-25 (n = 13,610) found no statistically significant differences on rates of hypertensive disorders of pregnancy with iron supplementation compared with placebo or no iron (4.7% vs 3.1% [pooled, weighted rates]; relative risk [RR], 1.24 [95% CI, 0.75-2.06]; I2 = 48.0%).1,17 Based on a pooled analysis, 8 trials20,21,24-29 (n = 4919) found no statistically significant differences in rates of cesarean delivery (42.8% vs 41.5%; RR, 1.01 [95% CI, 0.90-1.14]; I2 = 42.7%).1,17 Generally, studies of cesarean delivery did not report procedure indications, which could reflect practice variability, limiting interpretation of this evidence.1,17 In 4 trials reporting maternal gestational diabetes and maternal hemorrhage, results were imprecise and uncertain.1,17 Two trials24,26 (n = 2214) found no differences in rates of maternal gestational diabetes in pregnant persons receiving iron supplementation vs placebo, and 2 trials21,29 (n = 341) found no statistically significant differences in rates of maternal hemorrhage.1,17",
-      "char_start": 21038,
-      "char_end": 22688
+      "char_start": 21057,
+      "char_end": 22707
     },
     {
       "chunk_id": "uspstf-iron-deficiency-anemia-pregnancy#7784fb9773b81769",
@@ -3471,8 +3460,8 @@
         "Infant Health Outcomes"
       ],
       "text": "Across 6 supplementation trials (n = 17,863)20,21,23,25,27,30 reporting infant health outcomes, evidence was limited or demonstrated no benefit.1,17 Five trials reported no association between supplementation and infant mortality.1,17 In post hoc analysis, 1 trial (n = 3929) reported a statistically significant difference in rates of neonatal deaths in the supplementation group compared with the control group (1.1% vs 2.0%; RR, 0.53 [95% CI, 0.29-0.97]).1,17 Five trials22,24,26,30,31 (n = 16,827) of maternal iron supplementation reported no statistically significant differences in risk of preterm birth (5.5% vs 6.0%; RR, 0.92 [95% CI, 0.81-1.04]; I2 = 0.0%).1,17 Pooled analysis of 6 trials20-22,27,30,31 (n = 15,591) of maternal iron supplementation reported no statistically significant differences in infants with low birth weight (2.7% vs 2.9%; RR, 0.95 [95% CI, 0.79-1.14]; I2 = 0.0%).1,17 Across 4 trials24-26,30 (n = 5386) reporting infants small for gestational age, evidence was inconsistent and imprecise, with most studies reporting no differences (15.3% vs 15.2%; RR, 0.94 [95% CI, 0.67-1.31]; I2 = 75.5%).1,17 A pooled analysis reported few differences between supplementation compared with placebo.1,17 Low birth weight was defined as less than 2500 g and small for gestational age or intrauterine growth restriction was defined as birth weight less than 10th percentile for gestational age.1,17",
-      "char_start": 22719,
-      "char_end": 24136
+      "char_start": 22738,
+      "char_end": 24155
     },
     {
       "chunk_id": "uspstf-iron-deficiency-anemia-pregnancy#3f54a2108e0ac990",
@@ -3483,8 +3472,8 @@
         "Maternal Hematologic Outcomes"
       ],
       "text": "Although the USPSTF found inconsistent evidence on maternal iron supplementation during pregnancy to improve maternal and infant health outcomes, there was, across 16 trials,20-42 evidence of an association between supplementation and improved maternal hematologic indices (eg, hemoglobin and ferritin values) and decreased risk of maternal iron deficiency anemia, iron deficiency, and anemia compared with placebo or no therapy.1,17 Studies included persons at average risk of anemia with baseline hemoglobin levels ranging from 11.9 to 14.3 g/dL.\nStudies excluded pregnant persons with low hematologic indices at baseline (<8 to 11 g/dL).",
-      "char_start": 24174,
-      "char_end": 24814
+      "char_start": 24193,
+      "char_end": 24833
     },
     {
       "chunk_id": "uspstf-iron-deficiency-anemia-pregnancy#02b8c546464f66c0",
@@ -3495,8 +3484,8 @@
         "Maternal Hematologic Outcomes"
       ],
       "text": "Seven trials20,22,27,28,32,38,41 (n = 4045) reported on maternal iron deficiency anemia with supplementation; iron supplementation was associated with decreased risk of maternal iron deficiency anemia during the third trimester (3 trials; n = 330; 9.1% vs 13.8%; RR, 0.63 [95% CI, 0.41-0.97]; I2 = 0%; absolute risk difference [ARD], −4% [95% CI, −8% to 0%]) and at term (4 trials; n = 2230; 8.6% vs 19.8%; RR, 0.40 [95% CI, 0.26-0.61]; I2 = 20.5%; ARD, −10% [95% CI, −16% to −3%]).1,17 Studies defined iron deficiency anemia as hemoglobin values less than 11.0 g/dL and serum ferritin levels less than 12 or 20 μg/L.1,17 Nine trials20,22,28,31-33,36,39,41 (n = 16,556) reported on maternal iron deficiency with supplementation; iron supplementation was associated with decreased risk of maternal iron deficiency during the third trimester (4 trials; n = 1220; 40.3% vs 57.1%; RR, 0.70 [95% CI, 0.53-0.92]; I2 = 77.4%; ARD, −17% [95% CI, −24% to −10%]) and at term (6 trials; n = 2361; 46% vs 70%; RR, 0.47 [95% CI, 0.33-0.67]; I2 = 81.9%; ARD, −34% [95% CI, −46% to −22%]).1,17 Studies defined iron deficiency as serum ferritin values less than 12 or 20 μg/L.1,17 Nine trials20,28,30-33,36,39,41 (n = 20,330) reported on maternal anemia; iron supplementation was associated with decreased risk of maternal anemia during the third trimester (7 trials; n = 2148; 18.1% vs 26.0%; RR, 0.71 [95% CI, 0.51-0.97]; I2 = 64.2%; ARD, −7.97% [95% CI, −15.28% to −0.66%]) and at term (4 trials; n = 2261; 10.9% vs 22.5%; RR, 0.43 [95% CI, 0.26-0.72]; I2 = 43.7%; ARD, −11.73% [95% CI, −14.87% to −8.60%]).1,17 Studies defined anemia as hemoglobin values less than 10.0 or 11.0 g/dL in the third trimester and at term and less than 12.0 or 12.1 g/dL postpartum.1,17 Fifteen trials21,22,24-30,32,39,41 (n = 20,069) reported maternal hemoglobin values and 13 trials20-22,24,26-29,31,32,39,41 (n = 19,075) reported maternal ferritin values compared with placebo; most studies found higher hemoglobin and serum ferritin values at term compared with placebo, with inconsistent findings at other time points.1,17",
-      "char_start": 24815,
-      "char_end": 26909
+      "char_start": 24834,
+      "char_end": 26928
     },
     {
       "chunk_id": "uspstf-iron-deficiency-anemia-pregnancy#40f22b0c4d45cab1",
@@ -3507,8 +3496,8 @@
         "Infant Hematologic Outcomes"
       ],
       "text": "Evidence of intermediate outcomes in infants was limited to 2 trials20,31 (n = 12,943) reporting no differences in infant hematologic indices at 6 months or 1 year.1,17",
-      "char_start": 26945,
-      "char_end": 27113
+      "char_start": 26964,
+      "char_end": 27132
     },
     {
       "chunk_id": "uspstf-iron-deficiency-anemia-pregnancy#f3fd0db8ca17aabf",
@@ -3519,8 +3508,8 @@
         "Maternal and Infant Hematologic Outcomes"
       ],
       "text": "Evidence on the association between maternal supplementation and change in maternal iron status on improvement in infant and maternal outcomes was limited to the same single study (n = 20,690)19 of pregnant persons discussed in the screening section.",
-      "char_start": 27162,
-      "char_end": 27412
+      "char_start": 27181,
+      "char_end": 27431
     },
     {
       "chunk_id": "uspstf-iron-deficiency-anemia-pregnancy#0453d4dc1b66b5d1",
@@ -3530,8 +3519,8 @@
         "Harms of Screening and Supplementation"
       ],
       "text": "No trials reported on harms of screening. Twelve trials20,24,26-28,30-33,39,41,43 (n = 22,716) reported evidence on the harms of routine supplementation during pregnancy.1,17 Most trials reported transient gastrointestinal effects such as nausea, constipation, and diarrhea, with 5 trials reporting no difference in transient gastrointestinal effects in comparison groups.1,20,27,28,30,43 A single trial (n = 12,513) reported that iron supplementation starting in the second trimester was associated with increased risk of gastrointestinal symptoms vs placebo (3.6% vs 2.3%; RR, 1.59 [95% CI, 1.28-1.97]).1,17,31 Using medication adherence as a proxy for harms, 9 studies reported no statistically significant differences in adherence to supplementation between comparison groups.1,17 In a separate trial (n = 111), nonadherence to iron therapy was lower in adults taking supplementation compared with those taking placebo (2.2% vs 16.1%; P = .036) and not statistically significant in adolescents (4.5% vs 12.6%; P = .320).1,17,27 Infant harms were not reported in any studies.1,17",
-      "char_start": 27458,
-      "char_end": 28540
+      "char_start": 27477,
+      "char_end": 28559
     },
     {
       "chunk_id": "uspstf-iron-deficiency-anemia-pregnancy#b767f7501b289fbf",
@@ -3541,8 +3530,8 @@
         "Response to Public Comments"
       ],
       "text": "A draft version of this recommendation statement was posted for public comment on the USPSTF website from February 27 to March 25, 2024. Some comments agreed with the draft recommendation. In response to comments, the USPSTF added language on iron-rich foods for supplementation, limitations of interpreting prevalence of iron deficiency and iron deficiency anemia, and additional information on screening and supplementation in the Recommendation of Others section. Some comments requested tools to identify potential risk factors for iron deficiency, such as food insecurity and social instability, to assist clinicians in determining which pregnant persons could benefit from screening. Despite careful review, the USPSTF found limited evidence on approaches (such as questionnaires or risk prediction tools) to identify pregnant persons at increased risk for iron deficiency with or without anemia.",
-      "char_start": 28575,
-      "char_end": 29477
+      "char_start": 28594,
+      "char_end": 29496
     },
     {
       "chunk_id": "uspstf-iron-deficiency-anemia-pregnancy#8b3a1f37bedf0213",
@@ -3552,8 +3541,8 @@
         "Response to Public Comments"
       ],
       "text": "Some comments expressed that the current I statements could be misinterpreted as recommendations against screening and supplementation. Others noted that the evidence was limited to RCTs and did not include clinically relevant health outcomes. In response, the USPSTF would like to reiterate that it is not making a recommendation for or against screening or supplementation during pregnancy for iron deficiency without or without anemia. Rather, the I statement is a call for more research on the benefits and harms of screening and supplementation. Further, the USPSTF carefully considers benefits and harms and makes recommendations when supported by sufficient evidence. The USPSTF cast a broad net, as outlined in the final research plan, including evidence from RCTs, controlled cohort studies, and other controlled observational studies. Some key questions also considered large uncontrolled observational studies and association studies. Clinically relevant potential outcomes included, but were not limited to, maternal health-related quality of life, postpartum hemorrhage, blood transfusions, and postpartum depression. The USPSTF continues to call for high-quality research, particularly on the critical gap of the association between changes in maternal iron status and improvement in infant and maternal outcomes in pregnant persons.\nResearch Needs and Gaps",
-      "char_start": 29479,
-      "char_end": 30851
+      "char_start": 29498,
+      "char_end": 30870
     },
     {
       "chunk_id": "uspstf-iron-deficiency-anemia-pregnancy#c8428c562190c7f7",
@@ -3563,8 +3552,8 @@
         "Response to Public Comments"
       ],
       "text": "See Table 2 for research needs and gaps related to screening and supplementation for iron deficiency and iron deficiency anemia during pregnancy.\nRecommendations of Others\nFor screening, recommendations generally focus on screening for anemia, rather than iron deficiency, and use variable cutoffs to define anemia. The American College of Obstetricians and Gynecologists (ACOG), American Academy of Family Physicians, and Centers for Disease Control and Prevention recommend that all pregnant persons be screened for anemia at their first prenatal visit, preferably during the first trimester of pregnancy.44-46 ACOG recommends repeat screening at 24 to 28 weeks of gestation.44",
-      "char_start": 30853,
-      "char_end": 31534
+      "char_start": 30872,
+      "char_end": 31553
     },
     {
       "chunk_id": "uspstf-iron-deficiency-anemia-pregnancy#5c306170178463c9",
@@ -3574,8 +3563,8 @@
         "Response to Public Comments"
       ],
       "text": "The Centers for Disease Control and Prevention recommends universal supplementation for all pregnant persons with an oral low-dose iron supplement (30 mg/d).46 ACOG recommends universal supplementation with low-dose iron during pregnancy except in the setting of certain conditions such as hemochromatosis.44 It recommends evaluation for pregnant women who meet criteria for anemia to determine the cause, followed by treatment with low-dose supplemental iron for those with iron deficiency anemia along with prenatal vitamins.44 The US Department of Agriculture and US Department of Health and Human Services’ “Dietary Guidelines for Americans, 2020-2025” recommends that pregnant women or women planning to become pregnant take a supplement with iron when recommended by a clinician.47 In addition, women following a vegetarian or vegan dietary pattern should discuss with a clinician whether supplementation of iron, vitamin B12, other nutrients, or some combination thereof is needed.47\nAuthors of the Recommendation Statement\nThe authors of this recommendation statement include Task Force members serving at the time of publication and former members who made significant contributions to the recommendation. Any member with a level 3 conflict of interest (COI) recusal is not included as an author (see below for relevant COI disclosures for this topic).",
-      "char_start": 31536,
-      "char_end": 32899
+      "char_start": 31555,
+      "char_end": 32918
     },
     {
       "chunk_id": "uspstf-iron-deficiency-anemia-pregnancy#71e6d10fde71cd54",
@@ -3585,8 +3574,8 @@
         "Response to Public Comments"
       ],
       "text": "The US Preventive Services Task Force authors of this recommendation statement include the following individuals: Wanda K. Nicholson, MD, MPH, MBA (George Washington University, Washington, DC); Michael Silverstein, MD, MPH (Brown University, Providence, Rhode Island); John B. Wong, MD (Tufts University School of Medicine, Boston, Massachusetts); David Chelmow, MD (Virginia Commonwealth University, Richmond); Tumaini Rucker Coker, MD, MBA (University of Washington, Seattle); Esa M. Davis, MD, MPH (University of Maryland School of Medicine, Baltimore); Carlos Roberto Jaén, MD, PhD, MS (University of Texas Health Science Center, San Antonio); Marie Krousel-Wood, MD, MSPH (Tulane University, New Orleans, Louisiana); Sei Lee, MD, MAS (University of California, San Francisco); Li Li, MD, PhD, MPH (University of Virginia, Charlottesville); Goutham Rao, MD (Case Western Reserve University, Cleveland, Ohio); John M. Ruiz, PhD (University of Arizona, Tucson); James Stevermer, MD, MSPH (University of Missouri, Columbia); Joel Tsevat, MD, MPH (University of Texas Health Science Center, San Antonio); Sandra Millon Underwood, PhD, RN (University of Wisconsin, Milwaukee); Sarah Wiehe, MD, MPH (Indiana University, Bloomington).\nCopyright and Source Information",
-      "char_start": 32901,
-      "char_end": 34167
+      "char_start": 32920,
+      "char_end": 34186
     },
     {
       "chunk_id": "uspstf-iron-deficiency-anemia-pregnancy#3f193987763f7f97",
@@ -3596,8 +3585,8 @@
         "Response to Public Comments"
       ],
       "text": "JAMA Citation: US Preventive Services Task Force; Nicholson WK, Silverstein M, Wong JB, et al. Screening and supplementation for iron deficiency and iron deficiency anemia during pregnancy: US Preventive Services Task Force recommendation statement. JAMA. 2024;332(11):906-913. doi: 10.1001/jama.2024.15196.\nConflict of Interest Disclosures: Authors followed the policy regarding conflicts of interest described at https://uspreventiveservicestaskforce.org/uspstf/about-uspstf/conflict-interest-disclosures. All members of the USPSTF receive travel reimbursement and an honorarium for participating in USPSTF meetings. Dr Lee reported receiving grants from the National Institute on Aging (K24AG066998, R01AG079982) outside the submitted work. No other disclosures were reported.\nNo Task Force members had a level 3 COI recusal from this topic.\nFunding/Support: The USPSTF is an independent, voluntary body. The US Congress mandates that the Agency for Healthcare Research and Quality (AHRQ) support the operations of the USPSTF.",
-      "char_start": 34169,
-      "char_end": 35201
+      "char_start": 34188,
+      "char_end": 35220
     },
     {
       "chunk_id": "uspstf-iron-deficiency-anemia-pregnancy#dc96582a98943e3e",
@@ -3607,8 +3596,8 @@
         "Response to Public Comments"
       ],
       "text": "Role of the Funder/Sponsor: AHRQ staff assisted in the following: development and review of the research plan, commission of the systematic evidence review from an Evidence-based Practice Center, coordination of expert review and public comment of the draft evidence report and draft recommendation statement, and the writing and preparation of the final recommendation statement and its submission for publication. AHRQ staff had no role in the approval of the final recommendation statement or the decision to submit for publication.\nDisclaimer: Recommendations made by the USPSTF are independent of the US government. They should not be construed as an official position of AHRQ or the US Department of Health and Human Services.\nCopyright Notice: USPSTF recommendations are based on a rigorous review of existing peer-reviewed evidence and are intended to help primary care clinicians and patients decide together whether a preventive service is right for a patient's needs. To encourage widespread discussion, consideration, adoption, and implementation of USPSTF recommendations, AHRQ permits members of the public to reproduce, redistribute, publicly display, and incorporate USPSTF work into other materials provided that it is reproduced without any changes to the work of portions thereof, except as permitted as fair use under the US Copyright Act.",
-      "char_start": 35203,
-      "char_end": 36564
+      "char_start": 35222,
+      "char_end": 36583
     },
     {
       "chunk_id": "uspstf-iron-deficiency-anemia-pregnancy#2ec1c6409ddfcd99",
@@ -3618,8 +3607,8 @@
         "Response to Public Comments"
       ],
       "text": "AHRQ and the US Department of Health and Human Services cannot endorse, or appear to endorse, derivative or excerpted materials, and they cannot be held liable for the content or use of adapted products that are incorporated on other Web sites. Any adaptations of these electronic documents and resources must include a disclaimer to this effect. Advertising or implied endorsement for any commercial products or services is strictly prohibited.\nThis work may not be reproduced, reprinted, or redistributed for a fee, nor may the work be sold for profit or incorporated into a profit-making venture without the express written permission of AHRQ. This work is subject to the restrictions of Section 1140 of the Social Security Act, 42 U.S.C. §320b-10. When parts of a recommendation statement are used or quoted, the USPSTF Web page should be cited as the source.\nReferences\n1.\nCantor A, Holmes R, Bougatsos C, Atchison C, DeLoughery T, Chou R.\nScreening and Supplementation for Iron Deficiency and Iron Deficiency Anemia in Pregnancy: A Systematic Review for the US Preventive Services Task Force.\nEvidence Synthesis No.\n239.\nAgency for Healthcare Research and Quality; 2024.\nAHRQ publication 24-05313-EF-1.\n2.\nMei Z, Cogswell ME, Looker AC, et al.\nAssessment of iron status in US pregnant women from the National Health and Nutrition Examination Survey (NHANES), 1999–2006.\nAm J Clin Nutr.",
-      "char_start": 36566,
-      "char_end": 37960
+      "char_start": 36585,
+      "char_end": 37979
     },
     {
       "chunk_id": "uspstf-iron-deficiency-anemia-pregnancy#0d4e9f266996a17c",
@@ -3629,8 +3618,8 @@
         "Response to Public Comments"
       ],
       "text": "2011;93(6):1312-1320.\nMedline:21430118 doi:10.3945/ajcn.110.007195 3.\nUS Preventive Services Task Force.\nUS Preventive Services Task Force Procedure Manual.\nUpdated May 2021.\nAccessed June 24, 2024.\nhttps://uspreventiveservicestaskforce.org/uspstf/about-uspstf/methods-and-processes/procedure-manual 4.\nGriffin IJ, Abrams SA.\nIron and breastfeeding.\nPediatr Clin North Am.\n2001;48(2):401-413.\nMedline:11339160 doi:10.1016/S0031-3955(08)70033-6 5.\nScholl TO.\nIron status during pregnancy: setting the stage for mother and infant.\nAm J Clin Nutr.\n2005;81(5):1218S-1222S.\nMedline:15883455 doi:10.1093/ajcn/81.5.1218 6.\nKirschner W, Dudenhausen JW, Henrich W.\nAre there anamnestic risk factors for iron deficiency in pregnancy?\nResults from a feasibility study.\nJ Perinat Med.\n2016;44(3):309-314.\nMedline:25803071 doi:10.1515/jpm-2014-0308 7.\nYefet E, Yossef A, Nachum Z.\nPrediction of anemia at delivery.\nSci Rep.\n2021;11(1):6309.\nMedline:33737646 doi:10.1038/s41598-021-85622-7 8.\nCasanova BF, Sammel MD, Macones GA.\nDevelopment of a clinical prediction rule for iron deficiency anemia in pregnancy.\nAm J Obstet Gynecol.\n2005;193(2):460-466.\nMedline:16098871 9.\nJefferds ME, Mei Z, Addo Y, et al.\nIron deficiency in the United States: limitations in guidelines, data, and monitoring of disparities.\nAm J Public Health.\n2022;112(S8):S826-S835.\nMedline:36288529 10.",
-      "char_start": 37961,
-      "char_end": 39322
+      "char_start": 37980,
+      "char_end": 39341
     },
     {
       "chunk_id": "uspstf-iron-deficiency-anemia-pregnancy#6a301898c1c0f1c4",
@@ -3640,8 +3629,8 @@
         "Response to Public Comments"
       ],
       "text": "Kanu FA, Hamner HC, Scanlon KS, Sharma AJ.\nAnemia among pregnant women participating in the Special Supplemental Nutrition Program for Women, Infants, and Children—United States, 2008–2018.\nMMWR Morb Mortal Wkly Rep.\n2022;71:813-819.\nMedline:35737575 doi:10.15585/mmwr.mm7125a1 11.\nGavin NI, Adams EK, Hartmann KE, Benedict MB, Chireau M.\nRacial and ethnic disparities in the use of pregnancy-related health care among Medicaid pregnant women.\nMatern Child Health J.\n2004;8(3):113-126.\nMedline:15499869 doi:10.1023/B:MACI.0000037645.63379.62 12.\nBranum AM, Bailey R, Singer BJ.\nDietary supplement use and folate status during pregnancy in the United States.\nJ Nutr.\n2013;143(4):486-492.\nMedline:23365107 doi:10.3945/jn.112.169987 13.\nPark CY, Eicher-Miller HA.\nIron deficiency is associated with food insecurity in pregnant females in the United States: National Health and Nutrition Examination Survey 1999-2010.\nJ Acad Nutr Diet.\n2014;114(12):1967-1973.\nMedline:24953790 doi:10.1016/j.jand.2014.04.025 14.\nSiu AL; US Preventive Services Task Force.\nScreening for iron deficiency anemia in young children: US Preventive Services Task Force recommendation statement.\nPediatrics.\n2015;136(4):746-752.\nMedline:26347426 doi:10.1542/peds.2015-2567 15.\nUS Preventive Services Task Force.",
-      "char_start": 39323,
-      "char_end": 40605
+      "char_start": 39342,
+      "char_end": 40624
     },
     {
       "chunk_id": "uspstf-iron-deficiency-anemia-pregnancy#0f902e2ebf88d474",
@@ -3651,8 +3640,8 @@
         "Response to Public Comments"
       ],
       "text": "Folic acid supplementation to prevent neural tube defects: US Preventive Services Task Force reaffirmation recommendation statement.\nJAMA.\n2023;330(5):454-459.\nMedline:37526713 doi:10.1001/jama.2023.12876 16.\nSiu AL; US Preventive Services Task Force.\nScreening for iron deficiency anemia and iron supplementation in pregnant women to improve maternal health and birth outcomes: US Preventive Services Task Force recommendation statement.\nAnn Intern Med.\n2015;163(7):529-536.\nMedline:26344176 17.\nCantor AG, Holmes R, Bougatsos C, Atchison C, DeLoughery T, Chou R.\nScreening and supplementation for iron deficiency and iron deficiency anemia during pregnancy: updated evidence report and systematic review for the US Preventive Services Task Force.\nJAMA.\nPublished August 20, 2024.\ndoi:10.1001/jama.2024.13546 18.\nKemper AR, Fan T, Grossman DC, Phipps MG.\nGaps in evidence regarding iron deficiency anemia in pregnant women and young children: summary of US Preventive Services Task Force recommendations.\nAm J Clin Nutr.\n2017;106(Suppl 6):1555S-1558S.\nMedline:29070541 doi:10.3945/ajcn.117.155788 19.\nDetlefs SE, Jochum MD, Salmanian B, McKinney JR, Aagaard KM.\nThe impact of response to iron therapy on maternal and neonatal outcomes among pregnant women with anemia.\nAm J Obstet Gynecol MFM.\n2022;4(2):100569.\nMedline:35033748 20.\nMakrides M, Crowther CA, Gibson RA, Gibson RS, Skeaff CM.",
-      "char_start": 40606,
-      "char_end": 41997
+      "char_start": 40625,
+      "char_end": 42016
     },
     {
       "chunk_id": "uspstf-iron-deficiency-anemia-pregnancy#da9f1b29960f823b",
@@ -3662,8 +3651,8 @@
         "Response to Public Comments"
       ],
       "text": "Efficacy and tolerability of low-dose iron supplements during pregnancy: a randomized controlled trial.\nAm J Clin Nutr.\n2003;78(1):145-153.\nMedline:12816784 doi:10.1093/ajcn/78.1.145 21.\nBarton DP, Joy MT, Lappin TR, et al.\nMaternal erythropoietin in singleton pregnancies: a randomized trial on the effect of oral hematinic supplementation.\nAm J Obstet Gynecol.\n1994;170(3):896-901.\nMedline:8141223 doi:10.1016/S0002-9378(94)70305-1 22.\nFalahi E, Akbari S, Ebrahimzade F, Gargari BP.\nImpact of prophylactic iron supplementation in healthy pregnant women on maternal iron status and birth outcome.\nFood Nutr Bull.\n2011;32(3):213-217.\nMedline:22073795 doi:10.1177/156482651103200305 23.\nLi Z, Mei Z, Zhang L, et al.\nEffects of prenatal micronutrient supplementation on spontaneous preterm birth: a double-blind randomized controlled trial in China.\nAm J Epidemiol.\n2017;186(3):318-325.\nMedline:28472219 doi:10.1093/aje/kwx094 24.\nOuladsahebmadarek E, Sayyah-Melli M, Taghavi S, Abbasalizadeh S, Seyedhejazie M.\nThe effect of supplemental iron elimination on pregnancy outcome.\nPakistan J Med Sci.\n2011;27(3):641-645.\n25.\nZiaei S, Norrozi M, Faghihzadeh S, Jafarbegloo E.\nA randomised placebo-controlled trial to determine the effect of iron supplementation on pregnancy outcome in pregnant women with haemoglobin 13.2 g/dl.\nBJOG.\n2007;114(6):684-688.\nMedline:17516958 26.",
-      "char_start": 41998,
-      "char_end": 43368
+      "char_start": 42017,
+      "char_end": 43387
     },
     {
       "chunk_id": "uspstf-iron-deficiency-anemia-pregnancy#5b783bf7bd43c0f8",
@@ -3673,8 +3662,8 @@
         "Response to Public Comments"
       ],
       "text": "Chan KK, Chan BC, Lam KF, Tam S, Lao TT.\nIron supplement in pregnancy and development of gestational diabetes—a randomised placebo-controlled trial.\nBJOG.\n2009;116(6):789-798.\nMedline:19432567 27.\nMeier PR, Nickerson HJ, Olson KA, Berg RL, Meyer JA.\nPrevention of iron deficiency anemia in adolescent and adult pregnancies.\nClin Med Res.\n2003;1(1):29-36.\nMedline:15931282 doi:10.3121/cmr.1.1.29 28.\nZhao G, Xu G, Zhou M, et al.\nPrenatal iron supplementation reduces maternal anemia, iron deficiency, and iron deficiency anemia in a randomized clinical trial in rural China, but iron deficiency remains widespread in mothers and neonates.\nJ Nutr.\n2015;145(8):1916-1923.\nMedline:26063068 29.\nZiaei S, Mehrnia M, Faghihzadeh S.\nIron status markers in nonanemic pregnant women with and without iron supplementation.\nInt J Gynaecol Obstet.\n2008;100(2):130-132.\nMedline:17977537 doi:10.1016/j.ijgo.2007.07.027 30.\nZeng L, Dibley MJ, Cheng Y, et al.\nImpact of micronutrient supplementation during pregnancy on birth weight, duration of gestation, and perinatal mortality in rural western China: double blind cluster randomised controlled trial.\nBMJ.\n2008;337:a2001.\nMedline:18996930 doi:10.1136/bmj.a2001 31.\nLiu JM, Mei Z, Ye R, Serdula MK, Ren A, Cogswell ME.\nMicronutrient supplementation and pregnancy outcomes: double-blind randomized controlled trial in China.\nJAMA Intern Med.\n2013;173(4):276-282.",
-      "char_start": 43369,
-      "char_end": 44766
+      "char_start": 43388,
+      "char_end": 44785
     },
     {
       "chunk_id": "uspstf-iron-deficiency-anemia-pregnancy#8a0fa798e94f286a",
@@ -3684,8 +3673,8 @@
         "Response to Public Comments"
       ],
       "text": "Medline:23303315 doi:10.1001/jamainternmed.2013.1632 32.\nCogswell ME, Parvanta I, Ickes L, Yip R, Brittenham GM.\nIron supplementation during pregnancy, anemia, and birth weight: a randomized controlled trial.\nAm J Clin Nutr.\n2003;78(4):773-781.\nMedline:14522736 doi:10.1093/ajcn/78.4.773 33.\nEskeland B, Malterud K, Ulvik RJ, Hunskaar S.\nIron supplementation in pregnancy: is less enough?\nA randomized, placebo controlled trial of low dose iron supplementation with and without heme iron.\nActa Obstet Gynecol Scand.\n1997;76(9):822-828.\nMedline:9351406 doi:10.3109/00016349709024359 34.\nChen S, Li N, Mei Z, et al.\nMicronutrient supplementation during pregnancy and the risk of pregnancy-induced hypertension: a randomized clinical trial.\nClin Nutr.\n2019;38(1):146-151.\nMedline:29428785 doi:10.1016/j.clnu.2018.01.029 35.\nLiu Y, Li N, Mei Z, et al.\nEffects of prenatal micronutrients supplementation timing on pregnancy-induced hypertension: secondary analysis of a double-blind randomized controlled trial.\nMatern Child Nutr.\n2021;17(3):e13157.\nMedline:33594802 doi:10.1111/mcn.13157 36.\nMilman N, Agger AO, Nielsen OJ.\nIron supplementation during pregnancy.\nEffect on iron status markers, serum erythropoietin and human placental lactogen.\nA placebo controlled study in 207 Danish women.\nDan Med Bull.\n1991;38(6):471-476.\nMedline:1802636 37.\nMilman N, Byg KE, Agger AO.",
-      "char_start": 44767,
-      "char_end": 46137
+      "char_start": 44786,
+      "char_end": 46156
     },
     {
       "chunk_id": "uspstf-iron-deficiency-anemia-pregnancy#c2ff11eb1f7ae90d",
@@ -3695,8 +3684,8 @@
         "Response to Public Comments"
       ],
       "text": "Hemoglobin and erythrocyte indices during normal pregnancy and postpartum in 206 women with and without iron supplementation.\nActa Obstet Gynecol Scand.\n2000;79(2):89-98.\nMedline:10696955 doi:10.1034/j.1600-0412.2000.079002089.x 38.\nMilman N, Agger AO, Nielsen OJ.\nIron status markers and serum erythropoietin in 120 mothers and newborn infants.\nEffect of iron supplementation in normal pregnancy.\nActa Obstet Gynecol Scand.\n1994;73(3):200-204.\nMedline:8122498 doi:10.3109/00016349409023439 39.\nRomslo I, Haram K, Sagen N, Augensen K.\nIron requirement in normal pregnancy as assessed by serum ferritin, serum transferrin saturation and erythrocyte protoporphyrin determinations.\nBr J Obstet Gynaecol.\n1983;90(2):101-107.\nMedline:6824608 doi:10.1111/j.1471-0528.1983.tb08891.x 40.\nSerdula MK, Zhou Y, Li H, Liu JM, Mei Z.\nPrenatal iron containing supplements provided to Chinese women with no or mild anemia had no effect on hemoglobin concentration in post-partum women or their infants at 6 and 12 months of age.\nEur J Clin Nutr.\n2019;73(11):1473-1479.\nMedline:30446762 doi:10.1038/s41430-018-0365-x 41.\nSiega-Riz AM, Hartzema AG, Turnbull C, Thorp J, McDonald T, Cogswell ME.\nThe effects of prophylactic iron given in prenatal supplements on iron status and birth outcomes: a randomized controlled trial.\nAm J Obstet Gynecol.\n2006;194(2):512-519.\nMedline:16458655 doi:10.1016/j.ajog.2005.08.011 42.",
-      "char_start": 46138,
-      "char_end": 47538
+      "char_start": 46157,
+      "char_end": 47557
     },
     {
       "chunk_id": "uspstf-iron-deficiency-anemia-pregnancy#93ace4ed9d35d1c5",
@@ -3706,8 +3695,8 @@
         "Response to Public Comments"
       ],
       "text": "Wang L, Mei Z, Li H, Zhang Y, Liu J, Serdula MK.\nModifying effects of maternal Hb concentration on infant birth weight in women receiving prenatal iron-containing supplements: a randomised controlled trial.\nBr J Nutr.\n2016;115(4):644-649.\nMedline:26824731 doi:10.1017/S0007114515004870 43.\nJafarbegloo E, Ahmari Tehran H, Dadkhah Tehrani T.\nGastrointestinal complications of ferrous sulfate in pregnant women: a randomized double-blind placebo-controlled trial.\nIran Red Crescent Med J.\n2015;17(8):e15001.\nMedline:26430520 doi:10.5812/ircmj.15001 44.\nAmerican College of Obstetricians and Gynecologists.\nAnemia in pregnancy: ACOG practice bulletin, number 233.\nObstet Gynecol.\n2021;138(2):e55-e64.\nMedline:34293770 45.\nShort MW, Domagalski JE.\nIron deficiency anemia: evaluation and management.\nAm Fam Physician.\n2013;87(2):98-104.\nMedline:23317073 46.\nCenters for Disease Control and Prevention.\nRecommendations to prevent and control iron deficiency in the United States.\nMMWR Recomm Rep.\n1998;47(RR-3):1-29.\nMedline:9563847 47.\nUS Department of Agriculture, US Department of Health and Human Services.\nDietary Guidelines for Americans, 2020-2025.\nAccessed June 24, 2024.\nhttps://www.dietaryguidelines.gov/resources/2020-2025-dietary-guidelines-online-materials\nTable 1. Summary of USPSTF Rationale\nRationale\nScreening\nSupplementation\nDetection",
-      "char_start": 47539,
-      "char_end": 48890
+      "char_start": 47558,
+      "char_end": 48909
     },
     {
       "chunk_id": "uspstf-iron-deficiency-anemia-pregnancy#c635e4be3effbbf1",
@@ -3717,8 +3706,8 @@
         "Response to Public Comments"
       ],
       "text": "The USPSTF found inadequate evidence to assess the effectiveness of risk prediction tools to identify pregnant persons who are at increased risk for iron deficiency or iron deficiency anemia.\nBenefits of early detection and intervention and treatment\n- The USPSTF found inadequate evidence on the benefits of screening for iron deficiency and iron deficiency anemia in asymptomatic pregnant persons.\n- The USPSTF found inadequate evidence on the benefits of treatment for screen-detected iron deficiency and iron deficiency anemia in asymptomatic pregnant persons.\n- The USPSTF found inadequate evidence on the association between change in iron status because of treatment of screen-detected iron deficiency or iron deficiency anemia and improvement of maternal or infant health outcomes.\n- The USPSTF found inadequate evidence on the benefits of routine iron supplementation during pregnancy on maternal or infant health outcomes.\n- The USPSTF found adequate evidence that routine iron supplementation during pregnancy improves maternal hematologic indices.\n- The USPSTF found inadequate evidence on the association between change in maternal iron status because of supplementation and improvement in maternal or infant health outcomes.\nHarms of early detection and intervention and treatment",
-      "char_start": 48892,
-      "char_end": 50189
+      "char_start": 48911,
+      "char_end": 50208
     },
     {
       "chunk_id": "uspstf-iron-deficiency-anemia-pregnancy#f52bec026462e2b5",
@@ -3728,8 +3717,8 @@
         "Response to Public Comments"
       ],
       "text": "- The USPSTF found inadequate evidence on the harms of screening for iron deficiency and iron deficiency anemia in asymptomatic pregnant persons.\n- The USPSTF found inadequate evidence on the harms of treatment of screen-detected iron deficiency and iron deficiency anemia in pregnant persons.\nThe USPSTF found adequate evidence to bound the harms of routine iron supplementation during pregnancy as no greater than small based on studies that reported harms as minimal.\nUSPSTF assessment\nDue to lack of available data, the USPSTF concludes that the current evidence is insufficient, and the balance of benefits and harms of screening for iron deficiency and iron deficiency anemia in asymptomatic pregnant persons on maternal and infant health outcomes cannot be determined.\nDue to lack of available data, the USPSTF concludes that the current evidence is insufficient, and the balance of benefits and harms of iron supplementation in asymptomatic pregnant persons on maternal and infant health outcomes cannot be determined.\nAbbreviation: USPSTF, US Preventive Services Task Force.\nTable 2. Research Needs and Gaps for Screening and Supplementation for Iron Deficiency and Iron Deficiency Anemia During Pregnancy",
-      "char_start": 50191,
-      "char_end": 51411
+      "char_start": 50210,
+      "char_end": 51430
     },
     {
       "chunk_id": "uspstf-iron-deficiency-anemia-pregnancy#d223f08ebc7ed186",
@@ -3739,8 +3728,8 @@
         "Response to Public Comments"
       ],
       "text": "To fulfill its mission to improve health by making evidence-based recommendations for preventive services, the USPSTF routinely highlights the most critical evidence gaps for making actionable preventive services recommendations. For each evidence gap below, research should focus on settings similar to those in the US to assist in generalizability to a US primary care population. This table summarizes the key bodies of evidence needed for the USPSTF to make a recommendation for screening and supplementation for iron deficiency and iron deficiency anemia during pregnancy. For additional information on research needed to address these evidence gaps, see the Research Gaps Taxonomy table on the USPSTF website (https://www.uspreventiveservicestaskforce.org/home/getfilebytoken/aRJ-3-AWuVvmC_kmoGCVHp).\nScreening and Supplementation for Iron Deficiency and Iron Deficiency Anemia During Pregnancy\nResearch is needed in pregnant persons with iron deficiency and iron deficiency anemia to assess whether changes in maternal iron status (eg, because of supplementation or treatment for screen-detected populations) improves maternal and infant health outcomes in settings relevant to US primary care clinical practice.",
-      "char_start": 51413,
-      "char_end": 52634
+      "char_start": 51432,
+      "char_end": 52653
     },
     {
       "chunk_id": "uspstf-iron-deficiency-anemia-pregnancy#aaef71084c7359d6",
@@ -3750,8 +3739,8 @@
         "Response to Public Comments"
       ],
       "text": "Research is needed to assess the benefits and harms of screening (eg, with hemoglobin, hematocrit, or ferritin values) for iron deficiency and iron deficiency anemia during pregnancy on maternal (eg, quality of life or need for transfusion) and infant (eg, low birth weight or preterm birth) health outcomes.\nResearch is needed to assess the benefits and harms of treatment (eg, oral or intravenous iron) in asymptomatic, screen-detected populations with iron deficiency and iron deficiency anemia during pregnancy on maternal and infant health outcomes in settings relevant to US primary care clinical practice.\nResearch is needed to assess the benefits and harms of routine iron supplementation in asymptomatic pregnant persons without known iron deficiency or iron deficiency anemia on maternal and infant health outcomes.\nAbbreviation: USPSTF, US Preventive Services Task Force.",
-      "char_start": 52636,
-      "char_end": 53521
+      "char_start": 52655,
+      "char_end": 53540
     },
     {
       "chunk_id": "uspstf-aspirin-cvd-prevention#65e7cd3be063fb5d",
@@ -4164,17 +4153,6 @@
       "char_end": 34271
     },
     {
-      "chunk_id": "uspstf-aspirin-cvd-prevention#76075840031a9659",
-      "guideline_id": "uspstf-aspirin-cvd-prevention",
-      "section_path": [
-        "Aspirin Use to Prevent Cardiovascular Disease: Preventive Medication",
-        "Response to Public Comment"
-      ],
-      "text": "Additional Information: The US Preventive Services Task Force (USPSTF) makes recommendations about the effectiveness of specific preventive care services for patients without obvious related signs or symptoms. It bases its recommendations on the evidence of both the benefits and harms of the service and an assessment of the balance. The USPSTF does not consider the costs of providing a service in this assessment. The USPSTF recognizes that clinical decisions involve more considerations than evidence alone. Clinicians should understand the evidence but individualize decision-making to the specific patient or situation. Similarly, the USPSTF notes that policy and coverage decisions involve considerations in addition to the evidence of clinical benefits and harms. Similarly, the USPSTF notes that policy and coverage decisions involve considerations in addition to the evidence of clinical benefits and harms. Published by JAMA®—Journal of the American Medical Association under arrangement with the Agency for Healthcare Research and Quality (AHRQ). ©2022 AMA and United States Government, as represented by the Secretary of the Department of Health and Human Services (HHS), by assignment from the members of the United States Preventive Services Task Force (USPSTF). All rights reserved.",
-      "char_start": 34273,
-      "char_end": 35571
-    },
-    {
       "chunk_id": "uspstf-aspirin-cvd-prevention#65087021273eb77b",
       "guideline_id": "uspstf-aspirin-cvd-prevention",
       "section_path": [
@@ -4182,8 +4160,8 @@
         "Response to Public Comment"
       ],
       "text": "Copyright Notice: USPSTF recommendations are based on a rigorous review of existing peer-reviewed evidence and are intended to help primary care clinicians and patients decide together whether a preventive service is right for a patient's needs. To encourage widespread discussion, consideration, adoption, and implementation of USPSTF recommendations, AHRQ permits members of the public to reproduce, redistribute, publicly display, and incorporate USPSTF work into other materials provided that it is reproduced without any changes to the work of portions thereof, except as permitted as fair use under the US Copyright Act.\nAHRQ and the US Department of Health and Human Services cannot endorse, or appear to endorse, derivative or excerpted materials, and they cannot be held liable for the content or use of adapted products that are incorporated on other Web sites. Any adaptations of these electronic documents and resources must include a disclaimer to this effect. Advertising or implied endorsement for any commercial products or services is strictly prohibited.",
-      "char_start": 35573,
-      "char_end": 36646
+      "char_start": 34273,
+      "char_end": 35346
     },
     {
       "chunk_id": "uspstf-aspirin-cvd-prevention#61ac6232162f4e2c",
@@ -4193,8 +4171,8 @@
         "Response to Public Comment"
       ],
       "text": "This work may not be reproduced, reprinted, or redistributed for a fee, nor may the work be sold for profit or incorporated into a profit-making venture without the express written permission of AHRQ. This work is subject to the restrictions of Section 1140 of the Social Security Act, 42 U.S.C. §320b-10. When parts of a recommendation statement are used or quoted, the USPSTF Web page should be cited as the source.\nReferences\n1.\nHeron M.\nDeaths: leading causes for 2017.\nNatl Vital Stat Rep.\n2019;68(6):1-77.\n2.\nVirani SS, Alonso A, Aparicio HJ, et al; American Heart Association Council on Epidemiology and Prevention Statistics Committee and Stroke Statistics Subcommittee.\nHeart disease and stroke statistics-2021 update: a report from the American Heart Association.\nCirculation.\n2021;143(8):e254-e743.\n3.\nUS Preventive Services Task Force.\nUS Preventive Services Task Force Procedure Manual.\nPublished 2021.\nAccessed March 8, 2022.\nhttps://uspreventiveservicestaskforce.org/uspstf/about-uspstf/methods-and-processes/procedure-manual.\n4.\nGoff DC Jr, Lloyd-Jones DM, Bennett G, et al.\n2013 ACC/AHA guideline on the assessment of cardiovascular risk: a report of the American College of Cardiology/American Heart Association Task Force on Practice Guidelines.\nJ Am Coll Cardiol.\n2014;63:2935-2959.\n5.\nDeFilippis AP, Young R, Carrubba CJ, et al.",
-      "char_start": 36648,
-      "char_end": 37999
+      "char_start": 35348,
+      "char_end": 36699
     },
     {
       "chunk_id": "uspstf-aspirin-cvd-prevention#81851d6b2896d9c3",
@@ -4204,8 +4182,8 @@
         "Response to Public Comment"
       ],
       "text": "An analysis of calibration and discrimination among multiple cardiovascular risk scores in a modern multiethnic cohort.\nAnn Intern Med.\n2015;162(4):266-275.\n6.\nCook NR, Ridker PM.\nCalibration of the pooled cohort equations for atherosclerotic cardiovascular disease: an update.\nAnn Intern Med.\n2016;165(11):786-794.\n7.\nRana JS, Tabada GH, Solomon MD, et al.\nAccuracy of the atherosclerotic cardiovascular risk equation in a large contemporary, multiethnic population.\nJ Am Coll Cardiol.\n2016;67(18):2118-2130.\n8.\nDalton JE, Perzynski AT, Zidar DA, et al.\nAccuracy of cardiovascular risk prediction varies by neighborhood socioeconomic position: a retrospective cohort study.\nAnn Intern Med.\n2017;167(7):456-464.\n9.\nColantonio LD, Richman JS, Carson AP, et al.\nPerformance of the atherosclerotic cardiovascular disease pooled cohort risk equations by social deprivation status.\nJ Am Heart Assoc.\n2017;6(3):e005676.\n10.\nBaigent C, Blackwell L, Collins R, et al; Antithrombotic Trialists’ (ATT) Collaboration.\nAspirin in the primary and secondary prevention of vascular disease: collaborative meta-analysis of individual participant data from randomised trials.\nLancet.\n2009;373:1849-1860.\n11.\nDe Berardis G, Lucisano G, D'Ettorre A, et al.\nAssociation of aspirin use with major bleeding in patients with and without diabetes.\nJAMA.\n2012;307:2286-2294.\n12.\nSelak V, Jackson R, Poppe K, et al.",
-      "char_start": 38000,
-      "char_end": 39389
+      "char_start": 36700,
+      "char_end": 38089
     },
     {
       "chunk_id": "uspstf-aspirin-cvd-prevention#b90c89db132da149",
@@ -4215,8 +4193,8 @@
         "Response to Public Comment"
       ],
       "text": "Predicting bleeding risk to guide aspirin use for the primary prevention of cardiovascular disease: a cohort study.\nAnn Intern Med.\n2019;170(6):357-368.\n13.\nde Groot NL, Hagenaars MP, Smeets HM, Steyerberg EW, Siersema PD, van Oijen MG.\nPrimary non-variceal upper gastrointestinal bleeding in NSAID and low-dose aspirin users: development and validation of risk scores for either medication in two large Dutch cohorts.\nJ Gastroenterol.\n2014;49(2):245-253.\n14.\nGuirguis-Blake JM, Evans CV, Perdue LA, Bean SI, Senger CA.\nAspirin Use to Prevent Cardiovascular Disease and Colorectal Cancer: An Evidence Update for the U.S.\nPreventive Services Task Force.\nEvidence Synthesis No.\n211.\nAgency for Healthcare Research and Quality; 2022.\nAHRQ publication 21-05283-EF-1.\n15.\nUS Preventive Services Task Force.\nStatin use for the primary prevention of cardiovascular disease in adults: US Preventive Services Task Force recommendation statement.\nJAMA.\n2016;316(19):1997-2007.\n16.\nUS Preventive Services Task Force.\nInterventions for tobacco smoking cessation in adults, including pregnant persons: US Preventive Services Task Force recommendation statement.\nJAMA.\n2021;325(3):265-279.\n17.\nUS Preventive Services Task Force.",
-      "char_start": 39390,
-      "char_end": 40604
+      "char_start": 38090,
+      "char_end": 39304
     },
     {
       "chunk_id": "uspstf-aspirin-cvd-prevention#81e7e83194a2b52a",
@@ -4226,8 +4204,8 @@
         "Response to Public Comment"
       ],
       "text": "Behavioral counseling interventions to promote a healthy diet and physical activity for cardiovascular disease prevention in adults with cardiovascular risk factors: US Preventive Services Task Force recommendation statement.\nJAMA.\n2020;324(20):2069-2075.\n18.\nUS Preventive Services Task Force.\nBehavioral counseling to promote a healthful diet and physical activity for cardiovascular disease prevention in adults without cardiovascular risk factors: US Preventive Services Task Force recommendation statement.\nJAMA.\n2017;318(2):167-174.\n19.\nUS Preventive Services Task Force.\nBehavioral weight loss interventions to prevent obesity-related morbidity and mortality in adults: US Preventive Services Task Force recommendation statement.\nJAMA.\n2018;320(11):1163-1171.\n20.\nUS Preventive Services Task Force.\nScreening for hypertension in adults: US Preventive Services Task Force reaffirmation recommendation statement.\nJAMA.\n2021;325(16):1650-1656.\n21.\nUS Preventive Services Task Force.\nScreening for prediabetes and type 2 diabetes: US Preventive Services Task Force recommendation statement.\nJAMA.\n2021;326(8):736-743.\n22.\nUS Preventive Services Task Force.\nScreening for colorectal cancer: US Preventive Services Task Force recommendation statement.\nJAMA.\n2021;325(19):1965-1977.\n23.\nBibbins-Domingo K; U.S.\nPreventive Services Task Force.",
-      "char_start": 40605,
-      "char_end": 41947
+      "char_start": 39305,
+      "char_end": 40647
     },
     {
       "chunk_id": "uspstf-aspirin-cvd-prevention#f3fdd57859b7405f",
@@ -4237,8 +4215,8 @@
         "Response to Public Comment"
       ],
       "text": "Aspirin use for the primary prevention of cardiovascular disease and colorectal cancer: U.S.\nPreventive Services Task Force recommendation statement.\nAnn Intern Med.\n2016;164(12):836-845.\n24.\nMcNeil JJ, Wolfe R, Woods RL, et al; ASPREE Investigator Group.\nEffect of aspirin on cardiovascular events and bleeding in the healthy elderly.\nNew Engl J Med.\n2018;379(16):1509-1518.\n25.\nGuirguis-Blake JM, Evans CV, Perdue LA, Bean SI, Senger CA.\nAspirin use to prevent cardiovascular disease and colorectal cancer: updated evidence report and systematic review for the US Preventive Services Task Force.\nJAMA.\nPublished April 26, 2022.\n26.\nDehmer SP, O’Keefe LR, Grossman ES, Maciosek MV.\nAspirin Use to Prevent Cardiovascular Disease and Colorectal Cancer: An Updated Decision Analysis for the U.S.\nPreventive Services Task Force.\nRockville, MD: Agency for Healthcare Research and Quality; 2022.\nAHRQ publication 21-05283-EF-2.\n27.\nDehmer SP, O’Keefe LR, Evans CV, Guirguis-Blake JM, Perdue LA, Maciosek MV.\nAspirin use to prevent cardiovascular disease and colorectal cancer: updated modeling study for the US Preventive Services Task Force.\nJAMA.\nPublished April 26, 2022.\n28.\nSteering Committee of the Physicians’ Health Study Research Group.\nFinal report on the aspirin component of the ongoing Physicians’ Health Study.\nN Engl J Med.\n1989;321(3):129-135.\n29.",
-      "char_start": 41948,
-      "char_end": 43306
+      "char_start": 40648,
+      "char_end": 42006
     },
     {
       "chunk_id": "uspstf-aspirin-cvd-prevention#4562ac86ebe5517e",
@@ -4248,8 +4226,8 @@
         "Response to Public Comment"
       ],
       "text": "Cook NR, Lee IM, Zhang SM, Moorthy MV, Buring JE.\nAlternate-day, low-dose aspirin and cancer risk: long-term observational follow-up of a randomized trial.\nAnn Intern Med.\n2013;159:77-85.\n30.\nThrombosis prevention trial: randomised trial of low-intensity oral anticoagulation with warfarin and low-dose aspirin in the primary prevention of ischaemic heart disease in men at increased risk: the Medical Research Council's General Practice Research Framework.\nLancet.\n1998;351(9098):233-241.\n31.\nRothwell PM, Wilson M, Elwin CE, et al.\nLong-term effect of aspirin on colorectal cancer incidence and mortality: 20-year follow-up of five randomised trials.\nLancet.\n2010;376:1741-50.\n32.\nVirani SS, Alonso A, Benjamin EJ, et al; American Heart Association Council on Epidemiology and Prevention Statistics Committee and Stroke Statistics Subcommittee.\nHeart disease and stroke statistics—2020 update: a report from the American Heart Association.\nCirculation.\n2020;141(9):e139-e596.\n33.\nWallace JL.\nProstaglandins, NSAIDs, and gastric mucosal protection: why doesn’t the stomach digest itself?\nPhysiol Rev.\n2008;88(4):1547-1565.\n34.\nNemerovski CW, Salinitri FD, Morbitzer KA, Moser LR.\nAspirin for primary prevention of cardiovascular disease events.\nPharmacotherapy.\n2012;32(11):1020-1035.\n35.\nArnett DK, Blumenthal RS, Albert MA, et.\nal.",
-      "char_start": 43307,
-      "char_end": 44641
+      "char_start": 42007,
+      "char_end": 43341
     },
     {
       "chunk_id": "uspstf-aspirin-cvd-prevention#01c2f8d5f27e40ca",
@@ -4259,8 +4237,8 @@
         "Response to Public Comment"
       ],
       "text": "2019 ACC/AHA guideline on the primary prevention of cardiovascular disease: a report of the American College of Cardiology/American Heart Association Task Force on Clinical Practice Guidelines.\nCirculation.\n2019;140(11):e596-e646.\n36.\nAmerican Academy of Family Physicians.\nClinical preventive service recommendations: aspirin use to prevent CVD and colorectal cancer.\nAccessed March 8, 2022.\nhttps://www.aafp.org/family-physician/patient-care/clinical-recommendations/all-clinical-recommendations/aspirin-use-prevention.html.\nTable. Summary of USPSTF Rationale\nRationale\nAssessment\nBenefits of aspirin use\nAdequate evidence that low-dose aspirin has a small benefit to reduce risk for cardiovascular events (nonfatal myocardial infarction and stroke) in adults 40 years or older who have no history of CVD but are at increased CVD risk. Evidence shows that the absolute magnitude of benefit increases with increasing 10-year CVD risk and that the magnitude of the lifetime benefits is greater when aspirin is initiated at a younger age.\nHarms of aspirin use\nAdequate evidence that aspirin use in adults increases the risk for gastrointestinal bleeding, intracranial bleeding, and hemorrhagic stroke. The USPSTF determined that the magnitude of the harms is small overall but increases in older age groups, particularly in adults older than 60 years.\nUSPSTF assessment",
-      "char_start": 44642,
-      "char_end": 46018
+      "char_start": 43342,
+      "char_end": 44718
     },
     {
       "chunk_id": "uspstf-aspirin-cvd-prevention#3b114a156873bb64",
@@ -4270,8 +4248,8 @@
         "Response to Public Comment"
       ],
       "text": "The USPSTF concludes with moderate certainty that aspirin use for the primary prevention of CVD events in adults aged 40 to 59 years who have a 10% or greater 10-year CVD risk has a small net benefit. The USPSTF concludes with moderate certainty that initiating aspirin use for the primary prevention of CVD events in adults 60 years or older has no net benefit.\nAbbreviations: CVD, cardiovascular disease; USPSTF, US Preventive Services Task Force\nFigure. Quality-Adjusted Life-Years and Life-Years Gained: Lifetime Net Benefit of Initiating Aspirin Use for Women and Men With Lifetime Use\nYellow shaded cells indicate persons to whom the C grade recommendation applies. CVD indicates cardiovascular disease; QALY, quality-adjusted life-year.",
-      "char_start": 46020,
-      "char_end": 46766
+      "char_start": 44720,
+      "char_end": 45466
     },
     {
       "chunk_id": "niddk-a1c-test#59a2da315898a9e1",
@@ -5463,24 +5441,14 @@
       "char_end": 253
     },
     {
-      "chunk_id": "nhlbi-blood-cholesterol#33af07d3e46ae111",
+      "chunk_id": "nhlbi-blood-cholesterol#1b27a7a525c01aef",
       "guideline_id": "nhlbi-blood-cholesterol",
       "section_path": [
         "Blood Cholesterol What is Blood Cholesterol?"
       ],
-      "text": "- English\n- Español\nWatch this video to see how cholesterol flowing through your bloodstream can build up on the wall of the blood vessel over time. This forms plaque that can partially block blood flow through the blood vessel. Medical Animation Copyright © Nucleus Medical Media, All rights reserved. Click here to view this video with an audio description.\nCholesterol is a waxy, fat-like substance that your body needs for good health, but in the right amounts.\nare small, round particles made of (fats) and . These particles carry cholesterol in your blood and throughout your body. Two types of lipoproteins include:\n- Low-density lipoprotein (LDL), sometimes called “bad” cholesterol\n- High-density lipoprotein (HDL), sometimes called “good” cholesterol\nHigh levels of “bad” LDL cholesterol may create a buildup of (fatty deposits) in your . This buildup can lead to a heart attack, stroke, or other health problems. High levels of “good” HDL cholesterol may lower your risk for health problems. HDL cholesterol carries cholesterol and plaque to the liver to be flushed out of the body.\nThe you and your lifestyle habits play a major role in your cholesterol levels.\nRoutine blood tests can show whether your cholesterol levels are healthy or unhealthy. To help get your cholesterol levels into the healthy range, you may need heart-healthy lifestyle changes or medicines.",
+      "text": "- English\n- Español\nCholesterol is a waxy, fat-like substance that your body needs for good health, but in the right amounts.\nare small, round particles made of (fats) and . These particles carry cholesterol in your blood and throughout your body. Two types of lipoproteins include:\n- Low-density lipoprotein (LDL), sometimes called “bad” cholesterol\n- High-density lipoprotein (HDL), sometimes called “good” cholesterol\nHigh levels of “bad” LDL cholesterol may create a buildup of (fatty deposits) in your . This buildup can lead to a heart attack, stroke, or other health problems. High levels of “good” HDL cholesterol may lower your risk for health problems. HDL cholesterol carries cholesterol and plaque to the liver to be flushed out of the body.\nThe you and your lifestyle habits play a major role in your cholesterol levels.\nRoutine blood tests can show whether your cholesterol levels are healthy or unhealthy. To help get your cholesterol levels into the healthy range, you may need heart-healthy lifestyle changes or medicines.\nLast updated on April 17, 2024\nBlood Cholesterol\nMENU\n- What is Blood Cholesterol?\n- Symptoms\n- Diagnosis\n- Causes and Risk Factors\n- Treatment\n- Living With High Cholesterol\nMORE INFORMATION\nParticipate in a Study\nFact Sheets and Handouts\nBlood Cholesterol",
       "char_start": 303,
-      "char_end": 1689
-    },
-    {
-      "chunk_id": "nhlbi-blood-cholesterol#d2e19a4406673c19",
-      "guideline_id": "nhlbi-blood-cholesterol",
-      "section_path": [
-        "Blood Cholesterol What is Blood Cholesterol?"
-      ],
-      "text": "Last updated on April 17, 2024\nBlood Cholesterol\nMENU\n- What is Blood Cholesterol?\n- Symptoms\n- Diagnosis\n- Causes and Risk Factors\n- Treatment\n- Living With High Cholesterol\nMORE INFORMATION\nParticipate in a Study\nFact Sheets and Handouts\nBlood Cholesterol",
-      "char_start": 1691,
-      "char_end": 1956
+      "char_end": 1615
     },
     {
       "chunk_id": "nhlbi-blood-cholesterol#ef5f7fa270d405de",
@@ -5489,8 +5457,8 @@
         "Blood Cholesterol Symptoms"
       ],
       "text": "- English\n- Español\nHigh levels of low-density (LDL) cholesterol usually do not cause . Most people do not know they have high blood cholesterol until they have a blood test during a routine healthcare visit.\nIf your levels are very high, you may notice the following :\n- Fatty bumps (xanthomas) on your skin, especially on the elbows, joints, knees, hands, ankles, or buttocks\n- Grayish-white rings ( ) that appear around the cornea in your eye\nThese signs develop mostly in people who have very high cholesterol that runs in families ( ).\nUndiagnosed or untreated high blood cholesterol can lead to serious problems, such as heart attack and stroke. Talk to your healthcare provider about your risk and steps you can take to keep your cholesterol levels in a healthy range.\nLast updated on April 18, 2024\nBlood Cholesterol\nMENU\n- What is Blood Cholesterol?\n- Symptoms\n- Diagnosis\n- Causes and Risk Factors\n- Treatment\n- Living With High Cholesterol\nMORE INFORMATION\nParticipate in a Study\nFact Sheets and Handouts\nBlood Cholesterol",
-      "char_start": 1988,
-      "char_end": 3035
+      "char_start": 1647,
+      "char_end": 2694
     },
     {
       "chunk_id": "nhlbi-blood-cholesterol#fa8811d3e4095c31",
@@ -5499,8 +5467,8 @@
         "Blood Cholesterol Diagnosis"
       ],
       "text": "- English\n- Español\nYour healthcare provider will diagnose you with high blood cholesterol based on your medical and family history, a physical exam, and a blood test of your cholesterol levels.\nMedical history and physical exam\nYour healthcare provider will ask about your eating habits, physical activity, family history, medicines you are taking, and other risk factors for heart or blood vessel diseases.\nDuring your physical exam, your provider will check for signs of very high blood cholesterol, such as , or signs of other health conditions that can cause high blood cholesterol.",
-      "char_start": 3068,
-      "char_end": 3662
+      "char_start": 2727,
+      "char_end": 3321
     },
     {
       "chunk_id": "nhlbi-blood-cholesterol#ae72208f1fd78efe",
@@ -5510,8 +5478,8 @@
         "Screening for high cholesterol"
       ],
       "text": "Your healthcare provider may order a blood test called a panel to screen for unhealthy cholesterol levels.\nYour healthcare provider may ask you to fast for 8 to 12 hours before a panel.",
-      "char_start": 3699,
-      "char_end": 3885
+      "char_start": 3358,
+      "char_end": 3544
     },
     {
       "chunk_id": "nhlbi-blood-cholesterol#9bfbf262dec41a91",
@@ -5521,8 +5489,8 @@
         "Lipoprotein (lipid) panel"
       ],
       "text": "A lipoprotein panel, also called a lipid panel or lipid profile, measures the levels of LDL and HDL cholesterol and in your blood. Cholesterol and triglyceride levels that are higher than normal may be signs of higher risk of coronary heart disease.\nA lipoprotein panel gives the following types of information:\n- Total cholesterol\n- LDL (“bad”) cholesterol, which is the main source of cholesterol buildup and blockages in the\n- HDL (“good”) cholesterol, which helps decrease cholesterol blockages in the arteries\n- Triglycerides, which are another type of fat in your blood\nYour lipoprotein panel may also provide other potentially useful numbers, such as your non-HDL cholesterol (total cholesterol minus HDL cholesterol) and remnant LDL (total cholesterol minus LDL and HDL cholesterol).\nThe goal for a healthy lipid profile is to have non-HDL levels below 130 milligrams (mg) per deciliter (dL) with an HDL of at least 40 mg/dL for men and 50 mg/dL for women. Check with your provider on the lipid levels that are best for you.\nMetric: Non-HDL cholesterol (mg/dL)\nMetric: Non-HDL cholesterol (mg/DL), starting no later than age 9-11 y and earlier per clinical discretion\nBlood lipids\nMeasurement: Plasma total and HDL cholesterol with calculation of non-HDL cholesterol\nExample tools for measurement: Fasting or nonfasting blood sample\nScoring:\nPoints\nLevel\n100 60 40 20 ≥220",
-      "char_start": 3917,
-      "char_end": 5310
+      "char_start": 3576,
+      "char_end": 4969
     },
     {
       "chunk_id": "nhlbi-blood-cholesterol#a88ec4d7a47eb235",
@@ -5532,8 +5500,8 @@
         "Lipoprotein (lipid) panel"
       ],
       "text": "<130 130-159 160-189 190-219 ≥220\n100 60 40 20 0\n<100 100-119 120-144 145-189 ≥190\nIf drug-treated level, subtract 20 points\nFor healthy persons, how often you get a lipid panel done depends on your age, risk factors, and family history of high blood cholesterol or cardiovascular diseases, such as atherosclerosis, heart attack, or stroke.\nHere is a general guide:\n- Ages 19 or younger: Screening begins at ages 9 to 11 and should be repeated every 5 years. Screening may be performed as early as age 2 if there is a family history of high blood cholesterol, heart attack, or stroke.\n- Ages 20 to 65: Younger adults should be screened every 5 years. Men ages 45 to 65 and women ages 55 to 65 should be screened every 1 to 2 years.\n- Older than 65: Older adults should be screened every year.",
-      "char_start": 5312,
-      "char_end": 6110
+      "char_start": 4971,
+      "char_end": 5769
     },
     {
       "chunk_id": "nhlbi-blood-cholesterol#533ac2466a7be670",
@@ -5543,8 +5511,8 @@
         "Lipoprotein-a"
       ],
       "text": "A lipoprotein-a, or Lp(a), test is not usually part of a routine lipid panel. High levels of Lp(a) may mean you are at higher risk of heart or blood vessel diseases, even if your other cholesterol levels are healthy. The you from your parents determine how much Lp(a) you have. Your Lp(a) level is unlikely to change much from childhood to old age.\nYour healthcare provider may order an Lp(a) test if you have a family history of stroke, early heart disease, such as a heart attack, or do not know your family medical history. If you have a high Lp(a) level, your provider may prescribe , a medicine to help lower your heart disease risk, even if your other cholesterol levels are in the healthy range.\nBrochure\nCholesterol & Your Health: What You Need to Know\nFind out what your cholesterol numbers mean and use a tool to estimate the risk of having a heart attack.\nView the brochure\nLast updated on April 18, 2024\nBlood Cholesterol\nMENU\n- What is Blood Cholesterol?\n- Symptoms\n- Diagnosis\n- Causes and Risk Factors\n- Treatment\n- Living With High Cholesterol\nMORE INFORMATION\nParticipate in a Study\nFact Sheets and Handouts\nBlood Cholesterol",
-      "char_start": 6130,
-      "char_end": 7286
+      "char_start": 5789,
+      "char_end": 6945
     },
     {
       "chunk_id": "nhlbi-blood-cholesterol#ff4a0f509f3d8042",
@@ -5553,8 +5521,8 @@
         "Blood Cholesterol Causes and Risk Factors"
       ],
       "text": "- English\n- Español\nAn unhealthy lifestyle is the most common cause of high “bad” LDL cholesterol or low “good” HDL cholesterol. However, genes that you inherit from your parents, other medical conditions, and some medicines may also raise LDL cholesterol levels or lower “good” HDL cholesterol levels.\nUnhealthy lifestyle habits\n- Eating a lot of foods high in saturated fats raises “bad” LDL cholesterol levels. Saturated fats are found in fatty cuts of red meat and dairy products. No more than 10% of your daily calories should come from saturated fats.\n- Lack of physical activity is linked to a higher risk of having unhealthy blood cholesterol levels.\n- Smoking lowers HDL cholesterol, particularly in women, and raises LDL cholesterol.\n- Stress may raise levels of certain hormones, such as corticosteroids. These can cause your body to make more cholesterol.\n- Drinking too much alcohol (more than two drinks a day for men or one drink a day for women) can raise your total cholesterol level.\n- Getting little or low-quality sleep has been linked to lower cardiovascular health.\nLearn about heart-healthy lifestyle changes you can make to lower your risk for high blood cholesterol.",
-      "char_start": 7333,
-      "char_end": 8597
+      "char_start": 6992,
+      "char_end": 8256
     },
     {
       "chunk_id": "nhlbi-blood-cholesterol#9c8bdaf0a32cbf3d",
@@ -5565,8 +5533,8 @@
         "Family history"
       ],
       "text": "Family members usually have similar cholesterol levels. This suggests that your genes can raise your risk of having unhealthy cholesterol levels.\n, or changes, in your genes can be passed from parent to child. These changes in genes that control cholesterol levels can cause familial hypercholesterolemia. If you have a family history of high blood cholesterol, it may be more difficult for your body to remove LDL cholesterol from your blood or break it down in the liver.",
-      "char_start": 8619,
-      "char_end": 9093
+      "char_start": 8278,
+      "char_end": 8752
     },
     {
       "chunk_id": "nhlbi-blood-cholesterol#b84315f5c5ae22f9",
@@ -5577,8 +5545,8 @@
         "Other medical conditions"
       ],
       "text": "Many health problems that raise your risk of high blood cholesterol are caused by unhealthy lifestyle habits. For example, a lack of physical activity and poor eating habits can lead to overweight and obesity, which are linked to diabetes and sleep apnea. For people with conditions such as lupus and HIV, the condition itself and the medicine used to treat it may lead to unhealthy cholesterol levels.\nTalk to your healthcare provider about your risk of high cholesterol if you have any of the following:\n- Chronic kidney disease\n- Diabetes\n- HIV/AIDS\n- Hypothyroidism\n- Lupus erythematosus\n- Overweight and obesity\n- Polycystic ovary syndrome (PCOS)\n- Sleep apnea",
-      "char_start": 9125,
-      "char_end": 9792
+      "char_start": 8784,
+      "char_end": 9451
     },
     {
       "chunk_id": "nhlbi-blood-cholesterol#532b3d1e7f34ca96",
@@ -5589,8 +5557,8 @@
         "Medicines"
       ],
       "text": "Some medicines that you take for other health problems can raise your level of “bad” LDL cholesterol or lower your level of “good” HDL cholesterol, including:\n- Arrhythmia medicines, such as amiodarone\n- Beta-blockers for relieving angina chest pain or treating high blood pressure\n- Chemotherapy medicines used to treat\n- Diuretics, such as thiazide, to treat high\n- medicines, such as cyclosporine, to treat inflammatory diseases or to prevent rejection after organ transplant\n- Retinoids to treat acne\n- Steroids, such as prednisone, to treat inflammatory diseases such as lupus, rheumatoid arthritis, and psoriasis",
-      "char_start": 9809,
-      "char_end": 10428
+      "char_start": 9468,
+      "char_end": 10087
     },
     {
       "chunk_id": "nhlbi-blood-cholesterol#9e93644d7da022f9",
@@ -5601,8 +5569,8 @@
         "Age"
       ],
       "text": "Unhealthy levels of cholesterol can affect people of all ages, even young children. However, high cholesterol is most commonly diagnosed in people between ages 40 and 59. As you get older, your body’s changes. Your liver does not remove “bad” LDL cholesterol as well as it did when you were young. These normal changes may increase your risk for developing high blood cholesterol as you age.",
-      "char_start": 10439,
-      "char_end": 10830
+      "char_start": 10098,
+      "char_end": 10489
     },
     {
       "chunk_id": "nhlbi-blood-cholesterol#4a4e4209e88aebbd",
@@ -5613,8 +5581,8 @@
         "Race or ethnicity"
       ],
       "text": "Your race or ethnicity may affect your risk of high blood cholesterol:\n- Overall, non-Hispanic White people are more likely than other groups to have high levels of total cholesterol.\n- Asian Americans, including those of Indian, Filipino, Japanese, and Vietnamese descent, are more likely to have high levels of “bad” LDL cholesterol than other groups.\n- Hispanic Americans are more likely to have lower levels of “good” HDL cholesterol than other groups.\n- African Americans are more likely than other groups to have high levels of “good” HDL cholesterol.\nA study found that higher levels of HDL may not be as beneficial in some Black and White adults as was once believed. Having other risk factors, such as high blood pressure, obesity, or diabetes may outweigh the health benefits of higher HDL levels.",
-      "char_start": 10855,
-      "char_end": 11664
+      "char_start": 10514,
+      "char_end": 11323
     },
     {
       "chunk_id": "nhlbi-blood-cholesterol#50236eab3750bc4b",
@@ -5625,8 +5593,8 @@
         "Sex"
       ],
       "text": "Between ages 20 and 39, men have a greater risk for high total cholesterol than women.\nA woman’s risk goes up after menopause. Menopause lowers levels of female hormones that may protect against high blood cholesterol. After menopause, women’s levels of total and “bad” LDL cholesterol usually go up, while their levels of “good” HDL cholesterol go down.",
-      "char_start": 11675,
-      "char_end": 12030
+      "char_start": 11334,
+      "char_end": 11689
     },
     {
       "chunk_id": "nhlbi-blood-cholesterol#c7a2211665ec9795",
@@ -5636,8 +5604,8 @@
         "Can high blood cholesterol be prevented?"
       ],
       "text": "Even if you have a family history of high blood cholesterol, you can still help prevent unhealthy blood cholesterol levels with a heart-healthy lifestyle. Heart-healthy habits that start in childhood and continue throughout your life can help prevent unhealthy blood cholesterol and heart and blood vessel diseases such as heart attack and stroke.\nLast updated on April 19, 2024\nBlood Cholesterol\nMENU\n- What is Blood Cholesterol?\n- Symptoms\n- Diagnosis\n- Causes and Risk Factors\n- Treatment\n- Living With High Cholesterol\nMORE INFORMATION\nParticipate in a Study\nFact Sheets and Handouts\nBlood Cholesterol",
-      "char_start": 12077,
-      "char_end": 12691
+      "char_start": 11736,
+      "char_end": 12350
     },
     {
       "chunk_id": "nhlbi-blood-cholesterol#656a24945466eb5d",
@@ -5646,8 +5614,8 @@
         "Blood Cholesterol Treatment"
       ],
       "text": "- English\n- Español\nTo treat unhealthy blood cholesterol levels, your healthcare provider may recommend heart- healthy lifestyle changes and prescribe medicines. If a medical condition or medicine is causing your blood cholesterol problem, your provider may treat that condition or change your medicine or its dose.\nTalk with your provider about your cholesterol levels, your risk of developing heart disease, other medical conditions you have, and your lifestyle. You can learn about the benefits and side effects of medicines for lowering your blood cholesterol. Together, you can set up a treatment plan that will work for you.\nThe NHLBI leads and sponsors many studies on blood cholesterol and related conditions. Find clinical trials and observational studies for you or your loved one.",
-      "char_start": 12724,
-      "char_end": 13518
+      "char_start": 12383,
+      "char_end": 13177
     },
     {
       "chunk_id": "nhlbi-blood-cholesterol#4fe1e2e3aabe2839",
@@ -5657,8 +5625,8 @@
         "Healthy lifestyle changes"
       ],
       "text": "To help you lower your LDL cholesterol level, your healthcare provider may talk to you about adopting a healthy lifestyle:\n- Choose heart-healthy foods. The Therapeutic Lifestyle Changes and DASH eating plans can help you lower your “bad” LDL cholesterol. These plans encourage:\n- Limiting saturated fats found in fatty cuts of meats, dairy products, and desserts\n- Eating whole grains, fruits, and vegetables rather than refined carbohydrates such as sweets and other high-sugar foods\n- Eating a variety of nuts\n- Preparing foods with little or no salt\n- Get regular physical activity. Studies have shown that physical activity can lower LDL cholesterol and triglycerides and raise your “good” HDL cholesterol. For example, resistance training among postmenopausal women may decrease total cholesterol, LDL cholesterol, and triglycerides. Before starting any exercise program, ask your provider what level of physical activity is right for you.\n- Aim for a healthy weight. Research has shown that adults with overweight and obesity can lower “bad” LDL cholesterol and raise “good” HDL cholesterol by losing only 3% to 5% of their weight.\n- Manage stress. Research has shown that chronic stress can sometimes increase LDL cholesterol levels and decrease HDL cholesterol levels.",
-      "char_start": 13550,
-      "char_end": 14828
+      "char_start": 13209,
+      "char_end": 14487
     },
     {
       "chunk_id": "nhlbi-blood-cholesterol#8b0aa12b6ee85f37",
@@ -5668,8 +5636,8 @@
         "Healthy lifestyle changes"
       ],
       "text": "- Quit smoking. Visit Smoking and Your Heart and the NHLBI’s Your Guide to a Healthy Heart. Although these resources focus on heart health, they include basic information about how to quit smoking. For free help and support to quit smoking, you may call the National Cancer Institute’s Smoking Quitline at 1-877-44U-QUIT (1-877-448-7848).\n- Get enough good quality sleep. Getting 7 to 9 hours of sleep a day lowers your risk for high “bad” cholesterol (LDL) and total cholesterol.\n- Limit alcohol. Visit the National Institute on Alcohol Abuse and Alcoholism for resources on support and treatment to stop drinking.\nBooklet",
-      "char_start": 14829,
-      "char_end": 15453
+      "char_start": 14488,
+      "char_end": 15112
     },
     {
       "chunk_id": "nhlbi-blood-cholesterol#cef446b78c4df9a0",
@@ -5680,8 +5648,8 @@
         "Your Guide to Lowering Cholesterol With Therapeutic Lifestyle Changes (TLC)"
       ],
       "text": "The TLC guide is a set of tools, including lifestyle changes and sample menus, you can use to help lower your cholesterol.\nView the booklet",
-      "char_start": 15536,
-      "char_end": 15676
+      "char_start": 15195,
+      "char_end": 15335
     },
     {
       "chunk_id": "nhlbi-blood-cholesterol#92c8d841caafcfcc",
@@ -5691,8 +5659,8 @@
         "Medicines"
       ],
       "text": "Your healthcare provider may prescribe one of these medicines to help lower high blood cholesterol:\n- Statins are the most common medicine used to treat high blood cholesterol. They reduce the amount of cholesterol made in the liver. Studies have shown that statins lower the risk of heart attack and stroke in people with high LDL cholesterol. Statins usually don't cause side effects, but they may raise the risk of diabetes. However, this mainly happens in people already at high risk of diabetes, such as those who have prediabetes, overweight or obesity, or metabolic syndrome. Statins may also cause abnormal results on liver enzymes tests, but actual liver damage is extremely rare. Other rare side effects include muscle damage and cognitive impairment. Learn more about how you can stay safe while taking statins.\n- Medicine to treat familial hypercholesterolemia, which includes mipomersen, ezetimibe, bempedoic acid, and lomitapide. Ezetimibe or bempedoic acid may be used if statins cause side effects, or if statin treatment and lifestyle changes do not lower your “bad” LDL level enough. Ezetimibe works by blocking how cholesterol is absorbed into the body. In rare cases, these medicines can cause liver injury. Your provider will check your liver enzymes regularly and may recommend that you take vitamin E.",
-      "char_start": 15692,
-      "char_end": 17017
+      "char_start": 15351,
+      "char_end": 16676
     },
     {
       "chunk_id": "nhlbi-blood-cholesterol#5242fc3082d16758",
@@ -5702,8 +5670,8 @@
         "Medicines"
       ],
       "text": "- Bile acid sequestrants may be prescribed if you cannot take statins or if statins alone are not lowering your cholesterol enough. Bile acid sequestrants help lower LDL cholesterol. They keep bile acids, which digest fats and oils, from being absorbed into the body. These medicines may cause diarrhea, make some other medicines less effective, or raise your blood triglyceride level.\n- PCSK9 inhibitors are a type of medicine that you inject under your skin. The liver makes the protein, PCSK9. PCSK9 destroys parts of cells in the liver that allow LDL cholesterol to be absorbed. By stopping the PCSK9 protein, these inhibitors can reduce LDL cholesterol levels. Your provider may prescribe a PCSK9 inhibitor and a statin if you are at high risk of complications like heart attack or stroke, or if you have familial hypercholesterolemia. In 2021, the United States Food and Drug Administration approved the PCSK9 inhibitor, inclisiran, joining the already approved alirocumab, for patients with familial hypercholesterolemia. The most common side effects are itching, pain, or swelling at the place where you injected it.\nIf your provider prescribes medicines as part of your treatment plan, be sure to continue your healthy lifestyle changes. The combination of the medicines and heart-healthy lifestyle changes can help lower and control your blood cholesterol levels.",
-      "char_start": 17018,
-      "char_end": 18392
+      "char_start": 16677,
+      "char_end": 18051
     },
     {
       "chunk_id": "nhlbi-blood-cholesterol#6240da2c180f0186",
@@ -5713,8 +5681,8 @@
         "Lipoprotein apheresis"
       ],
       "text": "Some people with familial hypercholesterolemia may benefit from lipoprotein apheresis to lower their blood cholesterol levels. Lipoprotein apheresis uses a filtering machine to remove unwanted substances from the body. The machine removes “bad” LDL cholesterol from the blood, then returns the remainder of the blood to your body.\nLast updated on April 19, 2024\nBlood Cholesterol\nMENU\n- What is Blood Cholesterol?\n- Symptoms\n- Diagnosis\n- Causes and Risk Factors\n- Treatment\n- Living With High Cholesterol\nMORE INFORMATION\nParticipate in a Study\nFact Sheets and Handouts\nBlood Cholesterol",
-      "char_start": 18420,
-      "char_end": 19017
+      "char_start": 18079,
+      "char_end": 18676
     },
     {
       "chunk_id": "nhlbi-blood-cholesterol#60aee357f1ae459e",
@@ -5723,8 +5691,8 @@
         "Blood Cholesterol Living With High Cholesterol"
       ],
       "text": "- English\n- Español\nManaging high cholesterol at home\nFollow up with your healthcare provider regularly to see how well your treatment is working, whether you need to add or change medicines, and whether your health condition has changed:\n- Take all medicines regularly, as prescribed. Do not change the amount of your medicine or skip a dose unless your provider tells you to do so.\n- Schedule a follow up. Talk with your provider about how often you should schedule office visits and blood tests. If you start taking a statin or another cholesterol medicine, your provider may order a lipid panel 1 to 3 months later to see whether the drug is working. Repeat tests may be done every 3 to 12 months after that to make sure your cholesterol levels remain healthy.\n- Call your healthcare provider if you have any symptoms of complications or if you have problems with your blood pressure or blood sugar.",
-      "char_start": 19069,
-      "char_end": 19978
+      "char_start": 18728,
+      "char_end": 19637
     },
     {
       "chunk_id": "nhlbi-blood-cholesterol#c6af56da0583f69c",
@@ -5734,8 +5702,8 @@
         "How high blood cholesterol may affect your health"
       ],
       "text": "Undiagnosed or untreated high blood cholesterol can lead to serious problems, such as heart attack and stroke.\nHigh blood cholesterol can lead to a condition called atherosclerosis, in which plaque builds up in the arteries throughout your body. Over time, uncontrolled high blood cholesterol can lead to one of the following health problems:\n- Carotid artery disease\n- Coronary heart disease. You may feel chest pain (called angina).\n- Heart attack\n- Peripheral artery disease\n- Stroke\nYour healthcare provider may use a risk calculator to estimate the chances of having one of these health problems in the next 10 years or over your lifetime. For example, the Atherosclerotic Cardiovascular Disease Estimator considers your cholesterol levels, age, sex, race, and blood pressure. It also factors in whether you smoke or take medicines to manage your high blood pressure or cholesterol.\nTalk with your provider about your cholesterol levels and your risk of developing heart and blood vessel disease. Knowing your level of risk helps your provider decide whether you need medicine to treat high cholesterol and what healthy lifestyle changes to make to lower your risk. If your provider recommends lifestyle changes, focus on a balanced overall diet and ask if any dietary supplements may help.\nFACT SHEET",
-      "char_start": 20034,
-      "char_end": 21345
+      "char_start": 19693,
+      "char_end": 21004
     },
     {
       "chunk_id": "nhlbi-blood-cholesterol#9e9ee033d796ac85",
@@ -5745,8 +5713,8 @@
         "How high blood cholesterol may affect your health"
       ],
       "text": "This resource provides information to help heart disease patients continue living a healthy lifestyle and prevent further heart complications\nView the booklet\nHigh blood cholesterol can lead to serious cardiovascular complications, such as heart attack or stroke. If you think that you are or someone else is having symptoms, call 9-1-1 immediately. Every minute matters.",
-      "char_start": 21347,
-      "char_end": 21720
+      "char_start": 21006,
+      "char_end": 21379
     },
     {
       "chunk_id": "nhlbi-blood-cholesterol#63a647726d8df959",
@@ -5756,8 +5724,8 @@
         "Learn how to stay safe while taking statins"
       ],
       "text": "Statins are the most common medicine used to treat high blood cholesterol. Learn some tips to stay safe if your healthcare provider gives you statins:\n- Take your statin medicine as prescribed. You should not stop taking this medicine on your own since that can lead to a serious problem or even cause death. Ask your provider if you have any concerns about your medicine or if you would like to stop or change to a different treatment.\n- Ask your provider what medicines, nutritional supplements, or foods you should avoid. Some of these can interact with statins and cause serious side effects or make statins less effective. For example, grapefruit (fresh or as juice) affects how your liver breaks down some statins.\n- Tell your provider about any symptoms or side effects. Sometimes, people report muscle problems while taking statins. If you start having muscle pain, your provider may order a blood test to look for muscle damage. The pain may go away if you switch to a different statin. Muscle damage with statins is rare, and your muscles may heal when you switch to a different medicine.\n- Adults living with HIV may benefit from daily statin use. If you have high cholesterol and live with HIV, ask your provider whether you would benefit from taking statins.",
-      "char_start": 21770,
-      "char_end": 23042
+      "char_start": 21429,
+      "char_end": 22701
     },
     {
       "chunk_id": "nhlbi-blood-cholesterol#0b0224aba8c2c044",
@@ -5767,8 +5735,8 @@
         "Learn how to stay safe while taking statins"
       ],
       "text": "- If you are planning to become pregnant, talk to your provider about your options. You should stop taking statins about 3 months before getting pregnant. Also, you should not take statins if you are breastfeeding.\nLast updated on April 19, 2024",
-      "char_start": 23043,
-      "char_end": 23289
+      "char_start": 22702,
+      "char_end": 22948
     },
     {
       "chunk_id": "nhlbi-high-blood-pressure#d5657cf46cd9325e",
@@ -5781,14 +5749,14 @@
       "char_end": 310
     },
     {
-      "chunk_id": "nhlbi-high-blood-pressure#a58a529b7c998af5",
+      "chunk_id": "nhlbi-high-blood-pressure#899ea1edd093e070",
       "guideline_id": "nhlbi-high-blood-pressure",
       "section_path": [
         "High Blood Pressure What Is High Blood Pressure?"
       ],
-      "text": "- English\n- Español\nHigh blood pressure, or hypertension, is a common condition that occurs when your blood pressure—the force of the blood on the walls of your arteries—is often too high. Medical Animation Copyright © Nucleus Medical Media, All rights reserved.\nHalf of all American adults have high blood pressure, also known as hypertension. Many don’t even know it. High blood pressure develops when blood flows through your at higher-than-normal pressures.\nBlood pressures are written as two numbers separated by a slash like this: 120/80 mm Hg. You can say this as “120 over 80 millimeters of mercury” or just as “120 over 80.” The first number is your pressure — that’s the force of the blood flow when blood is pumped out of the heart. The second number is your pressure, which is measured between heartbeats when the heart is filling with blood.\nYour blood pressure changes throughout the day based on your activities. A healthy systolic blood pressure is less than 120 mm Hg. A healthy diastolic pressure is less than 80 mm Hg. Your blood pressure is high when you have consistent systolic readings of 130 mm Hg or higher, or diastolic readings of 80 mm Hg or higher.",
+      "text": "- English\n- Español\nHalf of all American adults have high blood pressure, also known as hypertension. Many don’t even know it. High blood pressure develops when blood flows through your at higher-than-normal pressures.\nBlood pressures are written as two numbers separated by a slash like this: 120/80 mm Hg. You can say this as “120 over 80 millimeters of mercury” or just as “120 over 80.” The first number is your pressure — that’s the force of the blood flow when blood is pumped out of the heart. The second number is your pressure, which is measured between heartbeats when the heart is filling with blood.\nYour blood pressure changes throughout the day based on your activities. A healthy systolic blood pressure is less than 120 mm Hg. A healthy diastolic pressure is less than 80 mm Hg. Your blood pressure is high when you have consistent systolic readings of 130 mm Hg or higher, or diastolic readings of 80 mm Hg or higher.",
       "char_start": 364,
-      "char_end": 1545
+      "char_end": 1301
     },
     {
       "chunk_id": "nhlbi-high-blood-pressure#3080b363de997fd5",
@@ -5798,8 +5766,8 @@
         "Blood pressure levels"
       ],
       "text": "Blood Pressure Category\nSystolic and Diastolic Pressure (mm Hg)\nNormal\nLess than 120 systolic pressure AND Less than 80 diastolic pressure\nElevated\n120 to 129 systolic pressure AND Less than 80 diastolic pressure\nHigh Blood Pressure Stage 1\n130 to 139 systolic pressure OR 80 to 89 diastolic pressure\nHigh Blood Pressure Stage 2\n140 or higher systolic pressure OR 90 or higher diastolic pressure\nHypertensive Crisis\nHigher than 180 systolic pressure OR Higher than 120 diastolic pressure Contact your provider immediately.\nfrom high blood pressure don’t usually occur until it causes serious health problems. About 1 in 3 U.S. adults with high blood pressure aren’t even aware they have it and are not being treated to control their blood pressure. That’s why it is important to have your blood pressure checked at least once a year. Regular monitoring using home blood pressure is also recommended.\nTo control or lower high blood pressure, your healthcare provider may recommend that you adopt a heart-healthy lifestyle that includes:\n- Choosing a heart-healthy dietary pattern and foods such as those in the DASH eating plan, the Dietary Guidelines for Americans, or the Mediterranean eating pattern\n- Being physically active and reducing sedentary behavior\n- Losing weight for people with overweight or obesity\n- Quitting smoking\n- Reducing stress\n- Getting enough good-quality sleep",
-      "char_start": 1574,
-      "char_end": 2974
+      "char_start": 1330,
+      "char_end": 2730
     },
     {
       "chunk_id": "nhlbi-high-blood-pressure#3531618245df1acb",
@@ -5809,28 +5777,28 @@
         "Blood pressure levels"
       ],
       "text": "Your healthcare provider may also recommend medicines to help control your blood pressure.\nControlling your blood pressure can help prevent or delay serious health problems such as chronic kidney disease, heart attack, heart failure, stroke, and possibly vascular dementia.\nFind resources on high blood pressure.\nLast updated on April 25, 2024\nHigh Blood Pressure\nMENU\n- What Is High Blood Pressure?\n- Symptoms\n- Diagnosis\n- Causes and Risk Factors\n- Treatment\n- Living With High Blood Pressure\n- Pregnancy and High Blood Pressure\nMORE INFORMATION\nParticipate in a Study\nFact Sheets and Handouts\nResearch\nHigh Blood Pressure",
-      "char_start": 2976,
-      "char_end": 3612
+      "char_start": 2732,
+      "char_end": 3368
     },
     {
-      "chunk_id": "nhlbi-high-blood-pressure#9d23bd0f237ec07b",
+      "chunk_id": "nhlbi-high-blood-pressure#279538c59aa57220",
       "guideline_id": "nhlbi-high-blood-pressure",
       "section_path": [
         "High Blood Pressure Symptoms"
       ],
-      "text": "- English\n- Español\nIt is important to check your blood pressure readings regularly and to know your numbers. That’s because high blood pressure usually does not cause until it has also caused serious problems. Blood pressure above 180/120 is too high and requires medical attention, especially if you have symptoms. Blood pressure this high can damage your organs.\nIf your blood pressure is 180/120 but you don’t have symptoms, wait 5 minutes and check your blood pressure again. If it is still high, call your healthcare provider who may recommend starting a medicine or changing your dose.\nIf the second measurement is also high and if you have any of these symptoms, call 9-1-1:\n- A sudden, severe headache\n- Difficulty breathing\n- Sudden, severe pain in your abdomen, chest, or back\n- Numbness or weakness\n- A sudden change in vision\n- Problems talking\nDo not wait to see if your pressure comes down on its own.\nThis video shows how high blood pressure damages your artery walls over time and can lead to life-threatening health problems. Medical Animation Copyright © Nucleus Medical Media, All rights reserved.\nUndiagnosed or uncontrolled high blood pressure can lead to serious health problems such as:\n- Aneurysm\n- Stroke\n- Chronic kidney disease\n- Eye damage\n- Heart attack\n- Heart failure\n- Atherosclerosis ( buildup in your )\n- Vascular dementia\nLast updated on April 25, 2024",
-      "char_start": 3646,
-      "char_end": 5043
+      "text": "- English\n- Español\nIt is important to check your blood pressure readings regularly and to know your numbers. That’s because high blood pressure usually does not cause until it has also caused serious problems. Blood pressure above 180/120 is too high and requires medical attention, especially if you have symptoms. Blood pressure this high can damage your organs.\nIf your blood pressure is 180/120 but you don’t have symptoms, wait 5 minutes and check your blood pressure again. If it is still high, call your healthcare provider who may recommend starting a medicine or changing your dose.\nIf the second measurement is also high and if you have any of these symptoms, call 9-1-1:\n- A sudden, severe headache\n- Difficulty breathing\n- Sudden, severe pain in your abdomen, chest, or back\n- Numbness or weakness\n- A sudden change in vision\n- Problems talking\nDo not wait to see if your pressure comes down on its own.\nUndiagnosed or uncontrolled high blood pressure can lead to serious health problems such as:\n- Aneurysm\n- Stroke\n- Chronic kidney disease\n- Eye damage\n- Heart attack\n- Heart failure\n- Atherosclerosis ( buildup in your )\n- Vascular dementia\nLast updated on April 25, 2024\nHigh Blood Pressure\nMENU\n- What Is High Blood Pressure?\n- Symptoms\n- Diagnosis\n- Causes and Risk Factors\n- Treatment\n- Living With High Blood Pressure\n- Pregnancy and High Blood Pressure\nMORE INFORMATION",
+      "char_start": 3402,
+      "char_end": 4806
     },
     {
-      "chunk_id": "nhlbi-high-blood-pressure#393d1cc4b2b8c30b",
+      "chunk_id": "nhlbi-high-blood-pressure#d36853f1f178e52b",
       "guideline_id": "nhlbi-high-blood-pressure",
       "section_path": [
         "High Blood Pressure Symptoms"
       ],
-      "text": "High Blood Pressure\nMENU\n- What Is High Blood Pressure?\n- Symptoms\n- Diagnosis\n- Causes and Risk Factors\n- Treatment\n- Living With High Blood Pressure\n- Pregnancy and High Blood Pressure\nMORE INFORMATION\nParticipate in a Study\nFact Sheets and Handouts\nResearch\nHigh Blood Pressure",
-      "char_start": 5046,
-      "char_end": 5333
+      "text": "Participate in a Study\nFact Sheets and Handouts\nResearch\nHigh Blood Pressure",
+      "char_start": 4808,
+      "char_end": 4887
     },
     {
       "chunk_id": "nhlbi-high-blood-pressure#90378cc2e2c89fe1",
@@ -5839,8 +5807,8 @@
         "High Blood Pressure Diagnosis"
       ],
       "text": "- English\n- Español\nScreening tests\nEveryone who’s age 3 or older should have their blood pressure checked by a healthcare provider at least once a year. Your provider measures your blood pressure to see if it’s in a healthy range. Regular checks can also show how well treatment for high blood pressure is working.\nGetting ready for a blood pressure measurement\nVideo about the importance of getting your blood pressure checked regularly and understanding what your numbers mean so you can better manage your heart disease risk.\nYour provider will measure your blood pressure to see if you have higher-than-normal blood pressure. A blood pressure measurement is easy and painless and can be done in the provider’s office or clinic or at home. The provider uses a gauge, stethoscope, or electronic sensor and a blood pressure cuff to measure your blood pressure.\nPrepare for the test by following a few simple steps:\n- Do not exercise, drink coffee, or smoke cigarettes for 30 minutes before the test.\n- Go to the bathroom before the test.\n- For at least 5 minutes before the test, sit in a chair and relax.\n- Make sure your feet are flat on the floor.\n- Do not talk while you are relaxing or during the test.\n- Uncover your arm for the cuff.\n- Rest your arm on a table so it is supported and at the level of your heart.\nEven if you do prepare, your blood pressure reading may not be accurate if:",
-      "char_start": 5368,
-      "char_end": 6779
+      "char_start": 4922,
+      "char_end": 6333
     },
     {
       "chunk_id": "nhlbi-high-blood-pressure#224938ab1d51cf84",
@@ -5849,8 +5817,8 @@
         "High Blood Pressure Diagnosis"
       ],
       "text": "- You are excited or nervous. “White coat hypertension” refers to blood pressure readings that are higher in a provider’s office than readings at home or in a pharmacy. To detect this type of high blood pressure, your provider may review readings from the office and from other places.\n- Your blood pressure tends to be lower when measured at a provider’s office. Sometimes those with elevated blood pressure levels may show lower readings when taken at a provider’s office. This is called “masked high blood pressure.” When this happens, your provider will have difficulty detecting high blood pressure. Your provider can recognize this type of high blood pressure by looking at readings taken at the office and at home, especially at night.\n- The wrong blood pressure cuff was used. Your readings can be different if the cuff is too small or too big. It is important for your provider to use the correct pressure cuff for your sex and age.\nYou can also take your blood pressure at home or at a pharmacy. The Self-Measured Blood Pressure Fact Sheet has more information about how to measure your blood pressure outside of a provider’s office. If you take your own blood pressure at home, use an approved home blood pressure device to make sure the readings are correct.",
-      "char_start": 6781,
-      "char_end": 8052
+      "char_start": 6335,
+      "char_end": 7606
     },
     {
       "chunk_id": "nhlbi-high-blood-pressure#ec755fcef0ca18f2",
@@ -5861,8 +5829,8 @@
         "What the numbers mean"
       ],
       "text": "Your blood pressure reading is made up of two numbers, the top, , number and the bottom, , number. These numbers measure pressure in (millimeters of mercury). To learn more about systolic and diastolic pressure, visit How the Heart Works. For most adults, a healthy blood pressure is less than 120/80 mm Hg. Your blood pressure is considered high when you have consistent systolic readings of 130 mm Hg or higher or diastolic readings of 80 mm Hg or higher.\nTalk to your provider if your blood pressure readings are consistently higher than 120/80 mm Hg.\nNHLBI-supported has shown that systolic blood pressure higher than 120 mm Hg can cause harm to health over time, including organ damage. Readings above 180/120 mm Hg are dangerously high and require immediate medical attention.\nFor children younger than 13, blood pressure readings are compared with readings that are common for children of the same, age, sex, and height.",
-      "char_start": 8081,
-      "char_end": 9011
+      "char_start": 7635,
+      "char_end": 8565
     },
     {
       "chunk_id": "nhlbi-high-blood-pressure#c9e8c0e6f011175c",
@@ -5873,8 +5841,8 @@
         "Blood Pressure Levels"
       ],
       "text": "Blood Pressure Category\nSystolic and Diastolic Pressure (mm Hg)\nNormal\nLess than 120 systolic pressure AND Less than 80 diastolic pressure\nElevated\n120 to 129 systolic pressure AND Less than 80 diastolic pressure\nHigh Blood Pressure Stage 1\n130 to 139 systolic pressure OR 80 to 89 diastolic pressure\nHigh Blood Pressure Stage 2\n140 or higher systolic pressure OR 90 or higher diastolic pressure\nHypertensive Crisis\nHigher than 180 systolic pressure OR Higher than 120 diastolic pressure Contact your provider immediately.",
-      "char_start": 9040,
-      "char_end": 9573
+      "char_start": 8594,
+      "char_end": 9127
     },
     {
       "chunk_id": "nhlbi-high-blood-pressure#cb755e1a2fb8ab66",
@@ -5884,8 +5852,8 @@
         "How will my provider find out if I have high blood pressure?"
       ],
       "text": "Your provider may diagnose high blood pressure if your blood pressure readings are consistently high. You may also need tests to look for medical conditions that cause high blood pressure or to see if high blood pressure has affected your organs.\nMedical history\nYour provider will want to understand your risk factors and get general health information. They will ask about your eating patterns, physical activity level, sleep, body weight, stress, smoking status, and family’s health history. The information will help your provider work with you to set up a treatment plan. They will ask questions to see if your high blood pressure has caused any health problems. This will help them decide if you need other tests.",
-      "char_start": 9640,
-      "char_end": 10365
+      "char_start": 9194,
+      "char_end": 9919
     },
     {
       "chunk_id": "nhlbi-high-blood-pressure#e0e17a5386206dbe",
@@ -5896,8 +5864,8 @@
         "Confirming high blood pressure"
       ],
       "text": "You will need two or more blood pressure readings at separate medical appointments to diagnose high blood pressure.\nLast updated on June 26, 2025\nHigh Blood Pressure\nMENU\n- What Is High Blood Pressure?\n- Symptoms\n- Diagnosis\n- Causes and Risk Factors\n- Treatment\n- Living With High Blood Pressure\n- Pregnancy and High Blood Pressure\nMORE INFORMATION\nParticipate in a Study\nFact Sheets and Handouts\nResearch\nHigh Blood Pressure",
-      "char_start": 10403,
-      "char_end": 10839
+      "char_start": 9957,
+      "char_end": 10393
     },
     {
       "chunk_id": "nhlbi-high-blood-pressure#ba09e2825f8be9bc",
@@ -5906,8 +5874,8 @@
         "High Blood Pressure Causes and Risk Factors"
       ],
       "text": "- English\n- Español\nWhat are the risk factors?\nMany factors raise your risk of high blood pressure. You can change some risk factors, such as unhealthy lifestyle habits. A healthy lifestyle can lower your risk for developing high blood pressure.\nOther risk factors, such as age, family history and , race and ethnicity, and sex, cannot be changed. But, you can still take steps to reduce your risk of high blood pressure and its complications.",
-      "char_start": 10888,
-      "char_end": 11337
+      "char_start": 10442,
+      "char_end": 10891
     },
     {
       "chunk_id": "nhlbi-high-blood-pressure#e06df6a700e8e2aa",
@@ -5918,8 +5886,8 @@
         "Age"
       ],
       "text": "Blood pressure tends to rise with age. Blood vessels naturally thicken and stiffen over time. These changes increase the risk for high blood pressure.\nHowever, the risk of high blood pressure is rising for children and teens, possibly because more children and teens have overweight or obesity.",
-      "char_start": 11348,
-      "char_end": 11643
+      "char_start": 10902,
+      "char_end": 11197
     },
     {
       "chunk_id": "nhlbi-high-blood-pressure#3810a8dc9a79099e",
@@ -5930,8 +5898,8 @@
         "Family history and genetics"
       ],
       "text": "High blood pressure often runs in families. Much of what we know about high blood pressure has come from genetic studies. Many are linked to small increases in high blood pressure risk. suggests that as an unborn baby grows in the womb, some changes may also raise the risk for high blood pressure later in life.\nSome people have a high sensitivity to salt in their diet, which can play a role in high blood pressure. This can also run in families.",
-      "char_start": 11678,
-      "char_end": 12127
+      "char_start": 11232,
+      "char_end": 11681
     },
     {
       "chunk_id": "nhlbi-high-blood-pressure#bf31c4a0b08c112b",
@@ -5942,8 +5910,8 @@
         "Lifestyle habits"
       ],
       "text": "Lifestyle habits can increase the risk of high blood pressure, including if you:\n- Eat unhealthy foods often, especially foods that are high in salt and low in potassium. Some people, including Black people, older adults, and people who have , diabetes, or metabolic , are more sensitive to salt in their diet.\n- Drink too much alcohol or caffeine\n- Don’t get enough physical activity\n- Don’t get enough good-quality sleep\n- Experience high-stress situations\n- Use substances such as cocaine, methamphetamine, “bath salts,” or other stimulants",
-      "char_start": 12151,
-      "char_end": 12695
+      "char_start": 11705,
+      "char_end": 12249
     },
     {
       "chunk_id": "nhlbi-high-blood-pressure#5eb2e09ccedbd4dd",
@@ -5954,8 +5922,8 @@
         "Medicines"
       ],
       "text": "Some medicines can make it harder for your body to control your blood pressure. Antidepressants, decongestants (medicines to relieve a stuffy nose), hormonal birth control pills, and non-steroidal anti-inflammatory drugs such as aspirin or ibuprofen can all raise your blood pressure.",
-      "char_start": 12712,
-      "char_end": 12996
+      "char_start": 12266,
+      "char_end": 12550
     },
     {
       "chunk_id": "nhlbi-high-blood-pressure#b81e21d9c19a4430",
@@ -5966,8 +5934,8 @@
         "Other medical conditions"
       ],
       "text": "Other medical conditions change the way your body controls fluids, , and in your blood. Other conditions that can cause high blood pressure include:\n- Some tumors\n- Chronic kidney disease\n- Metabolic syndrome\n- Overweight and obesity\n- Sleep apnea\n- Thyroid problems",
-      "char_start": 13028,
-      "char_end": 13295
+      "char_start": 12582,
+      "char_end": 12849
     },
     {
       "chunk_id": "nhlbi-high-blood-pressure#050edeb420a2c51b",
@@ -5978,8 +5946,8 @@
         "Race or ethnicity"
       ],
       "text": "High blood pressure is more common in Black adults than in White, Hispanic, or Asian adults. Compared with other racial or ethnic groups, Black people tend to have higher average blood pressure numbers and get high blood pressure earlier in life. Also, some high blood pressure medicines may not work as well for Black people.\nDuring pregnancy, Black women are more likely than White women to develop preeclampsia. Preeclampsia is a pregnancy disorder that causes sudden high blood pressure and problems with the kidneys and liver.",
-      "char_start": 13320,
-      "char_end": 13852
+      "char_start": 12874,
+      "char_end": 13406
     },
     {
       "chunk_id": "nhlbi-high-blood-pressure#e03bedc4068f1864",
@@ -5990,8 +5958,8 @@
         "Sex"
       ],
       "text": "Men are more likely than women to develop high blood pressure throughout middle age. But in older adults, women are more likely than men to develop high blood pressure.\nWomen who have high blood pressure during pregnancy are more likely to have high blood pressure later in life. Research shows that medicines used to control high blood pressure during pregnancy lower the chance of pregnancy complications and won’t harm the developing baby.",
-      "char_start": 13863,
-      "char_end": 14306
+      "char_start": 13417,
+      "char_end": 13860
     },
     {
       "chunk_id": "nhlbi-high-blood-pressure#2ed8a27e80f3c0bb",
@@ -6002,8 +5970,8 @@
         "Social and economic factors"
       ],
       "text": "Research shows that factors such as income, education level, where you live, and the type of job you have, as well as stressors on the job may raise your risk of high blood pressure. Working early or late shifts is one example of a social factor that can raise your risk.\nExperiencing discrimination and poverty has been linked to high blood pressure. Also, some research has shown that experiencing stress, danger, harm, or trauma as a child may raise the risk of high blood pressure.",
-      "char_start": 14341,
-      "char_end": 14827
+      "char_start": 13895,
+      "char_end": 14381
     },
     {
       "chunk_id": "nhlbi-high-blood-pressure#bdbb7c1144b7f686",
@@ -6014,18 +5982,18 @@
         "How to prevent high blood pressure"
       ],
       "text": "A heart-healthy lifestyle can help prevent high blood pressure and its complications.\n- Choose heart-healthy foods that are lower in salt (sodium) and are rich in potassium. Fruits and vegetables are high in potassium. For more ways to limit your sodium, visit the DASH Eating Plan page or print out the Tips to Reduce Salt and Sodium handout.\n- Avoid or limit alcohol.\n- Get regular physical activity. Even modest amounts can make a difference. Reducing the amount of time you sit each day can help lower your blood pressure.\n- Aim for a healthy weight.\n- Quit smoking.\n- Control your cholesterol and blood sugar levels. To learn some tips to help manage your cholesterol level, read our booklet Therapeutic Lifestyle Changes to Lower Cholesterol.\n- Manage stress.\n- Get enough good-quality sleep.\nLast updated on April 30, 2024\nHigh Blood Pressure\nMENU\n- What Is High Blood Pressure?\n- Symptoms\n- Diagnosis\n- Causes and Risk Factors\n- Treatment\n- Living With High Blood Pressure\n- Pregnancy and High Blood Pressure\nMORE INFORMATION\nParticipate in a Study\nFact Sheets and Handouts\nResearch\nHigh Blood Pressure",
-      "char_start": 14911,
-      "char_end": 16032
+      "char_start": 14465,
+      "char_end": 15586
     },
     {
-      "chunk_id": "nhlbi-high-blood-pressure#d89d7e11729d62ab",
+      "chunk_id": "nhlbi-high-blood-pressure#7bc37c7f65430884",
       "guideline_id": "nhlbi-high-blood-pressure",
       "section_path": [
         "High Blood Pressure Treatment"
       ],
-      "text": "- English\n- Español\nWatch this video to learn more about treatments for high blood pressure and how they work. Medical Animation Copyright © Nucleus Medical Media, All rights reserved.\nFor most people with high blood pressure, a healthcare provider will work with you to develop a treatment plan that may include heart-healthy lifestyle changes alone or with medicines. Your provider can help you manage your blood pressure and prevent complications. They may use a risk calculator to estimate your risk of complications and guide a discussion with you about choosing the best treatments.\nYour provider may also involve other experts in your treatment, including a nutritionist or dietician, a pharmacist, and specialists for other conditions you have, including heart conditions. If your high blood pressure is caused by another health condition or medicine, it may get better once the cause is treated or removed.\nsuggests that getting your systolic blood pressure below 120 mm Hg can reduce your risk of serious complications.",
-      "char_start": 16067,
-      "char_end": 17100
+      "text": "- English\n- Español\nFor most people with high blood pressure, a healthcare provider will work with you to develop a treatment plan that may include heart-healthy lifestyle changes alone or with medicines. Your provider can help you manage your blood pressure and prevent complications. They may use a risk calculator to estimate your risk of complications and guide a discussion with you about choosing the best treatments.\nYour provider may also involve other experts in your treatment, including a nutritionist or dietician, a pharmacist, and specialists for other conditions you have, including heart conditions. If your high blood pressure is caused by another health condition or medicine, it may get better once the cause is treated or removed.\nsuggests that getting your systolic blood pressure below 120 mm Hg can reduce your risk of serious complications.",
+      "char_start": 15621,
+      "char_end": 16488
     },
     {
       "chunk_id": "nhlbi-high-blood-pressure#e4a92e3feb8fe8bd",
@@ -6035,8 +6003,8 @@
         "Risk calculators"
       ],
       "text": "Your provider may use a risk calculator to estimate your risk of having a stroke or heart attack or dying from a heart or blood vessel disease. This information can help you both choose the best treatment to prevent long-term complications.\nFor example, the Atherosclerotic Cardiovascular Disease (ASCVD) Risk Estimator considers your cholesterol levels, age, sex, race, and blood pressure. It also factors in if you smoke or take medicines to manage high blood pressure or cholesterol.\nKeep in mind that your cholesterol numbers and your risk score are only part of the story. You should talk to your provider to learn what the numbers mean for you. Also, the ASCVD Risk Estimator Plus isn’t the only type of risk calculator — and that’s a good thing, because no single risk calculator is right for everyone. For example, your provider might use the Predicting Risk of cardiovascular disease EVENTs (PREVENTTM) app to help assess your risk for serious complication. Studies show that some calculators overestimate risk for certain groups, while others may underestimate risk. Talk with your provider about your personal risk level.",
-      "char_start": 17123,
-      "char_end": 18257
+      "char_start": 16511,
+      "char_end": 17645
     },
     {
       "chunk_id": "nhlbi-high-blood-pressure#1c02baef44078791",
@@ -6046,8 +6014,8 @@
         "Healthy lifestyle changes"
       ],
       "text": "If you have high blood pressure, your provider may recommend that you adopt a heart-healthy lifestyle to help lower and control high blood pressure.\n- Choose heart-healthy foods such as those in the DASH eating plan. NHLBI-funded research has shown that DASH combined with a low-salt eating plan can be as effective as medicines in lowering high blood pressure. Living With the DASH Eating Plan and Tips to Reduce Salt and Sodium offer more information.\n- Avoid or limit alcohol. Talk to your provider about how much alcohol you drink. You may need to limit it or stop drinking. Resources and support are available at the Alcohol Treatment Navigator from the National Institute on Alcohol Abuse and Alcoholism.\n- Get regular physical activity. There are many health benefits to getting the recommended amount of physical activity each week. Studies have shown that physical activity can help lower and control high blood pressure levels. Even a small amount of physical activity may help, like walking for 10 minutes each day. Reducing the amount of time you sit each day can also help you achieve your blood pressure goal. Before starting any exercise program, ask your provider what level of activity is right for you.",
-      "char_start": 18289,
-      "char_end": 19510
+      "char_start": 17677,
+      "char_end": 18898
     },
     {
       "chunk_id": "nhlbi-high-blood-pressure#9937914d41e8c08c",
@@ -6057,8 +6025,8 @@
         "Healthy lifestyle changes"
       ],
       "text": "- Aim for a healthy weight. If you are an adult who is living with overweight or obesity, losing 5% to 10% of your weight over 6 months can improve your health. Even losing just 3% to 5% of your weight can improve blood pressure.\n- Quit smoking. The Tips to Quit Smoking Fact Sheet has information about how to quit smoking. For free help and support to quit smoking, you can call the National Cancer Institute’s Smoking Quitline at 1-877-44U-QUIT (1-877-448-7848).\n- Manage stress. Learning how to manage stress and cope with problems can improve your mental and physical health. Relaxation techniques, talking to a counselor, and finding a support group can all help.\n- Get enough good-quality sleep. The recommended amount for adults is 7 to 9 hours of sleep per day. Develop healthy sleep habits by going to sleep and getting up at regular times, following a calming bedtime routine, and keeping your bedroom cool and dark.\nChanging habits can be hard. To help make heart-healthy changes that last a lifetime, try making one change at a time. Add another change when you feel comfortable with the previous one. Practice a few healthy lifestyle habits together. When you can keep them up over time, you’re more likely to manage your blood pressure well.",
-      "char_start": 19511,
-      "char_end": 20768
+      "char_start": 18899,
+      "char_end": 20156
     },
     {
       "chunk_id": "nhlbi-high-blood-pressure#02f71b6e8566725a",
@@ -6068,8 +6036,8 @@
         "Medicines"
       ],
       "text": "When healthy lifestyle changes alone do not control or lower high blood pressure, your provider may prescribe blood pressure medicines. These medicines act in different ways to lower blood pressure. When prescribing medicines, your provider also considers their effects on other conditions you may have, such as heart or kidney disease.\nKeep up your healthy lifestyle changes while taking these medicines. The combination of medicines and heart-healthy lifestyle changes can help control and lower your high blood pressure and prevent heart disease.\nTalk to your provider if you have any concerns about side effects from the medicines. Your provider may change the dose or give you a new medicine. To manage high blood pressure, many people need to take two or more medicines.\nThere are several common high blood pressure medicines your provider can prescribe:\n- Angiotensin-converting inhibitors keep your blood vessels from narrowing as much.\n- Angiotensin II blockers also keep blood vessels from narrowing.\n- Calcium channel blockers prevent calcium from entering the muscle cells of your heart and blood vessels. This allows blood vessels to relax.",
-      "char_start": 20784,
-      "char_end": 21941
+      "char_start": 20172,
+      "char_end": 21329
     },
     {
       "chunk_id": "nhlbi-high-blood-pressure#7a55166e903b57aa",
@@ -6079,8 +6047,8 @@
         "Medicines"
       ],
       "text": "- Diuretics remove extra water and sodium (salt) from your body, lowering the amount of fluid in your blood. The main diuretic for high blood pressure treatment is thiazide. Diuretics are often used with other high blood pressure medicines, sometimes in one combined pill.\nIf you are planning to get pregnant or are pregnant, talk with your provider about medicines you’re taking to lower your blood pressure. Not all medicines are safe during pregnancy, but some are. Controlling your blood pressure while you’re pregnant can lower your risk of pregnancy complications.\nLast updated on April 30, 2024\nHigh Blood Pressure\nMENU\n- What Is High Blood Pressure?\n- Symptoms\n- Diagnosis\n- Causes and Risk Factors\n- Treatment\n- Living With High Blood Pressure\n- Pregnancy and High Blood Pressure\nMORE INFORMATION\nParticipate in a Study\nFact Sheets and Handouts\nResearch\nHigh Blood Pressure",
-      "char_start": 21942,
-      "char_end": 22835
+      "char_start": 21330,
+      "char_end": 22223
     },
     {
       "chunk_id": "nhlbi-high-blood-pressure#33ab4e5907a69b75",
@@ -6089,8 +6057,8 @@
         "High Blood Pressure Living With High Blood Pressure"
       ],
       "text": "- English\n- Español\nIf you have been diagnosed with high blood pressure, it is important that you continue your treatment plan. You will need regular follow-up care and should learn how to monitor your condition at home. Your healthcare provider may need to change or add medicines to your treatment plan over time.\nLet your provider know if you are planning to become pregnant or are pregnant. Pregnancy and High Blood Pressure has more information about this topic. Medicines for high blood pressure may lower your risk of pregnancy complications without harming the developing baby.",
-      "char_start": 22892,
-      "char_end": 23479
+      "char_start": 22280,
+      "char_end": 22867
     },
     {
       "chunk_id": "nhlbi-high-blood-pressure#73f216e0cbf427ea",
@@ -6100,8 +6068,8 @@
         "Manage your condition"
       ],
       "text": "Keep up your treatment plan, including healthy lifestyle changes, to help control your blood pressure and prevent heart disease. Making lifestyle changes and remembering your medicine every day can be hard, but there are tools to help you.\nAsk your provider or pharmacist about apps for monitoring and tracking your blood pressure. They also may know how to set up text messages that remind you to take your medicine every day and notify you when it is time to fill your prescription.\nGet support from loved ones and others in your community. You can share the Supporting Your Loved One with High Blood Pressure tip sheet with them.\nHave regular medical checkups and tests, as advised by your provider. Ask questions and talk about your progress. Tell your provider about any new conditions or if you have been taking new medicines since your last appointment.\nYour provider may want you to check your blood pressure at home or at other locations that have blood pressure equipment. The Self-Measured Blood Pressure Fact Sheet includes information on how to take your blood pressure yourself.\nFACT SHEET",
-      "char_start": 23507,
-      "char_end": 24615
+      "char_start": 22895,
+      "char_end": 24003
     },
     {
       "chunk_id": "nhlbi-high-blood-pressure#5a1e867423632702",
@@ -6112,8 +6080,8 @@
         "My Blood Pressure Wallet Card"
       ],
       "text": "This information card can help you track your blood pressure readings, learn ways to control high blood pressure, and find questions to ask your healthcare provider.\nView the fact sheet",
-      "char_start": 24652,
-      "char_end": 24838
+      "char_start": 24040,
+      "char_end": 24226
     },
     {
       "chunk_id": "nhlbi-high-blood-pressure#f7e7888477743976",
@@ -6123,8 +6091,8 @@
         "When to call your provider; when to call 9-1-1"
       ],
       "text": "Readings above 180/120 are dangerously high and require immediate medical attention. Blood pressure this high can damage your organs.\nCall 9-1-1 if you experience:\n- A sudden, severe headache\n- Difficulty breathing\n- A sudden, severe pain in your abdomen, chest, or back\n- Numbness or weakness\n- A sudden change in vision\n- Problems talking\nHigh blood pressure can lead to heart attack, stroke, cardiac arrest, or other dangerous symptoms and conditions. Call 9-1-1 if you suspect this is happening to you or someone else.",
-      "char_start": 24891,
-      "char_end": 25416
+      "char_start": 24279,
+      "char_end": 24804
     },
     {
       "chunk_id": "nhlbi-high-blood-pressure#381589ea98decd4c",
@@ -6135,8 +6103,8 @@
         "Heart attack"
       ],
       "text": "Symptoms of a heart attack may include:\n- Nausea, vomiting, dizziness, fainting, or breaking out in a cold sweat. These symptoms are more common in women.\n- Prolonged or severe chest pain or discomfort not relieved by rest or nitroglycerin.\n- Uncomfortable pressure, squeezing, fullness, or pain in the center or left side of the chest. This pain or discomfort can be mild or strong, and it often lasts more than a few minutes or goes away and comes back.\n- Shortness of breath. This may occur before or during chest discomfort.\n- Upper body discomfort in one or both arms, the back, neck, jaw, or upper part of the stomach.",
-      "char_start": 25436,
-      "char_end": 26061
+      "char_start": 24824,
+      "char_end": 25449
     },
     {
       "chunk_id": "nhlbi-high-blood-pressure#4edc9b572fcf73ce",
@@ -6147,8 +6115,8 @@
         "Stroke"
       ],
       "text": "If you think someone may be having a stroke, act F.A.S.T.\n- F — Face: Ask the person to smile. Does one side of the face droop?\n- A — Arms: Ask the person to raise both arms. Does one arm drift downward?\n- S — Speech: Ask the person to repeat a simple phrase. Is their speech slurred or strange?\n- T — Time: If you observe any of these , call for help immediately. Early treatment is essential.\nLast updated on April 30, 2024\nHigh Blood Pressure\nMENU\n- What Is High Blood Pressure?\n- Symptoms\n- Diagnosis\n- Causes and Risk Factors\n- Treatment\n- Living With High Blood Pressure\n- Pregnancy and High Blood Pressure\nMORE INFORMATION\nParticipate in a Study\nFact Sheets and Handouts\nResearch\nHigh Blood Pressure",
-      "char_start": 26075,
-      "char_end": 26792
+      "char_start": 25463,
+      "char_end": 26180
     },
     {
       "chunk_id": "nhlbi-high-blood-pressure#e63e66b137ff4777",
@@ -6157,8 +6125,8 @@
         "High Blood Pressure Pregnancy and High Blood Pressure"
       ],
       "text": "- English\n- Español\nHigh blood pressure develops in 1 in every 12 to 17 pregnant women in the United States. It is important to monitor your blood pressure before, during, and after pregnancy. High blood pressure during pregnancy may harm your organs and can cause early birth (called preterm birth) and low birth weight.\nPlanning for pregnancy\nIf you are thinking about having a baby and have high blood pressure, talk with your healthcare provider. They can help you take steps to lower or control your high blood pressure before, during, and after the pregnancy.\nSome medicines are safe during pregnancy and may reduce your chance of pregnancy complications. Certain other medicines for high blood pressure are not recommended during pregnancy. If you take blood pressure medicine, talk with your provider about which medicines are safe for you and your baby.",
-      "char_start": 26851,
-      "char_end": 27720
+      "char_start": 26239,
+      "char_end": 27108
     },
     {
       "chunk_id": "nhlbi-high-blood-pressure#a0e2bdb6d3bbc63d",
@@ -6168,8 +6136,8 @@
         "Types of high blood pressure disorders during and after pregnancy"
       ],
       "text": "If you have high blood pressure before pregnancy, talk with your provider about managing the condition during and after pregnancy.\nSome women who typically have healthy blood pressure develop high blood pressure during or after pregnancy.\n- Gestational hypertension is blood pressure greater than or equal to 140/90 that develops after 20 weeks of pregnancy or close to delivery.\n- Preeclampsia is a combination of high blood pressure during pregnancy and that your organs are not working well, such as high levels in your urine. This can lead to life-threatening seizures or coma, a condition known as eclampsia. Women who had preeclampsia have a higher risk of developing high blood pressure and heart disease later in life.\n- HELLP syndrome is a more severe type of preeclampsia or eclampsia.\n- A sudden spike in blood pressure (more than 160/110 mm Hg) can also happen during pregnancy or after the baby is born. This is a medical emergency.\nSome people may experience worsening blood pressure, or they may continue to have problems such as preeclampsia, eclampsia, or HELLP syndrome after the baby is born.",
-      "char_start": 27792,
-      "char_end": 28906
+      "char_start": 27180,
+      "char_end": 28294
     },
     {
       "chunk_id": "nhlbi-high-blood-pressure#d57d135e38a41b09",
@@ -6179,8 +6147,8 @@
         "Types of high blood pressure disorders during and after pregnancy"
       ],
       "text": "Watch for warning signs of a heart problem, including high blood pressure, during and after pregnancy. Some warning signs are a worsening headache, overwhelming tiredness, dizziness, trouble breathing, chest or belly pain, swelling, or nausea. If you feel like something is wrong, get medical care right away.",
-      "char_start": 28908,
-      "char_end": 29217
+      "char_start": 28296,
+      "char_end": 28605
     },
     {
       "chunk_id": "nhlbi-high-blood-pressure#eb555715d65eda17",
@@ -6190,8 +6158,8 @@
         "Managing high blood pressure during pregnancy"
       ],
       "text": "Your provider will measure your blood pressure at each visit as part of your regular prenatal care. Learn more about how to prepare for a blood pressure test.\nIf you have high blood pressure, you and your baby will be closely monitored to lower the chance of complications. You may need to:\n- Check your blood pressure at home. Visit Measure Your Blood Pressure for more information.\n- Keep track of how many times you feel the baby kicking each day.\n- Adjust your physical activity. Talk to your provider about what level of physical activity is right for you.\n- Take medicine to control your blood pressure. Talk to your provider about which medicines are safe for your baby. These medicines may include nifedipine, labetalol, methyldopa, or hydralazine.\n- Take aspirin in the second trimester, if you are at risk of preeclampsia and your provider recommends aspirin.\n- Visit your provider more often to monitor your condition and your baby’s growth rate and heart rate. He or she may order blood and urine tests to check how well your organs are working, which can help detect preeclampsia.\nIf your provider is concerned about you or your baby’s health, they may recommend that you deliver your baby before 39 weeks. You may need to stay in the hospital to be monitored before and after you deliver your baby.\nFact sheet\nPregnancy and Your Heart Health",
-      "char_start": 29269,
-      "char_end": 30629
+      "char_start": 28657,
+      "char_end": 30017
     },
     {
       "chunk_id": "nhlbi-high-blood-pressure#a96b671a0e3edbef",
@@ -6201,8 +6169,8 @@
         "Managing high blood pressure during pregnancy"
       ],
       "text": "Learn about the risks of high blood pressure before, during, and after pregnancy and get questions to ask your doctor.\nView the fact sheet\nLast updated on April 30, 2024",
-      "char_start": 30631,
-      "char_end": 30802
+      "char_start": 30019,
+      "char_end": 30190
     },
     {
       "chunk_id": "nhlbi-iron-deficiency-anemia#8aad79f0614af0fe",

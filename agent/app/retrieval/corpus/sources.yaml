@@ -24,11 +24,16 @@ sources:
     title: "Prediabetes and Type 2 Diabetes: Screening"
     publisher: U.S. Preventive Services Task Force
     url: https://www.uspreventiveservicestaskforce.org/uspstf/recommendation/screening-for-prediabetes-and-type-2-diabetes
-    license_basis: us-gov-public-domain
+    license_basis: uspstf-ahrq-redistribution-permitted
     license_note: >-
-      USPSTF recommendation statements are produced under AHRQ (HHS) and are
-      US federal government works; USPSTF states its recommendations may be
-      reproduced without permission.
+      NOT public domain. Published by JAMA under arrangement with AHRQ and
+      jointly copyrighted by the AMA and the US Government ("All rights
+      reserved"). Usable here under the express permission on the same page:
+      AHRQ permits the public to reproduce, redistribute and incorporate
+      USPSTF work "without any changes to the work or portions thereof".
+      Verbatim chunks with attribution only; AHRQ/HHS must not be shown as
+      endorsing an answer built from them. Verified 2026-09-22 by
+      scripts/audit_corpus_licensing.py.
     published: 2021-08-24
     retrieved: 2026-09-22
     topics: [diabetes, a1c, screening]
@@ -37,9 +42,16 @@ sources:
     title: "Statin Use for the Primary Prevention of Cardiovascular Disease in Adults: Preventive Medication"
     publisher: U.S. Preventive Services Task Force
     url: https://www.uspreventiveservicestaskforce.org/uspstf/recommendation/statin-use-in-adults-preventive-medication
-    license_basis: us-gov-public-domain
+    license_basis: uspstf-ahrq-redistribution-permitted
     license_note: >-
-      USPSTF recommendation statement; US federal government work (AHRQ/HHS).
+      NOT public domain. Published by JAMA under arrangement with AHRQ and
+      jointly copyrighted by the AMA and the US Government ("All rights
+      reserved"). Usable here under the express permission on the same page:
+      AHRQ permits the public to reproduce, redistribute and incorporate
+      USPSTF work "without any changes to the work or portions thereof".
+      Verbatim chunks with attribution only; AHRQ/HHS must not be shown as
+      endorsing an answer built from them. Verified 2026-09-22 by
+      scripts/audit_corpus_licensing.py.
     published: 2022-08-23
     retrieved: 2026-09-22
     topics: [lipids, statins, cardiovascular]
@@ -48,9 +60,16 @@ sources:
     title: "Hypertension in Adults: Screening"
     publisher: U.S. Preventive Services Task Force
     url: https://www.uspreventiveservicestaskforce.org/uspstf/recommendation/hypertension-in-adults-screening
-    license_basis: us-gov-public-domain
+    license_basis: uspstf-ahrq-redistribution-permitted
     license_note: >-
-      USPSTF recommendation statement; US federal government work (AHRQ/HHS).
+      NOT public domain. Published by JAMA under arrangement with AHRQ and
+      jointly copyrighted by the AMA and the US Government ("All rights
+      reserved"). Usable here under the express permission on the same page:
+      AHRQ permits the public to reproduce, redistribute and incorporate
+      USPSTF work "without any changes to the work or portions thereof".
+      Verbatim chunks with attribution only; AHRQ/HHS must not be shown as
+      endorsing an answer built from them. Verified 2026-09-22 by
+      scripts/audit_corpus_licensing.py.
     published: 2021-04-27
     retrieved: 2026-09-22
     topics: [blood-pressure, screening]
@@ -59,9 +78,17 @@ sources:
     title: "Thyroid Dysfunction: Screening"
     publisher: U.S. Preventive Services Task Force
     url: https://www.uspreventiveservicestaskforce.org/uspstf/recommendation/thyroid-dysfunction-screening
-    license_basis: us-gov-public-domain
+    license_basis: uspstf-ahrq-redistribution-permitted
     license_note: >-
-      USPSTF recommendation statement; US federal government work (AHRQ/HHS).
+      NOT public domain. Published first in Annals of Internal Medicine under arrangement with
+      AHRQ and
+      jointly copyrighted by the AMA and the US Government ("All rights
+      reserved"). Usable here under the express permission on the same page:
+      AHRQ permits the public to reproduce, redistribute and incorporate
+      USPSTF work "without any changes to the work or portions thereof".
+      Verbatim chunks with attribution only; AHRQ/HHS must not be shown as
+      endorsing an answer built from them. Verified 2026-09-22 by
+      scripts/audit_corpus_licensing.py.
     published: 2015-03-24
     retrieved: 2026-09-22
     topics: [thyroid, screening]
@@ -70,9 +97,16 @@ sources:
     title: "Vitamin D Deficiency in Adults: Screening"
     publisher: U.S. Preventive Services Task Force
     url: https://www.uspreventiveservicestaskforce.org/uspstf/recommendation/vitamin-d-deficiency-screening
-    license_basis: us-gov-public-domain
+    license_basis: uspstf-ahrq-redistribution-permitted
     license_note: >-
-      USPSTF recommendation statement; US federal government work (AHRQ/HHS).
+      NOT public domain. Published by JAMA under arrangement with AHRQ and
+      jointly copyrighted by the AMA and the US Government ("All rights
+      reserved"). Usable here under the express permission on the same page:
+      AHRQ permits the public to reproduce, redistribute and incorporate
+      USPSTF work "without any changes to the work or portions thereof".
+      Verbatim chunks with attribution only; AHRQ/HHS must not be shown as
+      endorsing an answer built from them. Verified 2026-09-22 by
+      scripts/audit_corpus_licensing.py.
     published: 2021-04-13
     retrieved: 2026-09-22
     topics: [vitamin-d, screening]
@@ -81,9 +115,16 @@ sources:
     title: "Vitamin D, Calcium, or Combined Supplementation for the Primary Prevention of Fractures in Adults: Preventive Medication"
     publisher: U.S. Preventive Services Task Force
     url: https://www.uspreventiveservicestaskforce.org/uspstf/recommendation/vitamin-d-calcium-or-combined-supplementation-for-the-primary-prevention-of-fractures-in-adults-preventive-medication
-    license_basis: us-gov-public-domain
+    license_basis: uspstf-ahrq-redistribution-permitted
     license_note: >-
-      USPSTF recommendation statement; US federal government work (AHRQ/HHS).
+      NOT public domain. Published by JAMA under arrangement with AHRQ and
+      jointly copyrighted by the AMA and the US Government ("All rights
+      reserved"). Usable here under the express permission on the same page:
+      AHRQ permits the public to reproduce, redistribute and incorporate
+      USPSTF work "without any changes to the work or portions thereof".
+      Verbatim chunks with attribution only; AHRQ/HHS must not be shown as
+      endorsing an answer built from them. Verified 2026-09-22 by
+      scripts/audit_corpus_licensing.py.
     published: 2018-04-17
     retrieved: 2026-09-22
     topics: [vitamin-d, supplements]
@@ -92,9 +133,16 @@ sources:
     title: "Iron Deficiency and Iron Deficiency Anemia During Pregnancy: Screening and Supplementation"
     publisher: U.S. Preventive Services Task Force
     url: https://www.uspreventiveservicestaskforce.org/uspstf/recommendation/iron-deficiency-anemia-in-pregnant-women-screening-and-supplementation
-    license_basis: us-gov-public-domain
+    license_basis: uspstf-ahrq-redistribution-permitted
     license_note: >-
-      USPSTF recommendation statement; US federal government work (AHRQ/HHS).
+      NOT public domain. Published by JAMA under arrangement with AHRQ and
+      jointly copyrighted by the AMA and the US Government ("All rights
+      reserved"). Usable here under the express permission on the same page:
+      AHRQ permits the public to reproduce, redistribute and incorporate
+      USPSTF work "without any changes to the work or portions thereof".
+      Verbatim chunks with attribution only; AHRQ/HHS must not be shown as
+      endorsing an answer built from them. Verified 2026-09-22 by
+      scripts/audit_corpus_licensing.py.
     published: 2024-08-20
     retrieved: 2026-09-22
     topics: [anemia, iron, screening]
@@ -103,9 +151,16 @@ sources:
     title: "Aspirin Use to Prevent Cardiovascular Disease: Preventive Medication"
     publisher: U.S. Preventive Services Task Force
     url: https://www.uspreventiveservicestaskforce.org/uspstf/recommendation/aspirin-to-prevent-cardiovascular-disease-preventive-medication
-    license_basis: us-gov-public-domain
+    license_basis: uspstf-ahrq-redistribution-permitted
     license_note: >-
-      USPSTF recommendation statement; US federal government work (AHRQ/HHS).
+      NOT public domain. Published by JAMA under arrangement with AHRQ and
+      jointly copyrighted by the AMA and the US Government ("All rights
+      reserved"). Usable here under the express permission on the same page:
+      AHRQ permits the public to reproduce, redistribute and incorporate
+      USPSTF work "without any changes to the work or portions thereof".
+      Verbatim chunks with attribution only; AHRQ/HHS must not be shown as
+      endorsing an answer built from them. Verified 2026-09-22 by
+      scripts/audit_corpus_licensing.py.
     published: 2022-04-26
     retrieved: 2026-09-22
     topics: [medication-safety, cardiovascular]
@@ -117,8 +172,10 @@ sources:
     url: https://www.niddk.nih.gov/health-information/diagnostic-tests/a1c-test
     license_basis: us-gov-public-domain
     license_note: >-
-      NIDDK content is in the public domain; NIH states its health information
-      may be reproduced without permission.
+      NIDDK (NIH) health information; a work of the US federal government,
+      not subject to copyright in the US (17 U.S.C. 105). Raw page carries
+      no third-party rights notice. Verified 2026-09-22 by
+      scripts/audit_corpus_licensing.py.
     last_reviewed: 2018-04-20
     retrieved: 2026-09-22
     topics: [diabetes, a1c, lab-tests]
@@ -234,8 +291,9 @@ sources:
     url: https://www.cdc.gov/kidney-disease/about/index.html
     license_basis: us-gov-public-domain
     license_note: >-
-      CDC content is in the public domain and may be reproduced without
-      permission (CDC image and content usage policy).
+      CDC content; US federal government work, public domain under CDC's own
+      content-use policy (17 U.S.C. 105). Raw page carries no third-party
+      rights notice. Verified 2026-09-22 by scripts/audit_corpus_licensing.py.
     published: 2024-05-15
     last_reviewed: 2024-05-15
     retrieved: 2026-09-22
@@ -303,8 +361,11 @@ sources:
     url: https://medlineplus.gov/lab-tests/vitamin-d-test/
     license_basis: us-gov-public-domain
     license_note: >-
-      MedlinePlus is produced by the National Library of Medicine; its content
-      is in the public domain (NLM copyright information).
+      MedlinePlus (NLM/NIH) medical-test page, written by NLM: public domain.
+      NOT the A.D.A.M. encyclopedia under /ency/ (copyright A.D.A.M. Inc.)
+      and NOT the drug pages under /druginfo/ (copyright ASHP); the audit
+      confirms neither appears on this page. Verified 2026-09-22 by
+      scripts/audit_corpus_licensing.py.
     last_reviewed: 2024-12-04
     retrieved: 2026-09-22
     topics: [vitamin-d, lab-tests]

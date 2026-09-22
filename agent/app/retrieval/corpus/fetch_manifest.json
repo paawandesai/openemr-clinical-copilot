@@ -91,9 +91,9 @@
   },
   "nhlbi-blood-cholesterol": {
     "http_status": 200,
-    "markdown_bytes": 23413,
-    "markdown_sha256": "691b4a10f73af6309737e02c442191a884a2655ee89827a72a1449353fcc3e6d",
-    "raw_sha256": "92ef1e126f316d9a8a063158e636fa968585a07c4da510c64bccf01c02a5698f",
+    "markdown_bytes": 23071,
+    "markdown_sha256": "c8338217774a06879c6f9377a164e66ba4717d0b4c0971c10973f88b4ccaf14b",
+    "raw_sha256": "8b6c6e6bae9a66fea8f1ab316d5cf5a36c511aa13d6afbff3f977b2c44bfa45a",
     "retrieved": "2026-09-22",
     "urls": [
       "https://www.nhlbi.nih.gov/health/blood-cholesterol",
@@ -108,7 +108,7 @@
     "http_status": 200,
     "markdown_bytes": 7433,
     "markdown_sha256": "7f611e3b86588d2e67c8f5bdc230ce5c8cc266a67f05601453d8b7967fc9f70f",
-    "raw_sha256": "a9d696ed757f9d8035319e309d6211989cfc8560e40c247a3fe0a6c3024e178a",
+    "raw_sha256": "c546139309d9a96ec0a8a4ffe8c3ffda07d13e9f5787e7abbe2cf03478de8002",
     "retrieved": "2026-09-22",
     "urls": [
       "https://www.nhlbi.nih.gov/health/blood-tests"
@@ -116,9 +116,9 @@
   },
   "nhlbi-high-blood-pressure": {
     "http_status": 200,
-    "markdown_bytes": 30901,
-    "markdown_sha256": "434d0e375fc7c029050ed3af79732dc819ceeebc8035dc1d440997bafd6ed9cf",
-    "raw_sha256": "0281f72f24cbd7094831dde302c8427d334f2a7d59bfe5697a0ddc00c02692bd",
+    "markdown_bytes": 30282,
+    "markdown_sha256": "1d3759094977a8596dad070150de2b2206187585126ea18dc3fb493acdb91aaf",
+    "raw_sha256": "f33060f14067448f21734246ca1b2bf1d7fc52af7264be5b39820616ae62dbd8",
     "retrieved": "2026-09-22",
     "urls": [
       "https://www.nhlbi.nih.gov/health/high-blood-pressure",
@@ -134,7 +134,7 @@
     "http_status": 200,
     "markdown_bytes": 6609,
     "markdown_sha256": "5c0aafe1ba62e6262e10eac6949831453b6bf5c667652e3311fc0f97b866e2fe",
-    "raw_sha256": "7424abe0865c36d979dbf609ad72242063bb029b5f733793911f1fe875d29bdb",
+    "raw_sha256": "533ee1d704465bc4ffddb6bd52ffc595a01191cdc834f8ece296d05eabd19e54",
     "retrieved": "2026-09-22",
     "urls": [
       "https://www.nhlbi.nih.gov/health/anemia/iron-deficiency-anemia"
@@ -154,7 +154,7 @@
     "http_status": 200,
     "markdown_bytes": 14604,
     "markdown_sha256": "c6c5a335176b4b5ccf8b6352298fde468cb6348bbb4b4e213fd7fa8a7ce245f9",
-    "raw_sha256": "d32265bc04683ba4bd42f8556dc7401267d335e3e3021160476860269c768b61",
+    "raw_sha256": "a46508c656ab0165c07b19d253abdf3fb42017d8ce021023cbf3a251c1266907",
     "retrieved": "2026-09-22",
     "urls": [
       "https://www.niddk.nih.gov/health-information/diagnostic-tests/a1c-test"
@@ -164,7 +164,7 @@
     "http_status": 200,
     "markdown_bytes": 4986,
     "markdown_sha256": "c2b08c255bac9f2b801d680f0e7ccff8470163d63480161fc67379e96d16490d",
-    "raw_sha256": "a479163909512efaff2461b68f15946b3433e92adaa28570e0965ec190936612",
+    "raw_sha256": "a43841f31b96e0494396007c7f5928aea6d68718ad38f47323fb84e40ad34095",
     "retrieved": "2026-09-22",
     "urls": [
       "https://www.niddk.nih.gov/health-information/kidney-disease/chronic-kidney-disease-ckd/tests-diagnosis"
@@ -174,7 +174,7 @@
     "http_status": 200,
     "markdown_bytes": 16300,
     "markdown_sha256": "be1bda80b3b8d21160a9ffa97a9ccf558b40e9add8ceede9fa7aaf717aa127e5",
-    "raw_sha256": "e54dfe00dc205b862c9dbce1633b5dbb07d7550a775bcc43b72568844caca32b",
+    "raw_sha256": "6e749a0f115ef8299e86bbb7ff0b412773fbf731f1954c2451c5b88fc2bb4769",
     "retrieved": "2026-09-22",
     "urls": [
       "https://www.niddk.nih.gov/health-information/diabetes/overview/preventing-problems/heart-disease-stroke"
@@ -194,7 +194,7 @@
     "http_status": 200,
     "markdown_bytes": 13582,
     "markdown_sha256": "fe1c0389b54cb88ea9c9222c207edeedd631233db63dda1cb292a672df0e57b2",
-    "raw_sha256": "e3332eb9f39803592beab70c7c96254f31ea56df92608dbc43bc723388302b23",
+    "raw_sha256": "be8f772f386f8e52002198f310a8226493612dd8e7de16c1485e3ed166ee718c",
     "retrieved": "2026-09-22",
     "urls": [
       "https://www.niddk.nih.gov/health-information/endocrine-diseases/hyperthyroidism"
@@ -204,7 +204,7 @@
     "http_status": 200,
     "markdown_bytes": 11620,
     "markdown_sha256": "edbb65aff7b4f1dcacdbd3f6ae16705aada66c4d1a906d84050e8d14ef8e4e77",
-    "raw_sha256": "1f7d5f0f85fe22e0ce25e6398917f5dde3a60939e1376094b386dbbe37d3be24",
+    "raw_sha256": "423928cce31746e478db6a9462f3205fab16440ea47823cc77cac6b1b4d0d19f",
     "retrieved": "2026-09-22",
     "urls": [
       "https://www.niddk.nih.gov/health-information/endocrine-diseases/hypothyroidism"
@@ -212,9 +212,9 @@
   },
   "uspstf-aspirin-cvd-prevention": {
     "http_status": 200,
-    "markdown_bytes": 46817,
-    "markdown_sha256": "8f30b1ee7f0dc35de7580a240884a1815b9c61eb476abb9b351e86c2055614a1",
-    "raw_sha256": "642c20e5b0e7d163f6725f96ad0e2d941e0bc6c1fb7047d480f1382e8f903466",
+    "markdown_bytes": 45513,
+    "markdown_sha256": "8b13448fb78a5629e47139bc9d3cf6310a5e154303dfed1f8c7147751709522a",
+    "raw_sha256": "61b26e0dd2d62bebde30c01198f290c40d0e9b932b286afd07d4e19eb6749e34",
     "retrieved": "2026-09-22",
     "urls": [
       "https://www.uspreventiveservicestaskforce.org/uspstf/recommendation/aspirin-to-prevent-cardiovascular-disease-preventive-medication"
@@ -224,7 +224,7 @@
     "http_status": 200,
     "markdown_bytes": 49025,
     "markdown_sha256": "2be8adcd640460af7ef459eb3f557b61815c914324419668e1762ad694c2f5bb",
-    "raw_sha256": "a6584c327e9e4bfcf176ec5a9c09c950b9eb569766015e984f5976463ec570ee",
+    "raw_sha256": "10f23715994cca0b084fc15582e982f38c082116683ac23e44f8be353da5a545",
     "retrieved": "2026-09-22",
     "urls": [
       "https://www.uspreventiveservicestaskforce.org/uspstf/recommendation/screening-for-prediabetes-and-type-2-diabetes"
@@ -234,7 +234,7 @@
     "http_status": 200,
     "markdown_bytes": 39274,
     "markdown_sha256": "5d6f8570294aa22f194c64d79c684ab74716fc38b42a2f8332645a104b6766d5",
-    "raw_sha256": "cd35cabe5fe6aab1b44255aad66f683f3d7c63fe2fdafdd3aac18546e5e4a755",
+    "raw_sha256": "e864513e7c665a47e868d3055142fed78e8dff2fa22084345c2ff696a5f4f17f",
     "retrieved": "2026-09-22",
     "urls": [
       "https://www.uspreventiveservicestaskforce.org/uspstf/recommendation/hypertension-in-adults-screening"
@@ -242,9 +242,9 @@
   },
   "uspstf-iron-deficiency-anemia-pregnancy": {
     "http_status": 200,
-    "markdown_bytes": 53602,
-    "markdown_sha256": "5184220fa477dceb3be42e5013a9c2fd00e0b957f661d090252ec572b1566d98",
-    "raw_sha256": "768c29402c06d3fd614a43c947b9b1cf7e107da7ef5b215829c28d3151c66047",
+    "markdown_bytes": 53621,
+    "markdown_sha256": "29e9f511f0097fd9d49bd87d79bbff3971c5f52e9e2ce934e46873cc99029689",
+    "raw_sha256": "730733d12d3195a46bb5e6ac4cc7d880f2df1b746a2ab1315209c055bb04d8dc",
     "retrieved": "2026-09-22",
     "urls": [
       "https://www.uspreventiveservicestaskforce.org/uspstf/recommendation/iron-deficiency-anemia-in-pregnant-women-screening-and-supplementation"
@@ -252,9 +252,9 @@
   },
   "uspstf-statin-primary-prevention": {
     "http_status": 200,
-    "markdown_bytes": 49982,
-    "markdown_sha256": "cbf95acab9f9270c14d84b4316bb8efc22761f23331a5f91648afa573efa6eef",
-    "raw_sha256": "88777450ed1724b1d52925ccd5b8e14989296decc1277ead4418e04cf4033c8b",
+    "markdown_bytes": 48824,
+    "markdown_sha256": "ffd1e654f5b2aa70d16f38f3f141a863104191cbc65cee36049d4cf95da28492",
+    "raw_sha256": "0dba1383f509b5da161b7c5c2235d39dfbc2b64a747a1272c6e953cc24cf5be3",
     "retrieved": "2026-09-22",
     "urls": [
       "https://www.uspreventiveservicestaskforce.org/uspstf/recommendation/statin-use-in-adults-preventive-medication"
@@ -264,7 +264,7 @@
     "http_status": 200,
     "markdown_bytes": 58061,
     "markdown_sha256": "6a1cb7380dac01f8e7e909f5fd5e508a84a250a3a838785a7b8551cda297efb5",
-    "raw_sha256": "8e82afba0a8e9a8afc11b59b74d8f4d69b613a85371d2f3ece4ab80a13e39b67",
+    "raw_sha256": "176dcfa6aec2933977b83f52a72ad8258b4eee6b8541f352e05187b8fdfb915a",
     "retrieved": "2026-09-22",
     "urls": [
       "https://www.uspreventiveservicestaskforce.org/uspstf/recommendation/thyroid-dysfunction-screening"
@@ -274,7 +274,7 @@
     "http_status": 200,
     "markdown_bytes": 44527,
     "markdown_sha256": "c25225d82b9856fd2f2137b3b903b6719db50e7cd6218f78f73740c7eb088954",
-    "raw_sha256": "7a62d7b4a1cb53ea857e1218f1eae98a44f7a6cab0ea520ceba2766820728056",
+    "raw_sha256": "55526e34ff9c2d1ee3c4344c0d48be4a327354f641bf7e171875cb7d4d19bd18",
     "retrieved": "2026-09-22",
     "urls": [
       "https://www.uspreventiveservicestaskforce.org/uspstf/recommendation/vitamin-d-calcium-or-combined-supplementation-for-the-primary-prevention-of-fractures-in-adults-preventive-medication"
@@ -284,7 +284,7 @@
     "http_status": 200,
     "markdown_bytes": 41735,
     "markdown_sha256": "9982067ca69552f9b6bd3b4c60f722cd99a1ebc5b7f045413ae1ce29b6a13202",
-    "raw_sha256": "5af5e32dbbda59dbed5d59b333cc3787888d7a771451c82ce0710e4ed211131f",
+    "raw_sha256": "76e67edc44c0103613991f1096dc49b899c213495a4c72de3ce9d781a0b073db",
     "retrieved": "2026-09-22",
     "urls": [
       "https://www.uspreventiveservicestaskforce.org/uspstf/recommendation/vitamin-d-deficiency-screening"

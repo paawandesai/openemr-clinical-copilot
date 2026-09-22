@@ -24,6 +24,7 @@ corpus does.
 from __future__ import annotations
 
 import hashlib
+import os
 from pathlib import Path
 from typing import Protocol, runtime_checkable
 
@@ -36,8 +37,21 @@ from app.retrieval.corpus_meta import CORPUS_DIR
 #: MIT-licensed, 384-dim, 512-token window, 67 MB on disk.
 DEFAULT_EMBED_MODEL = "BAAI/bge-small-en-v1.5"
 
-#: Not committed — derived data, rebuilt from chunks.json in seconds.
+#: Not committed — derived data, rebuilt from chunks.json in seconds. In
+#: the container it is baked at image-build time, because the runtime root
+#: filesystem is read-only (agent/deploy/docker-compose.agent.yml).
 CACHE_DIR = CORPUS_DIR / ".cache"
+
+#: Where ONNX model weights live. Set at image build so the weights are in
+#: the image and never fetched at runtime — see docs/w2/retrieval-deploy.md.
+#: `None` means fastembed's own default, which is what a dev machine wants.
+MODEL_CACHE_ENV = "AGENT_MODEL_CACHE_DIR"
+
+
+def model_cache_dir() -> str | None:
+    """The configured ONNX weight directory, or None for the default."""
+    value = os.environ.get(MODEL_CACHE_ENV, "").strip()
+    return value or None
 
 
 @runtime_checkable
@@ -69,13 +83,13 @@ def l2_normalise(matrix: np.ndarray) -> np.ndarray:
 class FastEmbedEmbedder:
     """Local ONNX embeddings. No network after the first model download."""
 
-    def __init__(self, model_name: str = DEFAULT_EMBED_MODEL) -> None:
+    def __init__(self, model_name: str = DEFAULT_EMBED_MODEL, cache_dir: str | None = None) -> None:
         # Imported lazily so that BM25-only use, and the offline unit
         # tests, neither import onnxruntime nor look for a model on disk.
         from fastembed import TextEmbedding
 
         self._model_name = model_name
-        self._model = TextEmbedding(model_name)
+        self._model = TextEmbedding(model_name, cache_dir=cache_dir or model_cache_dir())
 
     @property
     def name(self) -> str:
@@ -125,10 +139,21 @@ class DenseIndex:
 
         vectors = self.embedder.embed_documents([c.indexed_text for c in chunks])
         if path is not None:
-            path.parent.mkdir(parents=True, exist_ok=True)
-            np.savez_compressed(
-                path, vectors=vectors, chunk_ids=np.array(self.chunk_ids, dtype=object).astype(str)
-            )
+            try:
+                path.parent.mkdir(parents=True, exist_ok=True)
+                np.savez_compressed(
+                    path,
+                    vectors=vectors,
+                    chunk_ids=np.array(self.chunk_ids, dtype=object).astype(str),
+                )
+            except OSError:
+                # The container runs with a read-only root filesystem, so a
+                # cache miss there cannot be written back. That is a slow
+                # start, not a failure: the vectors in hand are correct and
+                # the request is served. The cache is supposed to have been
+                # baked at image build (docs/w2/retrieval-deploy.md); if it
+                # is missing, that is what the startup preload reports.
+                pass
         return vectors
 
     def __len__(self) -> int:

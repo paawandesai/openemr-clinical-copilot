@@ -8,11 +8,29 @@ bibliography a citation is built from is reviewable on its own — a
 reviewer checking "is this corpus actually openly licensed?" reads one
 file, not twenty-eight.
 
-**Only public-domain or openly licensed material belongs here.** Every
-source is a work of the United States federal government, which is not
-subject to copyright in the US (17 U.S.C. section 105). No ADA Standards of
-Care, no KDIGO, nothing paywalled — those are copyrighted and would make
-the corpus undistributable regardless of how useful they are.
+**Only public-domain or expressly redistributable material belongs here.**
+No ADA Standards of Care, no KDIGO, nothing paywalled — those are
+copyrighted with no public licence and would make the corpus
+undistributable regardless of how useful they are.
+
+Two bases are in use, and the distinction is not cosmetic. Most sources are
+works of the United States federal government, which are not subject to
+copyright in the US (17 U.S.C. section 105). **USPSTF recommendation
+statements are not.** They are published by JAMA (or, for the 2015 thyroid
+statement, Annals of Internal Medicine) under arrangement with AHRQ and are
+jointly copyrighted by the AMA and the US Government — the page says so, in
+the words "All rights reserved". What makes them usable here is the express
+permission that follows it: AHRQ "permits members of the public to
+reproduce, redistribute, publicly display, and incorporate USPSTF work into
+other materials provided that it is reproduced without any changes to the
+work or portions thereof". Verbatim chunks with attribution are portions
+reproduced without changes. Paraphrasing one is not, and neither is
+presenting one as an AHRQ or HHS endorsement — see
+`USPSTF_ENDORSEMENT_CONSTRAINT`.
+
+`scripts/audit_corpus_licensing.py` is what found this; it re-fetches every
+page and reads the raw HTML, because a rights notice lives in the chrome
+that extraction strips.
 
 `as_of` in the registry is what "dated" is measured against, rather than
 today's date, so that a build run tomorrow produces byte-identical output
@@ -40,15 +58,35 @@ SOURCES_PATH = CORPUS_DIR / "sources.yaml"
 DEFAULT_DATED_AFTER_YEARS = 10
 
 
+#: The condition the USPSTF permission attaches, carried here because it is
+#: a product requirement and not only a licensing footnote: AHRQ and HHS
+#: "cannot endorse, or appear to endorse, derivative or excerpted
+#: materials". A UI that renders a retrieved USPSTF excerpt must present it
+#: as a quotation from the recommendation, never as AHRQ/HHS endorsing the
+#: co-pilot's answer.
+USPSTF_ENDORSEMENT_CONSTRAINT = (
+    "Verbatim excerpts only, with attribution. AHRQ/HHS must not be shown as "
+    "endorsing any answer built from them."
+)
+
+
 class LicenseBasis(StrEnum):
     """
     Why this document may be redistributed inside this repository.
 
-    One member today, and that is the point: adding a second one is a
-    licensing decision that should be visible in a diff.
+    Two members, and adding a third is a licensing decision that should be
+    visible in a diff and argued for in the session report.
     """
 
+    #: 17 U.S.C. section 105 — a work of the US federal government, not
+    #: subject to copyright in the United States.
     US_GOV_PUBLIC_DOMAIN = "us-gov-public-domain"
+
+    #: Jointly copyrighted (AMA/Annals + US Government) and expressly
+    #: licensed by AHRQ for reproduction and redistribution of the work "or
+    #: portions thereof" without changes. Not public domain — see the module
+    #: docstring and `USPSTF_ENDORSEMENT_CONSTRAINT`.
+    USPSTF_AHRQ_REDISTRIBUTION_PERMITTED = "uspstf-ahrq-redistribution-permitted"
 
 
 class SourceRecord(BaseModel):
@@ -100,6 +138,16 @@ class SourceRecord(BaseModel):
                 "guideline is not citable"
             )
         return self
+
+    @property
+    def verbatim_only(self) -> bool:
+        """
+        True when the licence permits reproduction only without changes.
+
+        A chunk from such a source may be quoted; it may not be paraphrased
+        into an answer and presented as the source's words.
+        """
+        return self.license_basis is LicenseBasis.USPSTF_AHRQ_REDISTRIBUTION_PERMITTED
 
     @property
     def effective_date(self) -> date:

@@ -27,8 +27,6 @@ High Blood Pressure
 - English
 - Español
 
-High blood pressure, or hypertension, is a common condition that occurs when your blood pressure—the force of the blood on the walls of your arteries—is often too high. Medical Animation Copyright © Nucleus Medical Media, All rights reserved.
-
 Half of all American adults have high blood pressure, also known as hypertension. Many don’t even know it. High blood pressure develops when blood flows through your at higher-than-normal pressures.
 
 Blood pressures are written as two numbers separated by a slash like this: 120/80 mm Hg. You can say this as “120 over 80 millimeters of mercury” or just as “120 over 80.” The first number is your pressure — that’s the force of the blood flow when blood is pumped out of the heart. The second number is your pressure, which is measured between heartbeats when the heart is filling with blood.
@@ -122,8 +120,6 @@ If the second measurement is also high and if you have any of these symptoms, ca
 - Problems talking
 
 Do not wait to see if your pressure comes down on its own.
-
-This video shows how high blood pressure damages your artery walls over time and can lead to life-threatening health problems. Medical Animation Copyright © Nucleus Medical Media, All rights reserved.
 
 Undiagnosed or uncontrolled high blood pressure can lead to serious health problems such as:
 
@@ -378,8 +374,6 @@ High Blood Pressure
 
 - English
 - Español
-
-Watch this video to learn more about treatments for high blood pressure and how they work. Medical Animation Copyright © Nucleus Medical Media, All rights reserved.
 
 For most people with high blood pressure, a healthcare provider will work with you to develop a treatment plan that may include heart-healthy lifestyle changes alone or with medicines. Your provider can help you manage your blood pressure and prevent complications. They may use a risk calculator to estimate your risk of complications and guide a discussion with you about choosing the best treatments.
 

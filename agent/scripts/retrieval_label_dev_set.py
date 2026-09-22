@@ -166,10 +166,10 @@ JUDGMENTS: dict[str, list[tuple[str, str]]] = {
             "When healthy lifestyle changes alone do not control or lower high blood pressure",
         ),
         ("nhlbi-high-blood-pressure", "Diuretics remove extra water and sodium"),
-        (
-            "nhlbi-high-blood-pressure",
-            "Watch this video to learn more about treatments for high blood pressure",
-        ),
+        # Was the video caption on the treatment page; that block carried a
+        # third-party animation copyright and is stripped at fetch time now,
+        # so the judgment points at the treatment overview instead.
+        ("nhlbi-high-blood-pressure", "work with you to develop a treatment plan"),
         (
             "nhlbi-high-blood-pressure",
             "may also recommend medicines to help control your blood pressure",

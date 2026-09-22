@@ -101,7 +101,7 @@ surface: rules read shape, not chart content.
 
 ## D5 — Embeddings and reranker
 
-**Status:** OPEN
+**Status:** SUPERSEDED by D25
 **Date:** 2026-09-21
 
 **Open question:** Local embeddings vs. a hosted embedding API, and Cohere
@@ -675,8 +675,8 @@ harness — checks shape with the schema and must still pass the payload
 through the models for the invariants, or state plainly that it has not.
 ## D23 — Local embeddings, weighted hybrid RRF, and a local reranker used as a fallback
 
-**Status:** PROPOSED — proposes an answer to D5, which stays OPEN until
-someone accepts this.
+**Status:** SUPERSEDED by D25 — D25 accepts most of this and rejects two
+parts of it: the fitted fusion weighting, and reranking only as a fallback.
 **Date:** 2026-09-22
 **Evidence:** [`docs/w2/retrieval-bakeoff.md`](retrieval-bakeoff.md).
 Branch `feat/w2-retrieval`, work order 08.
@@ -869,3 +869,196 @@ the value could be and refused to choose, which is a value that was not
 placed on a page, not a value the document lacks. `not_located` maps the
 same way. Neither ever becomes `missing` or `illegible`: those describe the
 document, and the locate step is not entitled to that judgement.
+## D25 — Local embeddings, equal-weight hybrid RRF, local cross-encoder rerank
+
+**Status:** DECIDED — supersedes D5 (OPEN) and D23 (PROPOSED).
+**Number:** this entry was written as D24 on `feat/w2-retrieval`. D24 was
+taken on `main` by `feat/w2-locate`'s exact-only value-class policy, which
+merged first, so it is D25 — the next free number against `main` at the
+time of the rebase. Nothing about the decision changed with the number.
+**Date:** 2026-09-22
+**Evidence:** [`docs/w2/retrieval-bakeoff.md`](retrieval-bakeoff.md), on the
+28-document / 693-chunk corpus after the licensing audit (D26).
+**Deployment:** [`docs/w2/retrieval-deploy.md`](retrieval-deploy.md).
+
+### Decision
+
+1. **Embeddings: local.** `BAAI/bge-small-en-v1.5` through fastembed / ONNX
+   Runtime. MIT, 67 MB, 384-dimensional. Not sentence-transformers, so
+   torch stays out of the image.
+
+2. **Retrieval: BM25 + dense, fused with RRF at equal weights.** Each half
+   searches to depth 30; the fused list is what the reranker sees. Equal
+   weights, explicitly: weighting the dense half 2× scored better
+   (recall@5 0.733 vs 0.692) but was fitted on the same 30 dev queries it
+   was measured on, and 30 queries is not enough to adopt a weight from.
+   D23 proposed adopting it; that part is rejected here. Revisit it
+   against the eval cases, where fitting and measuring are separated.
+
+3. **Rerank: the local cross-encoder, over the top 20, on every retrieval.**
+   `Xenova/ms-marco-MiniLM-L-6-v2`, Apache-2.0, 80 MB, ONNX. D23 proposed
+   running it only as a fallback; that part is rejected too — the PRD
+   requires a reranker, and a reranker that runs only when some
+   not-yet-designed trigger fires is not one.
+
+4. **Four chunks are passed to the answer step.** recall@4 for the decided
+   configuration is 0.666.
+
+5. **Latency budget: 2.5 s for the rerank stage.** Over it, the fused order
+   stands and the output says `reranked=false`. The retriever then opens a
+   circuit so the next turn skips rerank rather than paying the budget
+   again to discard the result again; `GuidelineRetriever.reset_rerank_circuit()`
+   closes it. `EvidenceRetrieverOutput` enforces the other half — a result
+   set marked `reranked=true` must carry a `rerank_score` on every chunk —
+   so the flag and the data cannot drift apart.
+
+6. **No Cohere this week.** No API key is configured, so it was never
+   measured. The adapter stays in the tree, disabled and unreferenced by
+   any default path.
+
+### The numbers
+
+30 concept-only dev queries, 110 relevance judgments, 693 chunks, Apple M5
+Pro, five timing passes:
+
+| config | recall@5 | recall@4 | MRR | p50 ms | p95 ms | queries at zero |
+|---|---|---|---|---|---|---|
+| BM25 only | 0.570 | 0.505 | 0.733 | 0.2 | 0.3 | 2 |
+| dense only | 0.718 | 0.654 | 0.854 | 3.2 | 7.0 | 1 |
+| hybrid RRF, equal weights | 0.692 | 0.644 | 0.826 | 3.6 | 4.6 | 1 |
+| hybrid RRF, dense 2× (fitted) | 0.733 | 0.672 | 0.887 | 3.9 | 4.9 | 1 |
+| **hybrid RRF + cross-encoder (this decision)** | 0.702 | 0.666 | **0.889** | 288.7 | 515.1 | **0** |
+| hybrid RRF dense 2× + cross-encoder | 0.702 | 0.677 | 0.889 | 283.3 | 490.6 | 0 |
+| hybrid RRF + Cohere rerank-v3.5 | — | — | — | — | — | not run: no key |
+
+### Rationale
+
+**Local embeddings, on the constraint before the numbers.** D5's hard
+constraint is that no patient identifier may appear in a query that leaves
+this system. A hosted embedding API puts *every* retrieval query on the
+wire, which makes that constraint depend on a text filter holding on every
+call forever. A local embedder makes it depend on nothing: the query never
+leaves the process. That is why "no Cohere" is not only a consequence of
+having no key — an all-local stack makes D5 structural rather than
+procedural, and that is worth more than an unmeasured ranking improvement.
+
+**Equal weights, because the alternative was fitted.** Dense 2× is worth
+four points of recall@5 and is stable across fusion depths 30-100 and RRF
+k 20-60 — and dense 3× scores higher recall (0.745) with *lower* MRR
+(0.854), which is the shape of overfitting rather than of a better
+setting. The honest position is that the dev set cannot tell us the weight,
+so the code ships the untuned default and the question moves to the eval
+cases.
+
+**The reranker earns its ~300 ms on the case that matters, not on the
+mean.** It *lowers* mean recall@5 (0.733 → 0.702 against the fitted
+fusion, 0.692 → 0.702 against the equal-weight fusion it actually replaces)
+and moves MRR by 0.002. What it does is eliminate total misses: it is the
+only configuration with no query at zero recall.
+
+The concrete case is `q19-levothyroxine-followup`, which asks about
+levothyroxine dosing and follow-up testing. Exactly one chunk in the corpus
+answers it, in a consumer-facing NIDDK page — *"You will take
+levothyroxine, a thyroid hormone medicine…"* — and neither BM25 nor the
+bi-encoder puts it in the top 10, because the query is written in clinical
+register and the chunk is written for patients. recall goes 0.00 → 1.00
+with the cross-encoder, which reads the query and the passage together.
+
+In a pipeline that must cite or disclose, a turn with no usable evidence is
+the expensive turn. Spending ~300 ms to stop having them is the right trade,
+and it is why the reranker runs on every retrieval rather than behind a
+trigger nobody has designed.
+
+**The budget exists because 300 ms is a laptop number.** The deployment
+host is a shared-vCPU droplet and nothing here has been measured on it. If
+the cross-encoder does not fit, the system degrades to the fused order and
+says so in the output and the log, rather than getting slow. A sustained
+stream of `rerank_over_budget: true` is the condition to re-open this
+decision — not a reason to raise the budget.
+
+### What is still unmeasured
+
+- **The droplet.** Every number above is an Apple M5 Pro.
+- **Cohere.** Never run. Claiming it is worse than the local cross-encoder
+  would be inventing a comparison.
+- **The fusion weighting, separated from its fitting.** That needs the
+  eval cases.
+
+---
+
+## D26 — USPSTF statements stay in the corpus, as licensed material rather than public domain
+
+**Status:** DECIDED
+**Number:** written as D25 on this branch and renumbered on the same rebase
+that moved the retrieval decision from D24 to D25; D24 belongs to
+`feat/w2-locate`. The licensing finding is unchanged.
+**Date:** 2026-09-22
+**Evidence:** `agent/scripts/audit_corpus_licensing.py`, run against all 28
+sources' raw HTML on 2026-09-22.
+**Needs human sign-off:** yes — see "Conflict" below.
+
+### What the audit found
+
+Work order 08 named USPSTF, CDC and NIH as acceptable publishers and asked
+for "public domain or openly licensed ONLY". `sources.yaml` recorded all
+28 sources as `us-gov-public-domain`. For eight of them that was wrong.
+
+**USPSTF recommendation statements are not public domain.** They are
+published by JAMA — or, for the 2015 thyroid statement, Annals of Internal
+Medicine — under arrangement with AHRQ, and the page says so: "©2022 AMA
+and United States Government … All rights reserved."
+
+The sentence that follows is what makes them usable: AHRQ "permits members
+of the public to reproduce, redistribute, publicly display, and incorporate
+USPSTF work into other materials provided that it is reproduced without any
+changes to the work or portions thereof", and adds that AHRQ and HHS
+"cannot endorse, or appear to endorse, derivative or excerpted materials".
+
+Two smaller findings:
+
+- **nhlbi.nih.gov** captions its embedded animations "Medical Animation
+  Copyright © Nucleus Medical Media, All rights reserved" — a third party's
+  notice, for a video this corpus does not carry.
+- **MedlinePlus** is mixed: `/lab-tests/` pages are NLM's own and public
+  domain, while `/ency/` is copyright A.D.A.M. Inc. and `/druginfo/` is
+  copyright ASHP. All three MedlinePlus sources here are `/lab-tests/`.
+  Confirmed, not assumed.
+
+### Decision
+
+1. **Keep the eight USPSTF sources**, recorded as
+   `uspstf-ahrq-redistribution-permitted` rather than
+   `us-gov-public-domain`. `SourceRecord.verbatim_only` is True for them.
+2. **Verbatim excerpts only.** `app/retrieval/worker.py::citation_for()`
+   refuses any quote that is not literally a substring of its chunk, so a
+   paraphrase cannot be presented as the source's words. That was already
+   an honesty requirement; for these eight it is a licence condition too.
+3. **The UI must not present a USPSTF excerpt as an AHRQ or HHS
+   endorsement** of the co-pilot's answer
+   (`corpus_meta.USPSTF_ENDORSEMENT_CONSTRAINT`). Not yet implemented —
+   there is no UI for guideline evidence yet.
+4. **Third-party rights notices are stripped from the corpus text** at
+   fetch time and recorded in `sources.yaml` instead. Leaving them in meant
+   a retrieval could surface "All rights reserved" as evidence and a
+   citation could quote it back to a clinician. Three chunks were removed;
+   every bake-off metric was unchanged to three decimal places, which is
+   the evidence that what was stripped was chrome and not content.
+5. **No source was removed for licensing.**
+
+### Conflict, stated plainly
+
+The review instruction was "remove any non-public-domain source". Read
+literally that deletes all eight USPSTF statements — the actual
+recommendations, and the most clinically load-bearing part of the corpus —
+on the strength of a copyright notice that is immediately followed by an
+express grant of the exact permission this use needs.
+
+This entry keeps them instead, because (a) the same work order named USPSTF
+as an approved publisher, (b) the permission is explicit and this use is
+verbatim reproduction of portions with attribution, and (c) deleting a
+third of the corpus on a licence reading is a bigger unilateral act than
+recording the licence accurately and asking.
+
+**A human should confirm this.** If the answer is remove them, it is one
+edit to `sources.yaml` and a rebuild; the audit script, the licence enum
+and the verbatim-only plumbing all stay as they are.

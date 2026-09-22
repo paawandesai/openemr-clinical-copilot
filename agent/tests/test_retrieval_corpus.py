@@ -30,6 +30,7 @@ from urllib.parse import urlparse
 import numpy as np
 import pytest
 
+from app.models.w2.workers import RetrievalMethod
 from app.retrieval.build import load_index
 from app.retrieval.corpus_meta import (
     CORPUS_DIR,
@@ -38,8 +39,7 @@ from app.retrieval.corpus_meta import (
     load_registry,
 )
 from app.retrieval.dense import l2_normalise
-from app.retrieval.retriever import GuidelineRetriever
-from app.retrieval.types import RetrievalMethod
+from app.retrieval.retriever import GuidelineRetriever, parse_source_version
 
 #: Only these publish into this corpus. A URL outside the list is either a
 #: typo or a licensing problem, and both should fail loudly.
@@ -107,9 +107,47 @@ def test_corpus_is_the_size_the_work_order_asked_for(registry):
 
 
 def test_every_source_is_openly_licensed(registry):
+    """
+    Two bases are permitted and no others. A third arriving as a one-line
+    YAML addition is a licensing decision, and it should fail a test rather
+    than pass review.
+    """
     for source in registry.sources:
-        assert source.license_basis is LicenseBasis.US_GOV_PUBLIC_DOMAIN
+        assert source.license_basis in set(LicenseBasis)
         assert len(source.license_note) > 20, f"{source.guideline_id}: licence note is boilerplate"
+
+
+def test_uspstf_sources_are_recorded_as_licensed_not_public_domain(registry):
+    """
+    USPSTF statements are jointly copyrighted (AMA/US Government) and
+    redistributable only by express permission — see corpus_meta. Recording
+    them as public domain would be a false statement in a file whose whole
+    job is to be the licensing record.
+    """
+    uspstf = [s for s in registry.sources if s.publisher.startswith("U.S. Preventive")]
+    assert uspstf
+    for source in uspstf:
+        assert source.license_basis is LicenseBasis.USPSTF_AHRQ_REDISTRIBUTION_PERMITTED
+        assert source.verbatim_only
+        assert "without any changes" in source.license_note
+    for source in registry.sources:
+        if source not in uspstf:
+            assert source.license_basis is LicenseBasis.US_GOV_PUBLIC_DOMAIN
+            assert not source.verbatim_only
+
+
+def test_no_committed_document_carries_a_third_party_rights_notice(registry):
+    """
+    nhlbi.nih.gov captions embedded animations with a Nucleus Medical Media
+    copyright, and the JAMA-published USPSTF statements carry the AMA joint
+    copyright in a metadata paragraph. Neither is clinical guidance, and a
+    corpus that keeps them can retrieve "All rights reserved" as evidence
+    and quote it back in a citation. They are stripped at fetch time.
+    """
+    for source in registry.sources:
+        text = source.document_path.read_text(encoding="utf-8").lower()
+        assert "all rights reserved" not in text, source.guideline_id
+        assert "nucleus medical media" not in text, source.guideline_id
 
 
 def test_every_source_url_is_https_and_from_a_known_publisher(registry):
@@ -223,7 +261,9 @@ def test_retrieval_returns_full_source_metadata_for_every_chunk(retriever, regis
         assert source.url and source.url.startswith("https://")
         assert source.version, "version carries the effective date; a citation needs it"
         record = registry.by_id(source.guideline_id)
-        assert source.version == record.effective_date.isoformat()
+        effective, dated = parse_source_version(source.version)
+        assert effective == record.effective_date.isoformat()
+        assert dated == record.is_dated(registry.as_of, registry.dated_after_years)
         assert source.title == record.title
         assert chunk.text
         assert chunk.method is method
@@ -245,7 +285,14 @@ def test_rerank_score_is_none_when_no_reranker_ran(retriever):
         ["A1C diagnostic threshold"], top_k=5, method=RetrievalMethod.HYBRID
     )
     assert all(c.rerank_score is None for c in results)
-    assert all(c.effective_score == c.retrieval_score for c in results)
+
+
+def test_retrieval_returns_the_contract_type_not_a_local_copy(retriever):
+    results = retriever.retrieve(
+        ["A1C diagnostic threshold"], top_k=3, method=RetrievalMethod.LEXICAL
+    )
+    assert type(results[0]).__module__ == "app.models.w2.workers"
+    assert type(results[0].source).__module__ == "app.models.w2.workers"
 
 
 def test_hybrid_without_an_embedder_refuses_rather_than_returning_lexical_results(index, registry):

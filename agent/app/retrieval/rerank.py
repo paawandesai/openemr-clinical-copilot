@@ -31,6 +31,7 @@ import urllib.request
 from pathlib import Path
 from typing import Protocol, runtime_checkable
 
+from app.retrieval.dense import model_cache_dir
 from app.retrieval.query_guard import assert_concept_only
 
 #: Apache-2.0, 80 MB, ONNX. The MiniLM cross-encoders are the standard
@@ -85,13 +86,15 @@ def cohere_key_available(env_file: Path = ENV_FILE) -> bool:
 class LocalCrossEncoder:
     """Local ONNX cross-encoder. Nothing leaves the process."""
 
-    def __init__(self, model_name: str = DEFAULT_CROSS_ENCODER) -> None:
+    def __init__(
+        self, model_name: str = DEFAULT_CROSS_ENCODER, cache_dir: str | None = None
+    ) -> None:
         # Lazy, for the same reason as FastEmbedEmbedder: the offline unit
         # tests must not need onnxruntime or a downloaded model.
         from fastembed.rerank.cross_encoder import TextCrossEncoder
 
         self._model_name = model_name
-        self._model = TextCrossEncoder(model_name)
+        self._model = TextCrossEncoder(model_name, cache_dir=cache_dir or model_cache_dir())
 
     @property
     def name(self) -> str:

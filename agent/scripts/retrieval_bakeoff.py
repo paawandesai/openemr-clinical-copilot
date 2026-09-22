@@ -38,6 +38,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
+from app.models.w2.workers import RetrievalMethod  # noqa: E402
 from app.retrieval.build import load_index  # noqa: E402
 from app.retrieval.corpus_meta import load_registry  # noqa: E402
 from app.retrieval.dense import FastEmbedEmbedder  # noqa: E402
@@ -47,7 +48,6 @@ from app.retrieval.rerank import (  # noqa: E402
     cohere_key_available,
 )
 from app.retrieval.retriever import EQUAL_FUSION_WEIGHTS, GuidelineRetriever  # noqa: E402
-from app.retrieval.types import RetrievalMethod  # noqa: E402
 
 #: The one fitted parameter in this comparison. Weighting the dense half
 #: twice as heavily is worth ~4 points of recall@5 on the dev set and is
@@ -58,9 +58,10 @@ DENSE_HEAVY_WEIGHTS = (1.0, 2.0)
 
 DEV_PATH = Path(__file__).resolve().parents[1] / "evals/w2/staging/retrieval_dev.jsonl"
 
-#: recall is reported at 5 because 5 chunks is what an answer can actually
-#: cite without the citation list becoming the answer.
+#: recall@5 is the comparison number across configurations. recall@4 is
+#: what actually ships: D25 passes the top 4 chunks on to the answer step.
 RECALL_AT = 5
+SHIPPED_TOP_K = 4
 #: MRR is computed over the full returned list.
 TOP_K = 10
 
@@ -70,6 +71,7 @@ class ConfigResult:
     name: str
     recall_at_5: float
     mrr: float
+    recall_at_4: float = 0.0
     latencies_ms: list[float] = field(default_factory=list)
     per_query: dict[str, float] = field(default_factory=dict)
     skipped: str | None = None
@@ -100,16 +102,16 @@ def load_queries() -> list[dict]:
     return rows
 
 
-def score(retrieved_ids: list[str], relevant: set[str]) -> tuple[float, float]:
-    """(recall@5, reciprocal rank). Both 0.0 when nothing relevant is found."""
-    top = retrieved_ids[:RECALL_AT]
-    recall = len(relevant.intersection(top)) / len(relevant)
+def score(retrieved_ids: list[str], relevant: set[str]) -> tuple[float, float, float]:
+    """(recall@5, recall@4, reciprocal rank). 0.0 when nothing is found."""
+    recall5 = len(relevant.intersection(retrieved_ids[:RECALL_AT])) / len(relevant)
+    recall4 = len(relevant.intersection(retrieved_ids[:SHIPPED_TOP_K])) / len(relevant)
     reciprocal = 0.0
     for rank, chunk_id in enumerate(retrieved_ids, start=1):
         if chunk_id in relevant:
             reciprocal = 1.0 / rank
             break
-    return recall, reciprocal
+    return recall5, recall4, reciprocal
 
 
 def run_config(
@@ -122,6 +124,7 @@ def run_config(
     fusion_weights: tuple[float, float] = EQUAL_FUSION_WEIGHTS,
 ) -> ConfigResult:
     recalls: list[float] = []
+    recalls4: list[float] = []
     reciprocals: list[float] = []
     latencies: list[float] = []
     per_query: dict[str, float] = {}
@@ -138,16 +141,18 @@ def run_config(
             )
             latencies.append((time.perf_counter() - started) * 1000.0)
             if pass_index == 0:
-                recall, reciprocal = score(
+                recall, recall4, reciprocal = score(
                     [r.chunk_id for r in results], set(row["relevant_chunk_ids"])
                 )
                 recalls.append(recall)
+                recalls4.append(recall4)
                 reciprocals.append(reciprocal)
                 per_query[row["query_id"]] = round(recall, 4)
 
     return ConfigResult(
         name=name,
         recall_at_5=statistics.mean(recalls),
+        recall_at_4=statistics.mean(recalls4),
         mrr=statistics.mean(reciprocals),
         latencies_ms=latencies,
         per_query=per_query,
@@ -202,7 +207,7 @@ def main(argv: list[str] | None = None) -> int:
     short = local.name.split("/")[-1]
     results.append(
         run_config(
-            f"hybrid-rrf + {short}",
+            f"hybrid-rrf + {short}  <- D25",
             retriever,
             queries,
             RetrievalMethod.HYBRID,
@@ -247,15 +252,15 @@ def main(argv: list[str] | None = None) -> int:
         )
 
     width = max(len(r.name) for r in results)
-    print(f"{'config':<{width}}  recall@5     MRR   p50 ms   p95 ms")
-    print("-" * (width + 34))
+    print(f"{'config':<{width}}  recall@5  recall@4     MRR   p50 ms   p95 ms")
+    print("-" * (width + 44))
     for result in results:
         if result.skipped:
             print(f"{result.name:<{width}}  SKIPPED — {result.skipped}")
             continue
         print(
-            f"{result.name:<{width}}  {result.recall_at_5:>8.3f}  {result.mrr:>6.3f}  "
-            f"{result.p50:>7.1f}  {result.p95:>7.1f}"
+            f"{result.name:<{width}}  {result.recall_at_5:>8.3f}  {result.recall_at_4:>8.3f}  "
+            f"{result.mrr:>6.3f}  {result.p50:>7.1f}  {result.p95:>7.1f}"
         )
 
     if args.json:
@@ -275,6 +280,7 @@ def main(argv: list[str] | None = None) -> int:
                             "name": r.name,
                             "skipped": r.skipped,
                             "recall_at_5": round(r.recall_at_5, 4),
+                            "recall_at_4": round(r.recall_at_4, 4),
                             "mrr": round(r.mrr, 4),
                             "p50_ms": round(r.p50, 2),
                             "p95_ms": round(r.p95, 2),

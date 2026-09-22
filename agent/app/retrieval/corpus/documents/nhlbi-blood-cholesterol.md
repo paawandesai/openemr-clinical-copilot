@@ -24,8 +24,6 @@ Blood Cholesterol
 - English
 - Español
 
-Watch this video to see how cholesterol flowing through your bloodstream can build up on the wall of the blood vessel over time. This forms plaque that can partially block blood flow through the blood vessel. Medical Animation Copyright © Nucleus Medical Media, All rights reserved. Click here to view this video with an audio description.
-
 Cholesterol is a waxy, fat-like substance that your body needs for good health, but in the right amounts.
 
 are small, round particles made of (fats) and . These particles carry cholesterol in your blood and throughout your body. Two types of lipoproteins include:
