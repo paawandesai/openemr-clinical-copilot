@@ -52,16 +52,27 @@ answer that happens to be reassuring.
 
 ---
 
-**Decision: a blank flag column means `normal`.**
+**Decision: a blank flag column reports nothing** (D20, superseding D12).
 
-The doc-factory renders an empty `flag` for every in-range row and `H`/`L`
-for the abnormal ones, which is how lab reports are actually printed. So
-`parse_reported_flag("")` is `normal`, not "no flag reported". The
-consequence is deliberate: a report that prints nothing where a flag
-belongs is *asserting* normality, and the cross-check below will catch it
-disagreeing with the computed flag. `None` is reserved for a glyph we do
-not recognise, which is a different failure and must not be read as an
-assertion of anything.
+`parse_reported_flag("")` is `ReportedFlag.NOT_REPORTED`. An empty flag
+column is an absence, not an assertion of normality, and reading it as one
+would manufacture evidence: the cross-check would report `agree` on every
+in-range row of every report, and that agreement would be with a flag no
+laboratory ever printed.
+
+It also fails in the direction that matters. A report that prints its
+abnormal flags in a column this extractor did not find — a layout it has
+not seen, a scan where the column is lost — yields blanks everywhere. Read
+as `normal`, every one of those blanks becomes a confirmation of the
+computed flag on rows where nothing was confirmed at all, and the check
+that exists to catch a misread is loudest precisely when the misread is
+total.
+
+So `ReportedFlag` carries the two ways a column says nothing comparable —
+`not_reported` (blank) and `unrecognised` (a glyph we cannot read) — and
+`cross_check_abnormal_flag` compares only when the laboratory actually
+printed a flag. Otherwise the computed flag stands alone and the result
+says so. `N` and `WNL` are still `normal`: those are printed assertions.
 """
 
 from __future__ import annotations
@@ -211,6 +222,58 @@ def openemr_abnormal_code(flag: AbnormalFlag) -> str:
             "undecidable result is not written back as normal"
         )
     return code
+
+
+class ReportedFlag(StrEnum):
+    """
+    What a lab report's flag column says — including the two ways it says
+    nothing this contract can compare against.
+
+    Separate from `AbnormalFlag` on purpose. `AbnormalFlag` is a conclusion
+    about a result; `ReportedFlag` is an observation about a column on a
+    page, and a column can be blank or illegible in ways a conclusion
+    cannot. Collapsing them is what let a blank column become an assertion
+    of normality (D12, superseded by D20).
+    """
+
+    NORMAL = "normal"
+    HIGH = "high"
+    LOW = "low"
+    ABNORMAL = "abnormal"
+    #: The column is blank. The report asserted nothing, so there is nothing
+    #: to agree or disagree with.
+    NOT_REPORTED = "not_reported"
+    #: The column carries a glyph that is not in `_REPORTED_FLAG_GLYPHS`.
+    #: The report asserted something; we cannot read it. Not comparable, and
+    #: emphatically not agreement.
+    UNRECOGNISED = "unrecognised"
+
+
+#: The members that name a flag a laboratory actually printed, and so the
+#: only ones a cross-check may compare.
+COMPARABLE_REPORTED_FLAGS = frozenset(
+    {
+        ReportedFlag.NORMAL,
+        ReportedFlag.HIGH,
+        ReportedFlag.LOW,
+        ReportedFlag.ABNORMAL,
+    }
+)
+
+_REPORTED_AS_ABNORMAL_FLAG: dict[ReportedFlag, AbnormalFlag] = {
+    ReportedFlag.NORMAL: AbnormalFlag.NORMAL,
+    ReportedFlag.HIGH: AbnormalFlag.HIGH,
+    ReportedFlag.LOW: AbnormalFlag.LOW,
+    ReportedFlag.ABNORMAL: AbnormalFlag.ABNORMAL,
+}
+
+
+def as_abnormal_flag(reported: ReportedFlag) -> AbnormalFlag | None:
+    """
+    The conclusion a printed flag states, or None when the column stated
+    nothing comparable.
+    """
+    return _REPORTED_AS_ABNORMAL_FLAG.get(reported)
 
 
 class FlagBasis(StrEnum):
@@ -388,8 +451,10 @@ class CrossCheckOutcome(StrEnum):
     AGREE = "agree"
     #: The one that is a verification failure. See FlagCrossCheck.
     DISAGREE = "disagree"
-    #: The document printed a glyph we do not recognise, so there is nothing
-    #: to compare. Not a failure: nothing was asserted that we can dispute.
+    #: The laboratory printed no flag we can read — a blank column, or a
+    #: glyph that is not in the table. There is nothing to compare, so the
+    #: computed flag stands alone. Not a failure: nothing was asserted that
+    #: we could dispute. `FlagCrossCheck.reported` says which of the two.
     NOT_REPORTED = "not_reported"
     #: The value/range pair does not determine a flag (censored value,
     #: missing bounds, uncomparable term). Disclosed, never counted verified.
@@ -411,10 +476,21 @@ class FlagCrossCheck(W2Contract):
     an overlapping range has no computable flag; treating that as a
     contradiction would make the check cry wolf on correct data, which is
     the fastest way to get a safety check switched off.
+
+    `NOT_REPORTED` is not a failure either, and — since D20 — it is what a
+    blank flag column produces. The comparison simply does not happen; the
+    computed flag stands on its own and `is_verification_failure` is False.
+    What must never happen is the third thing: treating a blank column as a
+    printed `normal` and recording agreement with it.
     """
 
-    reported: AbnormalFlag | None = Field(
-        description="What the document's flag column says; None if the glyph was unrecognised."
+    reported: ReportedFlag = Field(
+        description=(
+            "What the document's flag column says, including `not_reported` "
+            "for a blank column and `unrecognised` for a glyph we cannot "
+            "read. Never None: a missing observation is one of the values, "
+            "not the absence of one."
+        )
     )
     computed: AbnormalFlag = Field(description="What compute_abnormal_flag concluded.")
     basis: FlagBasis
@@ -436,22 +512,36 @@ class FlagCrossCheck(W2Contract):
         return self.outcome is CrossCheckOutcome.DISAGREE
 
 
-def _cross_check_outcome(
-    reported: AbnormalFlag | None, computed: AbnormalFlag
-) -> CrossCheckOutcome:
+def _cross_check_outcome(reported: ReportedFlag, computed: AbnormalFlag) -> CrossCheckOutcome:
+    """
+    Whether the two can be compared, and if so how they relate.
+
+    `reported` is checked first. If the laboratory printed nothing readable
+    there is no comparison to make, whatever the computation managed —
+    saying `not_computable` there would suggest that fixing the reference
+    range would produce a comparison, and it would not.
+    """
+    if reported not in COMPARABLE_REPORTED_FLAGS:
+        return CrossCheckOutcome.NOT_REPORTED
     if computed is AbnormalFlag.INDETERMINATE:
         return CrossCheckOutcome.NOT_COMPUTABLE
-    if reported is None:
-        return CrossCheckOutcome.NOT_REPORTED
-    return CrossCheckOutcome.AGREE if reported is computed else CrossCheckOutcome.DISAGREE
+    return (
+        CrossCheckOutcome.AGREE
+        if as_abnormal_flag(reported) is computed
+        else CrossCheckOutcome.DISAGREE
+    )
 
 
 def cross_check_abnormal_flag(
-    reported: AbnormalFlag | None,
+    reported: ReportedFlag,
     value: NumericLabValue | QualitativeLabValue,
     reference_range: ReferenceRange | None,
 ) -> FlagCrossCheck:
-    """Run the pure rule and compare it with what the page reported."""
+    """
+    Run the pure rule, and compare it with the page **only if the page
+    printed a flag** (D20). With no printed flag the computed flag stands
+    alone and the result says `not_reported`.
+    """
     computation = compute_abnormal_flag(value, reference_range)
     return FlagCrossCheck(
         reported=reported,
@@ -461,35 +551,42 @@ def cross_check_abnormal_flag(
     )
 
 
-#: How a printed flag glyph maps onto `AbnormalFlag`. `""` is `normal` — see
-#: the module docstring. `HH`/`LL` (critical) collapse onto high/low: they
-#: say more than our enum does, but nothing it contradicts.
-_REPORTED_FLAG_GLYPHS: dict[str, AbnormalFlag] = {
-    "": AbnormalFlag.NORMAL,
-    "n": AbnormalFlag.NORMAL,
-    "wnl": AbnormalFlag.NORMAL,
-    "h": AbnormalFlag.HIGH,
-    "hh": AbnormalFlag.HIGH,
-    "high": AbnormalFlag.HIGH,
-    "l": AbnormalFlag.LOW,
-    "ll": AbnormalFlag.LOW,
-    "low": AbnormalFlag.LOW,
-    "a": AbnormalFlag.ABNORMAL,
-    "ab": AbnormalFlag.ABNORMAL,
-    "abn": AbnormalFlag.ABNORMAL,
-    "abnormal": AbnormalFlag.ABNORMAL,
+#: The glyphs a flag column prints. Note what is *not* here: the empty
+#: string. A blank column is `not_reported` (D20), never `normal`.
+#: `HH`/`LL` (critical) collapse onto high/low: they say more than this
+#: contract does, but nothing it contradicts. `N` and `WNL` are `normal`
+#: because a laboratory that prints them is asserting normality — which is
+#: exactly what a blank column does not do.
+_REPORTED_FLAG_GLYPHS: dict[str, ReportedFlag] = {
+    "n": ReportedFlag.NORMAL,
+    "wnl": ReportedFlag.NORMAL,
+    "h": ReportedFlag.HIGH,
+    "hh": ReportedFlag.HIGH,
+    "high": ReportedFlag.HIGH,
+    "l": ReportedFlag.LOW,
+    "ll": ReportedFlag.LOW,
+    "low": ReportedFlag.LOW,
+    "a": ReportedFlag.ABNORMAL,
+    "ab": ReportedFlag.ABNORMAL,
+    "abn": ReportedFlag.ABNORMAL,
+    "abnormal": ReportedFlag.ABNORMAL,
 }
 
 
-def parse_reported_flag(glyph: str) -> AbnormalFlag | None:
+def parse_reported_flag(glyph: str) -> ReportedFlag:
     """
-    The flag a report printed, or None if the glyph is not one we know.
+    What a report's flag column says. Total — every string maps.
 
-    None is not "normal". An unrecognised glyph means the document asserted
-    something we cannot read, and the cross-check treats it as
-    `not_reported` rather than inventing agreement.
+    A blank column is `not_reported`: an absence, not an assertion of
+    normality (D20, superseding D12). A glyph outside the table is
+    `unrecognised`: the report asserted something this contract cannot read,
+    which is a different thing from asserting nothing and is tracked
+    separately so the two are distinguishable in a log line.
     """
-    return _REPORTED_FLAG_GLYPHS.get(glyph.strip().lower())
+    stripped = glyph.strip().lower()
+    if not stripped:
+        return ReportedFlag.NOT_REPORTED
+    return _REPORTED_FLAG_GLYPHS.get(stripped, ReportedFlag.UNRECOGNISED)
 
 
 #: `70 - 99`, `70-99`, `70 – 99` (en dash), `70 to 99`.

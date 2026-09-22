@@ -18,8 +18,10 @@ from app.models.w2.extraction import ExtractedField
 from app.models.w2.lab_pdf import LabOrderHeader, LabPdfExtraction, LabResult, PerformingLab
 from app.models.w2.lab_values import (
     AbnormalFlag,
+    CrossCheckOutcome,
     NumericLabValue,
     ReferenceRange,
+    ReportedFlag,
     parse_reference_range_text,
 )
 
@@ -60,7 +62,7 @@ def header() -> DocumentPatientHeader:
     )
 
 
-def glucose(value: float = 89.0, flag: AbnormalFlag = AbnormalFlag.NORMAL) -> LabResult:
+def glucose(value: float = 89.0, flag: ReportedFlag = ReportedFlag.NOT_REPORTED) -> LabResult:
     return LabResult(
         panel="cmp",
         test_key="glucose",
@@ -75,7 +77,7 @@ def glucose(value: float = 89.0, flag: AbnormalFlag = AbnormalFlag.NORMAL) -> La
         collection_date=ExtractedField[date].located(
             date(2026, 8, 30), citation("order.collected", "2026-08-30 07:12")
         ),
-        reported_flag=ExtractedField[AbnormalFlag].located(flag, citation("...flag", "")),
+        reported_flag=ExtractedField[ReportedFlag].located(flag, citation("...flag", "")),
     )
 
 
@@ -190,21 +192,61 @@ def test_an_unlocated_value_leaves_the_row_with_no_citation_and_no_fact() -> Non
 
 
 def test_a_row_cross_checks_its_own_flag() -> None:
-    agreeing = glucose(value=89.0, flag=AbnormalFlag.NORMAL)
+    agreeing = glucose(value=89.0, flag=ReportedFlag.NORMAL)
     check = agreeing.cross_check_flag()
-    assert check is not None and check.is_verification_failure is False
+    assert check is not None
+    assert check.outcome is CrossCheckOutcome.AGREE
+    assert check.is_verification_failure is False
 
 
 def test_a_misprinted_flag_is_a_verification_failure() -> None:
-    wrong = glucose(value=111.0, flag=AbnormalFlag.NORMAL)
+    wrong = glucose(value=111.0, flag=ReportedFlag.NORMAL)
     check = wrong.cross_check_flag()
     assert check is not None
     assert check.computed is AbnormalFlag.HIGH
-    assert check.reported is AbnormalFlag.NORMAL
+    assert check.reported is ReportedFlag.NORMAL
     assert check.is_verification_failure is True
 
     failures = extraction([wrong]).flag_verification_failures()
     assert [row.test_key for row, _ in failures] == ["glucose"]
+
+
+def test_a_blank_flag_column_leaves_the_row_uncontradicted() -> None:
+    """D20: the computed flag stands alone, and a blank column is never
+    counted as the report agreeing with it."""
+    blank = glucose(value=111.0, flag=ReportedFlag.NOT_REPORTED)
+    check = blank.cross_check_flag()
+    assert check is not None
+    assert check.computed is AbnormalFlag.HIGH
+    assert check.outcome is CrossCheckOutcome.NOT_REPORTED
+    assert check.is_verification_failure is False
+    assert extraction([blank]).flag_verification_failures() == []
+
+
+def test_an_unlocatable_flag_is_not_treated_as_something_the_report_said() -> None:
+    """
+    A flag the locate step could not place is not an observation about the
+    document (invariant 4). The row still cross-checks — the computed flag
+    stands alone — but nothing is compared against a value nobody found.
+    """
+    row = LabResult(
+        panel="cmp",
+        test_key="glucose",
+        test_name=ExtractedField[str].missing(),
+        value=ExtractedField[NumericLabValue].located(
+            NumericLabValue(value=111.0), citation("...value", "111")
+        ),
+        reference_range=ExtractedField[ReferenceRange].located(
+            parse_reference_range_text("70 - 99"), citation("...range", "70 - 99")
+        ),
+        reported_flag=ExtractedField[ReportedFlag].unlocated(ReportedFlag.NORMAL),
+    )
+    check = row.cross_check_flag()
+    assert check is not None
+    assert check.reported is ReportedFlag.NOT_REPORTED
+    assert check.computed is AbnormalFlag.HIGH
+    assert check.outcome is CrossCheckOutcome.NOT_REPORTED
+    assert check.is_verification_failure is False
 
 
 def test_a_row_with_no_locatable_value_is_not_cross_checked() -> None:
@@ -217,8 +259,8 @@ def test_a_row_with_no_locatable_value_is_not_cross_checked() -> None:
         reference_range=ExtractedField[ReferenceRange].located(
             parse_reference_range_text("70 - 99"), citation("...range", "70 - 99")
         ),
-        reported_flag=ExtractedField[AbnormalFlag].located(
-            AbnormalFlag.NORMAL, citation("...flag", "")
+        reported_flag=ExtractedField[ReportedFlag].located(
+            ReportedFlag.NORMAL, citation("...flag", "N")
         ),
     )
     assert row.cross_check_flag() is None
@@ -232,8 +274,8 @@ def test_a_row_with_no_reference_range_is_not_computable_and_not_a_failure() -> 
         value=ExtractedField[NumericLabValue].located(
             NumericLabValue(value=111.0), citation("...value", "111")
         ),
-        reported_flag=ExtractedField[AbnormalFlag].located(
-            AbnormalFlag.NORMAL, citation("...flag", "")
+        reported_flag=ExtractedField[ReportedFlag].located(
+            ReportedFlag.NORMAL, citation("...flag", "N")
         ),
     )
     check = row.cross_check_flag()

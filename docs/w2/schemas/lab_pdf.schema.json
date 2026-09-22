@@ -3,18 +3,6 @@
   "$id": "https://clinical-copilot.invalid/schemas/w2-contracts/lab_pdf/1.0.0",
   "title": "LabPdfExtraction",
   "$defs": {
-    "AbnormalFlag": {
-      "description": "What a result is, relative to its reference range.\n\nFive members, not four, because `indeterminate` is a real answer \u2014 see\nthe module docstring on censored values. `openemr_abnormal_code()` maps\nthe four decidable ones onto OpenEMR's `proc_res_abnormal` list\n(`no | yes | high | low`, spike \u00a79) and refuses to map the fifth,\nbecause there is no column value that means \"we could not tell\" and\nwriting `no` would be a lie with a patient in it.",
-      "enum": [
-        "normal",
-        "high",
-        "low",
-        "abnormal",
-        "indeterminate"
-      ],
-      "title": "AbnormalFlag",
-      "type": "string"
-    },
     "BBox": {
       "additionalProperties": false,
       "description": "A rectangle on a page, in PDF points.\n\nCoordinate convention, matching the doc-factory's recorded convention\nexactly (`agent/evals/w2/factory/groundtruth.py` COORDINATE_CONVENTION)\nso that ground truth and extractor output are directly comparable:\norigin top-left, y increasing downward \u2014 PyMuPDF page space, on the\noriginal clean layout rather than on a degraded scan.\n\n`x1 >= x0` and `y1 >= y0`, not `>`: a zero-width box is real data. The\nfactory emits one for every unflagged lab result (an empty flag column\nrenders as `[306.0, 256.398, 306.0, 268.24]`), and rejecting it would\nmake the contract unable to describe a normal lab row.",
@@ -241,58 +229,6 @@
       "title": "DocumentPatientHeader",
       "type": "object"
     },
-    "ExtractedField_AbnormalFlag_": {
-      "additionalProperties": false,
-      "properties": {
-        "status": {
-          "$ref": "#/$defs/FieldStatus"
-        },
-        "value": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/AbnormalFlag"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "description": "What the document says. Non-None for located and unlocated; None for missing and illegible, where nothing was read. Read it through as_presented_fact(), not directly."
-        },
-        "citation": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/Citation"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "description": "The document citation supporting `value`; see the status rules."
-        },
-        "confidence": {
-          "anyOf": [
-            {
-              "maximum": 1.0,
-              "minimum": 0.0,
-              "type": "number"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "description": "The extractor's confidence in `value`, when it reports one. Must be None where `value` is None: a confidence about nothing is a number that invites being compared to a threshold.",
-          "title": "Confidence"
-        }
-      },
-      "required": [
-        "status"
-      ],
-      "title": "ExtractedField[AbnormalFlag]",
-      "type": "object"
-    },
     "ExtractedField_LabValue_": {
       "additionalProperties": false,
       "properties": {
@@ -395,6 +331,58 @@
         "status"
       ],
       "title": "ExtractedField[ReferenceRange]",
+      "type": "object"
+    },
+    "ExtractedField_ReportedFlag_": {
+      "additionalProperties": false,
+      "properties": {
+        "status": {
+          "$ref": "#/$defs/FieldStatus"
+        },
+        "value": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ReportedFlag"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "What the document says. Non-None for located and unlocated; None for missing and illegible, where nothing was read. Read it through as_presented_fact(), not directly."
+        },
+        "citation": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Citation"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "The document citation supporting `value`; see the status rules."
+        },
+        "confidence": {
+          "anyOf": [
+            {
+              "maximum": 1.0,
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "The extractor's confidence in `value`, when it reports one. Must be None where `value` is None: a confidence about nothing is a number that invites being compared to a threshold.",
+          "title": "Confidence"
+        }
+      },
+      "required": [
+        "status"
+      ],
+      "title": "ExtractedField[ReportedFlag]",
       "type": "object"
     },
     "ExtractedField_date_": {
@@ -636,8 +624,8 @@
           "description": "The date this specimen was collected \u2014 the third component of D1's idempotency key. Usually copied from the order header; on reports that date rows individually, from the row."
         },
         "reported_flag": {
-          "$ref": "#/$defs/ExtractedField_AbnormalFlag_",
-          "description": "The flag the document printed, parsed by `lab_values.parse_reported_flag`. Never the computed flag \u2014 keeping them apart is the whole point of the cross-check."
+          "$ref": "#/$defs/ExtractedField_ReportedFlag_",
+          "description": "What the document's flag column says, parsed by `lab_values.parse_reported_flag`. A `ReportedFlag`, not an `AbnormalFlag`: a blank column is `not_reported`, never `normal` (D20). Never the computed flag \u2014 keeping the two apart is the whole point of the cross-check."
         },
         "loinc_code": {
           "anyOf": [
@@ -816,6 +804,19 @@
       },
       "title": "ReferenceRange",
       "type": "object"
+    },
+    "ReportedFlag": {
+      "description": "What a lab report's flag column says \u2014 including the two ways it says\nnothing this contract can compare against.\n\nSeparate from `AbnormalFlag` on purpose. `AbnormalFlag` is a conclusion\nabout a result; `ReportedFlag` is an observation about a column on a\npage, and a column can be blank or illegible in ways a conclusion\ncannot. Collapsing them is what let a blank column become an assertion\nof normality (D12, superseded by D20).",
+      "enum": [
+        "normal",
+        "high",
+        "low",
+        "abnormal",
+        "not_reported",
+        "unrecognised"
+      ],
+      "title": "ReportedFlag",
+      "type": "string"
     },
     "SourceDocument": {
       "additionalProperties": false,

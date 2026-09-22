@@ -73,6 +73,7 @@ from app.models.w2.lab_pdf import (
     PerformingLab,
 )
 from app.models.w2.lab_values import (
+    COMPARABLE_REPORTED_FLAGS,
     AbnormalFlag,
     AbnormalFlagComputation,
     Comparator,
@@ -83,6 +84,8 @@ from app.models.w2.lab_values import (
     NumericLabValue,
     QualitativeLabValue,
     ReferenceRange,
+    ReportedFlag,
+    as_abnormal_flag,
     compute_abnormal_flag,
     cross_check_abnormal_flag,
     openemr_abnormal_code,
@@ -121,6 +124,7 @@ from app.models.w2.writeback import (
 
 __all__ = [
     "ALLOWED_REASONS",
+    "COMPARABLE_REPORTED_FLAGS",
     "PATIENT_SOURCE_TYPES",
     "AbnormalFlag",
     "AbnormalFlagComputation",
@@ -168,6 +172,7 @@ __all__ = [
     "PresentedFact",
     "QualitativeLabValue",
     "ReferenceRange",
+    "ReportedFlag",
     "RetrievalMethod",
     "Route",
     "RoutingDecision",
@@ -180,6 +185,7 @@ __all__ = [
     "W2Contract",
     "WriteBackDocument",
     "WriteOutcome",
+    "as_abnormal_flag",
     "citation_from_claim",
     "citation_from_claim_outcome",
     "claim_from_citation",

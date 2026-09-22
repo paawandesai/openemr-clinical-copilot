@@ -68,9 +68,9 @@ def test_generic_definitions_are_named_readably() -> None:
     definitions = json.loads(path.read_text(encoding="utf-8"))["$defs"]
     extracted = sorted(key for key in definitions if key.startswith("ExtractedField"))
     assert extracted == [
-        "ExtractedField_AbnormalFlag_",
         "ExtractedField_LabValue_",
         "ExtractedField_ReferenceRange_",
+        "ExtractedField_ReportedFlag_",
         "ExtractedField_date_",
         "ExtractedField_datetime_",
         "ExtractedField_str_",

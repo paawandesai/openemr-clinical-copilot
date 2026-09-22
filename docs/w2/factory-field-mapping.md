@@ -68,7 +68,7 @@ of the path that varies.
 | `lab_pdf` | `results.<panel>.<test>.value` | `results[test_key=<test>].value` | Parsed from the drawn text into NumericLabValue or QualitativeLabValue. |
 | `lab_pdf` | `results.<panel>.<test>.unit` | `results[test_key=<test>].unit` | — |
 | `lab_pdf` | `results.<panel>.<test>.reference_range` | `results[test_key=<test>].reference_range` | Parsed by lab_values.parse_reference_range_text; the drawn text is kept. |
-| `lab_pdf` | `results.<panel>.<test>.flag` | `results[test_key=<test>].reported_flag` | Empty flag column means `normal` — see lab_values' module docstring. |
+| `lab_pdf` | `results.<panel>.<test>.flag` | `results[test_key=<test>].reported_flag` | Parsed to a ReportedFlag. An empty flag column is `not_reported`, never `normal` (D20). |
 | `intake_form` | `visit.date` | `visit_date` | — |
 | `intake_form` | `chief_concern` | `chief_concern` | — |
 | `intake_form` | `medications[<i>].name` | `medications[<i>].name` | Drawn as the common name; the chart product name goes to chart_truth. |

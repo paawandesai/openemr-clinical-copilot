@@ -38,7 +38,13 @@ from app.models.w2.factory_mapping import (
 )
 from app.models.w2.intake_form import IntakeFormExtraction
 from app.models.w2.lab_pdf import LabPdfExtraction
-from app.models.w2.lab_values import AbnormalFlag, NumericLabValue
+from app.models.w2.lab_values import (
+    COMPARABLE_REPORTED_FLAGS,
+    AbnormalFlag,
+    CrossCheckOutcome,
+    NumericLabValue,
+    ReportedFlag,
+)
 
 FACTORY_BRANCH = "feat/doc-factory"
 SAMPLE_DIR = "agent/evals/w2/factory/output/samples"
@@ -245,47 +251,84 @@ def test_every_lab_value_parses_to_the_ground_truths_number(scenario_id: str) ->
 
 
 @pytest.mark.parametrize("scenario_id", LAB_SAMPLES)
-def test_the_computed_flag_agrees_with_the_printed_flag_on_every_row(
-    scenario_id: str,
-) -> None:
+def test_no_generated_report_contradicts_the_computed_flag(scenario_id: str) -> None:
     """
     The independent half of the contract, run over real generated reports:
     the deterministic rule recomputes each row's flag from its value and
-    range, and must agree with the glyph the factory drew. A disagreement
-    here would mean either the rule or the factory misreads a lab report.
+    range, and nothing the factory printed contradicts it. A failure here
+    would mean either the rule or the factory misreads a lab report.
     """
     extraction = convert(scenario_id).extraction
     assert isinstance(extraction, LabPdfExtraction)
     assert extraction.flag_verification_failures() == []
 
-    checked = 0
+
+@pytest.mark.parametrize("scenario_id", LAB_SAMPLES)
+def test_a_generated_report_prints_a_flag_only_where_it_means_to(
+    scenario_id: str,
+) -> None:
+    """
+    D20 in the data. These reports print a flag on abnormal rows and leave
+    the column blank everywhere else, which is how lab reports are printed —
+    so most rows cross-check to `not_reported`, and that is the correct
+    outcome, not a gap.
+
+    Under D12 every one of those blanks would have been read as a printed
+    `normal` and scored as agreement. This asserts the opposite: a blank row
+    is never `agree`, and where a flag *is* printed it must match.
+    """
+    extraction = convert(scenario_id).extraction
+    assert isinstance(extraction, LabPdfExtraction)
+
+    printed, blank = 0, 0
     for row in extraction.results:
         check = row.cross_check_flag()
-        if check is None or check.computed is AbnormalFlag.INDETERMINATE:
-            continue
-        assert check.reported is check.computed, f"{row.test_key}: {check}"
-        checked += 1
-    assert checked > 10, "the samples should exercise plenty of decidable rows"
+        assert check is not None, f"{row.test_key}: every sample row has a value"
+        if check.reported in COMPARABLE_REPORTED_FLAGS:
+            assert check.outcome is CrossCheckOutcome.AGREE, f"{row.test_key}: {check}"
+            printed += 1
+        else:
+            assert check.reported is ReportedFlag.NOT_REPORTED
+            assert check.outcome is not CrossCheckOutcome.AGREE
+            assert check.is_verification_failure is False
+            blank += 1
+    assert blank > 10, "most rows of a generated report have a blank flag column"
+    assert printed + blank == len(extraction.results)
 
 
-def test_the_abnormal_sample_actually_contains_abnormal_rows() -> None:
-    """lab-scanned-heavy-abnormal-002 perturbs glucose high, potassium low
-    and ALT high. If the rule quietly called everything normal, the test
-    above would still pass."""
+def test_the_abnormal_sample_prints_its_three_flags_and_they_all_check_out() -> None:
+    """
+    lab-scanned-heavy-abnormal-002 perturbs glucose high, potassium low and
+    ALT high, and prints H/L/H for exactly those three. This is the only
+    sample where the cross-check has anything to compare, so it is where
+    `agree` has to be earned.
+    """
     extraction = convert("lab-scanned-heavy-abnormal-002").extraction
     assert isinstance(extraction, LabPdfExtraction)
-    flagged = {
-        row.test_key: row.cross_check_flag().computed  # type: ignore[union-attr]
-        for row in extraction.results
-        if row.cross_check_flag() is not None
-        and row.cross_check_flag().computed  # type: ignore[union-attr]
-        in (AbnormalFlag.HIGH, AbnormalFlag.LOW)
-    }
-    assert flagged == {
+
+    compared = {}
+    for row in extraction.results:
+        check = row.cross_check_flag()
+        assert check is not None
+        if check.reported in COMPARABLE_REPORTED_FLAGS:
+            assert check.outcome is CrossCheckOutcome.AGREE
+            compared[row.test_key] = check.computed
+
+    assert compared == {
         "glucose": AbnormalFlag.HIGH,
         "potassium": AbnormalFlag.LOW,
         "alt": AbnormalFlag.HIGH,
     }
+
+
+def test_the_clean_sample_prints_no_flags_at_all() -> None:
+    """The complement: a report with nothing abnormal prints nothing in the
+    flag column, so there is nothing to compare anywhere in it."""
+    extraction = convert("lab-clean-001").extraction
+    assert isinstance(extraction, LabPdfExtraction)
+    outcomes = {row.cross_check_flag().outcome for row in extraction.results}  # type: ignore[union-attr]
+    assert outcomes == {CrossCheckOutcome.NOT_REPORTED}
+    assert extraction.flag_verification_failures() == []
 
 
 # -- shape of the converted documents ---------------------------------------

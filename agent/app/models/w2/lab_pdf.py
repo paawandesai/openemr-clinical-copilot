@@ -33,10 +33,10 @@ from app.models.w2.citations import Citation
 from app.models.w2.documents import DocumentKind, DocumentPatientHeader, SourceDocument
 from app.models.w2.extraction import ExtractedField, PresentedFact
 from app.models.w2.lab_values import (
-    AbnormalFlag,
     FlagCrossCheck,
     LabValue,
     ReferenceRange,
+    ReportedFlag,
     cross_check_abnormal_flag,
 )
 
@@ -124,12 +124,14 @@ class LabResult(W2Contract):
             "on reports that date rows individually, from the row."
         ),
     )
-    reported_flag: ExtractedField[AbnormalFlag] = Field(
-        default_factory=lambda: ExtractedField[AbnormalFlag].missing(),
+    reported_flag: ExtractedField[ReportedFlag] = Field(
+        default_factory=lambda: ExtractedField[ReportedFlag].missing(),
         description=(
-            "The flag the document printed, parsed by "
-            "`lab_values.parse_reported_flag`. Never the computed flag — "
-            "keeping them apart is the whole point of the cross-check."
+            "What the document's flag column says, parsed by "
+            "`lab_values.parse_reported_flag`. A `ReportedFlag`, not an "
+            "`AbnormalFlag`: a blank column is `not_reported`, never "
+            "`normal` (D20). Never the computed flag — keeping the two "
+            "apart is the whole point of the cross-check."
         ),
     )
     loinc_code: str | None = Field(
@@ -158,13 +160,21 @@ class LabResult(W2Contract):
         `missing` or `illegible` value is already disclosed as unsupported,
         and running a safety check on a number nobody could find would
         manufacture a second, confusing failure for one underlying fault.
+
+        A row whose *flag* could not be located still cross-checks: the
+        computed flag stands alone and the outcome is `not_reported`.
         """
         value_fact = self.value.as_presented_fact()
         if value_fact is None:
             return None
         range_fact = self.reference_range.as_presented_fact()
+        flag_fact = self.reported_flag.as_presented_fact()
         return cross_check_abnormal_flag(
-            self.reported_flag.value,
+            # Read through as_presented_fact, not off .value: a flag the
+            # locate step could not place is not something the document
+            # reported (invariant 4), and feeding it into a verification
+            # comparison would let an unlocated value confirm a fact.
+            flag_fact.value if flag_fact else ReportedFlag.NOT_REPORTED,
             value_fact.value,
             range_fact.value if range_fact else None,
         )

@@ -101,11 +101,11 @@ from app.models.w2.intake_form import (
 )
 from app.models.w2.lab_pdf import LabOrderHeader, LabPdfExtraction, LabResult, PerformingLab
 from app.models.w2.lab_values import (
-    AbnormalFlag,
     Comparator,
     NumericLabValue,
     QualitativeLabValue,
     ReferenceRange,
+    ReportedFlag,
     parse_reference_range_text,
     parse_reported_flag,
 )
@@ -203,7 +203,10 @@ FIELD_PATH_RULES: tuple[FieldPathRule, ...] = (
         factory_path="results.<panel>.<test>.flag",
         schema_path="results[test_key=<test>].reported_flag",
         doc_kind="lab_pdf",
-        note="Empty flag column means `normal` — see lab_values' module docstring.",
+        note=(
+            "Parsed to a ReportedFlag. An empty flag column is "
+            "`not_reported`, never `normal` (D20)."
+        ),
     ),
     # -- intake form -----------------------------------------------------
     FieldPathRule(factory_path="visit.date", schema_path="visit_date", doc_kind="intake_form"),
@@ -621,7 +624,7 @@ def same_meaning(extracted: Any, ground_truth_value: Any) -> bool:
         )
     if isinstance(extracted, QualitativeLabValue):
         return str(ground_truth_value).strip() == extracted.text
-    if isinstance(extracted, AbnormalFlag):
+    if isinstance(extracted, ReportedFlag):
         return parse_reported_flag(str(ground_truth_value)) is extracted
     if isinstance(extracted, ReferenceRange):
         return str(ground_truth_value).strip() == (extracted.text or "")

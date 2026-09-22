@@ -14,6 +14,7 @@ import pytest
 from pydantic import ValidationError
 
 from app.models.w2.lab_values import (
+    COMPARABLE_REPORTED_FLAGS,
     AbnormalFlag,
     Comparator,
     CrossCheckOutcome,
@@ -22,6 +23,8 @@ from app.models.w2.lab_values import (
     NumericLabValue,
     QualitativeLabValue,
     ReferenceRange,
+    ReportedFlag,
+    as_abnormal_flag,
     compute_abnormal_flag,
     cross_check_abnormal_flag,
     openemr_abnormal_code,
@@ -211,20 +214,55 @@ def test_the_module_reaches_nothing() -> None:
 @pytest.mark.parametrize(
     ("glyph", "expected"),
     [
-        ("", AbnormalFlag.NORMAL),  # a blank flag column asserts normality
-        ("  ", AbnormalFlag.NORMAL),
-        ("H", AbnormalFlag.HIGH),
-        ("h", AbnormalFlag.HIGH),
-        ("HH", AbnormalFlag.HIGH),
-        ("L", AbnormalFlag.LOW),
-        ("LL", AbnormalFlag.LOW),
-        ("A", AbnormalFlag.ABNORMAL),
-        ("?", None),  # unrecognised: asserted something we cannot read
-        ("critical", None),
+        # D20: a blank column is an absence, not an assertion of normality.
+        ("", ReportedFlag.NOT_REPORTED),
+        ("  ", ReportedFlag.NOT_REPORTED),
+        # A printed N or WNL *is* an assertion.
+        ("N", ReportedFlag.NORMAL),
+        ("wnl", ReportedFlag.NORMAL),
+        ("H", ReportedFlag.HIGH),
+        ("h", ReportedFlag.HIGH),
+        ("HH", ReportedFlag.HIGH),
+        ("L", ReportedFlag.LOW),
+        ("LL", ReportedFlag.LOW),
+        ("A", ReportedFlag.ABNORMAL),
+        # Asserted something we cannot read — different from asserting nothing.
+        ("?", ReportedFlag.UNRECOGNISED),
+        ("critical", ReportedFlag.UNRECOGNISED),
     ],
 )
-def test_parse_reported_flag(glyph: str, expected: AbnormalFlag | None) -> None:
+def test_parse_reported_flag(glyph: str, expected: ReportedFlag) -> None:
     assert parse_reported_flag(glyph) is expected
+
+
+def test_parse_reported_flag_is_total() -> None:
+    """Every string maps. There is no None to forget to handle."""
+    for glyph in ("", "H", "\u2014", "n/a", "see note", "12"):
+        assert isinstance(parse_reported_flag(glyph), ReportedFlag)
+
+
+def test_a_blank_column_is_never_normal() -> None:
+    """
+    D20, superseding D12, stated as the single assertion it turns on. Read
+    as `normal`, a blank column would confirm the computed flag on every
+    in-range row of every report — agreement with a flag no laboratory
+    printed — and the cross-check would be loudest exactly when an
+    extractor has lost the flag column entirely.
+    """
+    assert parse_reported_flag("") is not ReportedFlag.NORMAL
+    assert parse_reported_flag("") is ReportedFlag.NOT_REPORTED
+    assert parse_reported_flag("") not in COMPARABLE_REPORTED_FLAGS
+
+
+@pytest.mark.parametrize("reported", sorted(COMPARABLE_REPORTED_FLAGS))
+def test_every_comparable_flag_names_a_conclusion(reported: ReportedFlag) -> None:
+    assert as_abnormal_flag(reported) is not None
+
+
+@pytest.mark.parametrize("reported", [ReportedFlag.NOT_REPORTED, ReportedFlag.UNRECOGNISED])
+def test_a_non_comparable_flag_names_no_conclusion(reported: ReportedFlag) -> None:
+    assert reported not in COMPARABLE_REPORTED_FLAGS
+    assert as_abnormal_flag(reported) is None
 
 
 # -- the cross-check -------------------------------------------------------
@@ -232,45 +270,101 @@ def test_parse_reported_flag(glyph: str, expected: AbnormalFlag | None) -> None:
 
 def test_agreement() -> None:
     check = cross_check_abnormal_flag(
-        AbnormalFlag.HIGH, numeric(111.0), parse_reference_range_text("70 - 99")
+        ReportedFlag.HIGH, numeric(111.0), parse_reference_range_text("70 - 99")
     )
     assert check.outcome is CrossCheckOutcome.AGREE
     assert check.is_verification_failure is False
 
 
 def test_disagreement_is_a_verification_failure() -> None:
-    """The page prints no flag on an out-of-range value. One of the two
-    readings is wrong and this contract does not decide which."""
+    """The page prints `N` on an out-of-range value. One of the two readings
+    is wrong and this contract does not decide which."""
     check = cross_check_abnormal_flag(
-        AbnormalFlag.NORMAL, numeric(111.0), parse_reference_range_text("70 - 99")
+        ReportedFlag.NORMAL, numeric(111.0), parse_reference_range_text("70 - 99")
     )
     assert check.outcome is CrossCheckOutcome.DISAGREE
     assert check.is_verification_failure is True
 
 
-def test_an_unreadable_glyph_is_not_a_failure() -> None:
+def test_a_blank_column_leaves_the_computed_flag_standing_alone() -> None:
+    """
+    D20. The computed flag is still computed and still reported; what does
+    not happen is a comparison, and what is never recorded is agreement.
+    """
+    check = cross_check_abnormal_flag(
+        parse_reported_flag(""), numeric(111.0), parse_reference_range_text("70 - 99")
+    )
+    assert check.reported is ReportedFlag.NOT_REPORTED
+    assert check.computed is AbnormalFlag.HIGH
+    assert check.basis is FlagBasis.NUMERIC_ABOVE_HIGH
+    assert check.outcome is CrossCheckOutcome.NOT_REPORTED
+    assert check.outcome is not CrossCheckOutcome.AGREE
+    assert check.is_verification_failure is False
+
+
+def test_a_blank_column_on_an_in_range_value_is_still_not_agreement() -> None:
+    """The case D12 got wrong, and the common one: nearly every row of a
+    normal report has a blank flag column."""
+    check = cross_check_abnormal_flag(
+        parse_reported_flag(""), numeric(89.0), parse_reference_range_text("70 - 99")
+    )
+    assert check.computed is AbnormalFlag.NORMAL
+    assert check.outcome is CrossCheckOutcome.NOT_REPORTED
+    assert check.is_verification_failure is False
+
+
+def test_an_unreadable_glyph_is_not_a_failure_and_is_distinguishable() -> None:
     check = cross_check_abnormal_flag(
         parse_reported_flag("?"), numeric(111.0), parse_reference_range_text("70 - 99")
     )
     assert check.outcome is CrossCheckOutcome.NOT_REPORTED
     assert check.is_verification_failure is False
+    # Same outcome as a blank column, different cause — the cause is on
+    # `reported`, so a log line can tell them apart.
+    assert check.reported is ReportedFlag.UNRECOGNISED
 
 
 def test_an_undecidable_value_is_not_a_failure() -> None:
     """A check that cried wolf on correct data would be switched off."""
     check = cross_check_abnormal_flag(
-        AbnormalFlag.NORMAL, numeric(5.0, Comparator.LESS_THAN), ReferenceRange(low=0.0, high=3.0)
+        ReportedFlag.NORMAL, numeric(5.0, Comparator.LESS_THAN), ReferenceRange(low=0.0, high=3.0)
     )
     assert check.outcome is CrossCheckOutcome.NOT_COMPUTABLE
     assert check.is_verification_failure is False
 
 
+def test_no_printed_flag_outranks_an_undecidable_computation() -> None:
+    """
+    Both mean "no comparison", but `not_computable` would suggest that
+    fixing the reference range would produce one. With nothing printed, it
+    would not.
+    """
+    check = cross_check_abnormal_flag(
+        parse_reported_flag(""),
+        numeric(5.0, Comparator.LESS_THAN),
+        ReferenceRange(low=0.0, high=3.0),
+    )
+    assert check.computed is AbnormalFlag.INDETERMINATE
+    assert check.outcome is CrossCheckOutcome.NOT_REPORTED
+
+
 def test_the_cross_check_outcome_cannot_be_asserted_by_hand() -> None:
     with pytest.raises(ValidationError, match="does not follow from"):
         FlagCrossCheck(
-            reported=AbnormalFlag.NORMAL,
+            reported=ReportedFlag.NORMAL,
             computed=AbnormalFlag.HIGH,
             basis=FlagBasis.NUMERIC_ABOVE_HIGH,
+            outcome=CrossCheckOutcome.AGREE,
+        )
+
+
+def test_agreement_cannot_be_asserted_over_a_blank_column() -> None:
+    """The specific forgery D20 exists to make impossible."""
+    with pytest.raises(ValidationError, match="does not follow from"):
+        FlagCrossCheck(
+            reported=ReportedFlag.NOT_REPORTED,
+            computed=AbnormalFlag.NORMAL,
+            basis=FlagBasis.NUMERIC_IN_RANGE,
             outcome=CrossCheckOutcome.AGREE,
         )
 

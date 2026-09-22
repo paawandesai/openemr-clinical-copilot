@@ -344,7 +344,7 @@ writing `no` would put a false normal in a chart.
 
 ## D12 — A blank flag column means `normal`; an unknown glyph means nothing
 
-**Status:** DECIDED
+**Status:** SUPERSEDED by D20
 **Date:** 2026-09-21
 
 **Decision:** `parse_reported_flag("")` is `AbnormalFlag.NORMAL`.
@@ -534,3 +534,64 @@ Every enum interpolation in Week 2 code already uses `.value`, so
 
 **Consequence:** Week 2 and Week 1 differ in enum idiom until the Week 1
 reformatting commit lands. That is visible and intentional, not drift.
+
+---
+
+## D20 — A blank flag column reports nothing; it never means `normal`
+
+**Status:** DECIDED — supersedes D12, whose body is left unedited for the
+record; only its status line was flipped, as the header of this file
+prescribes.
+**Date:** 2026-09-21
+**Raised by:** review of work order 03.
+
+**Decision:** `parse_reported_flag` returns a `ReportedFlag`, a closed set
+that includes the two ways a flag column says nothing comparable:
+
+- `not_reported` — the column is blank. **This is what D12 got wrong.**
+- `unrecognised` — the column carries a glyph not in the table.
+- `normal | high | low | abnormal` — a flag the laboratory actually printed.
+  `N` and `WNL` are `normal`: those are printed assertions.
+
+`cross_check_abnormal_flag` compares **only** when the reported flag is one
+of the four comparable members. Otherwise the computed flag stands alone and
+the outcome is `not_reported` — never `agree`. `FlagCrossCheck.reported` is
+a `ReportedFlag` and is no longer nullable, so "nothing was reported" is a
+value rather than the absence of one, and the model validator rejects an
+`agree` outcome over a non-comparable reported flag. The cause stays
+distinguishable in a log line: same outcome, different `reported`.
+
+`LabResult.reported_flag` is `ExtractedField[ReportedFlag]`, and
+`LabResult.cross_check_flag()` now reads it through `as_presented_fact()`
+rather than off `.value`: a flag the locate step could not place is not
+something the document reported (invariant 4), and letting it into a
+verification comparison would allow an unlocated value to confirm a fact.
+
+**Rationale, and why D12 was wrong.** D12 reasoned that a lab report prints
+a blank flag on in-range rows, so a blank column asserts normality. The
+premise is true and the conclusion does not follow: the *report* leaves it
+blank, but what this contract observes is an extractor's reading of a
+column, and a blank reading has two causes that D12 could not tell apart —
+the row is normal, or the flag was not found.
+
+That matters in the direction a safety check must not fail. An extractor
+that loses the flag column entirely — an unfamiliar layout, a scan where
+the column is illegible — yields blanks on every row. Under D12 every one
+of those became a printed `normal` and scored as agreement with the
+computed flag. The check would have been loudest, and most reassuring,
+exactly when the misread was total. It would also have recorded agreement
+with a flag no laboratory ever printed, which is manufactured evidence in a
+contract whose whole purpose is that claims trace to a source.
+
+The cost is that the cross-check now compares far less often — across all
+six doc-factory samples it compares on three rows, the three deliberately
+abnormal ones, and reports `not_reported` on the rest. That is the honest
+count. A check that ran on every row by inventing an observation for it was
+not doing more work; it was doing different work, badly.
+
+**Consequence for the eval gate:** flag-agreement rate is no longer a
+proxy for "the extractor read the flags". A report with no abnormal rows
+offers nothing to check. Any future gate metric over this must be computed
+over `reported in COMPARABLE_REPORTED_FLAGS`, and its denominator reported
+alongside it — a category scoring 100% on three rows is not the same claim
+as one scoring 100% on three hundred.
