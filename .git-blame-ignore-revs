@@ -1,0 +1,18 @@
+# Commits that changed formatting only, and that `git blame` should look past
+# to the commit that actually wrote the line.
+#
+# Git does not pick this file up on its own. Once per clone:
+#
+#     git config blame.ignoreRevsFile .git-blame-ignore-revs
+#
+# GitHub and GitLab honour it without any configuration.
+#
+# Only add a commit here if it is purely mechanical — the output of a
+# formatter or an automated safe fix, reproducible by re-running the tool,
+# with no hand edits. A commit that also changes behaviour must not be listed:
+# blame would then hide a real change.
+
+# style(agent): ruff format and ruff's safe fixes across Week 1 code
+# `ruff format` plus `ruff check --fix` (no --unsafe-fixes) over agent/,
+# 41 files. Unit suite unchanged at 441 passed / 49 subtests.
+9fb02b143fd4fadbf6bfaa82cb8eaf347ebb8619
