@@ -12,7 +12,7 @@
 //
 //   AGENT_BASE_URL=https://64.177.42.210:8443 \
 //   AGENT_TOKEN=<clinician bearer token, ARCHITECTURE.md §2> \
-//   PATIENT_ID=a2c0e096-23d5-4cf9-ad5b-4895597363a7 \
+//   PATIENT_ID=a2c36e54-af42-4c38-b86e-ade616ed5494 \
 //   VUS=10 DURATION=60s \
 //     k6 run --summary-export=results-10vu.json k6-infra.js
 //
@@ -25,7 +25,7 @@ import { check, sleep } from "k6";
 
 const BASE_URL = __ENV.AGENT_BASE_URL || "https://64.177.42.210:8443";
 const TOKEN = __ENV.AGENT_TOKEN;
-const PATIENT_ID = __ENV.PATIENT_ID || "a2c0e096-23d5-4cf9-ad5b-4895597363a7";
+const PATIENT_ID = __ENV.PATIENT_ID || "a2c36e54-af42-4c38-b86e-ade616ed5494";
 
 if (!TOKEN) {
   throw new Error("AGENT_TOKEN is required — a clinician OpenEMR access token (see README.md)");

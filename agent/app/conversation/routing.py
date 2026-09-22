@@ -23,11 +23,15 @@ Three decisions, in order:
    turn verified claims on is carried, so "when was that result taken?"
    can be re-cited against fresh records. Those are the only retrievals
    that exist.
-3. Narrow labs. One chart on the deployment host has 2,203 lab results.
-   The turn's Observation set is the few most recent results per LOINC
-   code the question's wording (or the carried context) names, or the
-   most recent results overall for a general lab question. The cap is
-   disclosed in the answer, never silent.
+3. Narrow labs. One chart on the deployment host has 2,203 lab results
+   (verified 2026-09-21 against the Vultr host: 29 of 52 patients hold
+   more lab results than LAB_RESULTS_GENERAL, 16 hold a single LOINC code
+   over LAB_RESULTS_PER_CODE). The turn's Observation set is the few most
+   recent results per LOINC code the question's wording (or the carried
+   context) names, or the most recent results overall for a general lab
+   question. The cap is disclosed twice and silent neither time: to the
+   physician in the answer's closing line, and to the model in
+   <retrieval_scope>, which states how many records were left out.
 
 The rules are wording heuristics, and they err toward refusing: a wrongly
 refused question costs the physician a rephrase, and a question they
@@ -254,11 +258,26 @@ def route(question: str, context_types: frozenset[FhirResourceType]) -> RoutingD
 
 @dataclass(frozen=True)
 class LabScope:
-    """How the turn's lab set was cut from what FHIR returned. Rendered."""
+    """
+    How the turn's lab set was cut from what FHIR returned. Rendered to the
+    physician (app/graph/conversation.py:_lab_part) and stated to the model
+    (app/reasoning/draft_conversation_turn.py:serialize_retrieval_scope).
+
+    `omitted` is every retrieved result the turn's set does not hold, for
+    any reason — over a cap, or of a test the question is not about.
+    `truncated_codes` is the narrower, sharper fact: one entry per LOINC
+    code the question IS about whose older results were cut by
+    LAB_RESULTS_PER_CODE, as (code, kept, total). A model told only
+    `considered` cannot tell "8 results because the chart holds 8" from
+    "8 of 83", and so cannot honestly set coverage on "what were her
+    creatinine results".
+    """
 
     retrieved: int
     considered: int
     codes: tuple[str, ...]
+    omitted: int = 0
+    truncated_codes: tuple[tuple[str, int, int], ...] = ()
 
 
 def _newest_first(observations: Sequence[Observation]) -> list[Observation]:
@@ -288,6 +307,13 @@ def narrow_observations(
     cited = [o for o in ordered if o.source_id in context_source_ids]
     codes = set(lab_codes) | {o.loinc_code for o in cited}
 
+    # Per-code totals over everything retrieved, taken before any cut, so
+    # `truncated_codes` below can state "8 of 83" rather than just "8".
+    totals: dict[str, int] = {}
+    for observation in ordered:
+        totals[observation.loinc_code] = totals.get(observation.loinc_code, 0) + 1
+
+    truncated: list[tuple[str, int, int]] = []
     if not codes:
         kept = ordered[:LAB_RESULTS_GENERAL]
     else:
@@ -304,7 +330,25 @@ def narrow_observations(
         present = {o.source_id for o in kept}
         kept.extend(o for o in cited if o.source_id not in present)
         kept = _newest_first(kept)
+        # Counted from `kept`, not from `per_code`: LAB_RESULTS_MAX can cut
+        # a code below its per-code allowance, and a context-carried record
+        # can push it back up. What the model is told must be what the model
+        # is given.
+        final_per_code: dict[str, int] = {}
+        for observation in kept:
+            final_per_code[observation.loinc_code] = (
+                final_per_code.get(observation.loinc_code, 0) + 1
+            )
+        truncated = [
+            (code, final_per_code.get(code, 0), totals[code])
+            for code in sorted(codes)
+            if totals.get(code, 0) > final_per_code.get(code, 0)
+        ]
 
     return kept, LabScope(
-        retrieved=len(observations), considered=len(kept), codes=tuple(sorted(codes))
+        retrieved=len(observations),
+        considered=len(kept),
+        codes=tuple(sorted(codes)),
+        omitted=len(observations) - len(kept),
+        truncated_codes=tuple(truncated),
     )

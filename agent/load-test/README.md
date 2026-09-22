@@ -113,11 +113,12 @@ docker exec clinical-copilot-agent-agent-1 python -c \
 
 ### Running the generator (from off-host)
 
-The `PATIENT_ID` below is Phil Belford on the current Vultr host. The
-recorded run (`RESULTS.md`) used his DigitalOcean id,
-`a2c0e096-23d5-4cf9-ad5b-4895597363a7`, which is still the default in
-`k6-infra.js` and `real_batch.sh`. That id does not exist on Vultr, a fresh
-install with new FHIR ids, so always pass `PATIENT_ID` explicitly.
+The `PATIENT_ID` below is Phil Belford on the current Vultr host, and is
+now also the default in `k6-infra.js` and `real_batch.sh`. The recorded run
+(`RESULTS.md`) used his DigitalOcean id,
+`a2c0e096-23d5-4cf9-ad5b-4895597363a7`, which does not exist on Vultr — a
+fresh install with new FHIR ids — and was the default until 2026-09-21, so
+a run from an older checkout needs `PATIENT_ID` passed explicitly.
 
 ```bash
 brew install k6   # or see https://k6.io/docs/get-started/installation/

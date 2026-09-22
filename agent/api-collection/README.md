@@ -12,7 +12,7 @@ A Postman v2.1 collection that runs end to end without reading the source:
 Files:
 
 - `clinical-copilot-agent.postman_collection.json` — the requests and tests.
-- `droplet.postman_environment.json` — the Vultr deployment host's URLs
+- `vultr.postman_environment.json` — the Vultr deployment host's URLs
   (`https://64.177.42.210:8443` for the agent, `https://64.177.42.210:9300`
   for OpenEMR) and the demo `patient_id`. The file name predates the move
   from DigitalOcean. **All four credential values ship empty:**
@@ -109,7 +109,7 @@ export FHIR_CLIENT_ID='<client id>' FHIR_CLIENT_SECRET='<client secret>'
 export OPENEMR_USERNAME=physician OPENEMR_PASSWORD=physician
 
 npx newman run agent/api-collection/clinical-copilot-agent.postman_collection.json \
-  -e agent/api-collection/droplet.postman_environment.json \
+  -e agent/api-collection/vultr.postman_environment.json \
   --env-var client_id="$FHIR_CLIENT_ID" \
   --env-var client_secret="$FHIR_CLIENT_SECRET" \
   --env-var openemr_username="$OPENEMR_USERNAME" \

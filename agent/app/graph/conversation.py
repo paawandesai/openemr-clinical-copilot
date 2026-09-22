@@ -596,7 +596,14 @@ async def run_conversation_turn(
             draft = TurnDraft(claims=[], coverage=Coverage.NONE, gaps=[])
         else:
             draft = await draft_conversation_turn(
-                bounded, question, snapshot.context, patient_session_key=key
+                bounded,
+                question,
+                snapshot.context,
+                patient_session_key=key,
+                # The same LabScope the closing line is rendered from, so
+                # what the model is told was omitted and what the physician
+                # is told was omitted cannot drift apart.
+                lab_scope=lab_scope,
             )
         step_seconds["draft"] = time.perf_counter() - started
 

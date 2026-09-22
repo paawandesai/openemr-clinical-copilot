@@ -15,7 +15,7 @@ set -euo pipefail
 
 : "${AGENT_TOKEN:?set AGENT_TOKEN — see get_token.sh}"
 BASE_URL="${AGENT_BASE_URL:-https://64.177.42.210:8443}"
-PATIENT_ID="${PATIENT_ID:-a2c0e096-23d5-4cf9-ad5b-4895597363a7}"
+PATIENT_ID="${PATIENT_ID:-a2c36e54-af42-4c38-b86e-ade616ed5494}"
 N="${N:-5}"
 
 echo "Real end-to-end batch: $N sequential requests against $BASE_URL, real LLM calls, real cost." >&2
