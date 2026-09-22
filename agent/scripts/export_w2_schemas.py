@@ -37,6 +37,7 @@ if str(AGENT_ROOT) not in sys.path:
 
 from app.models.w2.factory_mapping import (  # noqa: E402
     FIELD_PATH_RULES,
+    GROUND_TRUTH_ATTRIBUTES_NOT_CARRIED,
     SCHEMA_FIELDS_WITHOUT_FACTORY_PATH,
     SUPPORTED_GROUND_TRUTH_SCHEMA_VERSION,
     UNMAPPED_FACTORY_PATHS,
@@ -118,6 +119,19 @@ def mapping_document() -> str:
         "document but what the D3 locate step concludes at runtime when it cannot",
         "place a value the model read.",
         "",
+        "## Rendering mapping",
+        "",
+        "Ground truth 0.2.0 declares, per text field, how `rendered_text` relates to",
+        "`value`. Every value below is `located` — each one is genuinely on the page —",
+        "and everything but `verbatim` also produces a `ChartTruthNote`.",
+        "",
+        "| `rendering` | what the schema does |",
+        "|---|---|",
+        "| `verbatim` | the value, no note |",
+        "| `derived` | the drawn form is the value; the chart's wording goes to `chart_truth` |",
+        "| `wrapped` | the joined lines are the value; `bbox` is the union of the line boxes |",
+        "| `truncated` | the ellipsised text is the value; the full text is unrecoverable from the document and goes to `chart_truth` |",
+        "",
         "## Field paths",
         "",
         "Placeholders: `<panel>`, `<test>`, `<i>` and `<condition>` stand for the part",
@@ -155,6 +169,20 @@ def mapping_document() -> str:
     ]
     for field, reason in SCHEMA_FIELDS_WITHOUT_FACTORY_PATH.items():
         lines.append(f"| `{field}` | {' '.join(reason.split())} |")
+
+    lines += [
+        "",
+        "## Ground-truth record attributes the schema does not carry",
+        "",
+        "Per-field metadata rather than `field_path`s, so not part of the table",
+        'above. Listed because "every field path maps" would otherwise read as',
+        '"nothing is dropped", and these are dropped on purpose.',
+        "",
+        "| attribute | why |",
+        "|---|---|",
+    ]
+    for attribute, reason in GROUND_TRUTH_ATTRIBUTES_NOT_CARRIED.items():
+        lines.append(f"| `{attribute}` | {' '.join(reason.split())} |")
     lines.append("")
     return "\n".join(lines)
 

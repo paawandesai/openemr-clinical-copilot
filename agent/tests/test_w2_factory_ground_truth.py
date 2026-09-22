@@ -26,6 +26,7 @@ import pytest
 from app.models.w2.documents import DocumentKind
 from app.models.w2.extraction import ExtractedField, FieldStatus
 from app.models.w2.factory_mapping import (
+    KNOWN_RENDERINGS,
     SCHEMA_FIELDS_WITHOUT_FACTORY_PATH,
     SUPPORTED_GROUND_TRUTH_SCHEMA_VERSION,
     UNMAPPED_FACTORY_PATHS,
@@ -33,6 +34,7 @@ from app.models.w2.factory_mapping import (
     convert_ground_truth,
     map_field_path,
     parse_lab_value,
+    same_meaning,
 )
 from app.models.w2.intake_form import IntakeFormExtraction
 from app.models.w2.lab_pdf import LabPdfExtraction
@@ -355,3 +357,139 @@ def test_the_synthetic_extraction_id_is_stable() -> None:
     first = convert_ground_truth(load_ground_truth("lab-clean-001"))
     second = convert_ground_truth(load_ground_truth("lab-clean-001"))
     assert first.extraction.extraction_id == second.extraction.extraction_id
+
+
+# -- ground truth 0.2.0: the declared rendering -----------------------------
+
+
+@pytest.mark.parametrize("scenario_id", ALL_SAMPLES)
+def test_every_declared_rendering_is_one_the_adapter_knows(scenario_id: str) -> None:
+    """A rendering the adapter has never heard of would be silently treated
+    as divergent. Fail instead, naming it."""
+    for record in load_ground_truth(scenario_id)["fields"]:
+        rendering = record.get("rendering")
+        assert rendering in KNOWN_RENDERINGS, (
+            f"{record['field_path']}: unknown rendering {rendering!r}; "
+            f"the adapter knows {sorted(KNOWN_RENDERINGS)}"
+        )
+
+
+@pytest.mark.parametrize("scenario_id", ALL_SAMPLES)
+def test_every_verbatim_field_parses_back_to_the_ground_truths_value(
+    scenario_id: str,
+) -> None:
+    """
+    The factory *declares* which fields are drawn verbatim. This checks the
+    declaration rather than trusting it: for every field the factory calls
+    verbatim, the value the adapter parsed out of `rendered_text` must mean
+    the same thing as the ground truth's own `value`.
+
+    It catches two different defects — a field mislabelled `verbatim` when
+    the page really does say something else, and a parser in this contract
+    that disagrees with the renderer (a date format, a censored number, a
+    checkbox glyph). Without it, the conversion proof would be a restatement
+    of the factory's opinion of itself.
+    """
+    ground_truth = load_ground_truth(scenario_id)
+
+    # Grouped, not a 1:1 map: more than one schema field may legitimately
+    # cite the same place on the page. `LabResult.collection_date` reuses
+    # `order.collected`'s citation and holds the date component that D1's
+    # idempotency key is over, while `LabOrderHeader.collected_at` holds the
+    # full timestamp. The assertion is that *some* field citing a verbatim
+    # record reads it as the ground truth does — a deliberate narrowing
+    # alongside it is not a misread.
+    extracted: dict[str, list[Any]] = {}
+    for field, path in _walk_extracted_fields(convert(scenario_id).extraction):
+        extracted.setdefault(path, []).append(field)
+
+    checked = 0
+    for record in ground_truth["fields"]:
+        if record["status"] != "present" or record.get("rendering") != "verbatim":
+            continue
+        fields = extracted.get(record["field_path"])
+        if not fields:
+            continue
+        assert any(same_meaning(field.value, record["value"]) for field in fields), (
+            f"{record['field_path']}: factory declares verbatim, but no field "
+            f"citing it reads {record['rendered_text']!r} as the ground-truth "
+            f"value {record['value']!r} — parsed "
+            f"{[field.value for field in fields]!r}"
+        )
+        checked += 1
+    assert checked > 20, "the samples should exercise plenty of verbatim fields"
+
+
+@pytest.mark.parametrize("scenario_id", ALL_SAMPLES)
+def test_chart_truth_is_exactly_what_the_factory_declares_as_divergent(
+    scenario_id: str,
+) -> None:
+    """
+    `chart_truth` is the raw material for a `Discrepancy`, so it has to be
+    neither more nor less than the set of fields the document does not convey
+    as the chart holds it: everything not `present`, plus every `present`
+    field whose declared rendering is not `verbatim`.
+    """
+    ground_truth = load_ground_truth(scenario_id)
+    expected = {
+        record["field_path"]
+        for record in ground_truth["fields"]
+        if record.get("value") is not None
+        and (record["status"] != "present" or record.get("rendering") != "verbatim")
+    }
+    actual = {note.field_path for note in convert(scenario_id).chart_truth}
+    assert actual == expected
+
+
+def test_a_derived_field_keeps_the_drawn_form_and_records_the_chart_wording() -> None:
+    """
+    The medication case, which is what `derived` exists to express: the form
+    carries the common name and the chart holds the full RxNorm product
+    string. Neither is wrong, and the schema must not silently prefer one.
+    """
+    conversion = convert("intake-clean-004")
+    assert isinstance(conversion.extraction, IntakeFormExtraction)
+    first = conversion.extraction.medications[0]
+    fact = first.name.as_presented_fact()
+    assert fact is not None
+    assert fact.value == "diphenhydrAMINE Hydrochloride"
+
+    note = next(n for n in conversion.chart_truth if n.field_path == "medications[0].name")
+    assert note.rendering == "derived"
+    assert note.chart_value == "diphenhydrAMINE Hydrochloride 25 MG Oral Tablet"
+    assert note.note is not None
+
+
+def test_no_sample_field_is_wrapped_or_truncated_today() -> None:
+    """
+    The factory's own commit says no committed sample wraps or truncates. If
+    one starts to, the adapter's handling of those two renderings stops being
+    theory and this test is where that is noticed.
+    """
+    seen = {
+        record.get("rendering")
+        for scenario_id in ALL_SAMPLES
+        for record in load_ground_truth(scenario_id)["fields"]
+    }
+    assert seen <= {"verbatim", "derived"}, (
+        f"a sample now renders {sorted(seen - {'verbatim', 'derived'})}; "
+        "check _extracted() and the chart_truth note for that path"
+    )
+
+
+def test_the_lab_director_caption_is_no_longer_part_of_the_value() -> None:
+    """
+    Ground truth 0.1.0 drew `lab.director` with its "Laboratory Director: "
+    caption inside the field, making the field `derived` and its bbox cover
+    text nobody extracts. 0.2.0 makes the caption chrome. Pinned because it
+    is the one place a reader of the earlier session report might expect a
+    truncated string.
+    """
+    conversion = convert("lab-clean-001")
+    assert isinstance(conversion.extraction, LabPdfExtraction)
+    assert conversion.extraction.performing_lab is not None
+    fact = conversion.extraction.performing_lab.director.as_presented_fact()
+    assert fact is not None
+    assert fact.value == "Nadia Okonjo-Reyes, MD"
+    assert not fact.value.startswith("Laboratory Director")
+    assert "lab.director" not in {note.field_path for note in conversion.chart_truth}

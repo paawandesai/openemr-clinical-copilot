@@ -8,7 +8,7 @@ no factory counterpart are listed too. The adapter is
 `agent/app/models/w2/factory_mapping.py`; the proof that all six committed
 samples convert is `agent/tests/test_w2_factory_ground_truth.py`.
 
-Ground-truth format: `doc-factory-groundtruth/0.1.0`.
+Ground-truth format: `doc-factory-groundtruth/0.2.0`.
 
 ## What the adapter must not do
 
@@ -33,6 +33,19 @@ factory built to catch it. The chart truth comes back separately, in
 `unlocated` has no ground-truth counterpart: it is not a property of a
 document but what the D3 locate step concludes at runtime when it cannot
 place a value the model read.
+
+## Rendering mapping
+
+Ground truth 0.2.0 declares, per text field, how `rendered_text` relates to
+`value`. Every value below is `located` — each one is genuinely on the page —
+and everything but `verbatim` also produces a `ChartTruthNote`.
+
+| `rendering` | what the schema does |
+|---|---|
+| `verbatim` | the value, no note |
+| `derived` | the drawn form is the value; the chart's wording goes to `chart_truth` |
+| `wrapped` | the joined lines are the value; `bbox` is the union of the line boxes |
+| `truncated` | the ellipsised text is the value; the full text is unrecoverable from the document and goes to `chart_truth` |
 
 ## Field paths
 
@@ -89,3 +102,15 @@ None. Every `field_path` in the six committed samples maps; the adapter reports 
 | `*.checksums.sha3_512` | The factory records a SHA-256; OpenEMR hashes with SHA3-512. Separate fields, never compared (see documents.DocumentChecksums). |
 | `*.citation.extraction_id` | No extraction run produced a ground truth. The adapter derives a stable synthetic id; see this module's docstring. |
 | `ExtractedField.status == unlocated` | Not a document property and so not a ground-truth status. It is what the D3 locate step concludes at runtime when it cannot place a value the model read. |
+
+## Ground-truth record attributes the schema does not carry
+
+Per-field metadata rather than `field_path`s, so not part of the table
+above. Listed because "every field path maps" would otherwise read as
+"nothing is dropped", and these are dropped on purpose.
+
+| attribute | why |
+|---|---|
+| `line_bboxes` | A `wrapped` field's per-line boxes. Citation carries one bbox, and for a wrapped field that is the union the factory already computes. Per-line boxes would matter to a UI that highlights the exact glyphs on the page; no Week 2 consumer needs them yet, and an optional field with no reader is a guess about Phase 3. Recorded here rather than added speculatively. |
+| `origin` | chart | chart_derived | synthetic | perturbed — where the factory got the value. That is evaluation provenance about how the document was built, not something an extractor could observe, so it has no place in a contract describing what a document says. |
+| `kind` | text | checkbox. The schema encodes this in the field's type (ExtractedField[bool] for a checkbox), so carrying it separately would let the two disagree. |

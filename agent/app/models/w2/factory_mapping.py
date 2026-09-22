@@ -42,17 +42,29 @@ separately, in `GroundTruthConversion.chart_truth`, where it is available
 for discrepancy checking and cannot be mistaken for something the document
 said.
 
-`rendered_text` and `value` also diverge on three `present` fields, where
-the page legitimately carries less than the chart does. The factory flags
-each with its own `note`:
+`rendered_text` and `value` also diverge on some `present` fields, where the
+page legitimately carries something other than what the chart holds — a
+drug's common name against the full RxNorm product string, a letterhead in
+caps. Ground truth 0.2.0 **declares** which, per field, in `rendering`:
 
-* `lab.name` is drawn upper-cased;
-* `lab.director` is drawn with its "Laboratory Director: " label;
-* `medications[i].name` is drawn as the common name while `value` is the
-  full chart product name ("the form carries the common name").
+* `verbatim`  — drawn exactly as `value` reads;
+* `derived`   — deliberately re-expressed, `note` says how;
+* `wrapped`   — drawn over several lines, `rendered_text` is them joined and
+                `bbox` is their union;
+* `truncated` — cut to fit, ending in an ellipsis. `value` is the full text
+                and an extractor cannot recover it from this document.
 
-All three are the page being the page. The adapter takes `rendered_text`
-and records the difference in `chart_truth`.
+That declaration is what `chart_truth` keys on now. Before 0.2.0 the adapter
+had to infer divergence by comparing the parsed value against `value`, which
+could not tell "the document says something else on purpose" from "the
+document lost the rest". The comparison is still made — but as a *check* on
+the declaration rather than a substitute for it:
+`tests/test_w2_factory_ground_truth.py` asserts that every field the factory
+calls `verbatim` really does parse back to the ground truth's own value.
+
+A `truncated` field is still `located`: the ellipsised string is genuinely
+what the page says, and a citation quoting it is honest. What is lost is
+recorded in `chart_truth`, not smuggled into the value.
 
 ---
 
@@ -101,7 +113,18 @@ from app.models.w2.lab_values import (
 #: The ground-truth format this adapter understands. The factory pins it in
 #: every file it writes; a different version fails loudly rather than being
 #: read under the wrong meanings.
-SUPPORTED_GROUND_TRUTH_SCHEMA_VERSION = "doc-factory-groundtruth/0.1.0"
+SUPPORTED_GROUND_TRUTH_SCHEMA_VERSION = "doc-factory-groundtruth/0.2.0"
+
+#: `rendering` values the factory declares (groundtruth.py TextRendering).
+#: Only `verbatim` means "the page says exactly what the chart holds"; the
+#: other three each produce a ChartTruthNote.
+_RENDERING_VERBATIM = "verbatim"
+_RENDERING_DERIVED = "derived"
+_RENDERING_WRAPPED = "wrapped"
+_RENDERING_TRUNCATED = "truncated"
+KNOWN_RENDERINGS = frozenset(
+    {_RENDERING_VERBATIM, _RENDERING_DERIVED, _RENDERING_WRAPPED, _RENDERING_TRUNCATED}
+)
 
 
 class FieldPathRule(W2Contract):
@@ -277,6 +300,32 @@ FIELD_PATH_RULES: tuple[FieldPathRule, ...] = (
 #: tests/test_w2_factory_ground_truth.py asserts that list is empty for all
 #: six — so a new factory path shows up as a test failure, not a silent drop.
 UNMAPPED_FACTORY_PATHS: frozenset[str] = frozenset()
+
+
+#: Ground-truth *record attributes* (not field paths) the schema does not
+#: carry, with why. Distinct from UNMAPPED_FACTORY_PATHS, which is about
+#: `field_path`s: these are per-field metadata that 0.2.0 added.
+GROUND_TRUTH_ATTRIBUTES_NOT_CARRIED: dict[str, str] = {
+    "line_bboxes": (
+        "A `wrapped` field's per-line boxes. Citation carries one bbox, and "
+        "for a wrapped field that is the union the factory already computes. "
+        "Per-line boxes would matter to a UI that highlights the exact glyphs "
+        "on the page; no Week 2 consumer needs them yet, and an optional "
+        "field with no reader is a guess about Phase 3. Recorded here rather "
+        "than added speculatively."
+    ),
+    "origin": (
+        "chart | chart_derived | synthetic | perturbed — where the factory "
+        "got the value. That is evaluation provenance about how the document "
+        "was built, not something an extractor could observe, so it has no "
+        "place in a contract describing what a document says."
+    ),
+    "kind": (
+        "text | checkbox. The schema encodes this in the field's type "
+        "(ExtractedField[bool] for a checkbox), so carrying it separately "
+        "would let the two disagree."
+    ),
+}
 
 
 #: Schema fields the factory has no path for, with why. The other half of
@@ -465,6 +514,9 @@ class ChartTruthNote(W2Contract):
 
     field_path: str
     ground_truth_status: str
+    #: The factory's declared `rendering` for this field (0.2.0), or None for
+    #: an absent field, which draws nothing and so renders nothing.
+    rendering: str | None
     chart_value: str
     rendered_text: str
     note: str | None = None
@@ -545,13 +597,20 @@ def _extracted(
     return ExtractedField[Any].located(value, citation)
 
 
-def _same_meaning(extracted: Any, ground_truth_value: Any) -> bool:
+def same_meaning(extracted: Any, ground_truth_value: Any) -> bool:
     """
     Does the parsed field say the same thing as the ground truth's semantic
-    value? Compared on meaning, not on spelling — `89` drawn on the page and
-    a ground-truth `89.0` are the same reading, and recording that as a
-    chart/document divergence would bury the three real ones under sixteen
-    formatting artefacts.
+    value? Compared on meaning, not on spelling: `89` drawn on the page and a
+    ground-truth `89.0` are the same reading.
+
+    Ground truth 0.2.0 declares divergence in `rendering`, so this is no
+    longer how the adapter decides what to put in `chart_truth`. It is what
+    **checks** that declaration:
+    `tests/test_w2_factory_ground_truth.py` asserts that every field the
+    factory calls `verbatim` really does parse back to its own `value`, which
+    catches a mislabelled `derived` and a parser that quietly disagrees with
+    the renderer. Trusting the declaration without checking it would make the
+    conversion proof a restatement of the factory's opinion of itself.
     """
     if extracted is None or ground_truth_value is None:
         return extracted is ground_truth_value
@@ -583,23 +642,30 @@ def _chart_truth_note(
     """
     Record the chart truth wherever the document does not convey it.
 
-    Two cases produce a note. An `absent` or `illegible` field: the document
-    says nothing and the chart value is what it failed to convey. And a
-    `present` field the page draws more narrowly than the chart holds — a
-    medication's common name against the chart's full product name.
+    Two cases produce a note, and 0.2.0 lets both be read off a declaration
+    rather than inferred. An `absent` or `illegible` field: the document says
+    nothing, and `value` is what it failed to convey. And a `present` field
+    whose `rendering` is not `verbatim`: the page draws it differently
+    (`derived`), across lines (`wrapped`), or cut short (`truncated`).
+
+    `wrapped` is included deliberately even though nothing is lost by it. The
+    schema carries one `bbox` — the union of the line boxes — and not the
+    per-line `line_bboxes`, so a note is the only place that says this value
+    was drawn over more than one line.
     """
     status = record["status"]
     value = record.get("value")
-    drawn = record.get("rendered_text", "")
     if value is None:
         return None
-    if status == "present" and _same_meaning(extracted.value, value):
+    rendering = record.get("rendering") if status == "present" else None
+    if status == "present" and rendering == _RENDERING_VERBATIM:
         return None
     return ChartTruthNote(
         field_path=record["field_path"],
         ground_truth_status=status,
+        rendering=rendering,
         chart_value=str(value),
-        rendered_text=drawn,
+        rendered_text=record.get("rendered_text", ""),
         note=record.get("note"),
     )
 
