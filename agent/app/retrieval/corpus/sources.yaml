@@ -1,0 +1,341 @@
+# Guideline corpus — bibliography.
+#
+# Every entry is a work of the United States federal government and is
+# therefore not subject to copyright protection in the United States
+# (17 U.S.C. 105). Nothing paywalled, and specifically no ADA Standards of
+# Medical Care and no KDIGO guidelines — both are copyrighted by their
+# societies and cannot be redistributed here, however clinically useful.
+#
+# `as_of` is the reference date the `dated` flag is measured against. It is
+# pinned rather than taken from the clock so that `python -m app.retrieval.build`
+# is reproducible: the same sources.yaml and the same documents/ always
+# produce the same chunks.json.
+#
+# Dates: `last_reviewed` is the publisher's own "last reviewed"/"last updated"
+# stamp where the page carries one; `published` is the original publication.
+# Age is judged on the later of the two (corpus_meta.SourceRecord.effective_date).
+
+as_of: 2026-09-22
+dated_after_years: 10
+
+sources:
+  # ---------------------------------------------------------------- USPSTF
+  - guideline_id: uspstf-diabetes-screening
+    title: "Prediabetes and Type 2 Diabetes: Screening"
+    publisher: U.S. Preventive Services Task Force
+    url: https://www.uspreventiveservicestaskforce.org/uspstf/recommendation/screening-for-prediabetes-and-type-2-diabetes
+    license_basis: us-gov-public-domain
+    license_note: >-
+      USPSTF recommendation statements are produced under AHRQ (HHS) and are
+      US federal government works; USPSTF states its recommendations may be
+      reproduced without permission.
+    published: 2021-08-24
+    retrieved: 2026-09-22
+    topics: [diabetes, a1c, screening]
+
+  - guideline_id: uspstf-statin-primary-prevention
+    title: "Statin Use for the Primary Prevention of Cardiovascular Disease in Adults: Preventive Medication"
+    publisher: U.S. Preventive Services Task Force
+    url: https://www.uspreventiveservicestaskforce.org/uspstf/recommendation/statin-use-in-adults-preventive-medication
+    license_basis: us-gov-public-domain
+    license_note: >-
+      USPSTF recommendation statement; US federal government work (AHRQ/HHS).
+    published: 2022-08-23
+    retrieved: 2026-09-22
+    topics: [lipids, statins, cardiovascular]
+
+  - guideline_id: uspstf-hypertension-screening
+    title: "Hypertension in Adults: Screening"
+    publisher: U.S. Preventive Services Task Force
+    url: https://www.uspreventiveservicestaskforce.org/uspstf/recommendation/hypertension-in-adults-screening
+    license_basis: us-gov-public-domain
+    license_note: >-
+      USPSTF recommendation statement; US federal government work (AHRQ/HHS).
+    published: 2021-04-27
+    retrieved: 2026-09-22
+    topics: [blood-pressure, screening]
+
+  - guideline_id: uspstf-thyroid-screening
+    title: "Thyroid Dysfunction: Screening"
+    publisher: U.S. Preventive Services Task Force
+    url: https://www.uspreventiveservicestaskforce.org/uspstf/recommendation/thyroid-dysfunction-screening
+    license_basis: us-gov-public-domain
+    license_note: >-
+      USPSTF recommendation statement; US federal government work (AHRQ/HHS).
+    published: 2015-03-24
+    retrieved: 2026-09-22
+    topics: [thyroid, screening]
+
+  - guideline_id: uspstf-vitamin-d-deficiency-screening
+    title: "Vitamin D Deficiency in Adults: Screening"
+    publisher: U.S. Preventive Services Task Force
+    url: https://www.uspreventiveservicestaskforce.org/uspstf/recommendation/vitamin-d-deficiency-screening
+    license_basis: us-gov-public-domain
+    license_note: >-
+      USPSTF recommendation statement; US federal government work (AHRQ/HHS).
+    published: 2021-04-13
+    retrieved: 2026-09-22
+    topics: [vitamin-d, screening]
+
+  - guideline_id: uspstf-vitamin-d-calcium-fractures
+    title: "Vitamin D, Calcium, or Combined Supplementation for the Primary Prevention of Fractures in Adults: Preventive Medication"
+    publisher: U.S. Preventive Services Task Force
+    url: https://www.uspreventiveservicestaskforce.org/uspstf/recommendation/vitamin-d-calcium-or-combined-supplementation-for-the-primary-prevention-of-fractures-in-adults-preventive-medication
+    license_basis: us-gov-public-domain
+    license_note: >-
+      USPSTF recommendation statement; US federal government work (AHRQ/HHS).
+    published: 2018-04-17
+    retrieved: 2026-09-22
+    topics: [vitamin-d, supplements]
+
+  - guideline_id: uspstf-iron-deficiency-anemia-pregnancy
+    title: "Iron Deficiency and Iron Deficiency Anemia During Pregnancy: Screening and Supplementation"
+    publisher: U.S. Preventive Services Task Force
+    url: https://www.uspreventiveservicestaskforce.org/uspstf/recommendation/iron-deficiency-anemia-in-pregnant-women-screening-and-supplementation
+    license_basis: us-gov-public-domain
+    license_note: >-
+      USPSTF recommendation statement; US federal government work (AHRQ/HHS).
+    published: 2024-08-20
+    retrieved: 2026-09-22
+    topics: [anemia, iron, screening]
+
+  - guideline_id: uspstf-aspirin-cvd-prevention
+    title: "Aspirin Use to Prevent Cardiovascular Disease: Preventive Medication"
+    publisher: U.S. Preventive Services Task Force
+    url: https://www.uspreventiveservicestaskforce.org/uspstf/recommendation/aspirin-to-prevent-cardiovascular-disease-preventive-medication
+    license_basis: us-gov-public-domain
+    license_note: >-
+      USPSTF recommendation statement; US federal government work (AHRQ/HHS).
+    published: 2022-04-26
+    retrieved: 2026-09-22
+    topics: [medication-safety, cardiovascular]
+
+  # ---------------------------------------------------------------- NIDDK
+  - guideline_id: niddk-a1c-test
+    title: The A1C Test and Diabetes
+    publisher: National Institute of Diabetes and Digestive and Kidney Diseases (NIH)
+    url: https://www.niddk.nih.gov/health-information/diagnostic-tests/a1c-test
+    license_basis: us-gov-public-domain
+    license_note: >-
+      NIDDK content is in the public domain; NIH states its health information
+      may be reproduced without permission.
+    last_reviewed: 2018-04-20
+    retrieved: 2026-09-22
+    topics: [diabetes, a1c, lab-tests]
+
+  - guideline_id: niddk-diabetes-heart-disease-stroke
+    title: Diabetes, Heart Disease, and Stroke
+    publisher: National Institute of Diabetes and Digestive and Kidney Diseases (NIH)
+    url: https://www.niddk.nih.gov/health-information/diabetes/overview/preventing-problems/heart-disease-stroke
+    license_basis: us-gov-public-domain
+    license_note: NIDDK health information; US federal government work, public domain.
+    last_reviewed: 2021-04-01
+    retrieved: 2026-09-22
+    topics: [diabetes, cardiovascular, lipids, blood-pressure]
+
+  - guideline_id: niddk-evaluate-ckd
+    title: Identify and Evaluate Patients with Chronic Kidney Disease
+    publisher: National Institute of Diabetes and Digestive and Kidney Diseases (NIH)
+    url: https://www.niddk.nih.gov/health-information/professionals/clinical-tools-patient-management/kidney-disease/identify-manage-patients/evaluate-ckd
+    license_basis: us-gov-public-domain
+    license_note: NIDDK clinical tools for professionals; US federal government work.
+    last_reviewed: 2015-04-28
+    retrieved: 2026-09-22
+    topics: [kidney, egfr, creatinine, lab-tests]
+
+  - guideline_id: niddk-ckd-tests-diagnosis
+    title: "Chronic Kidney Disease: Tests and Diagnosis"
+    publisher: National Institute of Diabetes and Digestive and Kidney Diseases (NIH)
+    url: https://www.niddk.nih.gov/health-information/kidney-disease/chronic-kidney-disease-ckd/tests-diagnosis
+    license_basis: us-gov-public-domain
+    license_note: NIDDK health information; US federal government work, public domain.
+    last_reviewed: 2016-10-25
+    retrieved: 2026-09-22
+    topics: [kidney, egfr, creatinine, lab-tests]
+
+  - guideline_id: niddk-hypothyroidism
+    title: Hypothyroidism (Underactive Thyroid)
+    publisher: National Institute of Diabetes and Digestive and Kidney Diseases (NIH)
+    url: https://www.niddk.nih.gov/health-information/endocrine-diseases/hypothyroidism
+    license_basis: us-gov-public-domain
+    license_note: NIDDK health information; US federal government work, public domain.
+    last_reviewed: 2021-03-01
+    retrieved: 2026-09-22
+    topics: [thyroid, lab-tests]
+
+  - guideline_id: niddk-hyperthyroidism
+    title: Hyperthyroidism (Overactive Thyroid)
+    publisher: National Institute of Diabetes and Digestive and Kidney Diseases (NIH)
+    url: https://www.niddk.nih.gov/health-information/endocrine-diseases/hyperthyroidism
+    license_basis: us-gov-public-domain
+    license_note: NIDDK health information; US federal government work, public domain.
+    last_reviewed: 2021-08-01
+    retrieved: 2026-09-22
+    topics: [thyroid, lab-tests, medication-safety]
+
+  # ---------------------------------------------------------------- NHLBI
+  - guideline_id: nhlbi-blood-cholesterol
+    title: Blood Cholesterol
+    publisher: National Heart, Lung, and Blood Institute (NIH)
+    url: https://www.nhlbi.nih.gov/health/blood-cholesterol
+    section_urls:
+      - https://www.nhlbi.nih.gov/health/blood-cholesterol/symptoms
+      - https://www.nhlbi.nih.gov/health/blood-cholesterol/diagnosis
+      - https://www.nhlbi.nih.gov/health/blood-cholesterol/causes
+      - https://www.nhlbi.nih.gov/health/blood-cholesterol/treatment
+      - https://www.nhlbi.nih.gov/health/blood-cholesterol/living-with
+    license_basis: us-gov-public-domain
+    license_note: NHLBI health topic; US federal government work, public domain.
+    last_reviewed: 2024-04-17
+    retrieved: 2026-09-22
+    topics: [lipids, statins, cardiovascular]
+
+  - guideline_id: nhlbi-high-blood-pressure
+    title: High Blood Pressure
+    publisher: National Heart, Lung, and Blood Institute (NIH)
+    url: https://www.nhlbi.nih.gov/health/high-blood-pressure
+    section_urls:
+      - https://www.nhlbi.nih.gov/health/high-blood-pressure/symptoms
+      - https://www.nhlbi.nih.gov/health/high-blood-pressure/diagnosis
+      - https://www.nhlbi.nih.gov/health/high-blood-pressure/causes
+      - https://www.nhlbi.nih.gov/health/high-blood-pressure/treatment
+      - https://www.nhlbi.nih.gov/health/high-blood-pressure/living-with
+      - https://www.nhlbi.nih.gov/health/high-blood-pressure/pregnancy
+    license_basis: us-gov-public-domain
+    license_note: NHLBI health topic; US federal government work, public domain.
+    last_reviewed: 2024-04-25
+    retrieved: 2026-09-22
+    topics: [blood-pressure, cardiovascular]
+
+  - guideline_id: nhlbi-iron-deficiency-anemia
+    title: Iron-Deficiency Anemia
+    publisher: National Heart, Lung, and Blood Institute (NIH)
+    url: https://www.nhlbi.nih.gov/health/anemia/iron-deficiency-anemia
+    license_basis: us-gov-public-domain
+    license_note: NHLBI health topic; US federal government work, public domain.
+    last_reviewed: 2022-03-24
+    retrieved: 2026-09-22
+    topics: [anemia, iron, lab-tests]
+
+  - guideline_id: nhlbi-blood-tests
+    title: Blood Tests
+    publisher: National Heart, Lung, and Blood Institute (NIH)
+    url: https://www.nhlbi.nih.gov/health/blood-tests
+    license_basis: us-gov-public-domain
+    license_note: NHLBI health topic; US federal government work, public domain.
+    last_reviewed: 2022-03-24
+    retrieved: 2026-09-22
+    topics: [lab-tests, lipids, anemia]
+
+  # ------------------------------------------------------------------- CDC
+  - guideline_id: cdc-chronic-kidney-disease
+    title: Chronic Kidney Disease Basics
+    publisher: Centers for Disease Control and Prevention
+    url: https://www.cdc.gov/kidney-disease/about/index.html
+    license_basis: us-gov-public-domain
+    license_note: >-
+      CDC content is in the public domain and may be reproduced without
+      permission (CDC image and content usage policy).
+    published: 2024-05-15
+    last_reviewed: 2024-05-15
+    retrieved: 2026-09-22
+    topics: [kidney, egfr, creatinine]
+
+  - guideline_id: cdc-diabetes-testing
+    title: Testing for Diabetes and Prediabetes
+    publisher: Centers for Disease Control and Prevention
+    url: https://www.cdc.gov/diabetes/diabetes-testing/index.html
+    license_basis: us-gov-public-domain
+    license_note: CDC content; US federal government work, public domain.
+    published: 2024-05-15
+    last_reviewed: 2024-05-15
+    retrieved: 2026-09-22
+    topics: [diabetes, a1c, lab-tests]
+
+  - guideline_id: cdc-diabetes-treatment
+    title: Treatment and Management of Diabetes
+    publisher: Centers for Disease Control and Prevention
+    url: https://www.cdc.gov/diabetes/treatment/index.html
+    license_basis: us-gov-public-domain
+    license_note: CDC content; US federal government work, public domain.
+    published: 2024-05-15
+    last_reviewed: 2024-05-15
+    retrieved: 2026-09-22
+    topics: [diabetes, a1c, medication-safety]
+
+  - guideline_id: cdc-high-blood-pressure
+    title: About High Blood Pressure
+    publisher: Centers for Disease Control and Prevention
+    url: https://www.cdc.gov/high-blood-pressure/about/index.html
+    license_basis: us-gov-public-domain
+    license_note: CDC content; US federal government work, public domain.
+    published: 2024-05-15
+    last_reviewed: 2026-01-28
+    retrieved: 2026-09-22
+    topics: [blood-pressure, cardiovascular]
+
+  - guideline_id: cdc-medication-safety
+    title: About Medication Safety
+    publisher: Centers for Disease Control and Prevention
+    url: https://www.cdc.gov/medication-safety/about/index.html
+    license_basis: us-gov-public-domain
+    license_note: CDC content; US federal government work, public domain.
+    published: 2024-05-15
+    last_reviewed: 2024-11-18
+    retrieved: 2026-09-22
+    topics: [medication-safety]
+
+  - guideline_id: cdc-cholesterol
+    title: About Cholesterol
+    publisher: Centers for Disease Control and Prevention
+    url: https://www.cdc.gov/cholesterol/about/index.html
+    license_basis: us-gov-public-domain
+    license_note: CDC content; US federal government work, public domain.
+    published: 2024-05-15
+    last_reviewed: 2024-05-15
+    retrieved: 2026-09-22
+    topics: [lipids, cardiovascular]
+
+  # ----------------------------------------------------- MedlinePlus (NLM)
+  - guideline_id: medlineplus-vitamin-d-test
+    title: Vitamin D Test
+    publisher: MedlinePlus, U.S. National Library of Medicine (NIH)
+    url: https://medlineplus.gov/lab-tests/vitamin-d-test/
+    license_basis: us-gov-public-domain
+    license_note: >-
+      MedlinePlus is produced by the National Library of Medicine; its content
+      is in the public domain (NLM copyright information).
+    last_reviewed: 2024-12-04
+    retrieved: 2026-09-22
+    topics: [vitamin-d, lab-tests]
+
+  - guideline_id: medlineplus-tsh-test
+    title: TSH (Thyroid-Stimulating Hormone) Test
+    publisher: MedlinePlus, U.S. National Library of Medicine (NIH)
+    url: https://medlineplus.gov/lab-tests/tsh-thyroid-stimulating-hormone-test/
+    license_basis: us-gov-public-domain
+    license_note: MedlinePlus (NLM); US federal government work, public domain.
+    last_reviewed: 2024-10-30
+    retrieved: 2026-09-22
+    topics: [thyroid, lab-tests]
+
+  - guideline_id: medlineplus-creatinine-test
+    title: Creatinine Test
+    publisher: MedlinePlus, U.S. National Library of Medicine (NIH)
+    url: https://medlineplus.gov/lab-tests/creatinine-test/
+    license_basis: us-gov-public-domain
+    license_note: MedlinePlus (NLM); US federal government work, public domain.
+    last_reviewed: 2023-12-05
+    retrieved: 2026-09-22
+    topics: [kidney, creatinine, egfr, lab-tests]
+
+  # ------------------------------------------------------------------- NIA
+  - guideline_id: nia-taking-medicines-safely
+    title: Taking Medicines Safely as You Age
+    publisher: National Institute on Aging (NIH)
+    url: https://www.nia.nih.gov/health/medicines-and-medication-management/taking-medicines-safely-you-age
+    license_basis: us-gov-public-domain
+    license_note: NIA health information; US federal government work, public domain.
+    last_reviewed: 2022-09-22
+    retrieved: 2026-09-22
+    topics: [medication-safety]

@@ -10,3 +10,8 @@ evals/w2/factory/output/*
 
 # Local-only compose override for the agent stack (docs/w2/LOCAL_ENV.md).
 deploy/docker-compose.override.yml
+
+# Dense-retrieval vectors, derived from corpus/chunks.json and rebuilt in
+# seconds (app/retrieval/dense.py). Cached per (model, corpus fingerprint),
+# so a stale cache cannot be read.
+app/retrieval/corpus/.cache/

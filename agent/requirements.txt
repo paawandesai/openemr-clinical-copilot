@@ -66,3 +66,12 @@ pyyaml>=6.0.2
 # Read-only chart pull from the local OpenEMR MySQL (evals/w2/factory/chart.py).
 # Pure Python, so no libmysqlclient on the host.
 pymysql>=1.1.1
+
+# --- app/retrieval: the guideline corpus and hybrid retriever ---
+
+# Local dense embeddings (BAAI/bge-small-en-v1.5) and the local
+# cross-encoder reranker, both through ONNX Runtime. fastembed rather than
+# sentence-transformers specifically to keep torch out of the image: torch
+# is ~2.5 GB installed and nothing else here needs it. Imported lazily, so
+# BM25-only use and the offline unit tests never load onnxruntime.
+fastembed>=0.7,<0.9

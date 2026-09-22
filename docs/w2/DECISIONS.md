@@ -673,6 +673,112 @@ sufficient. Anything outside this repository that accepts a Week 2
 extraction — the API collection, a non-Python consumer, a future eval
 harness — checks shape with the schema and must still pass the payload
 through the models for the invariants, or state plainly that it has not.
+## D23 — Local embeddings, weighted hybrid RRF, and a local reranker used as a fallback
+
+**Status:** PROPOSED — proposes an answer to D5, which stays OPEN until
+someone accepts this.
+**Date:** 2026-09-22
+**Evidence:** [`docs/w2/retrieval-bakeoff.md`](retrieval-bakeoff.md).
+Branch `feat/w2-retrieval`, work order 08.
+
+**On the number:** the work order asked for D21, on the understanding that
+the contracts branch held D9-D20. It holds D9-**D22**, and those merged to
+`main` while this branch was being built, so D21 and D22 were already
+taken. D23 is the next free number. (This branch was 18 commits behind
+`main` when the entry was written and has since been rebased onto it; the
+numbering was chosen against `main` from the start, so the rebase changed
+nothing here.)
+
+### Proposal
+
+1. **Embeddings: local.** `BAAI/bge-small-en-v1.5` through fastembed /
+   ONNX Runtime. MIT, 67 MB, 384-dimensional, and specifically not
+   sentence-transformers, so torch stays out of the agent image.
+
+2. **Fusion: hybrid RRF with a per-retriever search depth of 30**, k=60,
+   independent of `top_k`.
+
+3. **Fusion weights: dense 2×, lexical 1×** — adopted *after* the
+   weighting is confirmed against the Week 2 eval cases, not before.
+
+4. **Reranker: the local cross-encoder** `Xenova/ms-marco-MiniLM-L-6-v2`
+   (Apache-2.0, 80 MB, ONNX), **not on the default path**. Run it as a
+   fallback when the fused result set is weak. The trigger condition is
+   not designed yet.
+
+5. **Cohere rerank: neither adopted nor rejected.** It was not measured.
+
+### The numbers this rests on
+
+30 concept-only dev queries, 110 relevance judgments, 696 chunks from 28
+public-domain documents, Apple M5 Pro:
+
+| config | recall@5 | MRR | p50 ms | queries at zero recall |
+|---|---|---|---|---|
+| BM25 only | 0.570 | 0.733 | 0.2 | 2 |
+| dense only | 0.718 | 0.854 | 2.6 | 1 |
+| hybrid RRF (1:1) | 0.692 | 0.826 | 2.8 | 1 |
+| hybrid RRF (dense 2×) | **0.733** | **0.887** | 2.7 | 1 |
+| hybrid + local cross-encoder | 0.702 | 0.889 | 510.6 | **0** |
+| hybrid + Cohere rerank-v3.5 | — | — | — | not run: no API key |
+
+### Rationale
+
+**Local embeddings, on the constraint before the numbers.** D5's hard
+constraint is that no patient identifier may appear in a query that leaves
+this system. A hosted embedding API puts *every* retrieval query on the
+wire, which makes that constraint depend on a text filter holding on every
+call forever. A local embedder makes it depend on nothing: the query never
+leaves the process. bge-small then also happens to win on the numbers, at
+2.6 ms and no marginal cost.
+
+**Fusion depth is a correctness fix, not tuning.** Fusing each retriever's
+top-10 scored recall@5 0.663, *below* dense alone — the fusion was
+discarding exactly the cases where one retriever found what the other
+missed. Depth 30 gives 0.692 with nothing else changed, and 60 and 100
+give the same, so it has flattened rather than been fitted.
+
+**The weighting is fitted, and is flagged as fitted.** Dense 2× is worth
+~4 points of recall@5 and is stable across depths 30-100 and k 20-60, but
+30 queries is not enough to adopt a weight on. Dense 3× scores higher
+recall and lower MRR, which is what overfitting looks like. The code's
+default stays 1:1; the bake-off passes 2× explicitly.
+
+**The reranker's value is not its mean.** It *lowers* mean recall@5
+(0.733 → 0.702) and moves MRR by 0.002, for 500 ms. What it does is turn
+the one total miss into a hit: `q19-levothyroxine-followup` goes 0.00 →
+1.00, because the only chunk in the corpus that answers it is written for
+patients while the query is written for clinicians, and a cross-encoder
+reading the candidate pool can see that where a bi-encoder and BM25
+cannot. A stage whose value is eliminating total misses belongs on the
+path where a total miss is about to happen, not on every turn — and in an
+answer pipeline that must cite or disclose, a turn with no usable evidence
+is exactly the turn worth spending 500 ms on.
+
+**Cohere is unmeasured and is reported as unmeasured.** `COHERE_API_KEY`
+is not configured, and the bake-off reports the row as SKIPPED rather than
+falling back to the local reranker. The adapter exists
+(`app/retrieval/rerank.py`), sends a plain `urllib` POST rather than
+pulling in an SDK, and runs the concept-only guard before building the
+request — but it has never executed. Claiming a comparison here would be
+inventing one.
+
+### What has to happen before this becomes DECIDED
+
+- **Confirm the dense-2× weighting on the Week 2 eval cases**, not on the
+  30 staged dev queries it was fitted on.
+- **Measure both models on the Vultr droplet.** Everything above is an
+  Apple M5 Pro. Both models are CPU-bound ONNX on a shared vCPU there; the
+  cross-encoder's 500 ms is the number most likely to become seconds, and
+  the cold-start embedding of the whole corpus needs to be warmed at
+  deploy rather than on the first clinician's question.
+- **Design the reranker's fallback trigger**, with evidence rather than a
+  guessed threshold.
+- **Decide whether `dated` reaches the reader.** Two sources are flagged
+  dated, one of them (`niddk-evaluate-ckd`, reviewed 2015) on eGFR, where
+  the guidance has since moved. `GuidelineSource` has no `dated` field, so
+  today the only signal a caller gets is `version`. That is a contracts
+  question, not a retrieval one.
 
 ---
 

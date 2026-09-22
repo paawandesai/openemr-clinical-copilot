@@ -1,0 +1,293 @@
+{
+  "cdc-cholesterol": {
+    "http_status": 200,
+    "markdown_bytes": 5165,
+    "markdown_sha256": "0df9ffd8b71c3b9629cc105ddc0fde66724f3106e20122c78bbc9d5eb774756b",
+    "raw_sha256": "2936f2e1987587faa3563d9e129764ee0b7bd9156dfe5452d18a56bb334a9ee1",
+    "retrieved": "2026-09-22",
+    "urls": [
+      "https://www.cdc.gov/cholesterol/about/index.html"
+    ]
+  },
+  "cdc-chronic-kidney-disease": {
+    "http_status": 200,
+    "markdown_bytes": 4740,
+    "markdown_sha256": "dfdcd3aca149aab08afba4075678ef09157c759ff914e1de763cfab281a43ad4",
+    "raw_sha256": "d9cb6cb63bbb4034ddcfb3cb3563c627903718f0db8ad52b2b014eabc0a59258",
+    "retrieved": "2026-09-22",
+    "urls": [
+      "https://www.cdc.gov/kidney-disease/about/index.html"
+    ]
+  },
+  "cdc-diabetes-testing": {
+    "http_status": 200,
+    "markdown_bytes": 5436,
+    "markdown_sha256": "1a00ad1a0b9d9768136410c4a30618df06cbc10c74020649ac9b4382b2206cd9",
+    "raw_sha256": "816562fb75010ae43a36ff4b159e4978fce295a3706a2dd9ba382ec9e30cc054",
+    "retrieved": "2026-09-22",
+    "urls": [
+      "https://www.cdc.gov/diabetes/diabetes-testing/index.html"
+    ]
+  },
+  "cdc-diabetes-treatment": {
+    "http_status": 200,
+    "markdown_bytes": 3791,
+    "markdown_sha256": "43c73d2652f4c852e3231f4827fe9bbbd65ae16c27aeb52d605ff747c8d8e364",
+    "raw_sha256": "bc9fccb0cb107704b371b3bd21edc0f948865805f2a93359e91697cc47580268",
+    "retrieved": "2026-09-22",
+    "urls": [
+      "https://www.cdc.gov/diabetes/treatment/index.html"
+    ]
+  },
+  "cdc-high-blood-pressure": {
+    "http_status": 200,
+    "markdown_bytes": 7392,
+    "markdown_sha256": "12649e395dbc3d816244ac1efb10d1e050f2e817b413c4634f00a03dcf0f5b10",
+    "raw_sha256": "6a22cab47362852e1e42040d990d8c1277a9cd6fc009b245ff4e1c477ec71043",
+    "retrieved": "2026-09-22",
+    "urls": [
+      "https://www.cdc.gov/high-blood-pressure/about/index.html"
+    ]
+  },
+  "cdc-medication-safety": {
+    "http_status": 200,
+    "markdown_bytes": 4240,
+    "markdown_sha256": "94e745e3fdc42cafac14404824ae7a904ba661d155ade274feff3082d7cab92f",
+    "raw_sha256": "4e5bb4c776e6c57bff65bf1121597236715454b5d39c046a2af49752dd5fc0fe",
+    "retrieved": "2026-09-22",
+    "urls": [
+      "https://www.cdc.gov/medication-safety/about/index.html"
+    ]
+  },
+  "medlineplus-creatinine-test": {
+    "http_status": 200,
+    "markdown_bytes": 14105,
+    "markdown_sha256": "6c60633974527d3de31a3e1e67cae8daccc04d02fc155b98b3b99f89cf8dce48",
+    "raw_sha256": "d2d8bb44141991fc2041da261a729c87f0450b2542fc41f854a571645baf2333",
+    "retrieved": "2026-09-22",
+    "urls": [
+      "https://medlineplus.gov/lab-tests/creatinine-test/"
+    ]
+  },
+  "medlineplus-tsh-test": {
+    "http_status": 200,
+    "markdown_bytes": 11639,
+    "markdown_sha256": "799a0cdfc0ddd9ecaf6165ecd03a533fe03989659037ec5ed8cb20bf3ffce7fc",
+    "raw_sha256": "9a333ce62a498af8fd15236140a274b9d523181e29488f89cde58f1c0da66524",
+    "retrieved": "2026-09-22",
+    "urls": [
+      "https://medlineplus.gov/lab-tests/tsh-thyroid-stimulating-hormone-test/"
+    ]
+  },
+  "medlineplus-vitamin-d-test": {
+    "http_status": 200,
+    "markdown_bytes": 10520,
+    "markdown_sha256": "72889c0a8de54b9b318ee861298799c033f1ce652087204762e1a73257042ce6",
+    "raw_sha256": "7d79d1cd7d2c8cf75f8a7b351b6c5bb75c0e60ba8cc64ec452686e5f9738784a",
+    "retrieved": "2026-09-22",
+    "urls": [
+      "https://medlineplus.gov/lab-tests/vitamin-d-test/"
+    ]
+  },
+  "nhlbi-blood-cholesterol": {
+    "http_status": 200,
+    "markdown_bytes": 23413,
+    "markdown_sha256": "691b4a10f73af6309737e02c442191a884a2655ee89827a72a1449353fcc3e6d",
+    "raw_sha256": "92ef1e126f316d9a8a063158e636fa968585a07c4da510c64bccf01c02a5698f",
+    "retrieved": "2026-09-22",
+    "urls": [
+      "https://www.nhlbi.nih.gov/health/blood-cholesterol",
+      "https://www.nhlbi.nih.gov/health/blood-cholesterol/symptoms",
+      "https://www.nhlbi.nih.gov/health/blood-cholesterol/diagnosis",
+      "https://www.nhlbi.nih.gov/health/blood-cholesterol/causes",
+      "https://www.nhlbi.nih.gov/health/blood-cholesterol/treatment",
+      "https://www.nhlbi.nih.gov/health/blood-cholesterol/living-with"
+    ]
+  },
+  "nhlbi-blood-tests": {
+    "http_status": 200,
+    "markdown_bytes": 7433,
+    "markdown_sha256": "7f611e3b86588d2e67c8f5bdc230ce5c8cc266a67f05601453d8b7967fc9f70f",
+    "raw_sha256": "a9d696ed757f9d8035319e309d6211989cfc8560e40c247a3fe0a6c3024e178a",
+    "retrieved": "2026-09-22",
+    "urls": [
+      "https://www.nhlbi.nih.gov/health/blood-tests"
+    ]
+  },
+  "nhlbi-high-blood-pressure": {
+    "http_status": 200,
+    "markdown_bytes": 30901,
+    "markdown_sha256": "434d0e375fc7c029050ed3af79732dc819ceeebc8035dc1d440997bafd6ed9cf",
+    "raw_sha256": "0281f72f24cbd7094831dde302c8427d334f2a7d59bfe5697a0ddc00c02692bd",
+    "retrieved": "2026-09-22",
+    "urls": [
+      "https://www.nhlbi.nih.gov/health/high-blood-pressure",
+      "https://www.nhlbi.nih.gov/health/high-blood-pressure/symptoms",
+      "https://www.nhlbi.nih.gov/health/high-blood-pressure/diagnosis",
+      "https://www.nhlbi.nih.gov/health/high-blood-pressure/causes",
+      "https://www.nhlbi.nih.gov/health/high-blood-pressure/treatment",
+      "https://www.nhlbi.nih.gov/health/high-blood-pressure/living-with",
+      "https://www.nhlbi.nih.gov/health/high-blood-pressure/pregnancy"
+    ]
+  },
+  "nhlbi-iron-deficiency-anemia": {
+    "http_status": 200,
+    "markdown_bytes": 6609,
+    "markdown_sha256": "5c0aafe1ba62e6262e10eac6949831453b6bf5c667652e3311fc0f97b866e2fe",
+    "raw_sha256": "7424abe0865c36d979dbf609ad72242063bb029b5f733793911f1fe875d29bdb",
+    "retrieved": "2026-09-22",
+    "urls": [
+      "https://www.nhlbi.nih.gov/health/anemia/iron-deficiency-anemia"
+    ]
+  },
+  "nia-taking-medicines-safely": {
+    "http_status": 200,
+    "markdown_bytes": 19852,
+    "markdown_sha256": "d17c217cad456cbe99c046c08f1222fc1e0b1ba92814cecec5f69d97ede63fab",
+    "raw_sha256": "4201275a3b60c5ec9d26caa941b3aaa818ff01242fe9f9ec0f412f611263b32e",
+    "retrieved": "2026-09-22",
+    "urls": [
+      "https://www.nia.nih.gov/health/medicines-and-medication-management/taking-medicines-safely-you-age"
+    ]
+  },
+  "niddk-a1c-test": {
+    "http_status": 200,
+    "markdown_bytes": 14604,
+    "markdown_sha256": "c6c5a335176b4b5ccf8b6352298fde468cb6348bbb4b4e213fd7fa8a7ce245f9",
+    "raw_sha256": "d32265bc04683ba4bd42f8556dc7401267d335e3e3021160476860269c768b61",
+    "retrieved": "2026-09-22",
+    "urls": [
+      "https://www.niddk.nih.gov/health-information/diagnostic-tests/a1c-test"
+    ]
+  },
+  "niddk-ckd-tests-diagnosis": {
+    "http_status": 200,
+    "markdown_bytes": 4986,
+    "markdown_sha256": "c2b08c255bac9f2b801d680f0e7ccff8470163d63480161fc67379e96d16490d",
+    "raw_sha256": "a479163909512efaff2461b68f15946b3433e92adaa28570e0965ec190936612",
+    "retrieved": "2026-09-22",
+    "urls": [
+      "https://www.niddk.nih.gov/health-information/kidney-disease/chronic-kidney-disease-ckd/tests-diagnosis"
+    ]
+  },
+  "niddk-diabetes-heart-disease-stroke": {
+    "http_status": 200,
+    "markdown_bytes": 16300,
+    "markdown_sha256": "be1bda80b3b8d21160a9ffa97a9ccf558b40e9add8ceede9fa7aaf717aa127e5",
+    "raw_sha256": "e54dfe00dc205b862c9dbce1633b5dbb07d7550a775bcc43b72568844caca32b",
+    "retrieved": "2026-09-22",
+    "urls": [
+      "https://www.niddk.nih.gov/health-information/diabetes/overview/preventing-problems/heart-disease-stroke"
+    ]
+  },
+  "niddk-evaluate-ckd": {
+    "http_status": 200,
+    "markdown_bytes": 7297,
+    "markdown_sha256": "95ec1b89e9580dfe63fb9c5d1c549c7eb178bc7feaeb0a2b73bf336b626a0a6b",
+    "raw_sha256": "655bebdd81da98836543cd9f178a8747d56ccb05a5dbdb68439da694d254353e",
+    "retrieved": "2026-09-22",
+    "urls": [
+      "https://www.niddk.nih.gov/health-information/professionals/clinical-tools-patient-management/kidney-disease/identify-manage-patients/evaluate-ckd"
+    ]
+  },
+  "niddk-hyperthyroidism": {
+    "http_status": 200,
+    "markdown_bytes": 13582,
+    "markdown_sha256": "fe1c0389b54cb88ea9c9222c207edeedd631233db63dda1cb292a672df0e57b2",
+    "raw_sha256": "e3332eb9f39803592beab70c7c96254f31ea56df92608dbc43bc723388302b23",
+    "retrieved": "2026-09-22",
+    "urls": [
+      "https://www.niddk.nih.gov/health-information/endocrine-diseases/hyperthyroidism"
+    ]
+  },
+  "niddk-hypothyroidism": {
+    "http_status": 200,
+    "markdown_bytes": 11620,
+    "markdown_sha256": "edbb65aff7b4f1dcacdbd3f6ae16705aada66c4d1a906d84050e8d14ef8e4e77",
+    "raw_sha256": "1f7d5f0f85fe22e0ce25e6398917f5dde3a60939e1376094b386dbbe37d3be24",
+    "retrieved": "2026-09-22",
+    "urls": [
+      "https://www.niddk.nih.gov/health-information/endocrine-diseases/hypothyroidism"
+    ]
+  },
+  "uspstf-aspirin-cvd-prevention": {
+    "http_status": 200,
+    "markdown_bytes": 46817,
+    "markdown_sha256": "8f30b1ee7f0dc35de7580a240884a1815b9c61eb476abb9b351e86c2055614a1",
+    "raw_sha256": "642c20e5b0e7d163f6725f96ad0e2d941e0bc6c1fb7047d480f1382e8f903466",
+    "retrieved": "2026-09-22",
+    "urls": [
+      "https://www.uspreventiveservicestaskforce.org/uspstf/recommendation/aspirin-to-prevent-cardiovascular-disease-preventive-medication"
+    ]
+  },
+  "uspstf-diabetes-screening": {
+    "http_status": 200,
+    "markdown_bytes": 49025,
+    "markdown_sha256": "2be8adcd640460af7ef459eb3f557b61815c914324419668e1762ad694c2f5bb",
+    "raw_sha256": "a6584c327e9e4bfcf176ec5a9c09c950b9eb569766015e984f5976463ec570ee",
+    "retrieved": "2026-09-22",
+    "urls": [
+      "https://www.uspreventiveservicestaskforce.org/uspstf/recommendation/screening-for-prediabetes-and-type-2-diabetes"
+    ]
+  },
+  "uspstf-hypertension-screening": {
+    "http_status": 200,
+    "markdown_bytes": 39274,
+    "markdown_sha256": "5d6f8570294aa22f194c64d79c684ab74716fc38b42a2f8332645a104b6766d5",
+    "raw_sha256": "cd35cabe5fe6aab1b44255aad66f683f3d7c63fe2fdafdd3aac18546e5e4a755",
+    "retrieved": "2026-09-22",
+    "urls": [
+      "https://www.uspreventiveservicestaskforce.org/uspstf/recommendation/hypertension-in-adults-screening"
+    ]
+  },
+  "uspstf-iron-deficiency-anemia-pregnancy": {
+    "http_status": 200,
+    "markdown_bytes": 53602,
+    "markdown_sha256": "5184220fa477dceb3be42e5013a9c2fd00e0b957f661d090252ec572b1566d98",
+    "raw_sha256": "768c29402c06d3fd614a43c947b9b1cf7e107da7ef5b215829c28d3151c66047",
+    "retrieved": "2026-09-22",
+    "urls": [
+      "https://www.uspreventiveservicestaskforce.org/uspstf/recommendation/iron-deficiency-anemia-in-pregnant-women-screening-and-supplementation"
+    ]
+  },
+  "uspstf-statin-primary-prevention": {
+    "http_status": 200,
+    "markdown_bytes": 49982,
+    "markdown_sha256": "cbf95acab9f9270c14d84b4316bb8efc22761f23331a5f91648afa573efa6eef",
+    "raw_sha256": "88777450ed1724b1d52925ccd5b8e14989296decc1277ead4418e04cf4033c8b",
+    "retrieved": "2026-09-22",
+    "urls": [
+      "https://www.uspreventiveservicestaskforce.org/uspstf/recommendation/statin-use-in-adults-preventive-medication"
+    ]
+  },
+  "uspstf-thyroid-screening": {
+    "http_status": 200,
+    "markdown_bytes": 58061,
+    "markdown_sha256": "6a1cb7380dac01f8e7e909f5fd5e508a84a250a3a838785a7b8551cda297efb5",
+    "raw_sha256": "8e82afba0a8e9a8afc11b59b74d8f4d69b613a85371d2f3ece4ab80a13e39b67",
+    "retrieved": "2026-09-22",
+    "urls": [
+      "https://www.uspreventiveservicestaskforce.org/uspstf/recommendation/thyroid-dysfunction-screening"
+    ]
+  },
+  "uspstf-vitamin-d-calcium-fractures": {
+    "http_status": 200,
+    "markdown_bytes": 44527,
+    "markdown_sha256": "c25225d82b9856fd2f2137b3b903b6719db50e7cd6218f78f73740c7eb088954",
+    "raw_sha256": "7a62d7b4a1cb53ea857e1218f1eae98a44f7a6cab0ea520ceba2766820728056",
+    "retrieved": "2026-09-22",
+    "urls": [
+      "https://www.uspreventiveservicestaskforce.org/uspstf/recommendation/vitamin-d-calcium-or-combined-supplementation-for-the-primary-prevention-of-fractures-in-adults-preventive-medication"
+    ]
+  },
+  "uspstf-vitamin-d-deficiency-screening": {
+    "http_status": 200,
+    "markdown_bytes": 41735,
+    "markdown_sha256": "9982067ca69552f9b6bd3b4c60f722cd99a1ebc5b7f045413ae1ce29b6a13202",
+    "raw_sha256": "5af5e32dbbda59dbed5d59b333cc3787888d7a771451c82ce0710e4ed211131f",
+    "retrieved": "2026-09-22",
+    "urls": [
+      "https://www.uspreventiveservicestaskforce.org/uspstf/recommendation/vitamin-d-deficiency-screening"
+    ]
+  }
+}
