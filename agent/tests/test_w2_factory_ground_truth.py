@@ -2,20 +2,34 @@
 Factory compatibility: all six committed ground truths convert to valid
 schema instances.
 
-The samples are read from `feat/doc-factory` with `git show`, not vendored
-here. That branch is where they live (D8 records the relocation to
-`agent/evals/w2/factory/`), copying 250 KB of JSON into `tests/` would put
-two sources of truth in the repository, and `git show` is a local read with
-no network and no credentials — the same constraints the rest of
-`agent/tests/` runs under.
+The samples are not vendored here. They live under
+`agent/evals/w2/factory/output/samples/` (D8), copying 250 KB of JSON into
+`tests/` would put two sources of truth in the repository, and reading them
+where they are needs no network and no credentials — the same constraints
+the rest of `agent/tests/` runs under.
 
-If the branch is not present the module skips, loudly, naming what it
-wanted. A skip is not a pass and the session report says which it was.
+**Where they are read from, in order:**
+
+1. The **working tree**, if the sample directory exists. That is the copy a
+   session is actually looking at, and once `feat/doc-factory` merges it is
+   the only copy. A branch that changes a sample and a contract together
+   must be measured against its own samples, not against another branch's.
+2. `git show feat/doc-factory:…`, if the working tree has no such path.
+   This branch does not carry the factory, so that is the path taken here.
+
+**If neither exists, the tests fail.** They do not skip. This module is the
+only evidence that the contracts can represent the doc-factory's ground
+truth at all — requirement 8 of work order 03 — and a silent skip would
+turn the loss of that evidence into a green run. `W2_ALLOW_MISSING_FACTORY=1`
+is the deliberate, explicit override for someone who knows the samples are
+absent and wants the rest of the suite anyway; with it set, the module
+skips and says so.
 """
 
 from __future__ import annotations
 
 import json
+import os
 import subprocess
 from functools import lru_cache
 from pathlib import Path
@@ -59,37 +73,62 @@ ALL_SAMPLES = LAB_SAMPLES + INTAKE_SAMPLES
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 
+#: Set to "1" to let the suite run without the doc-factory samples. Read
+#: once, by name, so that the override is visible in the skip message and
+#: cannot be mistaken for the samples having been found.
+ALLOW_MISSING_ENV_VAR = "W2_ALLOW_MISSING_FACTORY"
 
-@lru_cache(maxsize=1)
-def _branch_available() -> bool:
-    probe = subprocess.run(
-        ["git", "rev-parse", "--verify", f"{FACTORY_BRANCH}^{{commit}}"],
+
+class FactorySamplesMissing(RuntimeError):
+    """Neither the working tree nor the factory branch has the samples."""
+
+
+def _relative_sample_path(scenario_id: str) -> str:
+    return f"{SAMPLE_DIR}/{scenario_id}/{scenario_id}.ground_truth.json"
+
+
+def working_tree_sample(scenario_id: str) -> Path:
+    return REPO_ROOT / _relative_sample_path(scenario_id)
+
+
+def _read_from_branch(scenario_id: str) -> str | None:
+    """The sample's contents from `feat/doc-factory`, or None if unreadable."""
+    shown = subprocess.run(
+        ["git", "show", f"{FACTORY_BRANCH}:{_relative_sample_path(scenario_id)}"],
         cwd=REPO_ROOT,
         capture_output=True,
         text=True,
         check=False,
     )
-    return probe.returncode == 0
+    return shown.stdout if shown.returncode == 0 else None
 
 
 @lru_cache(maxsize=len(ALL_SAMPLES))
 def load_ground_truth(scenario_id: str) -> dict[str, Any]:
-    if not _branch_available():
-        pytest.skip(
-            f"branch {FACTORY_BRANCH} is not present in this checkout; "
-            f"cannot read {SAMPLE_DIR}/{scenario_id}"
-        )
-    path = f"{FACTORY_BRANCH}:{SAMPLE_DIR}/{scenario_id}/{scenario_id}.ground_truth.json"
-    shown = subprocess.run(
-        ["git", "show", path],
-        cwd=REPO_ROOT,
-        capture_output=True,
-        text=True,
-        check=False,
+    """
+    One ground-truth document: working tree first, factory branch second,
+    failure third. See the module docstring for why there is no fourth.
+    """
+    on_disk = working_tree_sample(scenario_id)
+    if on_disk.exists():
+        return json.loads(on_disk.read_text(encoding="utf-8"))
+
+    from_branch = _read_from_branch(scenario_id)
+    if from_branch is not None:
+        return json.loads(from_branch)
+
+    message = (
+        f"doc-factory sample {scenario_id!r} is in neither the working tree "
+        f"({on_disk}) nor {FACTORY_BRANCH}:{_relative_sample_path(scenario_id)}. "
+        "This module is the only evidence that the Week 2 contracts can "
+        "represent the doc-factory's ground truth (work order 03, "
+        "requirement 8), so it fails rather than skipping. Check out the "
+        f"factory branch or its samples, or set {ALLOW_MISSING_ENV_VAR}=1 to "
+        "run the rest of the suite without this evidence."
     )
-    if shown.returncode != 0:
-        pytest.skip(f"{path} is not readable: {shown.stderr.strip()}")
-    return json.loads(shown.stdout)
+    if os.environ.get(ALLOW_MISSING_ENV_VAR) == "1":
+        pytest.skip(f"{ALLOW_MISSING_ENV_VAR}=1 is set. {message}")
+    raise FactorySamplesMissing(message)
 
 
 @lru_cache(maxsize=len(ALL_SAMPLES))
@@ -536,3 +575,120 @@ def test_the_lab_director_caption_is_no_longer_part_of_the_value() -> None:
     assert fact.value == "Nadia Okonjo-Reyes, MD"
     assert not fact.value.startswith("Laboratory Director")
     assert "lab.director" not in {note.field_path for note in conversion.chart_truth}
+
+
+# -- where the samples come from -------------------------------------------
+
+
+def test_the_samples_were_actually_found() -> None:
+    """
+    Not a tautology: every other test in this module calls
+    `load_ground_truth`, which fails rather than skipping when the samples
+    are absent — but only once something calls it. This one states plainly
+    that the evidence exists, and names where it came from, so a reader of
+    the run output can see which source was used.
+    """
+    source = (
+        "working tree"
+        if working_tree_sample(ALL_SAMPLES[0]).exists()
+        else f"{FACTORY_BRANCH} via git show"
+    )
+    for scenario_id in ALL_SAMPLES:
+        assert load_ground_truth(scenario_id)["scenario"]["scenario_id"] == scenario_id
+    assert source in ("working tree", f"{FACTORY_BRANCH} via git show")
+
+
+def test_a_missing_sample_fails_rather_than_skipping(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """
+    The behaviour requirement 8 depends on. A silent skip would turn the
+    loss of the only factory-compatibility evidence into a green run.
+    """
+    monkeypatch.delenv(ALLOW_MISSING_ENV_VAR, raising=False)
+    load_ground_truth.cache_clear()
+    monkeypatch.setattr(
+        "tests.test_w2_factory_ground_truth.working_tree_sample",
+        lambda scenario_id: REPO_ROOT / "does-not-exist" / scenario_id,
+    )
+    monkeypatch.setattr(
+        "tests.test_w2_factory_ground_truth._read_from_branch", lambda scenario_id: None
+    )
+    try:
+        with pytest.raises(FactorySamplesMissing, match="requirement 8"):
+            load_ground_truth("lab-clean-001")
+    finally:
+        load_ground_truth.cache_clear()
+
+
+def test_the_override_is_explicit_and_says_so(monkeypatch: pytest.MonkeyPatch) -> None:
+    """`W2_ALLOW_MISSING_FACTORY=1` skips — and the skip message names the
+    variable, so a green run with a skip in it is traceable to a decision
+    someone made rather than to an accident."""
+    monkeypatch.setenv(ALLOW_MISSING_ENV_VAR, "1")
+    load_ground_truth.cache_clear()
+    monkeypatch.setattr(
+        "tests.test_w2_factory_ground_truth.working_tree_sample",
+        lambda scenario_id: REPO_ROOT / "does-not-exist" / scenario_id,
+    )
+    monkeypatch.setattr(
+        "tests.test_w2_factory_ground_truth._read_from_branch", lambda scenario_id: None
+    )
+    try:
+        # `Skipped` derives from BaseException, so pytest.raises(Exception)
+        # would let it through and this test would report as skipped —
+        # which is exactly the outcome it exists to distinguish from a pass.
+        with pytest.raises(pytest.skip.Exception, match=ALLOW_MISSING_ENV_VAR):
+            load_ground_truth("lab-clean-001")
+    finally:
+        load_ground_truth.cache_clear()
+
+
+def test_any_value_but_1_does_not_enable_the_override(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """An override this consequential is not enabled by an empty string or
+    by the word `false` sitting in someone's shell profile."""
+    monkeypatch.setenv(ALLOW_MISSING_ENV_VAR, "false")
+    load_ground_truth.cache_clear()
+    monkeypatch.setattr(
+        "tests.test_w2_factory_ground_truth.working_tree_sample",
+        lambda scenario_id: REPO_ROOT / "does-not-exist" / scenario_id,
+    )
+    monkeypatch.setattr(
+        "tests.test_w2_factory_ground_truth._read_from_branch", lambda scenario_id: None
+    )
+    try:
+        with pytest.raises(FactorySamplesMissing):
+            load_ground_truth("lab-clean-001")
+    finally:
+        load_ground_truth.cache_clear()
+
+
+def test_the_working_tree_wins_when_it_has_the_samples(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    """
+    Order matters once feat/doc-factory merges: a branch that changes a
+    sample and a contract together must be measured against its own
+    samples, not against whatever another branch still holds.
+    """
+    planted = tmp_path / "lab-clean-001.ground_truth.json"
+    planted.write_text(
+        json.dumps({"scenario": {"scenario_id": "planted-by-the-test"}}),
+        encoding="utf-8",
+    )
+    load_ground_truth.cache_clear()
+    monkeypatch.setattr(
+        "tests.test_w2_factory_ground_truth.working_tree_sample",
+        lambda scenario_id: planted,
+    )
+    monkeypatch.setattr(
+        "tests.test_w2_factory_ground_truth._read_from_branch",
+        lambda scenario_id: pytest.fail("the branch must not be consulted"),
+    )
+    try:
+        loaded = load_ground_truth("lab-clean-001")
+        assert loaded["scenario"]["scenario_id"] == "planted-by-the-test"
+    finally:
+        load_ground_truth.cache_clear()
