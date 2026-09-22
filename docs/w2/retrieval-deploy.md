@@ -128,3 +128,9 @@ Everything timed in `retrieval-bakeoff.md` is an Apple M5 Pro. The
 cross-encoder is ~350 ms p50 there over a 20-candidate pool and it is the
 number most likely to change on a shared vCPU. Nothing in this note has
 been run on the Vultr host.
+
+**Update 2026-09-22 — measured on the Vultr host** ([`DEPLOY.md`](DEPLOY.md)
+§8): preload 2.6–2.9 s with `vector_cache_prebuilt: true`; hybrid retrieval
+p50 7.8 ms; the cross-encoder p50 1.29 s and p95 2.06 s, with **9 of 60
+queries over the 2.5 s budget**. That is the "does not fit the host" signal
+this note describes.
