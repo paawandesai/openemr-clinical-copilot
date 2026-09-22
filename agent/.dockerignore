@@ -16,3 +16,9 @@ docs/
 deploy/
 observability/
 api-collection/
+
+# The dense-vector cache is derived data keyed on (model, corpus hash). The
+# Dockerfile builds a fresh one; copying the developer's in would ship a
+# second, stale .npz alongside it and make the image depend on whatever
+# state that machine happened to be in.
+app/retrieval/corpus/.cache/

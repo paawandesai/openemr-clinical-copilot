@@ -41,6 +41,12 @@ services:
       # of the source record, not a model's output. No new port or
       # binding, so F-54 is unaffected either way.
       AGENT_STUB_LLM_DRAFTING: ${AGENT_STUB_LLM_DRAFTING:-false}
+      # Warm the guideline retriever at startup rather than on a
+      # clinician's first question: the ONNX weights and the 693 chunk
+      # vectors are both cold on a fresh process. Both are baked into the
+      # image, so this loads from disk and never fetches
+      # (docs/w2/retrieval-deploy.md).
+      AGENT_PRELOAD_RETRIEVAL: ${AGENT_PRELOAD_RETRIEVAL:-true}
     read_only: true
     tmpfs:
       - /tmp

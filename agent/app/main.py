@@ -24,6 +24,8 @@ six metrics: every log line a request produces carries its correlation_id.
 
 from __future__ import annotations
 
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
@@ -34,12 +36,45 @@ from app.api.pre_visit_brief import ApiError
 from app.api.pre_visit_brief import router as pre_visit_brief_router
 from app.health import router as health_router
 from app.middleware.correlation import CorrelationIdMiddleware, get_correlation_id
-from app.middleware.logging import configure_logging
+from app.middleware.logging import configure_logging, log_event
 from app.models.api import ErrorCode, ErrorResponse
+from app.retrieval.preload import preload_enabled, preload_retrieval
 
 configure_logging()
 
+
+@asynccontextmanager
+async def lifespan(_: FastAPI):
+    """
+    Warm the guideline retriever before the first request, when asked to.
+
+    The ONNX weights and the chunk vectors are cold on a fresh process, and
+    a clinician's first question should not be what pays for them
+    (docs/w2/retrieval-deploy.md). Off by default so a dev process and the
+    test suite do not load a model they are not going to use; the container
+    sets AGENT_PRELOAD_RETRIEVAL=true.
+
+    A preload failure does not stop the service: the rest of the API does
+    not depend on retrieval, and refusing to serve a Pre-Visit Brief
+    because a guideline index would not warm is the wrong trade. It is
+    logged loudly instead.
+    """
+    if preload_enabled():
+        try:
+            app.state.guideline_retriever = preload_retrieval()
+        except Exception as exc:  # noqa: BLE001 - startup must not be fatal here
+            app.state.guideline_retriever = None
+            log_event(
+                "retrieval_preload_failed_event",
+                event_data={"error_type": type(exc).__name__},
+            )
+    else:
+        app.state.guideline_retriever = None
+    yield
+
+
 app = FastAPI(
+    lifespan=lifespan,
     title="Clinical Co-Pilot Agent",
     description=(
         "Pre-Visit Brief (docs/USERS.md Use Case 1) and the multi-turn follow-up "
