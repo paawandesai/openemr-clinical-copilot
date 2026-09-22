@@ -673,3 +673,75 @@ sufficient. Anything outside this repository that accepts a Week 2
 extraction — the API collection, a non-Python consumer, a future eval
 harness — checks shape with the schema and must still pass the payload
 through the models for the invariants, or state plainly that it has not.
+## D23 — The lab write-back endpoint ships as a custom module, not a core route
+
+**Status:** DECIDED
+**Date:** 2026-09-22
+**Implements:** D1 (superseding), whose "custom endpoint in the OpenEMR fork,
+protected by a new custom OAuth scope" this entry pins down.
+
+**Decision:**
+
+- The endpoint is **`POST /api/clinical-copilot/lab-writeback`**, registered by
+  the existing `oe-module-clinical-copilot` module through OpenEMR's own
+  extension points — `RestApiCreateEvent` for the route and `RestApiScopeEvent`
+  for the scope. No file under `apis/routes/` or `src/Common/Auth/` is edited.
+- The custom scope is **`user/lab-writeback.c`**.
+- The ledger is **`module_clinical_copilot_writeback_ledger`**, created by the
+  module's `sql/install.sql`, `UNIQUE` on `idempotency_key`.
+- A written-back result is created with **`procedure_report.review_status =
+  'received'`**, i.e. unreviewed.
+
+**Rationale:**
+
+*Module over core route.* Both extension points already exist and are
+dispatched on every relevant request: `StandardRouteFinder::find()` fires
+`RestApiCreateEvent` after loading the core route map, and
+`ScopeRepository::getCurrentSmartScopes()` fires `RestApiScopeEvent` — which is
+what dynamic client registration validates against and what the token endpoint
+grants from. Both reach the module because `interface/globals.php`, which
+constructs `ModulesApplication`, is loaded by `SiteSetupListener` for `/apis/`
+and `/oauth2/` alike. The route that results is dispatched, scope-checked and
+audited exactly like a core one — verified: a token without the scope is
+refused by `AuthorizationListener` with `scope user/lab-writeback.c not in
+access token`. Editing `apis/routes/_rest_routes_standard.inc.php` and
+`ServerScopeListEntity` would buy nothing and cost a permanent merge conflict
+against upstream in two files every rebase touches, in a fork whose whole
+history is one squashed import. It would also make the write-back
+unswitchable: the module can be disabled, a core route cannot. The Week 1
+chart embed is already this module, so this adds no new deployment unit.
+
+*The scope string is not free choice.* `HttpRestParsedRoute` takes the last
+non-parameter path segment as the resource and
+`HttpRestRouteHandler::checkSecurity()` maps POST to the `c` permission, so the
+route path and the scope are two spellings of one thing. `.c` rather than
+`.write` because create is all this endpoint does — a correction is a new
+document and a new extraction, never an edit of a value already in the chart —
+and `.write` would grant update and delete that nothing implements.
+
+*Unreviewed, deliberately.* `review_status = 'reviewed'` would put the result
+straight into **Procedures → Patient Results**, which is tempting and wrong: it
+asserts a clinician has reviewed a value no clinician has seen.
+`orders_results.php` skips `review_status = 'received'` in patient-results mode
+and shows it in review mode, so an extracted result lands in **Procedures →
+Pending Review** and moves to Patient Results when a clinician signs it. That
+is the same path a result arriving from a real lab interface takes.
+
+**Consequences, all verified on the local stack:**
+
+1. **The client also needs `api:oemr`.** `BearerTokenAuthorizationStrategy::
+   isValidRequestForUserRole()` rejects any `/api/` request whose token lacks
+   it, before the resource scope is looked at. A client registered with only
+   `openid user/lab-writeback.c` gets 403 on every call. Scopes are immutable
+   per client, so this is a registration-time decision.
+2. **The write-back client is a third local client**, separate from the read
+   client and the chart embed, exactly as D1's "human step" anticipated.
+   `skip_ehr_launch_authorization_flow` is **not** needed for it — that flag
+   exists for the embed's server-side loopback broker, and the write-back
+   client uses the password grant.
+3. **The endpoint requires two ACLs as well as the scope**, `patients`/`docs`
+   and `patients`/`lab`, both with `write`/`addonly`. A scope says what the
+   client application may ask for; an ACL says what this clinician may do.
+
+**Not settled here, and out of scope for the branch that wrote this:** batching
+several results into one request, and the agent-side client.

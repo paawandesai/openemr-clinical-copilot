@@ -2,8 +2,9 @@
 
 /**
  * Wires the Clinical Co-Pilot into OpenEMR: its settings section, its Twig
- * templates, and the Pre-Visit Brief card, with its follow-up conversation,
- * at the top of the patient dashboard's main column.
+ * templates, the Pre-Visit Brief card with its follow-up conversation at the
+ * top of the patient dashboard's main column, and the lab write-back REST
+ * endpoint with its custom OAuth scope.
  *
  * @package   OpenEMR
  * @link      https://www.open-emr.org
@@ -25,6 +26,7 @@ use OpenEMR\Events\Core\TwigEnvironmentEvent;
 use OpenEMR\Events\Globals\GlobalsInitializedEvent;
 use OpenEMR\Events\Patient\Summary\Card\CardModel;
 use OpenEMR\Events\Patient\Summary\Card\SectionEvent;
+use OpenEMR\Modules\ClinicalCopilot\WriteBack\LabWriteBackApi;
 use OpenEMR\Services\Globals\GlobalSetting;
 use OpenEMR\Services\Globals\UserSettingsService;
 use Psr\Log\LoggerInterface;
@@ -59,6 +61,12 @@ final readonly class Bootstrap
         $this->eventDispatcher->addListener(GlobalsInitializedEvent::EVENT_HANDLE, $this->addSettingsSection(...));
         $this->eventDispatcher->addListener(TwigEnvironmentEvent::EVENT_CREATED, $this->addTemplateNamespace(...));
         $this->eventDispatcher->addListener(SectionEvent::EVENT_HANDLE, $this->addBriefCard(...));
+        // The write-back endpoint and the scope that protects it. Both are
+        // registered unconditionally: the route has to exist for an
+        // unauthorized call to get a 401 rather than a 404, and the scope has
+        // to exist on the /oauth2/ request that registers a client, which
+        // never touches the route.
+        (new LabWriteBackApi($this->globals, $this->logger))->subscribe($this->eventDispatcher);
     }
 
     public function addSettingsSection(GlobalsInitializedEvent $event): void

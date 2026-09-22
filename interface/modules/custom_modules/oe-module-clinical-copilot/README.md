@@ -252,6 +252,88 @@ the API client.
 | Lab or visit questions fail with "The co-pilot could not read this chart with your access…" while other questions answer | The API client is registered without `user/Observation.read user/Encounter.read` (`docs/deployment.md` §5). |
 | Every question fails with "The co-pilot service is unavailable…" but the brief works | The deployed agent predates `POST /pre-visit-brief/conversation` (it answers a bare 404). |
 
+## Lab write-back endpoint
+
+`POST /api/clinical-copilot/lab-writeback` — one lab document plus one
+extracted lab result, written into the chart in a single transaction, with real
+ids returned. Decided in [`docs/w2/DECISIONS.md`](../../../../docs/w2/DECISIONS.md)
+D1 (superseding) and D23, on the evidence in
+[`docs/w2/spikes/writeback.md`](../../../../docs/w2/spikes/writeback.md).
+
+Why it exists: OpenEMR 8.2 exposes **no API that writes a lab result**. Every
+FHIR write route 404s and no `Observation` write scope is defined even in
+principle, so the four-table
+`procedure_order -> procedure_order_code -> procedure_report ->
+procedure_result` chain has to be written from inside the fork. It goes through
+`QueryUtils`, which is what keeps it in OpenEMR's audit log, and the document
+goes through `\Document::createDocument()`, which is what keeps it encrypted at
+rest.
+
+### What it writes, and what it refuses
+
+- **One document and one result.** Batching is not implemented; a request with
+  two results is refused rather than partly written.
+- **Lab reports only.** `document_kind` must be `lab_pdf`. D2 forbids intake
+  medications and allergies reaching the chart, and the type check is where
+  that is enforced.
+- **Idempotently.** The ledger table `module_clinical_copilot_writeback_ledger`
+  is `UNIQUE` on D1's key over (document SHA3-512, test code, collection date).
+  The same request twice returns the same ids and writes nothing the second
+  time. The endpoint recomputes the key and the extraction id from their
+  components and refuses a request whose values do not match.
+- **`procedure_result.comments` carries an extraction id and nothing else.** It
+  surfaces as `Observation.note[0].text`; the ledger maps that id to the
+  document, page and bounding box.
+- **An `indeterminate` abnormal flag is refused.** `procedure_result.abnormal`
+  has no value meaning "undecidable", and writing `no` would record a normal
+  the data does not support.
+
+### Setting it up
+
+```bash
+# 1. Ledger table, through the module's own install SQL.
+#    NOTE: `bin/console openemr:zfc-module --modaction=install_sql` does NOT
+#    work — InstallerController::getModuleId() is declared `: bool` in a file
+#    without strict_types, so the module id is coerced to true and mod_id 1 is
+#    installed instead. Use Module Manager (Modules > Manage Modules >
+#    Clinical Co-Pilot > Install SQL), or call InstallModuleSQL() with the real
+#    mod_id.
+
+# 2. A dedicated OAuth client. Scopes are immutable per client, so this is a
+#    new registration, not an edit of the read client.
+curl -sk -X POST "https://localhost:9300/oauth2/default/registration" \
+  -H 'Content-Type: application/json' -d '{
+    "application_type": "private",
+    "client_name": "Clinical Co-Pilot lab write-back - local",
+    "redirect_uris": ["https://localhost:9300/clinical-copilot/writeback-callback"],
+    "token_endpoint_auth_method": "client_secret_post",
+    "contacts": ["local-dev@example.invalid"],
+    "scope": "openid api:oemr user/lab-writeback.c"
+  }'
+
+# 3. Enable it (an admin action, as for every dynamically registered client).
+#    skip_ehr_launch_authorization_flow is NOT needed here - that flag is for
+#    the chart embed's loopback broker.
+UPDATE oauth_clients SET is_enabled = 1 WHERE client_name = '...';
+```
+
+**`api:oemr` is not optional.** `BearerTokenAuthorizationStrategy::
+isValidRequestForUserRole()` rejects every `/api/` request whose token lacks
+it, before the resource scope is considered, and the failure looks like a
+permissions problem rather than a missing scope.
+
+The caller also needs the `patients`/`docs` and `patients`/`lab` ACLs, with
+`write` or `addonly`. The scope says what the client application may ask for;
+the ACL says what this clinician may do.
+
+### Where the result appears
+
+**Procedures > Pending Review**, with the patient's chart open — not Patient
+Results. A written-back result is created unreviewed, and
+`interface/orders/orders_results.php` skips `review_status = 'received'` rows
+in patient-results mode. Signing the result moves it to Patient Results, which
+is the same path a result from a real lab interface takes.
+
 ## Tests
 
 Isolated (no database). Run from the OpenEMR root, inside the container:
@@ -275,3 +357,9 @@ They cover:
 - the conversation session derivation: stable across turns, different for
   another patient under the same nonce, another nonce, or another login;
 - configuration parsing, including the loopback restriction.
+
+The write-back tests are isolated too, and cover the pure half of the endpoint:
+the idempotency key and extraction id (pinned against values produced by the
+committed Python contract, so a drift between the two derivations fails here
+rather than as a 400 in production), the abnormal-flag and value mappings onto
+OpenEMR's columns, and every refusal the request parser makes.
