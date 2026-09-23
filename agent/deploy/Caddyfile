@@ -63,8 +63,14 @@ https://{$AGENT_PUBLIC_HOST}:8443 {
 		reverse_proxy agent:8000
 	}
 	# Week 2 upload and extraction status (D7). Sized above.
+	#
+	# TEMPORARILY DENIED at the proxy: the agent's /documents route does not
+	# yet validate the bearer token with OpenEMR, so until it does, nothing
+	# under this path reaches the agent. Caddy answers without reading the
+	# body. Re-enable (reverse_proxy agent:8000) only together with the
+	# agent image that validates the token (docs/w2/DEPLOY.md §2.1).
 	handle /documents* {
-		reverse_proxy agent:8000
+		respond "Document upload is temporarily unavailable." 503
 	}
 	handle /openapi.json {
 		reverse_proxy agent:8000
