@@ -1,4 +1,4 @@
-(node:91974) [DEP0176] DeprecationWarning: fs.F_OK is deprecated, use fs.constants.F_OK instead
+(node:65487) [DEP0176] DeprecationWarning: fs.F_OK is deprecated, use fs.constants.F_OK instead
 (Use `node --trace-deprecation ...` to show where the warning was created)
 newman
 
@@ -6,14 +6,14 @@ Clinical Co-pilot: Week 2 core flow
 
 ❏ 0. Setup
 ↳ Get clinician access token (password grant)
-  POST https://localhost:9300/oauth2/default/token [200 OK, 2.53kB, 423ms]
+  POST https://localhost:9300/oauth2/default/token [200 OK, 2.53kB, 399ms]
   ✓  HTTP 200
   ✓  a bearer token came back
   ✓  it can write lab results
 
 ❏ 1. Health
 ↳ Liveness: GET /health
-  GET http://127.0.0.1:8100/health [200 OK, 199B, 6ms]
+  GET http://127.0.0.1:8100/health [200 OK, 199B, 5ms]
   ✓  HTTP 200
   ✓  alive
 
@@ -25,124 +25,289 @@ Clinical Co-pilot: Week 2 core flow
 
 ❏ 2. Encounter
 ↳ Upload a lab PDF: POST /documents
-  POST http://127.0.0.1:8100/documents?kind=lab_pdf [200 OK, 440B, 8ms]
+  POST http://127.0.0.1:8100/documents?kind=lab_pdf&patient_id=a2c373ec-57bf-41cb-8767-94410dcf663d [200 OK, 440B, 228ms]
   ✓  HTTP 200
   ✓  extraction has started (D7): a status, not a wait
   ✓  the document id is derived from the bytes
   ✓  the encounter id comes back on the response
 
 ↳ Extraction status: GET /documents/{id}/extraction (polls)
-  GET http://127.0.0.1:8100/documents/5414f88e0e4e92e0a0de5c6b523c99796664006ec2eb4ffeca569184df80c3537976744fa60941ee947ff67f6413f18a642e5deaba02445418d5af5223ea1ab5/extraction [200 OK, 463B, 1ms]
+  GET http://127.0.0.1:8100/documents/5414f88e0e4e92e0a0de5c6b523c99796664006ec2eb4ffeca569184df80c3537976744fa60941ee947ff67f6413f18a642e5deaba02445418d5af5223ea1ab5/extraction?patient_id=a2c373ec-57bf-41cb-8767-94410dcf663d [200 OK, 467B, 227ms]
   ✓  HTTP 200
   ✓  the encounter id comes back on the response
 
 Attempting to set next request to Extraction status: GET /documents/{id}/extraction (polls)
 
 ↳ Extraction status: GET /documents/{id}/extraction (polls)
-  GET http://127.0.0.1:8100/documents/5414f88e0e4e92e0a0de5c6b523c99796664006ec2eb4ffeca569184df80c3537976744fa60941ee947ff67f6413f18a642e5deaba02445418d5af5223ea1ab5/extraction [200 OK, 467B, 2ms]
+  GET http://127.0.0.1:8100/documents/5414f88e0e4e92e0a0de5c6b523c99796664006ec2eb4ffeca569184df80c3537976744fa60941ee947ff67f6413f18a642e5deaba02445418d5af5223ea1ab5/extraction?patient_id=a2c373ec-57bf-41cb-8767-94410dcf663d [200 OK, 467B, 188ms]
   ✓  HTTP 200
   ✓  the encounter id comes back on the response
 
 Attempting to set next request to Extraction status: GET /documents/{id}/extraction (polls)
 
 ↳ Extraction status: GET /documents/{id}/extraction (polls)
-  GET http://127.0.0.1:8100/documents/5414f88e0e4e92e0a0de5c6b523c99796664006ec2eb4ffeca569184df80c3537976744fa60941ee947ff67f6413f18a642e5deaba02445418d5af5223ea1ab5/extraction [200 OK, 467B, 1ms]
+  GET http://127.0.0.1:8100/documents/5414f88e0e4e92e0a0de5c6b523c99796664006ec2eb4ffeca569184df80c3537976744fa60941ee947ff67f6413f18a642e5deaba02445418d5af5223ea1ab5/extraction?patient_id=a2c373ec-57bf-41cb-8767-94410dcf663d [200 OK, 467B, 197ms]
   ✓  HTTP 200
   ✓  the encounter id comes back on the response
 
 Attempting to set next request to Extraction status: GET /documents/{id}/extraction (polls)
 
 ↳ Extraction status: GET /documents/{id}/extraction (polls)
-  GET http://127.0.0.1:8100/documents/5414f88e0e4e92e0a0de5c6b523c99796664006ec2eb4ffeca569184df80c3537976744fa60941ee947ff67f6413f18a642e5deaba02445418d5af5223ea1ab5/extraction [200 OK, 467B, 2ms]
+  GET http://127.0.0.1:8100/documents/5414f88e0e4e92e0a0de5c6b523c99796664006ec2eb4ffeca569184df80c3537976744fa60941ee947ff67f6413f18a642e5deaba02445418d5af5223ea1ab5/extraction?patient_id=a2c373ec-57bf-41cb-8767-94410dcf663d [200 OK, 467B, 205ms]
   ✓  HTTP 200
   ✓  the encounter id comes back on the response
 
 Attempting to set next request to Extraction status: GET /documents/{id}/extraction (polls)
 
 ↳ Extraction status: GET /documents/{id}/extraction (polls)
-  GET http://127.0.0.1:8100/documents/5414f88e0e4e92e0a0de5c6b523c99796664006ec2eb4ffeca569184df80c3537976744fa60941ee947ff67f6413f18a642e5deaba02445418d5af5223ea1ab5/extraction [200 OK, 464B, 4ms]
+  GET http://127.0.0.1:8100/documents/5414f88e0e4e92e0a0de5c6b523c99796664006ec2eb4ffeca569184df80c3537976744fa60941ee947ff67f6413f18a642e5deaba02445418d5af5223ea1ab5/extraction?patient_id=a2c373ec-57bf-41cb-8767-94410dcf663d [200 OK, 467B, 183ms]
+  ✓  HTTP 200
+  ✓  the encounter id comes back on the response
+
+Attempting to set next request to Extraction status: GET /documents/{id}/extraction (polls)
+
+↳ Extraction status: GET /documents/{id}/extraction (polls)
+  GET http://127.0.0.1:8100/documents/5414f88e0e4e92e0a0de5c6b523c99796664006ec2eb4ffeca569184df80c3537976744fa60941ee947ff67f6413f18a642e5deaba02445418d5af5223ea1ab5/extraction?patient_id=a2c373ec-57bf-41cb-8767-94410dcf663d [200 OK, 467B, 169ms]
+  ✓  HTTP 200
+  ✓  the encounter id comes back on the response
+
+Attempting to set next request to Extraction status: GET /documents/{id}/extraction (polls)
+
+↳ Extraction status: GET /documents/{id}/extraction (polls)
+  GET http://127.0.0.1:8100/documents/5414f88e0e4e92e0a0de5c6b523c99796664006ec2eb4ffeca569184df80c3537976744fa60941ee947ff67f6413f18a642e5deaba02445418d5af5223ea1ab5/extraction?patient_id=a2c373ec-57bf-41cb-8767-94410dcf663d [200 OK, 467B, 165ms]
+  ✓  HTTP 200
+  ✓  the encounter id comes back on the response
+
+Attempting to set next request to Extraction status: GET /documents/{id}/extraction (polls)
+
+↳ Extraction status: GET /documents/{id}/extraction (polls)
+  GET http://127.0.0.1:8100/documents/5414f88e0e4e92e0a0de5c6b523c99796664006ec2eb4ffeca569184df80c3537976744fa60941ee947ff67f6413f18a642e5deaba02445418d5af5223ea1ab5/extraction?patient_id=a2c373ec-57bf-41cb-8767-94410dcf663d [200 OK, 467B, 155ms]
+  ✓  HTTP 200
+  ✓  the encounter id comes back on the response
+
+Attempting to set next request to Extraction status: GET /documents/{id}/extraction (polls)
+
+↳ Extraction status: GET /documents/{id}/extraction (polls)
+  GET http://127.0.0.1:8100/documents/5414f88e0e4e92e0a0de5c6b523c99796664006ec2eb4ffeca569184df80c3537976744fa60941ee947ff67f6413f18a642e5deaba02445418d5af5223ea1ab5/extraction?patient_id=a2c373ec-57bf-41cb-8767-94410dcf663d [200 OK, 467B, 234ms]
+  ✓  HTTP 200
+  ✓  the encounter id comes back on the response
+
+Attempting to set next request to Extraction status: GET /documents/{id}/extraction (polls)
+
+↳ Extraction status: GET /documents/{id}/extraction (polls)
+  GET http://127.0.0.1:8100/documents/5414f88e0e4e92e0a0de5c6b523c99796664006ec2eb4ffeca569184df80c3537976744fa60941ee947ff67f6413f18a642e5deaba02445418d5af5223ea1ab5/extraction?patient_id=a2c373ec-57bf-41cb-8767-94410dcf663d [200 OK, 467B, 168ms]
+  ✓  HTTP 200
+  ✓  the encounter id comes back on the response
+
+Attempting to set next request to Extraction status: GET /documents/{id}/extraction (polls)
+
+↳ Extraction status: GET /documents/{id}/extraction (polls)
+  GET http://127.0.0.1:8100/documents/5414f88e0e4e92e0a0de5c6b523c99796664006ec2eb4ffeca569184df80c3537976744fa60941ee947ff67f6413f18a642e5deaba02445418d5af5223ea1ab5/extraction?patient_id=a2c373ec-57bf-41cb-8767-94410dcf663d [200 OK, 467B, 158ms]
+  ✓  HTTP 200
+  ✓  the encounter id comes back on the response
+
+Attempting to set next request to Extraction status: GET /documents/{id}/extraction (polls)
+
+↳ Extraction status: GET /documents/{id}/extraction (polls)
+  GET http://127.0.0.1:8100/documents/5414f88e0e4e92e0a0de5c6b523c99796664006ec2eb4ffeca569184df80c3537976744fa60941ee947ff67f6413f18a642e5deaba02445418d5af5223ea1ab5/extraction?patient_id=a2c373ec-57bf-41cb-8767-94410dcf663d [200 OK, 467B, 164ms]
+  ✓  HTTP 200
+  ✓  the encounter id comes back on the response
+
+Attempting to set next request to Extraction status: GET /documents/{id}/extraction (polls)
+
+↳ Extraction status: GET /documents/{id}/extraction (polls)
+  GET http://127.0.0.1:8100/documents/5414f88e0e4e92e0a0de5c6b523c99796664006ec2eb4ffeca569184df80c3537976744fa60941ee947ff67f6413f18a642e5deaba02445418d5af5223ea1ab5/extraction?patient_id=a2c373ec-57bf-41cb-8767-94410dcf663d [200 OK, 467B, 169ms]
+  ✓  HTTP 200
+  ✓  the encounter id comes back on the response
+
+Attempting to set next request to Extraction status: GET /documents/{id}/extraction (polls)
+
+↳ Extraction status: GET /documents/{id}/extraction (polls)
+  GET http://127.0.0.1:8100/documents/5414f88e0e4e92e0a0de5c6b523c99796664006ec2eb4ffeca569184df80c3537976744fa60941ee947ff67f6413f18a642e5deaba02445418d5af5223ea1ab5/extraction?patient_id=a2c373ec-57bf-41cb-8767-94410dcf663d [200 OK, 467B, 226ms]
+  ✓  HTTP 200
+  ✓  the encounter id comes back on the response
+
+Attempting to set next request to Extraction status: GET /documents/{id}/extraction (polls)
+
+↳ Extraction status: GET /documents/{id}/extraction (polls)
+  GET http://127.0.0.1:8100/documents/5414f88e0e4e92e0a0de5c6b523c99796664006ec2eb4ffeca569184df80c3537976744fa60941ee947ff67f6413f18a642e5deaba02445418d5af5223ea1ab5/extraction?patient_id=a2c373ec-57bf-41cb-8767-94410dcf663d [200 OK, 467B, 150ms]
+  ✓  HTTP 200
+  ✓  the encounter id comes back on the response
+
+Attempting to set next request to Extraction status: GET /documents/{id}/extraction (polls)
+
+↳ Extraction status: GET /documents/{id}/extraction (polls)
+  GET http://127.0.0.1:8100/documents/5414f88e0e4e92e0a0de5c6b523c99796664006ec2eb4ffeca569184df80c3537976744fa60941ee947ff67f6413f18a642e5deaba02445418d5af5223ea1ab5/extraction?patient_id=a2c373ec-57bf-41cb-8767-94410dcf663d [200 OK, 467B, 154ms]
+  ✓  HTTP 200
+  ✓  the encounter id comes back on the response
+
+Attempting to set next request to Extraction status: GET /documents/{id}/extraction (polls)
+
+↳ Extraction status: GET /documents/{id}/extraction (polls)
+  GET http://127.0.0.1:8100/documents/5414f88e0e4e92e0a0de5c6b523c99796664006ec2eb4ffeca569184df80c3537976744fa60941ee947ff67f6413f18a642e5deaba02445418d5af5223ea1ab5/extraction?patient_id=a2c373ec-57bf-41cb-8767-94410dcf663d [200 OK, 467B, 189ms]
+  ✓  HTTP 200
+  ✓  the encounter id comes back on the response
+
+Attempting to set next request to Extraction status: GET /documents/{id}/extraction (polls)
+
+↳ Extraction status: GET /documents/{id}/extraction (polls)
+  GET http://127.0.0.1:8100/documents/5414f88e0e4e92e0a0de5c6b523c99796664006ec2eb4ffeca569184df80c3537976744fa60941ee947ff67f6413f18a642e5deaba02445418d5af5223ea1ab5/extraction?patient_id=a2c373ec-57bf-41cb-8767-94410dcf663d [200 OK, 467B, 175ms]
+  ✓  HTTP 200
+  ✓  the encounter id comes back on the response
+
+Attempting to set next request to Extraction status: GET /documents/{id}/extraction (polls)
+
+↳ Extraction status: GET /documents/{id}/extraction (polls)
+  GET http://127.0.0.1:8100/documents/5414f88e0e4e92e0a0de5c6b523c99796664006ec2eb4ffeca569184df80c3537976744fa60941ee947ff67f6413f18a642e5deaba02445418d5af5223ea1ab5/extraction?patient_id=a2c373ec-57bf-41cb-8767-94410dcf663d [200 OK, 467B, 166ms]
+  ✓  HTTP 200
+  ✓  the encounter id comes back on the response
+
+Attempting to set next request to Extraction status: GET /documents/{id}/extraction (polls)
+
+↳ Extraction status: GET /documents/{id}/extraction (polls)
+  GET http://127.0.0.1:8100/documents/5414f88e0e4e92e0a0de5c6b523c99796664006ec2eb4ffeca569184df80c3537976744fa60941ee947ff67f6413f18a642e5deaba02445418d5af5223ea1ab5/extraction?patient_id=a2c373ec-57bf-41cb-8767-94410dcf663d [200 OK, 467B, 159ms]
+  ✓  HTTP 200
+  ✓  the encounter id comes back on the response
+
+Attempting to set next request to Extraction status: GET /documents/{id}/extraction (polls)
+
+↳ Extraction status: GET /documents/{id}/extraction (polls)
+  GET http://127.0.0.1:8100/documents/5414f88e0e4e92e0a0de5c6b523c99796664006ec2eb4ffeca569184df80c3537976744fa60941ee947ff67f6413f18a642e5deaba02445418d5af5223ea1ab5/extraction?patient_id=a2c373ec-57bf-41cb-8767-94410dcf663d [200 OK, 467B, 156ms]
+  ✓  HTTP 200
+  ✓  the encounter id comes back on the response
+
+Attempting to set next request to Extraction status: GET /documents/{id}/extraction (polls)
+
+↳ Extraction status: GET /documents/{id}/extraction (polls)
+  GET http://127.0.0.1:8100/documents/5414f88e0e4e92e0a0de5c6b523c99796664006ec2eb4ffeca569184df80c3537976744fa60941ee947ff67f6413f18a642e5deaba02445418d5af5223ea1ab5/extraction?patient_id=a2c373ec-57bf-41cb-8767-94410dcf663d [200 OK, 467B, 157ms]
+  ✓  HTTP 200
+  ✓  the encounter id comes back on the response
+
+Attempting to set next request to Extraction status: GET /documents/{id}/extraction (polls)
+
+↳ Extraction status: GET /documents/{id}/extraction (polls)
+  GET http://127.0.0.1:8100/documents/5414f88e0e4e92e0a0de5c6b523c99796664006ec2eb4ffeca569184df80c3537976744fa60941ee947ff67f6413f18a642e5deaba02445418d5af5223ea1ab5/extraction?patient_id=a2c373ec-57bf-41cb-8767-94410dcf663d [200 OK, 467B, 181ms]
+  ✓  HTTP 200
+  ✓  the encounter id comes back on the response
+
+Attempting to set next request to Extraction status: GET /documents/{id}/extraction (polls)
+
+↳ Extraction status: GET /documents/{id}/extraction (polls)
+  GET http://127.0.0.1:8100/documents/5414f88e0e4e92e0a0de5c6b523c99796664006ec2eb4ffeca569184df80c3537976744fa60941ee947ff67f6413f18a642e5deaba02445418d5af5223ea1ab5/extraction?patient_id=a2c373ec-57bf-41cb-8767-94410dcf663d [200 OK, 467B, 162ms]
+  ✓  HTTP 200
+  ✓  the encounter id comes back on the response
+
+Attempting to set next request to Extraction status: GET /documents/{id}/extraction (polls)
+
+↳ Extraction status: GET /documents/{id}/extraction (polls)
+  GET http://127.0.0.1:8100/documents/5414f88e0e4e92e0a0de5c6b523c99796664006ec2eb4ffeca569184df80c3537976744fa60941ee947ff67f6413f18a642e5deaba02445418d5af5223ea1ab5/extraction?patient_id=a2c373ec-57bf-41cb-8767-94410dcf663d [200 OK, 467B, 188ms]
+  ✓  HTTP 200
+  ✓  the encounter id comes back on the response
+
+Attempting to set next request to Extraction status: GET /documents/{id}/extraction (polls)
+
+↳ Extraction status: GET /documents/{id}/extraction (polls)
+  GET http://127.0.0.1:8100/documents/5414f88e0e4e92e0a0de5c6b523c99796664006ec2eb4ffeca569184df80c3537976744fa60941ee947ff67f6413f18a642e5deaba02445418d5af5223ea1ab5/extraction?patient_id=a2c373ec-57bf-41cb-8767-94410dcf663d [200 OK, 498B, 174ms]
   ✓  HTTP 200
   ✓  the encounter id comes back on the response
   ✓  extraction reached a final state
+  ✓  a completed run has an extraction id
 
 ↳ Ask: Pre-Visit Brief: POST /pre-visit-brief
-  POST http://127.0.0.1:8100/pre-visit-brief [200 OK, 6.34kB, 18.8s]
+  POST http://127.0.0.1:8100/pre-visit-brief [200 OK, 6.34kB, 18.5s]
   ✓  HTTP 200
   ✓  the encounter id comes back on the response
   ✓  every claim went through the verifier
   ✓  per-step timing is reported
 
 ↳ Ask: a question: POST /pre-visit-brief/conversation
-  POST http://127.0.0.1:8100/pre-visit-brief/conversation [200 OK, 8.06kB, 14.1s]
+  POST http://127.0.0.1:8100/pre-visit-brief/conversation [200 OK, 9.55kB, 18.7s]
   ✓  HTTP 200
   ✓  the encounter id comes back on the response
   ✓  the turn was routed and answered or refused by rule
   ✓  every claim went through the verifier
 
+↳ Ask about the uploaded document: POST /w2/ask
+  POST http://127.0.0.1:8100/w2/ask [200 OK, 57.78kB, 1m 31.9s]
+  ✓  HTTP 200
+  ✓  the encounter id comes back on the response
+  ✓  a routing decision was made and recorded with its reason (D4)
+  ✓  a final status
+  ✓  an answer is drawn only from what it can cite
+  ✓  the supervisor routed through the extracted document
+
+↳ Ask a guideline question: POST /w2/ask
+  POST http://127.0.0.1:8100/w2/ask [200 OK, 10.42kB, 10.5s]
+  ✓  HTTP 200
+  ✓  the encounter id comes back on the response
+  ✓  a routing decision was made and recorded with its reason (D4)
+  ✓  a final status
+  ✓  an answer is drawn only from what it can cite
+
 ↳ Write back lab results: POST /apis/default/api/clinical-copilot/lab-writeback
-  POST https://localhost:9300/apis/default/api/clinical-copilot/lab-writeback [200 OK, 2kB, 331ms]
+  POST https://localhost:9300/apis/default/api/clinical-copilot/lab-writeback [200 OK, 2kB, 154ms]
   ✓  HTTP 200
   ✓  OpenEMR returned real ids
   ✓  each result was created or recognised as a duplicate
 
 ↳ Write back again: same body, same ids (idempotency)
-  POST https://localhost:9300/apis/default/api/clinical-copilot/lab-writeback [200 OK, 1.84kB, 166ms]
+  POST https://localhost:9300/apis/default/api/clinical-copilot/lab-writeback [200 OK, 1.84kB, 175ms]
   ✓  HTTP 200
   ✓  nothing new was written
   ✓  the same rows answered
   ✓  the same document answered
 
 ↳ Preview: sign in to OpenEMR (session cookie)
-  POST https://localhost:9300/interface/main/main_screen.php?auth=login&site=default [200 OK, 55.84kB, 801ms]
+  POST https://localhost:9300/interface/main/main_screen.php?auth=login&site=default [200 OK, 55.84kB, 584ms]
   ✓  signed in (not bounced back to the login page)
 
 ↳ Preview: open the patient's chart
-  GET https://localhost:9300/interface/patient_file/summary/demographics.php?set_pid=38 [200 OK, 173.42kB, 792ms]
+  GET https://localhost:9300/interface/patient_file/summary/demographics.php?set_pid=38 [200 OK, 181.29kB, 596ms]
   ✓  HTTP 200
 
 ↳ Preview the written document: GET <module>/document.php
-  GET https://localhost:9300/interface/modules/custom_modules/oe-module-clinical-copilot/public/document.php?document_id=2482 [200 OK, 32.55kB, 112ms]
+  GET https://localhost:9300/interface/modules/custom_modules/oe-module-clinical-copilot/public/document.php?document_id=2482 [200 OK, 32.55kB, 103ms]
   ✓  HTTP 200
   ✓  it is the PDF
 
 ❏ 3. Refusals
 ↳ Upload without a token is 401
-  POST http://127.0.0.1:8100/documents?kind=lab_pdf [401 Unauthorized, 394B, 3ms]
+  POST http://127.0.0.1:8100/documents?kind=lab_pdf&patient_id=a2c373ec-57bf-41cb-8767-94410dcf663d [401 Unauthorized, 394B, 2ms]
   ✓  HTTP 401
 
 ↳ Status of an unknown document is 404
-  GET http://127.0.0.1:8100/documents/0000/extraction [404 Not Found, 329B, 2ms]
+  GET http://127.0.0.1:8100/documents/0000/extraction?patient_id=a2c373ec-57bf-41cb-8767-94410dcf663d [404 Not Found, 329B, 144ms]
   ✓  HTTP 404
 
 ↳ A question about an unknown patient is 404
-  POST http://127.0.0.1:8100/pre-visit-brief/conversation [404 Not Found, 331B, 221ms]
+  POST http://127.0.0.1:8100/pre-visit-brief/conversation [404 Not Found, 331B, 132ms]
   ✓  HTTP 404
   ✓  patient_not_found
 
 ↳ Preview of a document that is not this chart's is 404
-  GET https://localhost:9300/interface/modules/custom_modules/oe-module-clinical-copilot/public/document.php?document_id=1 [404 Not Found, 419B, 109ms]
+  GET https://localhost:9300/interface/modules/custom_modules/oe-module-clinical-copilot/public/document.php?document_id=1 [404 Not Found, 419B, 101ms]
   ✓  HTTP 404
 
 ↳ End the conversation
-  POST http://127.0.0.1:8100/pre-visit-brief/conversation/end [200 OK, 310B, 181ms]
+  POST http://127.0.0.1:8100/pre-visit-brief/conversation/end [200 OK, 310B, 138ms]
   ✓  HTTP 200
 
-┌─────────────────────────┬────────────────────┬───────────────────┐
-│                         │           executed │            failed │
-├─────────────────────────┼────────────────────┼───────────────────┤
-│              iterations │                  1 │                 0 │
-├─────────────────────────┼────────────────────┼───────────────────┤
-│                requests │                 21 │                 0 │
-├─────────────────────────┼────────────────────┼───────────────────┤
-│            test-scripts │                 21 │                 0 │
-├─────────────────────────┼────────────────────┼───────────────────┤
-│      prerequest-scripts │                 21 │                 0 │
-├─────────────────────────┼────────────────────┼───────────────────┤
-│              assertions │                 48 │                 0 │
-├─────────────────────────┴────────────────────┴───────────────────┤
-│ total run duration: 40.4s                                        │
-├──────────────────────────────────────────────────────────────────┤
-│ total data received: 281.96kB (approx)                           │
-├──────────────────────────────────────────────────────────────────┤
-│ average response time: 1722ms [min: 1ms, max: 18.8s, s.d.: 4.8s] │
-└──────────────────────────────────────────────────────────────────┘
+┌─────────────────────────┬─────────────────────┬────────────────────┐
+│                         │            executed │             failed │
+├─────────────────────────┼─────────────────────┼────────────────────┤
+│              iterations │                   1 │                  0 │
+├─────────────────────────┼─────────────────────┼────────────────────┤
+│                requests │                  44 │                  0 │
+├─────────────────────────┼─────────────────────┼────────────────────┤
+│            test-scripts │                  44 │                  0 │
+├─────────────────────────┼─────────────────────┼────────────────────┤
+│      prerequest-scripts │                  44 │                  0 │
+├─────────────────────────┼─────────────────────┼────────────────────┤
+│              assertions │                 102 │                  0 │
+├─────────────────────────┴─────────────────────┴────────────────────┤
+│ total run duration: 2m 52.7s                                       │
+├────────────────────────────────────────────────────────────────────┤
+│ total data received: 365.19kB (approx)                             │
+├────────────────────────────────────────────────────────────────────┤
+│ average response time: 3.3s [min: 2ms, max: 1m 31.9s, s.d.: 14.1s] │
+└────────────────────────────────────────────────────────────────────┘

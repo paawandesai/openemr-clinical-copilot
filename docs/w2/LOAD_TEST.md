@@ -229,12 +229,38 @@ plateauing. Measured and not adopted:
 D39 has the numbers. The next step is re-running the retrieval bakeoff at a
 fixed length.
 
+## 6. The real ask path, one encounter at a time (after `feat/w2-graph`)
+
+Not a load test: two single encounters through the API collection, real
+model calls, against the real routes. Recorded because the step events found
+something no load level had: the **`/w2/ask` answer over a whole uploaded
+lab report takes 90–130 s**.
+
+| Run | `/w2/ask` about the document | `/w2/ask` guideline question | Encounter cost |
+|---|---|---|---|
+| `c8661931-…` | **130.5 s**: one call, 34,948 tokens in / 11,523 out | 10.6 s | $0.82 |
+| `07c0fd35-…` | **91.9 s** | 10.5 s | $0.82 |
+
+The step view shows where the time goes: all of it is `supervisor.answer`,
+one model call. It is not routing, not retrieval, and not the verifier. The
+answer is drafted over every extracted result on the report, and it writes
+more than 11k tokens back.
+
+This is past the 90 s budget (KEY_METRICS.md Metric 4) on a single request
+with no load at all, and the `answer_p95_latency` alert (45 s) fires on it.
+`/w2/ask` is an answer route for that alert. It was not in the first draft
+of the dashboard script, which predated the route.
+
+The fix belongs to the ask path, not observability. For example: bound
+the output, or answer from the results the question names rather than all
+of them.
+
 ## Where the new bottleneck is
 
 | Path | Bottleneck | Evidence |
 |---|---|---|
 | Ask (question → answer) | **OpenEMR's PHP tier**, unchanged from Week 1: saturated at 10 users locally (420% CPU), failing at 50 (58%) | §1 |
-| Ask, wall-clock | The LLM draft: 85% of a real turn | §2 |
+| Ask, wall-clock | The LLM draft: 85% of a real turn; **90–130 s** for a `/w2/ask` over a whole lab report (one 35k-in / 11.5k-out call) | §2, §6 |
 | Extraction, wall-clock and cost | **The vision call**: 15–31 s, $0.10–0.13 per document | §4b |
 | Extraction, local CPU | **OCR**: 8.25 cores at 50 concurrent, p95 10 s | §4a |
 | Guideline retrieval | **The cross-encoder reranker**: p95 335 s at 50 before the admission bound, **259 ms after** (D39); throughput is about 8 reranks/s, and memory is still up to 3.1 GiB | §5, §5b |

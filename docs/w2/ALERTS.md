@@ -39,10 +39,10 @@ three requests is not an error rate.
 
 ## 1. `answer_p95_latency` — p95 of answer-route latency > 45 s
 
-**Meaning.** Clinicians waiting for a brief, a follow-up or a conversation
-turn are waiting long enough to miss the gap between patients. Answer routes
-only: `/pre-visit-brief`, `/pre-visit-brief/follow-up` and
-`/pre-visit-brief/conversation`. A status poll takes 1 ms and would drag a
+**Meaning.** Clinicians waiting for a brief, a follow-up, a conversation
+turn or a Week 2 answer are waiting long enough to miss the gap between
+patients. Answer routes only: `/pre-visit-brief`,
+`/pre-visit-brief/follow-up`, `/pre-visit-brief/conversation` and `/w2/ask`. A status poll takes 1 ms and would drag a
 blended p95 down.
 
 **Threshold basis.**
@@ -69,7 +69,10 @@ blended p95 down.
    ceiling is OpenEMR's PHP tier, around 10 concurrent users on a 4-vCPU host
    (`agent/load-test/RESULTS.md`). Shed load or scale OpenEMR; the agent is
    not the constraint.
-3. If draft: check the `llm` tool row for retries. Rising retries mean
+3. If `supervisor.answer`: a `/w2/ask` over a whole lab report takes 90–130 s
+   with no load at all (LOAD_TEST.md §6). One model call writes 11k+ tokens.
+   That is a product fix, not an incident.
+4. If draft: check the `llm` tool row for retries. Rising retries mean
    Anthropic is overloaded or rate limiting. Check provider status; nothing
    local fixes it.
 

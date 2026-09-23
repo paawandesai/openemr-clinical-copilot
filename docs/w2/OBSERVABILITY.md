@@ -77,28 +77,46 @@ Anything else is replaced with a fresh UUID rather than logged
 (`accepted_correlation_id`). A header carrying a name never reaches a log
 line (`test_a_name_in_the_header_never_reaches_a_log_line`). Decision: D36.
 
-The background extraction now inherits the uploading request's id
-(`ExtractionJobs.submit`), so it stays on the encounter's trace.
+**Encounter ids are UUID4s.** The middleware accepts any identifier-shaped
+id, but two contracts downstream require a UUID: the extractor's
+`IntakeExtractorOutput.correlation_id` and the write-back request's
+`correlation_id`. So the background extraction inherits the uploading
+request's id **when it is a UUID**. Otherwise it gets a fresh UUID, and
+`w2_extraction_correlation_replaced` is logged under the request's id, so
+the two traces still join. An upload never fails over the header's shape
+(`test_a_non_uuid_encounter_id_still_uploads_and_links_the_two_traces`).
 
-**Verified end to end** (2026-09-22, local, real LLM): the API collection
-ran one encounter under `afb764fa-…`. 105 stdout events carried that id —
-upload, 5 status reads, 12 tool calls, 15 step events, 2
-`llm_usage_event`s, 44 `claim_verified_event`s, routing, latency. Langfuse
-shows them as **one trace**, `c791ae067383e767d629d5e55d35f77d`, with Input
-`null` and Output `undefined` on every observation:
-`evidence/screenshots/langfuse-encounter-trace.png`.
+**Verified end to end against the real routes** (2026-09-22, local, real
+LLM, after `feat/w2-graph` merged). The API collection ran one encounter
+under `07c0fd35-…`. That one id carries all of these:
+
+- the upload;
+- 26 status polls;
+- the **background extraction**: its 4 `intake_extractor` steps and its
+  completion summary;
+- the brief and a conversation turn;
+- 3 supervisor routing decisions: `answer/extraction_available`,
+  `retrieve/guideline_question`, `answer/evidence_in_hand`;
+- 6 `supervisor` node steps across the two `/w2/ask` turns;
+- the guideline retrieval;
+- 55 tool calls and 5 `llm_usage_event`s.
+
+No extraction summary landed on a different id. In Langfuse it is one trace,
+`a88a5c1242ae3ae81855d07a117f62b1`: 2 min 52 s end to end, 87,245 tokens,
+$0.82 (`evidence/screenshots/langfuse-encounter-trace.png`). An earlier run,
+`c8661931-…`, gave the same shape.
 
 ### Where the chain still breaks
 
 | # | Break | State |
 |---|---|---|
-| 1 | The chart card (OpenEMR module, `AgentClient.php`) never sends `X-Correlation-ID`, so from the UI each request is its own trace. It reads the agent's id back, but does not send one. | **Open.** Fix: mint one id per chart open and send it on every call. PHP, not changed here. |
-| 2 | `POST /documents` on `main` is still the stub. The extractor is merged, but the route does not call `ExtractionJobs`, so no extraction runs at upload. The chain is upload → *(nothing)* → status. | **Open.** Wiring the route is the extractor's follow-up. Once it is wired, break 3's fix keeps extraction on the upload's trace. |
-| 3 | `ExtractionJobs.submit` minted a fresh UUID for the background extraction, cutting it off the upload's trace. | **Fixed** (`worker.py`). |
-| 4 | The extractor's nodes emitted only their own `intake_extraction_step`, not `step_event`. | **Fixed** (`intake_extractor.py` names its pipeline). |
-| 5 | No supervisor and no Week 2 ask route. `run_evidence_retriever` is called by nothing that serves HTTP, so "routing → guideline retrieval" is not on any live path. Conversation routing (Week 1) is. | **Open** (supervisor not built). The retrieval events carry the request's id when called in one. |
-| 6 | Write-back: no agent route posts it. The collection calls the module endpoint directly, so the OpenEMR side has no agent event, and the PHP endpoint receives no correlation id. `write_lab_results()` itself emits `writeback` step and tool events under the caller's id. | **Open.** |
-| 7 | Week 1 failure lines (`pre_visit_brief_failed`, `conversation_turn_failed`) are plain structlog lines, not `log_event`. They carry the id on stdout but are not exported. The failure itself **is** exported, as an `error` step, tool call and 5xx request. | Left as is. |
+| 1 | The chart card (OpenEMR module, `AgentClient.php`) never sends `X-Correlation-ID`, so from the UI each request is its own trace. It reads the agent's id back, but does not send one. | **Open, PHP.** The header it must send: `X-Correlation-ID: <UUID4>`, one per chart open, reused on upload, status, ask and write-back. |
+| 2 | `POST /documents` was a stub. | **Closed** by `feat/w2-graph`. The real route runs the extractor. |
+| 3 | `ExtractionJobs.submit` minted its own id, cutting extraction off the upload's trace. | **Fixed here**: inherits a UUID id, or links a non-UUID one. |
+| 4 | The extractor's nodes did not emit `step_event`. | **Fixed here** (`Pipeline.INTAKE_EXTRACTOR`). |
+| 5 | No supervisor, no Week 2 ask route. | **Closed** by `feat/w2-graph`. Its nodes now emit `step_event`s (`Pipeline.SUPERVISOR`), and its FHIR, LLM and retriever calls are tool calls. |
+| 6 | Write-back: nothing in the agent calls `write_lab_results()`. The client is instrumented (a `writeback` step and a `lab_writeback` tool call under the caller's id), but the only caller is the OpenEMR module (or the collection) posting to the PHP endpoint directly, which receives no correlation id. | **Open.** It closes when an agent route posts the write-back, or when the module forwards the header of break 1. |
+| 7 | Week 1 failure lines (`pre_visit_brief_failed`, `conversation_turn_failed`) are plain structlog lines, not exported. The failure itself **is** exported, as an `error` step, a tool call and a 5xx request. | Left as is. |
 
 ## 3. Dashboard
 
@@ -147,34 +165,19 @@ v2. Scores behind it, per event:
 
 | File | What it is |
 |---|---|
-| `screenshots/langfuse-dashboard.png` | The Langfuse dashboard over the demo mix below |
-| `screenshots/langfuse-encounter-trace.png` | One encounter = one trace (§2) |
-| `screenshots/dashboard-export.png`, `dashboard-demo.html` / `.json` / `.txt` | The stdout dashboard over the same mix, with alert states |
-| `api-collection-run.txt` | Final newman run: 21 requests, 48 assertions, 0 failed |
-| `ready-failure-modes.txt` | `/ready` with each dependency broken (§5) |
+| `screenshots/langfuse-dashboard.png` | The Langfuse dashboard on a **fresh** instance after following §6 exactly: generated traffic only (no local state) |
+| `screenshots/langfuse-encounter-trace.png` | One real encounter against the real routes = one trace (§2) |
+| `screenshots/dashboard-export.png`, `dashboard-demo.html` / `.json` / `.txt` | The stdout dashboard over an earlier load demo, with alert states. Two alerts fire on it, correctly: a 50-VU burst drove 5xx to 23% and FHIR dependency failures to 8.3%. Its latencies include Langfuse competing with OpenEMR for the Docker VM, and are not baselines. |
+| `api-collection-run.txt` | Final newman run against the real routes: 44 requests (status polls included), 102 assertions, 0 failed |
+| `ready-failure-modes.txt` | `/ready` with each dependency broken (§4) |
 | `load/` | Raw k6 summaries, resource samples, bench JSON ([`LOAD_TEST.md`](LOAD_TEST.md)) |
 
-**The demo mix is a demonstration, not a baseline.** Local agent, stubbed
-LLM for the brief, Langfuse on:
-
-- one collection run (a real conversation turn),
-- 20 s of briefs at 10 VUs, then 20 s at 50 VUs (the second produces the
-  errors),
-- the extraction bench with vision replayed,
-- the retrieval bench.
-
-Its latencies include Langfuse competing with OpenEMR for the Docker VM, and
-are not the numbers in `LOAD_TEST.md`. Two alerts fire on it, correctly: the
-50-VU burst drove the 5xx rate to 23% and FHIR dependency failures to 8.3%.
-
-Two caveats on the Langfuse screenshot, stated rather than hidden:
-
-- The first extraction bench ran from the extractor branch's checkout, whose
-  exporter predates these scores. Its 12 `intake_extraction_completed`
-  events were **re-exported** from the stdout log through this branch's
-  exporter.
-- After the rebase onto `main`, 12 more extractions ran on this branch's
-  own code and exported directly.
+**Neither event log behind these is committed.** Local logs carry
+`patient_session_key`, which holds (synthetic) patient UUIDs, and a log with
+patient identifiers is the wrong thing to put in a repository even when the
+patients are fake. What is committed is aggregates: the dashboard exports
+contain no session key or patient id (`test_rendered_output_never_carries_the_session_key`).
+To see the widgets populated, generate traffic (§6 step 5).
 
 ## 4. Readiness
 
@@ -199,15 +202,160 @@ Every failure mode was verified by breaking the dependency (local stack,
 | Langfuse web paused | 200 | 200 | `observability_backend: unhealthy, Langfuse unreachable`; healthy again on unpause |
 | Langfuse keys wrong | 200 | 200 | `observability_backend: unhealthy, Langfuse rejected the configured API keys` |
 
-## 5. Running it
+## 5. The stdout dashboard
 
 ```bash
 # agent from this checkout, stdout to a log the dashboard reads
-LOG=agent/logs/run.jsonl AGENT_ENV_FILE=<file with ANTHROPIC_API_KEY> \
-LANGFUSE_ENV_FILE=<agent-langfuse.env> agent/load-test/w2/start_local_agent.sh &
+LOG=$PWD/agent/logs/run.jsonl AGENT_ENV_FILE=<file with ANTHROPIC_API_KEY> \
+LANGFUSE_ENV_FILE=$PWD/agent/observability/agent-langfuse.env \
+  agent/load-test/w2/start_local_agent.sh &
 
 cd agent
-python scripts/w2_dashboard.py --log-file logs/run.jsonl \
+.venv/bin/python scripts/w2_dashboard.py --log-file logs/run.jsonl \
   --prices ../docs/w2/evidence/prices-used.json --html logs/dashboard.html --watch 10
-python scripts/provision_langfuse_dashboard.py --apply   # local Langfuse only
+# open agent/logs/dashboard.html; it refreshes itself every 10 s
 ```
+
+## 6. Runbook: a populated Langfuse dashboard, starting from nothing
+
+For a reader with a clone of this repository and nothing else. Every path is
+relative to the repository root.
+
+- **Checked 2026-09-22** by following these steps on an empty instance:
+  - generated `.env`, empty volumes;
+  - provisioned, generated traffic;
+  - screenshot `evidence/screenshots/langfuse-dashboard.png`, all 16
+    widgets populated.
+- **The only differences** from what is written here: the stack ran under
+  another compose project name (`-p w2-fresh`), so it could not touch an
+  existing stack's volumes. `--container w2-fresh-postgres-1` followed from
+  that.
+
+**Needs:**
+
+- Docker with the compose plugin (Langfuse wants about 4 cores and 16 GiB);
+- Python 3.12;
+- `openssl`.
+
+Screenshots only (step 7) also need Node 18+ and Chrome. No OpenEMR, no
+Anthropic key.
+
+1. **Python environment**, once:
+
+   ```bash
+   cd agent && python3.12 -m venv .venv \
+     && .venv/bin/python -m pip install -r requirements.txt -r requirements-dev.txt && cd ..
+   ```
+
+2. **Secrets for the Langfuse stack**, once:
+
+   ```bash
+   agent/observability/generate-env.sh
+   ```
+
+   This writes two gitignored, mode-0600 files next to the script:
+   - **`.env`**: the stack's own database and queue passwords, and the UI
+     login.
+   - **`agent-langfuse.env`**: only the four variables a client needs.
+
+   **The `.env` caveat:**
+   - The script **refuses to overwrite** an existing `.env`.
+   - Postgres, ClickHouse and MinIO bake their passwords into their volumes
+     on first boot. So a regenerated `.env` against old volumes gives a
+     stack that cannot start.
+   - To start over, wipe both together:
+     `docker compose -f agent/observability/docker-compose.langfuse.yml down -v`,
+     then `agent/observability/generate-env.sh --force`.
+   - Never `--force` against volumes you want to keep.
+
+3. **Start Langfuse**. The first pull takes 2–3 minutes. `--wait` returns
+   when all six services are healthy:
+
+   ```bash
+   docker compose -f agent/observability/docker-compose.langfuse.yml up -d --wait
+   curl -s http://localhost:3000/api/public/health    # {"status":"OK","version":"4.37.0"}
+   ```
+
+   It listens on `127.0.0.1:3000` only. The project id
+   (`clinical-copilot-agent`) and the admin user are created headlessly
+   from `.env`; sign-up is disabled.
+
+4. **Provision the dashboard**: 16 widgets, written into Langfuse's own
+   Postgres, because 4.37 has no dashboard API. Local instances only.
+
+   ```bash
+   agent/.venv/bin/python agent/scripts/provision_langfuse_dashboard.py --apply
+   # dashboard 'w2-operations-dashboard': 16 widgets in project 'clinical-copilot-agent'
+   ```
+
+5. **Generate traffic**. About 20 s; the first run downloads the embedding
+   and reranker models (about 150 MB) into the local model cache.
+
+   ```bash
+   cd agent
+   set -a; . observability/agent-langfuse.env; set +a
+   .venv/bin/python scripts/generate_langfuse_traffic.py
+   # synthesized 40 encounters / extracted 6 committed samples (vision replayed)
+   # retrieved for 30 dev queries / done; Langfuse accepted the keys.
+   cd ..
+   ```
+
+   What it sends is spelled out in the script's docstring:
+   - **Real code:** the extractor on the six committed samples, and the
+     retriever on the 30 dev queries.
+   - **Synthesized:** HTTP requests, steps (supervisor turns included), FHIR
+     and LLM tool calls, verification and token usage, validated through the
+     same event models, with a fixed share of FHIR 500s so the error
+     widgets have data.
+   - Session keys are `synthetic-user:synthetic-patient-NNN:…`. Nothing is
+     written to disk.
+
+6. **Open the dashboard** at
+   <http://localhost:3000/project/clinical-copilot-agent/dashboards/w2-operations-dashboard>.
+   Sign in with the two values from step 2's `.env`:
+
+   ```bash
+   grep -E '^LANGFUSE_INIT_USER_(EMAIL|PASSWORD)=' agent/observability/.env
+   # email is admin@clinical-copilot.test; the password is random per .env
+   ```
+
+   The default range, "Past 1 day", covers the traffic just sent. Every
+   widget should have data. Several read small or round values, and are
+   correct to:
+   - **Reranked-true rate: 1.** The generator's retrievals run one at a
+     time, so every one is reranked. Under concurrent load it drops (see
+     LOAD_TEST.md §5b).
+   - **Server errors, tool failures, retries.** These are on a fixed
+     schedule (every twelfth answer meets a FHIR 500; every twentieth model
+     call retries once), so a handful each.
+   - **Extraction located rate and confidence: about 0.8**, displayed to
+     one decimal. That is the mean over six samples, one of them a heavy
+     scan at about 34%.
+
+   One encounter's trace is under *Tracing*: filter Name =
+   `http_request_event` and open any row.
+
+7. **Screenshots**, optional:
+
+   ```bash
+   cd agent/observability/screenshots && npm install
+   node shoot.mjs --env-file ../.env --out ../../../docs/w2/evidence/screenshots
+   cd ../../..
+   ```
+
+   `shoot.mjs` reads the login from `.env`, never from the command line. It
+   sizes the page to the dashboard's inner scroll area, so the capture
+   includes every widget. `CHROME_PATH` overrides the default macOS Chrome
+   location; `--trace <id>` also captures one trace.
+
+8. **Real traffic instead of, or besides, synthetic**:
+   - start this checkout's agent with export on (§5 above,
+     `LANGFUSE_ENV_FILE=agent/observability/agent-langfuse.env`), then run
+     the API collection (`agent/api-collection/README.md`). That needs the
+     local OpenEMR stack (`docs/w2/LOCAL_ENV.md`) and an Anthropic key.
+   - Each run is one encounter, one trace.
+
+9. **Stop or remove**:
+   - `docker compose -f agent/observability/docker-compose.langfuse.yml stop`
+     keeps the data;
+   - `down -v` deletes it; then see step 2's caveat.
