@@ -95,6 +95,11 @@ python scripts/w2_e2e_ask.py --sample lab-critical-potassium-007 \
   --live-vision --expect-critical                                    # + one live vision call: a critical potassium leads the answer
 ```
 
+A question about the uploaded report takes about 1.5–2 minutes: 91.9 s and
+130.5 s in the only two real-route runs, about $0.46 each
+(`feat/w2-observability@d1cbfc9:docs/w2/LOAD_TEST.md` §6). That is a known
+problem, recorded in `W2_ARCHITECTURE.md` §11.
+
 What each printed section means, and what to expect:
 [`docs/w2/DEMO_SCRIPT.md`](docs/w2/DEMO_SCRIPT.md). **No output from this
 script has been committed yet**, so treat the expectations there as a

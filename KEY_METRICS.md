@@ -28,11 +28,11 @@ locally** at the time of writing.
 | W2-2 | Unlocated values stated as fact | 0, enforced by the type system | 0, absolute | gate critical case plus planted regression |
 | W2-3 | Flag cross-check agreement, comparable flags only | 100% (**1/1**) | none set; the denominator is the finding | very weak: n = 1 |
 | W2-4 | Intake discrepancy accuracy; never merged | precision 2/2, recall 2/2, false positives 0/25; merges 0 | 0 merges, absolute | weak: n = 2 |
-| W2-5 | Verified and disclosed on the ask path | **not measured live**; gate det 70/70 | 100% disclosed, absolute | tests only |
+| W2-5 | Verified and disclosed on the ask path | no live rate; 2 real-route runs pass their citation assertions; gate det 70/70 | 100% disclosed, absolute | tests plus 2 live runs; no runtime disclosure signal |
 | W2-6 | Critical values surfaced | **not measured live**; gate H6 and G7 pass | 100%, absolute | one fixture |
 | W2-7 | Guideline retrieval: recall and the share actually reranked | recall@4 0.666, zero-recall queries 0/30; reranked 35% at 10 paced users, 6.2% at 50 | reranked rate is watched, not targeted | 30 dev queries, local only |
 | W2-8 | Eval gate: regressions caught | 12/12 planted regressions blocked; 76/95 cases active | every planted regression blocks | harness-proved; judge uncalibrated |
-| W2-9 | Cost and latency per encounter | ~$0.52 (estimated); extraction 15–33 s | ≤ 90 s per answer (Week 1 budget) | components measured, composition estimated |
+| W2-9 | Cost and latency per encounter | **$0.82 measured** (n = 2); a document question takes **92–131 s** | ≤ 90 s per answer (Week 1 budget) | 2 real-route encounters; **fails the budget** |
 
 ---
 
@@ -68,7 +68,7 @@ often a real document yields values the clinician can actually use.
 Sources:
 
 - The real-vision column is
-  `feat/w2-observability@346e318:docs/w2/evidence/load/extraction-live-vision.json`,
+  `feat/w2-observability@d1cbfc9:docs/w2/evidence/load/extraction-live-vision.json`,
   three live calls.
 - The replay column is `docs/w2/evidence/extractor-measurement-f59b29c.txt`,
   run this session with `cd agent && python -m tests.intake_extractor_measurement`.
@@ -192,15 +192,21 @@ UNVERIFIED and never dropped (D40 item 7).
 - Per turn: `w2_ask_turn_completed` carries claim counts by type
   (`agent/app/graph/supervisor.py`).
 
-**Current.** **Not measured live.** No `/w2/ask` run against the real model
-has committed output (`agent/scripts/w2_e2e_ask.py` exists; no run of it is
-recorded). What exists:
+**Current.** **No live pass rate.** What exists:
 
-- in-process tests (`agent/tests/test_w2_checker.py`,
-  `test_w2_supervisor_graph.py`);
-- gate categories A and F, at deterministic 70/70 overall;
-- on the Week 1 path it extends, 44/44 claims verified in the real-LLM
-  encounter (`feat/w2-observability@346e318:docs/w2/OBSERVABILITY.md` §2).
+- Two real-route encounters ran `/w2/ask` against the real model, one
+  question about the document and one about guidance. Each passed the
+  collection's assertions "an answer is drawn only from what it can cite"
+  and "a routing decision was made and recorded with its reason"
+  (`feat/w2-observability@d1cbfc9:docs/w2/evidence/api-collection-run.txt`).
+  Those assert the shape of the answer. They are not a per-claim pass rate,
+  and no committed run shows one answer citing a document and a guideline
+  together.
+- In-process tests: `agent/tests/test_w2_checker.py` and
+  `test_w2_supervisor_graph.py`.
+- Gate categories A and F, part of the deterministic tier's 70/70.
+- On the Week 1 path it extends, 44/44 claims verified in a real-LLM
+  encounter (`feat/w2-observability@d1cbfc9:docs/w2/ALERTS.md` §5).
 
 **Gap, stated.** Week 1's Metric 2 is computed from `claim_disclosure_event`.
 That event is emitted by `audit_disclosure()`, which reads the *rendered*
@@ -302,12 +308,25 @@ verified locally with the same images (commit `0435611`).
 - Latency comes from `http_request_event` and `step_event`
   (`OBSERVABILITY.md`), and per turn from `w2_ask_turn_completed.total_ms`.
 
-**Current.** One encounter (a brief, 4 turns and 1 document) is an estimated
-**$0.29–$0.89, about $0.52 in the middle**. Extraction takes **15–33 s** per
-document with real vision, 93–99% of it the vision call. It runs at upload,
-so no clinician waits on it (D7). An answer turn is p95 6.41 s locally at 10
-users (a Week 1 conversation turn). `/w2/ask` end-to-end latency is **not
-measured**. Derivations and sources:
+**Current.**
+
+- **Cost: $0.82 per encounter, measured**, in both of two real-route runs.
+  Each encounter was an upload with live extraction, a brief, a conversation
+  turn and two `/w2/ask` questions: 67,967 prompt + 19,278 completion =
+  87,245 tokens (`OBSERVABILITY.md` §2; trace header in
+  `docs/w2/evidence/screenshots/langfuse-encounter-trace.png` on that
+  branch).
+- **The document question is 92–131 s** (91.9 s and 130.5 s). That is over
+  the 90 s budget with a single user and no load, and it alone is about $0.46
+  of the $0.82 (`LOAD_TEST.md` §6).
+- A guideline question is 10.5–10.6 s.
+- Extraction is 15–33 s per document, and it runs at upload (D7).
+- A Week 1 conversation turn is p95 6.41 s locally at 10 users.
+
+**This metric is failing today**, on a single request, and the cause is
+known: the answer step drafts over every extracted result.
+
+Derivations, projections and sources:
 [docs/w2/COST_AND_LATENCY.md](docs/w2/COST_AND_LATENCY.md).
 
 **Budget.** 90 s between encounters (Week 1 Metric 4). The answer-latency

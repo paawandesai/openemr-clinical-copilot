@@ -15,7 +15,7 @@ at. A path with no branch prefix is on `main`.
 |---|---|---|---|
 | `main` | `f59b29c` | yes | D1–D35, D40; extractor, retriever, supervisor, verifier, write-back module |
 | `feat/w2-eval-gate` | `647dd9a` | yes | the eval gate, D42–D48, `docs/w2/EVAL_GATE_EVIDENCE.md` |
-| `feat/w2-observability` | `346e318` | **no, local only** | D36–D39, `docs/w2/{OBSERVABILITY,ALERTS,LOAD_TEST}.md`, `docs/w2/evidence/` |
+| `feat/w2-observability` | `d1cbfc9` | **no, local only** | D36–D39, `docs/w2/{OBSERVABILITY,ALERTS,LOAD_TEST}.md`, `docs/w2/evidence/`; the only real-route `/w2/ask` measurements |
 | `chore/w2-deploy-rehearsal` | `0c0f360` | **no, local only** | D41, `docs/w2/DEPLOY.md`, the upload guard |
 | `feat/w2-php-wiring` | `405b5ac` | **no, local only** | the upload guard ported onto `main`'s real `/documents` route |
 
@@ -73,10 +73,18 @@ beside chart facts without the two blurring. Nine decisions carry the weight.
   50 MiB (`DEPLOY.md` §8), and in return D5 is structural.
 - **One worker.** Correct for the demo, wrong for production (D40 item 10).
 
-**Not true yet:** the live host does not run the Week 2 ask path
-(`a78ba51` predates `feat/w2-graph`, `DEPLOY.md` §0); the documents card is
-not registered in the module; the eval gate has not merged. §11 lists every
-known limitation.
+**Not true yet:**
+
+- A question about an uploaded lab report takes **92–131 s** (n = 2). It is
+  one drafting call over every extracted result, writing 11.5k tokens: past
+  the 90 s budget, and about half the $0.82 encounter cost (`LOAD_TEST.md`
+  §6).
+- The live host does not run the Week 2 ask path (`a78ba51` predates
+  `feat/w2-graph`, `DEPLOY.md` §0).
+- The documents card is not registered in the module.
+- The eval gate has not merged.
+
+§11 lists every known limitation.
 
 ---
 
@@ -162,7 +170,7 @@ Nothing from that document is stated, and the discrepancy check does not run
 
 These are two different measurements, and the table keeps them apart. **Real
 vision** is three live model calls, run sequentially
-(`feat/w2-observability@346e318:docs/w2/evidence/load/extraction-live-vision.json`,
+(`feat/w2-observability@d1cbfc9:docs/w2/evidence/load/extraction-live-vision.json`,
 `LOAD_TEST.md` §4b). **Replay** is all six committed samples with the vision
 step replaced by ground truth, so it measures everything after the model
 (`docs/w2/evidence/extractor-measurement-f59b29c.txt`, produced by
@@ -264,12 +272,20 @@ decision is constructed (`agent/app/models/w2/workers.py`). One member,
 rule. Every clinical outcome is HTTP 200 with a typed status. An unexpected
 exception is HTTP 500 `internal_error` with fixed wording (D40 item 3).
 
-**Known gap (found by the eval gate).** Rule 1 keys on the phrase "another
-patient", not on a person's name, so "Show me Jane Doe's recent labs" is
-classified as a record lookup. It is still safe: `run_ask_turn` takes the
-patient uuid as a separate argument, so no phrasing can select a different
-chart. The case now asserts both halves (commit message of
-`feat/w2-eval-gate@7783fba`, W2-H2).
+**Cross-patient safety is structural, not a routing rule.**
+
+- `run_ask_turn` takes the patient uuid as an argument beside the question.
+  The question never selects the patient, so no phrasing can reach another
+  chart.
+- Rule 1 is a second layer: it refuses explicit cross-patient *wording*
+  before anything is looked up.
+- It keys on the phrase "another patient", not on a person's name, so "Show
+  me Jane Doe's recent labs" is classified as an ordinary record lookup, for
+  the open chart only.
+
+Gate case W2-H2 asserts both halves and asserts the limitation, so it will
+fail if the router starts refusing on names (commit message of
+`feat/w2-eval-gate@7783fba`).
 
 ### 2.4 Critical values (H6)
 
@@ -502,12 +518,23 @@ a run through `getattr` or from outside `app/`.
 Nothing is scheduled and nothing pages anyone (`ALERTS.md`, "What is not
 built").
 
-**Open chain breaks** (`OBSERVABILITY.md` §2, written before the supervisor
-merged):
+**Verified on the real routes** (`OBSERVABILITY.md` §2, at `d1cbfc9`). One
+API-collection encounter, `07c0fd35-…`, is one Langfuse trace: 2 min 52 s,
+87,245 tokens, $0.82. It carried:
+
+- the upload, 26 status polls and the background extraction;
+- the brief and a conversation turn;
+- 3 supervisor routing decisions;
+- 6 supervisor node steps;
+- 55 tool calls.
+
+**Open chain breaks:**
 
 - The chart card never sends `X-Correlation-ID`, so each UI request is its
   own trace.
 - Write-back carries no correlation id into PHP.
+- Extraction inherits the upload's id only when that id is a UUID;
+  otherwise the two traces are linked by a logged event, not merged.
 - The hosted Langfuse has no BAA, so production metrics come from stdout
   (Week 1, `agent/docs/observability.md` §1). The live host runs with
   Langfuse `disabled` (`DEPLOY.md` §7.2).
@@ -545,6 +572,7 @@ The agent image grew from 360 MB to 1.18 GB, and idle memory from 50 MiB to
 
 | Risk | Where it bites | Mitigation today | What is still exposed |
 |---|---|---|---|
+| **The whole-report answer** | one `/w2/ask` about an uploaded report: 91.9 s and 130.5 s, one call at 34,948 in / 11,523 out, $0.46 (`LOAD_TEST.md` §6) | the 45 s `answer_p95_latency` alert covers `/w2/ask` (`ALERTS.md` §1) | past the 90 s budget with no load at all; the fix (bound the output, or answer only from the rows the question names) is not built |
 | **One process, in-memory stores** (conversations, documents, extraction jobs, the rerank circuit) | a second worker or replica makes uploads invisible (`404`), re-bills extraction, and loses follow-up context; a restart forgets every upload | one uvicorn worker; a startup warning when more are configured (D40 item 10, `agent/docs/deployment.md` §7) | a second *replica* is invisible to the check; no persistence |
 | **Reranker under load** | 50 concurrent retrievals: p95 335,224 ms, 0% reranked, 5.3 GiB peak RSS on a cold run (`LOAD_TEST.md` §5) | D39 admission bound: p95 259 ms, but only 1% reranked in the burst and 6.2% at 50 paced users (§5b) | not on `main`; memory still up to 3.1 GiB against a 7.24 GiB host that OpenEMR already takes 4.9 GiB of (D39) |
 | **The rerank circuit never closes** | one slow rerank turns reranking off until restart; 35 of the next 60 turns ran unreranked (D41) | none | `rerank_over_budget` conflates "slow" with "skipped" (D41) |
@@ -594,7 +622,7 @@ and takes no D-number.
    vision, and 33.6% (36/107) in replay (§1.4). D24 chose exact-only matching
    for numbers, units, dates and flags over recall. On that scan the flag
    cross-check compares nothing: 0 comparable flags, 6 `not_reported`.
-4. **Single worker, in-memory state.** See §9, row 1. A restart forgets every
+4. **Single worker, in-memory state.** See §9, row 2. A restart forgets every
    upload and conversation.
 5. **The LangGraph root-run trace gap.** A tracer attached directly to a
    compiled graph posts the root input before any node guard runs. It is
@@ -617,14 +645,21 @@ and takes no D-number.
    all pending (§6). The structural defences are that the model writes no
    prose, its citation ids are narrowed by schema, and it has no write
    channel. No case measures them.
-9. **The end-to-end ask path has no committed live run.**
-   `agent/scripts/w2_e2e_ask.py` exists. No output from it is committed on any
-   branch, so a live answer with both a document and a guideline citation is
-   covered by in-process tests and gate cases, but not by a recorded model
-   run.
-10. **A wrapped field's multi-box path is unit-tested only.** No sample wraps a
+9. **No committed live run shows one answer citing a document and a
+   guideline together.** The real-route API collection asks two separate
+   questions, one about the document and one about guidance, and asserts on
+   each (`feat/w2-observability@d1cbfc9:docs/w2/evidence/api-collection-run.txt`).
+   `agent/scripts/w2_e2e_ask.py` asks the combined question and exits non-zero
+   without both citation types, but no output from it is committed. The
+   combined answer is covered by in-process tests and gate cases only.
+10. **A question about a whole uploaded report is too slow and too
+    expensive.** 91.9 s and 130.5 s (n = 2) and about $0.46 per call: one
+    drafting call over every extracted result, writing 11.5k tokens
+    (`LOAD_TEST.md` §6). It breaks the 90 s budget for a single user with no
+    load. It is a product fix, not a scale fix, and it is not built.
+11. **A wrapped field's multi-box path is unit-tested only.** No sample wraps a
     field (D34).
-11. **The chart card, the module upload routes and the correlation header are
+12. **The chart card, the module upload routes and the correlation header are
     not wired** (§8, `docs/w2/ui-integration.md`). The UI is demonstrable in
     fixture mode only.
-12. **No FHIR paging.** `_count` is the sharp edge (`docs/w2/WEEK1_DEBT.md` §4).
+13. **No FHIR paging.** `_count` is the sharp edge (`docs/w2/WEEK1_DEBT.md` §4).

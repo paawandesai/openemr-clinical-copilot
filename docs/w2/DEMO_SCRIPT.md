@@ -21,7 +21,7 @@ Where a step has never been rehearsed end to end, the step says so.
   overlay is drawing the live answer. Say "same contract, fixture data" for
   the overlay.
 
-## Before you press record (about 20 minutes, about $0.60 in model calls)
+## Before you press record (about 30 minutes, about $1.50 in model calls, estimated)
 
 ### 1. Credentials for the terminal steps
 
@@ -50,8 +50,10 @@ samples use it.
 
 ### 3. Pre-run the slow terminal steps and save their output
 
-Each takes 10–40 s, mostly the model. Record the command, and cut to the
-saved output if the wait drags.
+A question about an uploaded report took **91.9 s and 130.5 s** on the real
+routes (`feat/w2-observability@d1cbfc9:docs/w2/LOAD_TEST.md` §6), and all
+three runs below ask about the document. Expect up to about 2 minutes each.
+Record the command, then **cut to the saved output**. Do not film the wait.
 
 ```bash
 cd agent
@@ -65,12 +67,15 @@ python scripts/w2_e2e_ask.py --sample lab-scanned-heavy-abnormal-002 \
 
 | Run | Model calls | Estimated cost | Expected exit |
 |---|---|---|---|
-| clean | 1 drafting call (vision replayed) | ~$0.1 | 0 |
-| critical | 1 live vision call + 1 drafting call | ~$0.126 + ~$0.1 | 0 |
-| heavy | 1 drafting call (vision replayed) | ~$0.1 | **1** |
+| clean | 1 drafting call (vision replayed) | ~$0.46 | 0 |
+| critical | 1 live vision call + 1 drafting call | ~$0.126 + ~$0.46 | 0 |
+| heavy | 1 drafting call (vision replayed) | ≤ ~$0.46 | **1** |
 
-The costs are estimates from `docs/w2/COST_AND_LATENCY.md` §2; none of these
-runs has a committed cost. The heavy run's acceptance line requires both a
+The costs are estimates. $0.46 is the measured cost of one document question
+on `lab-clean-001` (34,948 in / 11,523 out, `LOAD_TEST.md` §6), and $0.126 is
+one measured vision call (`docs/w2/COST_AND_LATENCY.md` §1). The heavy
+scan's answer should be cheaper, because fewer of its values are located.
+None of these three runs has a committed cost. The heavy run's acceptance line requires both a
 document and a guideline citation, and this run is meant to have neither, so
 exit 1 is correct. The staged critical sample has no recording, which is why
 it needs `--live-vision`.
@@ -87,7 +92,7 @@ In a second terminal:
 ```bash
 cd agent && python scripts/build_ui_fixtures.py && cd ..
 node interface/modules/custom_modules/oe-module-clinical-copilot/dev/serve.mjs
-# open http://127.0.0.1:8760/dev/fixture.html?scenario=lab-clean-001
+# open http://127.0.0.1:8760/dev/fixture.html?scenario=lab-multipage-003
 ```
 
 ### 5. The eval-gate worktree
@@ -106,13 +111,20 @@ calls.
 
 Choose one before recording:
 
-- **Live.** A local Langfuse, with the agent run as in
-  `feat/w2-observability@346e318:docs/w2/OBSERVABILITY.md` §5.
+- **Live.** A local Langfuse, set up from nothing with the runbook in
+  `feat/w2-observability@d1cbfc9:docs/w2/OBSERVABILITY.md` §6.
 - **Committed screenshots**, which exist only on local branch
-  `feat/w2-observability`:
-  `docs/w2/evidence/screenshots/langfuse-encounter-trace.png`,
-  `langfuse-dashboard.png` and `dashboard-export.png`. A checkout is at
-  `../cc-feat-w2-observability/`.
+  `feat/w2-observability` at `d1cbfc9`, under `docs/w2/evidence/screenshots/`:
+
+  | File | What it shows |
+  |---|---|
+  | `langfuse-encounter-trace.png` | a **real** encounter on the real routes |
+  | `langfuse-dashboard.png` | a fresh instance filled by the **traffic generator**, not real use |
+  | `dashboard-export.png` | the stdout dashboard over an earlier load demo |
+
+  The worktree `../cc-feat-w2-observability/` is on an older commit
+  (`ee3c965`), so check it out at `d1cbfc9` first, or read the files with
+  `git show d1cbfc9:<path>`.
 
 ---
 
@@ -313,18 +325,30 @@ the "Planted regressions" table, 12 rows, all BLOCKED.
 **Do:** open the Langfuse trace, or `langfuse-encounter-trace.png`. Then the
 dashboard, or `langfuse-dashboard.png`.
 
-**Viewer should see:**
+**Viewer should see** (checked against the committed screenshot):
 
-- One trace for a whole encounter, whose observations show Input `null` and
-  Output `undefined`: no chart content leaves in telemetry.
-- Dashboard widgets for latency by step, tool failures, the located rate and
-  the reranked rate.
+- Trace `a88a5c1242ae3ae81855d07a117f62b1`, whose header reads Latency
+  2m 52s, $0.821785, and 67,967 prompt → 19,278 completion (Σ 87,245).
+- A left-hand list of `step_event`, `tool_call_event` and
+  `http_request_event` rows for the upload, the extraction polls and the
+  rest of the encounter.
+- The selected observation shows Input `null` and Output `undefined`: no
+  chart content leaves in telemetry.
+- Then the dashboard, "Clinical Co-pilot: Week 2 operations", with p95 and
+  p50 latency by step, tool calls by tool, the dependency-failure rate,
+  retrieval hits, the reranked-true rate and the extraction located rate.
+- **The dashboard's numbers come from generated traffic**
+  (`OBSERVABILITY.md`, evidence table). Show the layout; do not quote its
+  numbers as measurements.
 
-The trace is described in `OBSERVABILITY.md` §2: one encounter carried 105
-events under one id.
+The trace is encounter `07c0fd35-…`, described in `OBSERVABILITY.md` §2.
+One id carries the upload, 26 status polls, the background extraction, the
+brief, a conversation turn, 3 routing decisions and 55 tool calls.
 
 **Say:** "Every event for this encounter shares one correlation id: upload,
-extraction, retrieval, the answer. Events carry counts, ids and class names,
+extraction, retrieval, the answer. This is also how we found our slowest
+path: a question about the whole report takes a minute and a half, in one
+model call. Events carry counts, ids and class names,
 never values, and that's enforced by the event schema, not by care. This
 dashboard runs locally; production metrics come from stdout, because no BAA
 covers a hosted tracing service."
@@ -334,8 +358,9 @@ the **local** Langfuse. The live host runs with Langfuse disabled.
 
 ### 4:40–5:00 — Close, honestly
 
-**Say:** "What's not done: the documents card isn't wired into the OpenEMR
-chart yet, the live server runs last week's ask path, and the four
+**Say:** "What's not done: a question about a whole report is too slow, at
+92 to 131 seconds. The documents card isn't wired into the OpenEMR chart
+yet. The live server runs last week's ask path. And the four
 prompt-injection-in-PDF cases are specified but not running. Each of those
 is written down in the architecture doc's limitations section. Everything we
 showed is a number you can trace to a file."
