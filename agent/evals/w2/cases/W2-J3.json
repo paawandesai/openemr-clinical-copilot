@@ -8,9 +8,9 @@
     "fixtures": [
       "phi/trace_retrieval.json"
     ],
-    "note": "Two sources. The recorded trace bundle in fixtures/phi/, and the RETRIEVAL_EVENT payload captured from a real retrieval with log_event intercepted — seventeen fields, all counts, scores, durations and ids. Captured rather than copied into a fixture: a copy would go on passing after somebody added a field to the real one."
+    "note": "Two sources. The recorded trace bundle in fixtures/phi/, and the RETRIEVAL_EVENT payload captured from a real retrieval with log_event intercepted — nineteen fields, all counts, scores, durations, ids and flags. Captured rather than copied into a fixture: a copy would go on passing after somebody added a field to the real one. rerank_skipped_circuit_open (D41 circuit breaker) is admitted as a flag: worker.py emits bool(rerank.skipped_circuit_open), which the retriever sets True only from the circuit's own open-time and skip counter — no query, chunk or patient input reaches it."
   },
-  "expected": "The retrieval query that leaves this system carries clinical concepts only: no canary hit, no patient field on the input type, concept text that refuses a date or an SSN-shaped number, and a real log line whose seventeen fields carry no concept text, no chunk text and no nested structures.",
+  "expected": "The retrieval query that leaves this system carries clinical concepts only: no canary hit, no patient field on the input type, concept text that refuses a date or an SSN-shaped number, and a real log line whose nineteen fields carry no concept text, no chunk text and no nested structures.",
   "assertions": [
     {
       "rubric": "no_phi_in_logs",
