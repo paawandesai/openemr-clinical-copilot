@@ -62,15 +62,18 @@ https://{$AGENT_PUBLIC_HOST}:8443 {
 	handle /docs* {
 		reverse_proxy agent:8000
 	}
-	# Week 2 upload and extraction status (D7). Sized above.
-	#
-	# TEMPORARILY DENIED at the proxy: the agent's /documents route does not
-	# yet validate the bearer token with OpenEMR, so until it does, nothing
-	# under this path reaches the agent. Caddy answers without reading the
-	# body. Re-enable (reverse_proxy agent:8000) only together with the
-	# agent image that validates the token (docs/w2/DEPLOY.md §2.1).
+	# Week 2 upload and extraction status (D7). Sized above. The agent
+	# decides token, scope, rate and capacity before it reads a body
+	# (app/api/upload_guard.py); never point this at an image whose
+	# /documents does not go through that guard (docs/w2/DEPLOY.md §2.1).
 	handle /documents* {
-		respond "Document upload is temporarily unavailable." 503
+		reverse_proxy agent:8000
+	}
+	# Week 2 question answering: supervisor over the extractor and the
+	# retriever. A JSON body of a question (<= 500 chars) and up to four
+	# document ids, so the 16KB cap above applies.
+	handle /w2/ask* {
+		reverse_proxy agent:8000
 	}
 	handle /openapi.json {
 		reverse_proxy agent:8000
