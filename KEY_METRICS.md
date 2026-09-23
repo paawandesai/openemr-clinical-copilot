@@ -363,6 +363,12 @@ three rules at once. How to run the gate, read a verdict and set up CI:
   87,245 tokens (`OBSERVABILITY.md` §2; trace header in
   `docs/w2/evidence/screenshots/langfuse-encounter-trace.png` on that
   branch).
+- **On the deployed host:** [the dashboard computed from the deployed host's
+  logs](docs/w2/evidence/host-dashboard.html) ([JSON](docs/w2/evidence/host-dashboard.json)),
+  beside the local Langfuse screenshots above. Production telemetry is
+  stdout by design; the host runs with Langfuse disabled. Over the `ea198c8`
+  deploy, 2026-09-23 17:12–21:00 UTC: 19 encounters with model calls, mean
+  **$0.097** and 11.8k tokens per encounter, answer-route p95 21.7 s, 0 5xx.
 - **Answer latency tracks what the model writes**
   (`docs/w2/COST_AND_LATENCY.md` §4.1a).
   - The answer step is about **4.1 s + 7.45 s per 1,000 output tokens**

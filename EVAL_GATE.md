@@ -5,6 +5,16 @@ to find the prompts and the golden set, run the gate, and read a verdict.
 For how the gate protects its own files see [`docs/w2/GATE.md`](docs/w2/GATE.md);
 for why it is built this way see [`docs/w2/EVAL_DESIGN.md`](docs/w2/EVAL_DESIGN.md).
 
+**Where it blocks: at push and at merge, not at commit.** A `git commit`
+that regresses the evals succeeds; nothing runs on commit, by design.
+
+- **At push:** the pre-push hook (installed once with
+  `scripts/install-w2-pre-push-hook.sh`, see below) runs the deterministic
+  tier and refuses the push if it fails.
+- **At merge:** CI runs both tiers on every merge request, and a failing
+  gate turns the pipeline red. GitLab's "Pipelines must succeed" merge
+  check then refuses the merge — see the MR below.
+
 ## See it block a merge
 
 **[Merge request !1 — DEMO: planted regression (blank flag → normal)](https://labs.gauntletai.com/paawandesai/openemr-clinical-copilot/-/merge_requests/1)**

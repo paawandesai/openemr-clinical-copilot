@@ -203,9 +203,7 @@ purpose.
 `docs/w2/OBSERVABILITY.md`, `ALERTS.md` and `LOAD_TEST.md` (tracing,
 dashboard, alerts, load tests and the real-route `/w2/ask` measurements)
 are on `main`, and so is `docs/w2/DEPLOY.md`, the host rehearsal and its
-measurements (merged at `21f1053`). What is not yet on `main`: the eval
-gate (`feat/w2-eval-gate`, on `origin`) and the scoped answer
-(`feat/w2-answer-scope`, on `origin`, D50).
+measurements (merged at `21f1053`).
 
 ---
 
@@ -464,8 +462,8 @@ Expected output — a client id and secret, and exit 0:
 
 ```
 Registering a oauth2 client to site default
-client id: "zYinBZAW5lI5wznAUKl-GVw21tX4QyDeVE0UZQbwaIg"
-client secret: "81VXoufIzsEZm1R9acpTRZbstOfk3MG_EzjZGLOr7iXuZzoI3paf2YJVlAdCsWjIkUh55InsyV79QHmCRmwAXw"
+client id: "<redacted>"
+client secret: "<redacted>"
 ```
 
 This writes `oaprivate.key` (mode 0640) and `oapublic.key` (mode 0660) into
