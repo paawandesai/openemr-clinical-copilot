@@ -1,0 +1,9 @@
+{
+  "name": "clinical-copilot-langfuse-screenshots",
+  "private": true,
+  "description": "Screenshots of the local Langfuse operations dashboard (docs/w2/OBSERVABILITY.md §6).",
+  "type": "module",
+  "dependencies": {
+    "puppeteer-core": "23.11.1"
+  }
+}
