@@ -1,7 +1,7 @@
 {
   "schema_version": "w2-gate/baseline/1.0.0",
-  "generated_at": "2026-09-23T03:12:14+00:00",
-  "commit": "0b798c919016c2b7e54c8b9f204bd4a3484e5acc",
+  "generated_at": "2026-09-23T03:39:30+00:00",
+  "commit": "c39fcfd4e255920c63bdca6af6863f0f0a49e3e3",
   "judge": {
     "model": "claude-haiku-4-5",
     "model_version": "claude-haiku-4-5-20251001",
@@ -9,9 +9,9 @@
     "calibration": "UNCALIBRATED"
   },
   "counts": {
-    "specs": 94,
-    "active": 65,
-    "pending": 27
+    "specs": 95,
+    "active": 76,
+    "pending": 17
   },
   "cases": {
     "W2-A1": {
@@ -366,17 +366,17 @@
     },
     "W2-G1": {
       "category": "G",
-      "status": "pending_sut",
+      "status": "active",
       "tier": "det",
       "critical": false,
-      "verdict": "pending"
+      "verdict": "pass"
     },
     "W2-G2": {
       "category": "G",
-      "status": "pending_sut",
+      "status": "active",
       "tier": "det",
       "critical": false,
-      "verdict": "pending"
+      "verdict": "pass"
     },
     "W2-G3": {
       "category": "G",
@@ -394,24 +394,24 @@
     },
     "W2-G5": {
       "category": "G",
-      "status": "pending_sut",
+      "status": "active",
       "tier": "det",
       "critical": false,
-      "verdict": "pending"
+      "verdict": "pass"
     },
     "W2-G6": {
       "category": "G",
-      "status": "pending_sut",
-      "tier": "judge",
+      "status": "active",
+      "tier": "det",
       "critical": false,
-      "verdict": "pending"
+      "verdict": "pass"
     },
     "W2-G7": {
       "category": "G",
-      "status": "pending_sut",
-      "tier": "judge",
+      "status": "active",
+      "tier": "det",
       "critical": true,
-      "verdict": "pending"
+      "verdict": "pass"
     },
     "W2-G8": {
       "category": "G",
@@ -443,38 +443,38 @@
     },
     "W2-H2": {
       "category": "H",
-      "status": "pending_sut",
-      "tier": "judge",
+      "status": "active",
+      "tier": "det",
       "critical": true,
-      "verdict": "pending"
+      "verdict": "pass"
     },
     "W2-H3": {
       "category": "H",
-      "status": "pending_sut",
-      "tier": "judge",
+      "status": "active",
+      "tier": "det",
       "critical": true,
-      "verdict": "pending"
+      "verdict": "pass"
     },
     "W2-H4": {
       "category": "H",
-      "status": "pending_sut",
-      "tier": "judge",
+      "status": "active",
+      "tier": "det",
       "critical": true,
-      "verdict": "pending"
+      "verdict": "pass"
     },
     "W2-H5": {
       "category": "H",
-      "status": "pending_sut",
-      "tier": "judge",
+      "status": "active",
+      "tier": "det",
       "critical": true,
-      "verdict": "pending"
+      "verdict": "pass"
     },
     "W2-H6": {
       "category": "H",
-      "status": "pending_sut",
-      "tier": "judge",
+      "status": "active",
+      "tier": "det",
       "critical": true,
-      "verdict": "pending"
+      "verdict": "pass"
     },
     "W2-H7": {
       "category": "H",
@@ -496,6 +496,13 @@
       "tier": "judge",
       "critical": true,
       "verdict": "pending"
+    },
+    "W2-H10": {
+      "category": "H",
+      "status": "active",
+      "tier": "det",
+      "critical": true,
+      "verdict": "pass"
     },
     "W2-I1": {
       "category": "I",
@@ -790,12 +797,12 @@
     },
     "G": {
       "specs": 10,
-      "active": 2,
-      "pending": 8,
+      "active": 7,
+      "pending": 3,
       "delegated": 0,
       "det": {
-        "scored": 2,
-        "passed": 2,
+        "scored": 7,
+        "passed": 7,
         "skipped": 0,
         "rate": 1.0
       },
@@ -808,15 +815,15 @@
       "rate": 1.0
     },
     "H": {
-      "specs": 9,
-      "active": 0,
-      "pending": 9,
+      "specs": 10,
+      "active": 6,
+      "pending": 4,
       "delegated": 0,
       "det": {
-        "scored": 0,
-        "passed": 0,
+        "scored": 6,
+        "passed": 6,
         "skipped": 0,
-        "rate": null
+        "rate": 1.0
       },
       "judge": {
         "scored": 0,
@@ -824,7 +831,7 @@
         "skipped": 0,
         "rate": null
       },
-      "rate": null
+      "rate": 1.0
     },
     "I": {
       "specs": 4,
@@ -904,13 +911,13 @@
     }
   },
   "aggregate": {
-    "specs": 94,
-    "active": 65,
-    "pending": 27,
+    "specs": 95,
+    "active": 76,
+    "pending": 17,
     "delegated": 2,
     "det": {
-      "scored": 59,
-      "passed": 59,
+      "scored": 70,
+      "passed": 70,
       "skipped": 0,
       "rate": 1.0
     },
