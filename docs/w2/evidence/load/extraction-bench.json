@@ -1,0 +1,97 @@
+{
+  "samples": [
+    "lab-clean-001",
+    "lab-scanned-heavy-abnormal-002",
+    "lab-multipage-003",
+    "intake-clean-004",
+    "intake-scanned-light-med-005",
+    "intake-missing-allergy-006"
+  ],
+  "cpu_count": 15,
+  "levels": [
+    {
+      "concurrency": 1,
+      "extractions": 2,
+      "failed": 0,
+      "wall_seconds": 2.341,
+      "throughput_per_second": 0.854,
+      "latency_seconds": {
+        "p50": 1.17,
+        "p95": 2.208,
+        "p99": 2.301,
+        "max": 2.324
+      },
+      "cpu_seconds": 2.22,
+      "mean_cores_busy": 0.95,
+      "peak_rss_mib": 250.7,
+      "step_ms_p50": {
+        "locate": 13.5,
+        "read_document": 1153.0,
+        "verify": 0.0,
+        "vision": 0.0
+      },
+      "step_ms_p95": {
+        "locate": 18.4,
+        "read_document": 2185.3,
+        "verify": 0.0,
+        "vision": 0.0
+      }
+    },
+    {
+      "concurrency": 10,
+      "extractions": 20,
+      "failed": 0,
+      "wall_seconds": 4.329,
+      "throughput_per_second": 4.62,
+      "latency_seconds": {
+        "p50": 0.278,
+        "p95": 4.066,
+        "p99": 4.244,
+        "max": 4.289
+      },
+      "cpu_seconds": 21.22,
+      "mean_cores_busy": 4.9,
+      "peak_rss_mib": 655.2,
+      "step_ms_p50": {
+        "locate": 8.0,
+        "read_document": 141.0,
+        "verify": 0.0,
+        "vision": 0.0
+      },
+      "step_ms_p95": {
+        "locate": 19.1,
+        "read_document": 4039.2,
+        "verify": 1.1,
+        "vision": 0.1
+      }
+    },
+    {
+      "concurrency": 50,
+      "extractions": 100,
+      "failed": 0,
+      "wall_seconds": 13.32,
+      "throughput_per_second": 7.508,
+      "latency_seconds": {
+        "p50": 4.81,
+        "p95": 10.199,
+        "p99": 10.987,
+        "max": 11.013
+      },
+      "cpu_seconds": 109.85,
+      "mean_cores_busy": 8.25,
+      "peak_rss_mib": 1232.9,
+      "step_ms_p50": {
+        "locate": 8.0,
+        "read_document": 1089.5,
+        "verify": 0.0,
+        "vision": 0.0
+      },
+      "step_ms_p95": {
+        "locate": 39.3,
+        "read_document": 10156.0,
+        "verify": 8.0,
+        "vision": 1.0
+      }
+    }
+  ]
+}

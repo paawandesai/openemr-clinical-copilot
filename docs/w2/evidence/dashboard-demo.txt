@@ -1,0 +1,38 @@
+Window: 2026-09-22T23:56:57.976247+00:00 .. 2026-09-22T23:59:22.572672+00:00  (4996 events, 334 correlation ids)
+
+Requests: 295  errors(5xx): 68  error rate: 23.1%  p50 2.89 s  p95 9.92 s  p99 10.71 s  throughput 2.04 req/s  (status {'2xx': 224, '4xx': 3, '5xx': 68}, 3 probe requests excluded)
+
+By step (pipeline.step): count, errors, p50, p95
+  conversation.draft                             1    0    15.13 s    15.13 s
+  conversation.render                            1    0       0 ms       0 ms
+  conversation.retrieve                          1    0     754 ms     754 ms
+  conversation.routing                           1    0       0 ms       0 ms
+  conversation.verify                            1    0       3 ms       3 ms
+  documents.extraction_status                    5    0       0 ms       0 ms
+  documents.upload                               1    0       0 ms       0 ms
+  evidence_retriever.retrieval                  34    0      65 ms     4.56 s
+  intake_extractor.locate                       12    0      10 ms      19 ms
+  intake_extractor.read_document                12    0      40 ms     3.21 s
+  intake_extractor.verify                       12    0       0 ms       2 ms
+  intake_extractor.vision                       12    0       0 ms       0 ms
+  pre_visit_brief.draft                        216    0       0 ms       1 ms
+  pre_visit_brief.render                       216    0       0 ms       1 ms
+  pre_visit_brief.retrieve                     284   68     3.12 s     9.84 s
+  pre_visit_brief.verify                       216    0       1 ms       2 ms
+
+Tool calls: calls, dependency failures, retries, calls with retries
+  fhir_read               1085   90    0    0  fail 8.3%
+  guideline_retriever       34    0    0    0  fail 0.0%
+  llm                        1    0    0    0  fail 0.0%
+
+Verification: 1119/1119 passed (100.0%); disclosure —
+Extraction: 12 completed, 0 failed; located rate 86.4% (text layer 98.2%); mean confidence 0.833
+Retrieval: 34 runs, mean hits 5, zero-hit 0, reranked 11.8%
+Tokens/cost: 1 LLM calls over 1 encounters; tokens/encounter mean 1.13e+04; cost/encounter $0.0874
+
+Alerts:
+  [OK               ] answer_p95_latency                 value=9930.2215 threshold=45000 n=286/10
+  [FIRING           ] request_error_rate                 value=0.2305084745762712 threshold=0.05 n=295/20
+  [FIRING           ] tool_failure_rate                  value={'tool': 'fhir_read', 'rate': 0.08294930875576037} threshold=0.05 n=1085/20
+  [OK               ] text_layer_located_rate_collapse   value=0.9821802935010482 threshold=0.85 n=954/50
+  [OK               ] verification_failure_spike         value=0.0 threshold=0.1 n=1119/20

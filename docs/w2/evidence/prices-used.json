@@ -1,0 +1,4 @@
+{
+  "_source": "USD per 1M tokens for the one model the agent calls. Same figures as the extractor's vision.PRICES_PER_MTOK (feat/w2-extractor) and consistent with agent/load-test/RESULTS.md's measured $0.016 per brief (1,574 in x $5 + 325 out x $25). Check against Anthropic's published prices before quoting a cost.",
+  "claude-opus-5": {"input": 5.0, "output": 25.0, "cache_write": 6.25, "cache_read": 0.5}
+}

@@ -1,0 +1,39 @@
+
+
+  █ THRESHOLDS 
+
+    http_req_failed
+    ✓ 'rate<=1' rate=0.00%
+
+
+  █ TOTAL RESULTS 
+
+    checks_total.......: 280     4.533356/s
+    checks_succeeded...: 100.00% 280 out of 280
+    checks_failed......: 0.00%   0 out of 280
+
+    ✓ status is 200
+
+    CUSTOM
+    step_draft_seconds.............: avg=0.000303 min=0.000127 med=0.000285 p(50)=0.000285 p(90)=0.000397 p(95)=0.000434 p(99)=0.000569 max=0.00134 
+    step_retrieve_seconds..........: avg=1.168568 min=0.532219 med=1.144441 p(50)=1.144441 p(90)=1.431447 p(95)=1.522875 p(99)=1.724699 max=1.814601
+    step_verify_seconds............: avg=0.00035  min=0.000144 med=0.000317 p(50)=0.000317 p(90)=0.000497 p(95)=0.000579 p(99)=0.000752 max=0.001291
+
+    HTTP
+    http_req_duration..............: avg=1.17s    min=536.07ms med=1.14s    p(50)=1.14s    p(90)=1.43s    p(95)=1.52s    p(99)=1.72s    max=1.82s   
+      { expected_response:true }...: avg=1.17s    min=536.07ms med=1.14s    p(50)=1.14s    p(90)=1.43s    p(95)=1.52s    p(99)=1.72s    max=1.82s   
+    http_req_failed................: 0.00%  0 out of 280
+    http_reqs......................: 280    4.533356/s
+
+    EXECUTION
+    iteration_duration.............: avg=2.17s    min=1.53s    med=2.15s    p(50)=2.15s    p(90)=2.44s    p(95)=2.53s    p(99)=2.73s    max=2.82s   
+    iterations.....................: 280    4.533356/s
+    vus............................: 5      min=5        max=10
+    vus_max........................: 10     min=10       max=10
+
+    NETWORK
+    data_received..................: 530 kB 8.6 kB/s
+    data_sent......................: 378 kB 6.1 kB/s
+
+
+

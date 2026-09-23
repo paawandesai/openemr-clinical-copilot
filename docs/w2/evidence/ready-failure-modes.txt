@@ -1,0 +1,23 @@
+== baseline
+23:19:03  all dependencies up                /health=200  /ready={"status":"ready","checks":{"fhir":{"status":"healthy","required":true,"detail":null},"llm_provider":{"status":"healthy","required":true,"detail":null},"observability_backend":{"status":"healthy","required":false,"detail":null}}} HTTP=200
+
+== 1. OpenEMR: container paused (hangs, then times out)
+23:19:24  OpenEMR paused                     /health=200  /ready={"status":"not_ready","checks":{"fhir":{"status":"unhealthy","required":true,"detail":"OpenEMR FHIR API unreachable"},"llm_provider":{"status":"healthy","required":true,"detail":null},"observability_backend":{"status":"healthy","required":false,"detail":null}}} HTTP=503
+23:19:41  OpenEMR restored                   /health=200  /ready={"status":"ready","checks":{"fhir":{"status":"healthy","required":true,"detail":null},"llm_provider":{"status":"healthy","required":true,"detail":null},"observability_backend":{"status":"healthy","required":false,"detail":null}}} HTTP=200
+
+== 2a. LLM provider: API key rejected (second agent, invalid key)
+23:19:42  invalid Anthropic key              /health=200  /ready={"status":"not_ready","checks":{"fhir":{"status":"healthy","required":true,"detail":null},"llm_provider":{"status":"unhealthy","required":true,"detail":"LLM provider rejected the configured API key"},"observability_backend":{"status":"disabled","required":false,"detail":"Langfuse export not configured"}}} HTTP=503
+
+== 2b. LLM provider: unreachable (second agent, API base with no listener)
+23:19:45  Anthropic API unreachable          /health=200  /ready={"status":"not_ready","checks":{"fhir":{"status":"healthy","required":true,"detail":null},"llm_provider":{"status":"unhealthy","required":true,"detail":"LLM provider unreachable"},"observability_backend":{"status":"disabled","required":false,"detail":"Langfuse export not configured"}}} HTTP=503
+
+== 3. Observability backend: Langfuse web paused
+23:19:52  Langfuse paused                    /health=200  /ready={"status":"ready","checks":{"fhir":{"status":"healthy","required":true,"detail":null},"llm_provider":{"status":"healthy","required":true,"detail":null},"observability_backend":{"status":"unhealthy","required":false,"detail":"Langfuse unreachable"}}} HTTP=200
+23:20:09  Langfuse restored                  /health=200  /ready={"status":"ready","checks":{"fhir":{"status":"healthy","required":true,"detail":null},"llm_provider":{"status":"healthy","required":true,"detail":null},"observability_backend":{"status":"healthy","required":false,"detail":null}}} HTTP=200
+
+== 3b. Observability backend: keys rejected (second agent, wrong secret)
+23:20:12  Langfuse keys rejected             /health=200  /ready={"status":"ready","checks":{"fhir":{"status":"healthy","required":true,"detail":null},"llm_provider":{"status":"healthy","required":true,"detail":null},"observability_backend":{"status":"unhealthy","required":false,"detail":"Langfuse rejected the configured API keys"}}} HTTP=200
+
+== restored
+23:20:13  all dependencies up                /health=200  /ready={"status":"ready","checks":{"fhir":{"status":"healthy","required":true,"detail":null},"llm_provider":{"status":"healthy","required":true,"detail":null},"observability_backend":{"status":"healthy","required":false,"detail":null}}} HTTP=200
+second-agent logs: /Users/paawandesai/Documents/Work/Gauntlet AI/Week 1/agentForge/cc-feat-w2-observability/agent/logs/ready-modes
