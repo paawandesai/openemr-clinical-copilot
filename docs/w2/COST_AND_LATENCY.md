@@ -20,7 +20,7 @@ limits.
   arithmetic shown.
 - **Assumed**: an input with no data behind it.
 
-**Snapshot: `main@caa92f8`**, which is on `origin`. It is an interim pin:
+**Snapshot: `main@0318c35`**, which is on `origin`. It is an interim pin:
 the last step before submission repins every citation to one final `main`
 commit, after the event-tags (D52), DECISIONS-guard and eval-gate follow-up
 merges.
@@ -31,7 +31,8 @@ merges.
     `bc5236f`);
   - `feat/w2-eval-gate` (`0b4ae04`);
   - `feat/w2-answer-scope` (`ea198c8`, D50);
-  - the DECISIONS restore (`caa92f8`).
+  - the DECISIONS restore (`caa92f8`);
+  - `EVAL_GATE.md`, the gate's page for reviewers (`0318c35`).
 - **[PENDING `chore/w2-deploy-rehearsal`]** marks a figure from `docs/w2/DEPLOY.md` §8.00, the D50 redeploy.
   That section is on `chore/w2-deploy-rehearsal` (`88be2a2`, on `origin`)
   and not yet in `main`.

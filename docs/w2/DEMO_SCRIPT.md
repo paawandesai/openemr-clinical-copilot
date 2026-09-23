@@ -5,7 +5,7 @@ run, what to say, and what the viewer should see. It is built only from what
 exists at the snapshot below. Where a step has not been measured on the
 deployed host, the step says so.
 
-**Snapshot: `main@caa92f8`**, which is on `origin`. It is an interim pin:
+**Snapshot: `main@0318c35`**, which is on `origin`. It is an interim pin:
 the last step before submission repins every citation to one final `main`
 commit, after the event-tags (D52), DECISIONS-guard and eval-gate follow-up
 merges.
@@ -16,7 +16,8 @@ merges.
     `bc5236f`);
   - `feat/w2-eval-gate` (`0b4ae04`);
   - `feat/w2-answer-scope` (`ea198c8`, D50);
-  - the DECISIONS restore (`caa92f8`).
+  - the DECISIONS restore (`caa92f8`);
+  - `EVAL_GATE.md`, the gate's page for reviewers (`0318c35`).
 - **[PENDING `chore/w2-deploy-rehearsal`]** marks a figure from `docs/w2/DEPLOY.md` §8.00, the D50 redeploy.
   That section is on `chore/w2-deploy-rehearsal` (`88be2a2`, on `origin`)
   and not yet in `main`.
@@ -347,7 +348,8 @@ that on every run."
 
 **Do:** restore the file with `git checkout -- app/models/w2/lab_values.py`.
 
-**Fallback:** show `docs/w2/EVAL_GATE_EVIDENCE.md`: the
+**Fallback, or a second shot:** open [MR !1](https://labs.gauntletai.com/paawandesai/openemr-clinical-copilot/-/merge_requests/1), the same regression left open
+with a red pipeline (`EVAL_GATE.md`). Or show `docs/w2/EVAL_GATE_EVIDENCE.md`: the
 control block, then the "Planted regressions" table, 14 rows, all BLOCKED.
 
 ### 4:10–4:40 — One encounter, one trace

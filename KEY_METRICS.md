@@ -19,7 +19,7 @@ says when there is no value.
 denominator. A metric whose denominator is small says so. A metric with no
 live measurement says "not measured", not a target.
 
-**Snapshot: `main@caa92f8`**, which is on `origin`. It is an interim pin:
+**Snapshot: `main@0318c35`**, which is on `origin`. It is an interim pin:
 the last step before submission repins every citation to one final `main`
 commit, after the event-tags (D52), DECISIONS-guard and eval-gate follow-up
 merges.
@@ -30,7 +30,8 @@ merges.
     `bc5236f`);
   - `feat/w2-eval-gate` (`0b4ae04`);
   - `feat/w2-answer-scope` (`ea198c8`, D50);
-  - the DECISIONS restore (`caa92f8`).
+  - the DECISIONS restore (`caa92f8`);
+  - `EVAL_GATE.md`, the gate's page for reviewers (`0318c35`).
 - **[PENDING `chore/w2-deploy-rehearsal`]** marks a figure from `docs/w2/DEPLOY.md` §8.00, the D50 redeploy.
   That section is on `chore/w2-deploy-rehearsal` (`88be2a2`, on `origin`)
   and not yet in `main`.
@@ -331,11 +332,10 @@ from the run's own JSON (`python -m evals.w2.gate.planted_regressions`).
 | W2-C7 to W2-C9 | box tolerance on scans, and the D24 policy asserted from the gate |
 | The judge's agreement with human labels | the judge is **UNCALIBRATED** (D43, D48): its eight meta-check fixtures detect a judge that has drifted, not whether it was right to begin with |
 
-**The pipelines have run on GitLab**. The write-back job failed six
-in a row on a missing `unzip`, which is why delegated cases are now scored
-against the job's own result (commit "score delegated cases against the
-job's own result, not its config"). Whether a fully green pipeline has run
-is not recorded in the repository.
+**It has blocked a real merge request.** [MR !1](https://labs.gauntletai.com/paawandesai/openemr-clinical-copilot/-/merge_requests/1), left open with a red
+pipeline, plants "blank flag means normal" and is blocked by W2-D2 under
+three rules at once. How to run the gate, read a verdict and set up CI:
+[`EVAL_GATE.md`](EVAL_GATE.md).
 
 ## W2-9. Cost and latency per encounter
 

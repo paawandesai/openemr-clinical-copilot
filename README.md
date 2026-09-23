@@ -18,7 +18,7 @@ A Clinical Co-Pilot AI agent built into a fork of [OpenEMR](https://open-emr.org
 
 Everything in this section is on the snapshot below unless it is marked.
 
-**Snapshot: `main@caa92f8`**, which is on `origin`. It is an interim pin:
+**Snapshot: `main@0318c35`**, which is on `origin`. It is an interim pin:
 the last step before submission repins every citation to one final `main`
 commit, after the event-tags (D52), DECISIONS-guard and eval-gate follow-up
 merges.
@@ -29,7 +29,8 @@ merges.
     `bc5236f`);
   - `feat/w2-eval-gate` (`0b4ae04`);
   - `feat/w2-answer-scope` (`ea198c8`, D50);
-  - the DECISIONS restore (`caa92f8`).
+  - the DECISIONS restore (`caa92f8`);
+  - `EVAL_GATE.md`, the gate's page for reviewers (`0318c35`).
 - **[PENDING `chore/w2-deploy-rehearsal`]** marks a figure from `docs/w2/DEPLOY.md` §8.00, the D50 redeploy.
   That section is on `chore/w2-deploy-rehearsal` (`88be2a2`, on `origin`)
   and not yet in `main`.
@@ -161,42 +162,21 @@ wrote this README.** Route contracts are in
 
 ### Run the eval gate
 
-The gate is on `main` (merged at `0b4ae04`):
+**[`EVAL_GATE.md`](EVAL_GATE.md)** has everything a reviewer needs:
+
+- where the golden set and prompts live;
+- how to run the gate;
+- the exit codes and CI settings;
+- the rules.
+
+The short form, from the repository root:
 
 ```bash
-cd agent
-python -m evals.w2.gate --det-only                                   # deterministic tier; no key, no model call; exits 3 (see below)
-ANTHROPIC_API_KEY=… python -m evals.w2.gate                          # both tiers; a cold judge run is 24 calls, $0.0288
-python -m evals.w2.gate.planted_regressions --out ../docs/w2/EVAL_GATE_EVIDENCE.md   # needs the key
+cd agent && python -m evals.w2.gate      # exit code is the verdict; needs ANTHROPIC_API_KEY for the judge tier
 ```
 
-| Exit code | Meaning |
-|---|---|
-| 0 | PASS |
-| 1 | BLOCKED |
-| 2 | ERROR |
-| 3 | INCOMPLETE: a critical case went unscored |
-
-`--det-only` alone exits 3, because the judge's critical meta-check cases go
-unscored. The five rules, the cases and the judge are in
-`agent/evals/w2/README.md`.
-
-The committed evidence is `docs/w2/EVAL_GATE_EVIDENCE.md`, re-seeded after
-the J3 fix:
-
-- the control run passes, at 96 specs (79 active), 73/73 deterministic and
-  8/8 judge;
-- 14 of 14 planted regressions block.
-
-In CI the gate is the `w2-eval-gate` job in `.gitlab-ci.yml`. It needs:
-
-- a masked, **unprotected** `ANTHROPIC_API_KEY` variable;
-- a runner tagged `w2-eval`;
-- "Pipelines must succeed" enabled.
-
-The file's header says why. The pipelines have run: the write-back job
-failed six in a row on a missing `unzip` before it was fixed. Whether a
-fully green pipeline has run is not recorded in the repository.
+To see it block a merge, open [MR !1](https://labs.gauntletai.com/paawandesai/openemr-clinical-copilot/-/merge_requests/1). It is left open, with a red pipeline, on
+purpose.
 
 ### Week 2 documents
 
@@ -207,6 +187,7 @@ fully green pipeline has run is not recorded in the repository.
 | [docs/w2/COST_AND_LATENCY.md](docs/w2/COST_AND_LATENCY.md) | actual dev spend, per-encounter cost, projections at 100 to 100K encounters a day, p50/p95 and bottlenecks |
 | [docs/w2/DEMO_SCRIPT.md](docs/w2/DEMO_SCRIPT.md) | the recorded walkthrough |
 | [docs/w2/DECISIONS.md](docs/w2/DECISIONS.md) | every Week 2 decision, D1–D40 and D49 on `main` (D41 and D42–D48 are on their branches) |
+| [EVAL_GATE.md](EVAL_GATE.md) | the eval gate: find, run and read it; the blocked merge request |
 | [docs/w2/EVAL_DESIGN.md](docs/w2/EVAL_DESIGN.md), [docs/w2/GATE.md](docs/w2/GATE.md) | why the gate is shaped as it is, and how gate files are protected |
 | [docs/w2/retrieval-bakeoff.md](docs/w2/retrieval-bakeoff.md) | the corpus, its licensing, and the retrieval measurements |
 | [docs/w2/spikes/writeback.md](docs/w2/spikes/writeback.md), [docs/w2/deploy-writeback.md](docs/w2/deploy-writeback.md) | how OpenEMR can be written to, and how the endpoint deploys |

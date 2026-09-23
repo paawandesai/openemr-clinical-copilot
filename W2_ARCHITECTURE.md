@@ -7,7 +7,7 @@ architecture is unchanged and is not repeated here:
 [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) (authorization, tool scope,
 conversation state, the deterministic verifier).
 
-**Snapshot: `main@caa92f8`**, which is on `origin`. It is an interim pin:
+**Snapshot: `main@0318c35`**, which is on `origin`. It is an interim pin:
 the last step before submission repins every citation to one final `main`
 commit, after the event-tags (D52), DECISIONS-guard and eval-gate follow-up
 merges.
@@ -18,7 +18,8 @@ merges.
     `bc5236f`);
   - `feat/w2-eval-gate` (`0b4ae04`);
   - `feat/w2-answer-scope` (`ea198c8`, D50);
-  - the DECISIONS restore (`caa92f8`).
+  - the DECISIONS restore (`caa92f8`);
+  - `EVAL_GATE.md`, the gate's page for reviewers (`0318c35`).
 - **[PENDING `chore/w2-deploy-rehearsal`]** marks a figure from `docs/w2/DEPLOY.md` §8.00, the D50 redeploy.
   That section is on `chore/w2-deploy-rehearsal` (`88be2a2`, on `origin`)
   and not yet in `main`.
@@ -457,20 +458,27 @@ Write-back is a verified endpoint plus a library, not a user-facing feature.
 
 ## 6. The eval gate
 
-Merged into `main` at `0b4ae04`. The figures are from
-`docs/w2/EVAL_GATE_EVIDENCE.md` at the snapshot, re-seeded after the J3
-fix.
+**How to find, run and read the gate: [`EVAL_GATE.md`](EVAL_GATE.md).** It
+covers the golden set and prompts, the command and exit codes, CI and its
+settings, and the five rules. This section keeps only what the architecture
+rests on.
 
-| | |
-|---|---|
-| Command | `cd agent && python -m evals.w2.gate`; exit code 0 PASS, 1 BLOCKED, 2 ERROR, 3 INCOMPLETE (D45) |
-| Cases | 96 specs: 79 active, 15 pending, 2 delegated to the PHP CI job (`docs/w2/EVAL_GATE_EVIDENCE.md`, control run) |
-| Tiers | deterministic 73/73, judge 8/8. The judge is `claude-haiku-4-5-20251001`, best-of-3 with a 2-of-3 majority, a cache keyed on the prompt **text**, and marked **UNCALIBRATED** (D43, D48) |
-| Rules, in order | per-category minimum n (over active plus pending) → deterministic at 100% → critical-case override → judge threshold plus a 95% Wilson floor → >5% regression or below threshold (D42; `agent/evals/w2/README.md`) |
-| Fixtures | six recorded live `claude-opus-5` transcriptions, replayed offline and refused if the PDF, prompt or schema changed (`agent/evals/w2/README.md`) |
-| CI | `.gitlab-ci.yml`, two stages: `w2-writeback-php` (PHPUnit), then `w2-eval-gate`. The gate job does **not** pass `--allow-incomplete`, so a pipeline with no key fails (D45). **The pipelines have run on GitLab.** `w2-writeback-php` failed six in a row on a missing `unzip` in `php:8.3-cli`, fixed by installing it (commit "install unzip and git so the write-back job can install anything"). Whether a fully green pipeline has run is not recorded in the repository |
-| Proof | 14 planted regressions, each applied to a copy of the tree. The control run passes; all 14 block, each caught by at least the case the design names (`EVAL_GATE_EVIDENCE.md`, "Harness verdict: HELD") |
-| Protection | `.claude/hooks/gate-guard.sh` (before a tool call) and `gate-effect-check.sh` (after it); `scripts/gate-diff.sh` before a merge (`docs/w2/GATE.md`, on `main`). These are a guard against mistakes, not a security boundary (GATE.md, "Known limit") |
+- **What it proves.** 14 planted regressions, each applied to a copy of the
+  tree: the control run passes and all 14 block, each caught by at least the
+  case the design names (`docs/w2/EVAL_GATE_EVIDENCE.md`, "Harness verdict:
+  HELD").
+- **A merge it blocked.** [MR !1](https://labs.gauntletai.com/paawandesai/openemr-clinical-copilot/-/merge_requests/1) is left open with a red pipeline. It plants
+  "blank flag means normal", and W2-D2 blocks it:
+  `VERDICT: BLOCKED | specs 96 | active 79 | pending 15 | det 72/73 | judge 8/8`
+  (`EVAL_GATE.md`).
+- **The gate at the snapshot.** 96 specs (79 active, 15 pending, 2
+  delegated), 73/73 deterministic and 8/8 judge (evidence control run,
+  re-seeded after the J3 fix).
+- **The judge is UNCALIBRATED.** It is `claude-haiku-4-5-20251001`,
+  best-of-3 (D43, D48). Category M detects drift, not agreement with humans.
+- **Its protection is a guard, not a boundary.** The hooks and
+  `scripts/gate-diff.sh` stop mistakes, not a determined bypass
+  (`docs/w2/GATE.md`, "Known limit").
 
 **Prompt injection inside an uploaded PDF is covered on three
 deterministic cases, for containment only.** `lab-clean-001` is re-rendered
@@ -497,18 +505,12 @@ text layer, and the PDF's metadata.
 Sources: the commits that activated them, "activate W2-I1 and W2-I2" and
 "activate W2-I3 — an injection cannot redirect a chart write".
 
-**Delegated cases are scored against the job's own result.** W2-K4 and
-W2-K6 are PHPUnit tests.
-
-- **Now:** the PHP job writes a result file (commit, exit code, JUnit
-  report), and the gate requires that the job **ran and passed** the named
-  tests for the commit under test.
-- **Before:** the gate checked only that the job was declared correctly.
-- **Why it changed:** while `w2-writeback-php` failed six pipelines in a row
-  on a missing `unzip`, both cases still reported a valid delegation.
-
-Source: commit "score delegated cases against the job's own result, not its
-config".
+**Delegated cases are scored against the job's own result** (how:
+[`EVAL_GATE.md`](EVAL_GATE.md), "What runs in CI"). The reason is recorded:
+while `w2-writeback-php` failed six pipelines in a row on a missing `unzip`,
+W2-K4 and W2-K6 still reported a valid delegation. The gate checked only
+that the job was declared, not that it passed (commit "score delegated cases
+against the job's own result, not its config").
 
 Pending, meaning specified but not scored:
 

@@ -1,5 +1,5 @@
 # Offline evidence behind KEY_METRICS.md, W2_ARCHITECTURE.md and DEMO_SCRIPT.md.
-# Run on main@caa92f8. No model call, no network; Tesseract OCR real (tesseract 5.5.3).
+# Run on main@0318c35. No model call, no network; Tesseract OCR real (tesseract 5.5.3).
 # Log lines (agent_event JSON) filtered out; everything else verbatim.
 
 # 1. cd agent && python -m tests.intake_extractor_measurement   (vision = ground-truth stub)
