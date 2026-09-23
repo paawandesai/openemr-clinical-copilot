@@ -54,19 +54,40 @@ Every path below is committed to the repository.
 
 ## Run it
 
+**Python 3.12.** The pinned dependencies do not resolve on older interpreters —
+on 3.9 the install fails with `No matching distribution found for fastapi`. CI
+uses `python:3.12-slim`.
+
 ```bash
-# once per environment
-cd agent && python -m pip install -r requirements.txt -r requirements-dev.txt
+# once per clone, from the repository root
+cd agent
+python3.12 -m venv .venv
+.venv/bin/python -m pip install --upgrade pip        # a stale pip cannot resolve the pins
+.venv/bin/python -m pip install -r requirements.txt -r requirements-dev.txt
+```
+
+Four category-B and C cases OCR a scanned page and declare
+`requires: [tesseract]`. Without the binary the runner **skips** them with a
+visible notice rather than failing them; `brew install tesseract` (or
+`apt-get install tesseract-ocr`, as CI does) scores them.
+
+Then, with `agent/.venv` active or by path:
+
+```bash
 
 # the whole gate — exit code IS the verdict
-cd agent && python -m evals.w2.gate
+python -m evals.w2.gate
 
-# deterministic tier only: offline, no API key, no model call, ~1 min
-cd agent && python -m evals.w2.gate --det-only --allow-incomplete
+# deterministic tier only: offline, no API key, no model call
+python -m evals.w2.gate --det-only --allow-incomplete
 
 # every assertion, not only failures
-cd agent && python -m evals.w2.gate -v
+python -m evals.w2.gate -v
 ```
+
+Verified from a cold clone on 2026-09-23: the deterministic tier scores
+**71/71** and exits 0, with the eight judge-tier cases and the two delegated
+cases reported as unscored.
 
 Exit codes: **0** pass · **1** blocked · **2** the gate could not run · **3**
 INCOMPLETE.
