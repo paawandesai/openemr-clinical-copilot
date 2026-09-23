@@ -150,8 +150,9 @@ as stale and those two cases go unscored until you regenerate it.
 
 ## What runs in CI
 
-Two jobs in `.gitlab-ci.yml`, both tagged `w2-eval`, on merge requests and on
-`main`:
+Three jobs in `.gitlab-ci.yml`, all tagged `w2-eval`, on merge requests and on
+`main`. None has `allow_failure`, so any one of them failing turns the pipeline
+red:
 
 1. **`w2-writeback-php`** (stage `writeback`, `php:8.3-cli`) — the fork
    module's PHPUnit suite, 195 tests. Writes `w2-writeback-php.result.json`
@@ -161,6 +162,11 @@ Two jobs in `.gitlab-ci.yml`, both tagged `w2-eval`, on merge requests and on
    verify the delegated job actually ran and passed **for the commit under
    test**. It is `when: always`, so a red PHP suite does not skip it: the gate
    still runs and fails those cases itself.
+3. **`agent-unit-tests`** (stage `eval`, `python:3.12-slim`, `needs: []`, so it
+   runs beside the other two) — `python -m pytest tests` in `agent/`, the
+   offline unit suite, with tesseract installed so the OCR tests run rather
+   than skip. It includes `tests/test_decisions_log.py`, the DECISIONS.md
+   numbering guard (D53), and fails if that file was not collected.
 
 Repository settings a human has to make once:
 
