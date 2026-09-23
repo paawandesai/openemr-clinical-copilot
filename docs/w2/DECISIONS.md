@@ -2612,3 +2612,44 @@ over `21f1053`, then again after rebasing onto `caa92f8`, with the fix at
 `6f2fbab` (2026-09-23 17:40-17:45Z, 265.7 s). The second run made 17 model
 calls, 157,403 input and 16,730 output tokens with no cache use, which is
 **$1.21** at $5 / $25 per MTok.
+
+---
+
+## D53 — DECISIONS.md has no `merge=union` rule; the numbering test is the guard
+
+**Status:** DECIDED
+**Date:** 2026-09-23
+**Recorded from:** commit `cb99e7b` ("drop the merge=union rule for
+DECISIONS.md; keep the numbering test", merged at `c1c5e21`) and the
+docstring of `agent/tests/test_decisions_log.py`. They hold the decision and
+its evidence; this entry adds neither.
+**Numbering:** the next free number after D52, which merged at `056cba9`.
+
+**Decision:** this file gets no merge driver.
+
+- `agent/tests/test_decisions_log.py` fails on a duplicate or missing
+  D-number.
+- A conflict here keeps stopping the person merging, who resolves it by
+  keeping both sides (the rule in this file's header).
+
+**Rejected: `merge=union`.**
+
+- **For it:** redoing both lossy merges of 2026-09-23 with it kept every
+  entry (51 of 51, no conflict).
+- **Against it:** union applies to cherry-pick and rebase as well as merge,
+  and it resolves every conflict silently. A cherry-pick of a follow-up
+  commit without the commit it followed reported no conflict. It landed a
+  paragraph claiming a rename that had not happened.
+- **The verdict:** that trades a loud loss for a silent, incoherent merge.
+
+**Why the test is enough for the losses that happened:** both left gaps. The
+eval-gate merge dropped D41, and the answer-scope merge dropped D42–D49. A
+gap is one line of arithmetic away from being seen.
+
+**Known limits, stated in the test:**
+
+- An entry dropped from the **end** of the log leaves no gap. Only a
+  reviewer reading the merge guards that case.
+- Numbers reserved ahead of merge must merge in order, or `main` shows a gap
+  until the lower range lands. That is deliberate: a gap on `main` is
+  indistinguishable from a lost entry.

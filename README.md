@@ -6,6 +6,214 @@ A Clinical Co-Pilot AI agent built into a fork of [OpenEMR](https://open-emr.org
 
 **Repository (submission):** https://labs.gauntletai.com/paawandesai/openemr-clinical-copilot
 
+| | Week 1: baseline | Week 2: multimodal |
+|---|---|---|
+| What it does | Pre-Visit Brief and multi-turn follow-up, read from the chart over FHIR; every claim deterministically verified | lab PDFs and intake forms extracted to a strict schema with page-located values; a supervisor over an intake-extractor and an evidence-retriever; hybrid RAG over guideline evidence; an eval gate |
+| Deployed at `64.177.42.210`? | **Yes**, the whole Week 1 surface | **Yes.** The host runs `main@ea198c8`: upload, extraction, the scoped ask path and the Documents & Sources card, measured one question at a time (`docs/w2/DEPLOY.md` §8.0 on `21f1053`; §8.00 after D50) |
+| Start reading | [Week 1 baseline](#week-1-baseline) below | [Week 2: start here](#week-2-start-here), next |
+
+---
+
+## Week 2: start here
+
+Everything in this section is on the snapshot below.
+
+**Snapshot: `main@056cba9`**, which is on `origin`. Every path, number and
+decision below is on that commit. It includes these merges:
+
+| Merge | At | What it brought |
+|---|---|---|
+| `feat/w2-php-wiring` | `2ae4d98` | the Documents & Sources card, its routes, the upload guard |
+| `chore/w2-deploy-rehearsal` | `21f1053` | D41 |
+| its first post-deploy figures | `bc5236f` | `DEPLOY.md` §8.0 |
+| its D50-redeploy figures | `5ad81c5` | `DEPLOY.md` §8.00 |
+| `feat/w2-eval-gate` | `0b4ae04` | the eval gate, D42–D48 |
+| `feat/w2-answer-scope` | `ea198c8` | D50 |
+| the DECISIONS restore | `caa92f8` | the dropped decision entries |
+| `EVAL_GATE.md` | `0318c35` | the gate's page for reviewers |
+| the decisions guard | `c1c5e21` | D51 |
+| the event-tags fix | `056cba9` | D52 |
+
+**The host runs `main@ea198c8`** since 2026-09-23 17:12 UTC (`DEPLOY.md`
+§8.00). It lacks only the event-tags telemetry fix (D52) and the
+documentation and test commits after it. Neither changes an answer.
+
+**Three kinds of host figure:**
+
+- **`DEPLOY.md` §8.00:** the D50 redeploy, on `ea198c8`.
+- **`DEPLOY.md` §8.0:** the earlier deploy, on `21f1053`, **before D50**.
+  D50 changes only how a document answer is scoped, so these still describe
+  extraction, retrieval and memory. They do not describe the answer step.
+- **Before any Week 2 deploy:** labelled "rehearsal host, before the Week 2
+  deploy".
+
+### What Week 2 adds, and where it runs
+
+| Piece | Code | On `main` | On the host (`main@ea198c8`; figures from `docs/w2/DEPLOY.md` §8.0 on `21f1053` unless marked) |
+|---|---|---|---|
+| Document extraction: text layer / OCR → one vision call → deterministic locate → flag cross-check → discrepancies | `agent/app/graph/intake_extractor.py`, `agent/app/workers/intake_extractor/`, `agent/app/extraction/` | yes | yes: one vision call per document, 15.7–54.5 s |
+| Supervisor + workers, `POST /w2/ask` | `agent/app/graph/supervisor.py`, `agent/app/supervisor/`, `agent/app/api/ask.py` | yes | yes. After D50, the whole-report question answers in 6.9–8.4 s on 22 rows. Before D50, the document + guideline question answered 3 of 3 in 15.3–21.2 s |
+| Guideline retrieval: 28 documents, BM25 + local embeddings + local rerank | `agent/app/retrieval/` | yes | yes: every rerank ran after the deploy, 1.55–1.68 s |
+| Week 2 verifier, citation contract | `agent/app/verification/w2_checker.py`, `agent/app/models/w2/` | yes | yes: 0 unverified in 3 answers before D50, and in 6 after |
+| Source-grounded answer view: PDF.js with bbox overlay | `interface/modules/custom_modules/oe-module-clinical-copilot/public/assets/w2/` | yes, in the chart: the Documents & Sources card, its upload, status and ask routes (since `2ae4d98`) | yes |
+| Lab write-back endpoint + idempotency ledger | the same module, `src/WriteBack/` | yes | yes, rehearsed |
+| Eval gate: 96 cases, CI job | `agent/evals/w2/gate/`, `.gitlab-ci.yml` | yes (`0b4ae04`) | n/a: runs on recorded fixtures |
+
+Where the facts in this table come from, and what is not wired yet:
+[`W2_ARCHITECTURE.md`](W2_ARCHITECTURE.md) §8 and §11.
+
+### Run the core Week 2 flow
+
+Every command runs from the repository root unless it starts with `cd`.
+Python 3.12 (the agent image is `python:3.12-slim`) and Tesseract are
+required.
+
+```bash
+git clone https://labs.gauntletai.com/paawandesai/openemr-clinical-copilot.git
+cd openemr-clinical-copilot
+brew install tesseract                      # or: apt-get install tesseract-ocr
+cd agent && python3.12 -m venv .venv && . .venv/bin/activate
+python -m pip install -r requirements.txt -r requirements-dev.txt
+```
+
+**1. Offline, no credentials, no network.** These cover extraction, locate,
+the flag cross-check, discrepancies, routing and verification.
+
+```bash
+cd agent
+python -m pytest tests                       # unit tests; a bare `pytest` also works (testpaths)
+python -m tests.intake_extractor_measurement # the extractor over the six committed samples, vision stubbed
+```
+
+Do **not** run `pytest evals`: it runs the Week 1 suite live, against real
+FHIR and Anthropic. The second command's output, as committed, is
+[`docs/w2/evidence/extractor-measurement.txt`](docs/w2/evidence/extractor-measurement.txt).
+
+**2. The answer view with its PDF overlay** (fixture mode; a Node runtime is
+the only extra requirement):
+
+```bash
+cd agent && python scripts/build_ui_fixtures.py && cd ..
+node interface/modules/custom_modules/oe-module-clinical-copilot/dev/serve.mjs
+# open http://127.0.0.1:8760/dev/fixture.html?scenario=lab-multipage-003 and click a document chip
+```
+
+**3. Live: upload → extraction → an answer citing a document and a
+guideline.** This costs one Anthropic drafting call; the vision call is
+replayed from a recording. It needs `agent/.env` with:
+
+| Variable | Value |
+|---|---|
+| `ANTHROPIC_API_KEY` | an Anthropic API key |
+| `FHIR_CLIENT_ID`, `FHIR_CLIENT_SECRET` | an OpenEMR OAuth client **enabled for the password grant** |
+| `FHIR_BASE_URL` | defaults to `https://64.177.42.210:9300/apis/default/fhir` |
+| `FHIR_TEST_USERNAME`, `FHIR_TEST_PASSWORD` | default `physician` / `physician` |
+
+No password-grant client is published. How to register one:
+[agent/api-collection/README.md](agent/api-collection/README.md) (the
+`UPDATE oauth_clients … grant_types` step) or
+[docs/w2/LOCAL_ENV.md](docs/w2/LOCAL_ENV.md) §4.
+
+```bash
+cd agent
+python scripts/w2_e2e_ask.py                                        # lab-clean-001; exits 0 only with ≥1 document AND ≥1 guideline citation
+python scripts/w2_e2e_ask.py --sample lab-critical-potassium-007 \
+  --live-vision --expect-critical                                    # + one live vision call: a critical potassium leads the answer
+```
+
+The default question (one analyte plus one guideline topic) answered in
+17.2–19.5 s from the chart, before D50
+(`docs/w2/evidence/php-wiring-e2e-run.md`). A whole-report question ("What
+were the results on the uploaded lab report?") took 88.2–91.8 s before D50.
+On the host after D50 it takes **6.9–8.4 s** (`docs/w2/DEPLOY.md` §8.00). Answer latency tracks
+what the model writes, about 4.1 s + 7.45 s per 1,000 output tokens
+(`docs/w2/COST_AND_LATENCY.md` §4.1a).
+
+What each printed section means, and what to expect:
+[`docs/w2/DEMO_SCRIPT.md`](docs/w2/DEMO_SCRIPT.md). **No output from this
+script has been committed yet**, so treat the expectations there as a
+specification to check against, not as a record.
+
+**4. The whole encounter over HTTP: the Week 2 core-flow collection.** It
+runs against a **local** stack (OpenEMR as in
+[docs/w2/LOCAL_ENV.md](docs/w2/LOCAL_ENV.md), plus the agent from this
+checkout), with real model calls. In order, it runs:
+
+- the upload, and extraction polling;
+- the brief and a conversation turn;
+- one `/w2/ask` about the uploaded document, and one guideline question;
+- the lab write-back, then the same write-back again, which must be
+  idempotent;
+- the document preview;
+- the refusal cases.
+
+```bash
+LOG=$PWD/agent/logs/run.jsonl AGENT_ENV_FILE=<file with ANTHROPIC_API_KEY> LANGFUSE=off \
+  agent/load-test/w2/start_local_agent.sh &                          # agent on 127.0.0.1:8100, one worker; needs agent/.venv
+FHIR_CLIENT_ID=<client_id> FHIR_CLIENT_SECRET=<client_secret> agent/api-collection/run.sh
+```
+
+The client must allow the password grant and hold the scopes in
+`agent/api-collection/local.postman_environment.json`. The one-time
+registration is in [agent/api-collection/README.md](agent/api-collection/README.md),
+"Week 2 core flow".
+
+The last committed run is `docs/w2/evidence/api-collection-run.txt`: 44
+requests, 102 assertions, 0 failed. It took 2 min 52.7 s, including the
+1 min 31.9 s document question, and one encounter costs about $0.82
+(`docs/w2/OBSERVABILITY.md` §2). **It was not re-run in the session that
+wrote this README.** Route contracts are in
+[docs/w2/ui-integration.md](docs/w2/ui-integration.md) §2.2–§2.4 and
+`agent/app/models/w2/ask.py`.
+
+### Run the eval gate
+
+**[`EVAL_GATE.md`](EVAL_GATE.md)** has everything a reviewer needs:
+
+- where the golden set and prompts live;
+- how to run the gate;
+- the exit codes and CI settings;
+- the rules.
+
+The short form, from the repository root:
+
+```bash
+cd agent && python -m evals.w2.gate      # exit code is the verdict; needs ANTHROPIC_API_KEY for the judge tier
+```
+
+To see it block a merge, open [MR !1](https://labs.gauntletai.com/paawandesai/openemr-clinical-copilot/-/merge_requests/1). It is left open, with a red pipeline, on
+purpose.
+
+### Week 2 documents
+
+| Document | What it covers |
+|---|---|
+| [W2_ARCHITECTURE.md](W2_ARCHITECTURE.md) | key decisions and tradeoffs, ingestion, worker graph and routing table, RAG, citation contract, eval gate, write-back, observability, risks, known limitations |
+| [KEY_METRICS.md](KEY_METRICS.md) | the Week 2 metrics, with honest denominators; the Week 1 six are in [docs/KEY_METRICS.md](docs/KEY_METRICS.md) |
+| [docs/w2/COST_AND_LATENCY.md](docs/w2/COST_AND_LATENCY.md) | actual dev spend, per-encounter cost, projections at 100 to 100K encounters a day, p50/p95 and bottlenecks |
+| [docs/w2/DEMO_SCRIPT.md](docs/w2/DEMO_SCRIPT.md) | the recorded walkthrough |
+| [docs/w2/DECISIONS.md](docs/w2/DECISIONS.md) | every Week 2 decision, D1–D53; a numbering test (`agent/tests/test_decisions_log.py`) fails on a duplicate or a gap |
+| [EVAL_GATE.md](EVAL_GATE.md) | the eval gate: find, run and read it; the blocked merge request |
+| [docs/w2/EVAL_DESIGN.md](docs/w2/EVAL_DESIGN.md), [docs/w2/GATE.md](docs/w2/GATE.md) | why the gate is shaped as it is, and how gate files are protected |
+| [docs/w2/retrieval-bakeoff.md](docs/w2/retrieval-bakeoff.md) | the corpus, its licensing, and the retrieval measurements |
+| [docs/w2/spikes/writeback.md](docs/w2/spikes/writeback.md), [docs/w2/deploy-writeback.md](docs/w2/deploy-writeback.md) | how OpenEMR can be written to, and how the endpoint deploys |
+| [docs/w2/ui-integration.md](docs/w2/ui-integration.md) | the answer view, and the PHP still to wire |
+| [docs/w2/WEEK1_DEBT.md](docs/w2/WEEK1_DEBT.md), [docs/w2/LOCAL_ENV.md](docs/w2/LOCAL_ENV.md), [docs/w2/root-run-trace-gap.md](docs/w2/root-run-trace-gap.md) | Week 1 debt triage, a local stack that matches the host, and the trace-containment finding |
+
+`docs/w2/OBSERVABILITY.md`, `ALERTS.md` and `LOAD_TEST.md` (tracing,
+dashboard, alerts, load tests and the real-route `/w2/ask` measurements)
+are on `main`, and so is `docs/w2/DEPLOY.md`, the host rehearsal and its
+measurements (merged at `21f1053`). What is not yet on `main`: the eval
+gate (`feat/w2-eval-gate`, on `origin`) and the scoped answer
+(`feat/w2-answer-scope`, on `origin`, D50).
+
+---
+
+## Week 1 baseline
+
+Everything from here down describes the Week 1 build and the OpenEMR
+platform setup. It is unchanged by Week 2, apart from this heading.
+
 ## Deployed application
 
 | What | URL |
