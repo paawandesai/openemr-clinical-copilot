@@ -1134,7 +1134,7 @@ the cross-implementation comparison was the only thing that caught it.
 
 ## D28 — The PDF preview is served by a module route, not by `GET /fhir/Binary/:id`
 
-**Status:** DECIDED — supersedes work order 11 requirement 4
+**Status:** DECIDED — supersedes work order 11 requirement 4. Its preview URL is SUPERSEDED by D49.
 **Date:** 2026-09-22
 **Raised by:** work order 09 (write-back), during work order 11.
 
@@ -1251,7 +1251,7 @@ several results into one request, and the agent-side client.
 
 ## D30 — The PDF preview reads through the module, not `GET /fhir/Binary/:id`
 
-**Status:** DECIDED — supersedes the read-back half of D1 (superseding). The
+**Status:** DECIDED — supersedes the read-back half of D1 (superseding). Its preview URL is SUPERSEDED by D49, which confirms it. The
 document *write* path in D1 is unchanged; so is `Binary` as a read path for a
 caller that holds the `admin` ACL.
 **Date:** 2026-09-22
@@ -1898,3 +1898,39 @@ conversations, a persisted document/extraction store); `/ready` still
 reports three checks and does not report the guideline retriever; the
 observability events are emitted with this branch's own names because
 `feat/w2-observability` has not merged.
+
+---
+
+## D49 — The PDF preview URL is the one the code serves: `<module>/public/document.php`
+
+**Status:** DECIDED — supersedes D28 and D30 on the preview URL only.
+**Date:** 2026-09-22
+**Decided by:** the project owner, raised by work order 16 (decision numbering).
+**Numbering:** D41-D48 are reserved for in-flight branches (see the
+Numbering note at the top), so this takes D49, the first unreserved number.
+
+**Decision:** The source-document preview route is
+**`GET <module>/public/document.php?document_id=<int>`**. The served URL is
+authoritative.
+
+**Why an entry is needed.** D28 (`feat/w2-ui`) and D30 (`feat/w2-writeback`)
+decide the same thing — the preview is served by a module route in the
+clinician's own session, not by `GET /fhir/Binary/:id` — and name different
+URLs for it. D28 says `<module>/document?document_id=<int>`; D30 says
+`<module>/public/document.php?document_id=<int>`. Neither was marked
+superseded, so the file specified two routes for one endpoint.
+
+**Why D30's URL.** It is the one that exists.
+`interface/modules/custom_modules/oe-module-clinical-copilot/public/document.php`
+is the handler, the viewer is given it as its `documentEndpoint`
+(`docs/w2/ui-integration.md`), and the API collection run in
+`docs/w2/evidence/api-collection-run.txt` calls it. D28's path was nominal:
+written on `feat/w2-ui` before the write-back branch had built the route.
+
+**Unchanged:** everything else in D28 and D30 — the ACL, the 403/404
+behaviour, PDF-only, no CSRF token, and why `Binary` cannot serve a
+physician. This entry settles the URL and nothing more.
+
+**Known stale mentions of D28's path**, in prose only, not in any code
+path: `public/assets/w2/document-viewer.mjs:12` (a doc comment) and
+`docs/w2/ui-integration.md:447` (an acceptance line).
