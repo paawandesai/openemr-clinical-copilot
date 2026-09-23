@@ -364,8 +364,10 @@ control block, then the "Planted regressions" table, 19 rows, all BLOCKED.
 
 **Viewer should see** (checked against the committed screenshot):
 
-- trace `a88a5c1242ae3ae81855d07a117f62b1`, whose header reads Latency
-  2m 52s, $0.821785, and 67,967 prompt → 19,278 completion (Σ 87,245);
+- one trace whose header reads Latency 2m 52s, $0.821785, and 67,967
+  prompt → 19,278 completion (Σ 87,245). Show the screenshot; do not try to
+  open the trace live. The Langfuse instance was an ephemeral local
+  development stack that no one else can reach;
 - a list of `step_event`, `tool_call_event` and `http_request_event` rows
   for the upload, the extraction polls and the rest of the encounter;
 - the selected observation showing Input `null` and Output `undefined`: no

@@ -101,10 +101,20 @@ under `07c0fd35-…`. That one id carries all of these:
 - the guideline retrieval;
 - 55 tool calls and 5 `llm_usage_event`s.
 
-No extraction summary landed on a different id. In Langfuse it is one trace,
-`a88a5c1242ae3ae81855d07a117f62b1`: 2 min 52 s end to end, 87,245 tokens,
-$0.82 (`evidence/screenshots/langfuse-encounter-trace.png`). An earlier run,
-`c8661931-…`, gave the same shape.
+No extraction summary landed on a different id. In Langfuse it is one trace:
+2 min 52 s end to end, 87,245 tokens, $0.82. The record of it is the
+committed screenshot,
+[`evidence/screenshots/langfuse-encounter-trace.png`](evidence/screenshots/langfuse-encounter-trace.png).
+The Langfuse instance was ephemeral: a local development stack on one
+developer's machine (`Env: local-dev` in the screenshot, from
+`agent/observability/docker-compose.langfuse.yml`). It is not hosted, a
+reviewer cannot reach it, and nothing preserves its data, so a trace id from
+it proves nothing to anyone else. The screenshot is the evidence. An earlier run, `c8661931-…`, gave the same
+shape.
+
+The same screenshot shows `resourceAttributes.service.name:
+"unknown_service"`: the exporter set no OpenTelemetry resource. Exported
+spans now name the service, `clinical-copilot-agent` (D55).
 
 ### Where the chain still breaks
 

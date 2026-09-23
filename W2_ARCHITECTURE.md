@@ -81,8 +81,23 @@ architecture is unchanged and is not repeated here:
 [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) (authorization, tool scope,
 conversation state, the deterministic verifier).
 
-**Snapshot: `main@056cba9`**, which is on `origin`. Every path, number and
-decision below is on that commit. It includes these merges:
+**Snapshot: this document describes `chore/w2-final-hygiene`** (work order
+28, not merged), which is `main@c75827f` plus the commits listed last below.
+Every path and every decision cited is on that branch. Numbers are **not**
+pinned to one commit. Each is pinned to the artifact it cites, and that
+artifact names where it was measured:
+
+- host figures to `ea198c8` (`DEPLOY.md` §8.00) or `21f1053` (§8.0);
+- gate figures to `agent/evals/w2/baseline.json` and
+  `docs/w2/EVAL_GATE_EVIDENCE.md`, which record the commit they scored;
+- load and cost figures to their own `LOAD_TEST.md` and
+  `COST_AND_LATENCY.md` sections.
+
+An earlier version of this line said everything was pinned to `056cba9`.
+It then cited W2-L1 and 97 specs, which landed afterwards (`1ddcfd5`). That
+claim was wrong, and this replaces it.
+
+`main@c75827f` includes these merges:
 
 | Merge | At | What it brought |
 |---|---|---|
@@ -96,10 +111,20 @@ decision below is on that commit. It includes these merges:
 | `EVAL_GATE.md` | `0318c35` | the gate's page for reviewers |
 | the decisions guard | `c1c5e21` | D51 |
 | the event-tags fix | `056cba9` | D52 |
+| `docs/w2-submission` | `2d12333` | this document, `KEY_METRICS.md`, D53 |
+| `fix/w2-prompt-pins` | `1ddcfd5` | W2-L1, the prompt pin (97 specs) |
+| `docs/w2-final-fixes` | `c75827f` | the host dashboard evidence |
+
+On this branch, after `c75827f`: the CI unit-test job, W2-J8 (98 specs),
+W2-L1 extended to schemas and user-message templates, the gated staleness
+check, D55 (`/ready` names stdout; spans name the service) and the
+gate troubleshooting notes (work order 28).
 
 **The host runs `main@ea198c8`** since 2026-09-23 17:12 UTC (`DEPLOY.md`
-§8.00). It lacks only the event-tags telemetry fix (D52) and the
-documentation and test commits after it. Neither changes an answer.
+§8.00). It lacks the event-tags telemetry fix (D52), D55 (`/ready` names
+stdout as the backend; exported spans name the service), and the gate,
+test and documentation commits after them. None of them changes an
+answer.
 
 **Three kinds of host figure:**
 
@@ -443,6 +468,7 @@ Documents and lab values are written through a custom module endpoint.
 | Review state | `review_status = 'received'`: the result lands in *Pending Review*, not *Patient Results*, until a clinician signs it | D29 |
 | Intake guard | the write-back request type refuses any document that is not a `lab_pdf`, so an intake form has no path into the chart | `agent/app/models/w2/writeback.py`; planted regression `auto-merge-intake` |
 | Preview | `GET <module>/public/document.php`: session ACL `patients/docs`, the open patient only, PDF only. 404 is identical for missing, another patient's and deleted documents | D28, D30, D49 |
+| Deletion | not designed: what a deleted document leaves behind, and why that is a gap | §11 item 14 |
 
 **Verified on the rehearsal host, before the Week 2 deploy** (`DEPLOY.md` §7.3):
 
@@ -704,8 +730,10 @@ The agent image grew from 360 MB to 1.18 GB, and idle memory from 50 MiB to
 | The decisions log itself | D53 (no merge driver for `DECISIONS.md`; a numbering test guards it) |
 
 D1–D53 are on `main`. D53 records a decision already made in commit
-`cb99e7b`; it was appended at the owner's request, not decided here. This
-document makes no new decision.
+`cb99e7b`; it was appended at the owner's request, not decided here. D55
+is on this branch only, under the log's not-yet-numbered heading until work
+order 26's D54 lands (its own **Numbering** line says why). This document
+makes no new decision.
 
 ---
 
@@ -782,3 +810,36 @@ document makes no new decision.
     its routes, the guard and the scoped ask path run on the host
     (`main@ea198c8`, `DEPLOY.md` §8.00). No load test has run against them there.
 13. **No FHIR paging.** `_count` is the sharp edge (`docs/w2/WEEK1_DEBT.md` §4).
+14. **Deleting a document is a gap, not a provenance design.** Nothing was
+    decided about deletion. This is what the code does. It was read from
+    the code, not exercised end to end.
+    - **OpenEMR's delete** (`interface/patient_file/deleter.php`,
+      `delete_document`) sets `documents.deleted = 1`, keeps the row, and
+      removes its `categories_to_documents` link.
+    - **The module keeps no attachment record of its own.** Its only table
+      is the write-back ledger. Its "already filed on another chart" check
+      (`QueryUtilsChartDocumentIndex::isFiledOnAnotherPatient`) reads
+      `deleted = 0` rows joined to their category. So once a file is
+      deleted, the module **would** let the same bytes be attached to a
+      different chart. It is not true that a deleted file can never be
+      re-attached elsewhere.
+    - **The agent refuses it anyway, until it restarts.** Its binding of a
+      digest to a patient (`DocumentStore`, D40 item 8) is process memory,
+      and nothing tells it about the deletion. So the card gets 409 on
+      another chart while this agent process lives, and not after a restart.
+    - **The write-back ledger outlives the deletion, and its replay does
+      not check the patient.** Its rows stay, keyed on `<document
+      sha3-512>:<TEST CODE>:<YYYY-MM-DD>` (D1), which does not include the
+      patient. `LabWriteBackService` answers a request whose keys are all
+      in the ledger by replaying the recorded ids, before it resolves the
+      document or looks at the patient those ids belong to. So a write-back
+      for patient B, with bytes, test and date already written for
+      patient A, would return A's `procedure_order_id` and result ids as
+      `duplicate_ignored`, and write nothing for B. That needs the same
+      bytes on two charts. The card path allows that only after a deletion
+      plus an agent restart. A direct call to the endpoint allows it
+      without either, since no agent route calls write-back today (§5).
+    - **What would close it:** a ledger replay that refuses a key recorded
+      for a different `patient_uuid`, and a decision on whether a deleted
+      document's ledger rows should block, or release, its bytes. Neither is
+      built.
