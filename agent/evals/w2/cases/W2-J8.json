@@ -1,0 +1,24 @@
+{
+  "id": "W2-J8",
+  "category": "J",
+  "critical": true,
+  "status": "active",
+  "inputs": {
+    "kind": "contract",
+    "note": "MODE: stub — one ask turn driven in-process with FakeChart and the offline retriever, and the circuit driven through its own injected clock. Both payloads are CAPTURED from the real emitters, not rebuilt here: a copy written into the case would pass for ever after somebody added a field to the original. Covers the fields that arrived after the gate was built — answer_scope and output_limited from D50's answer scoping, and the two rerank circuit-breaker events from D41."
+  },
+  "expected": "The turn event's answer_scope is a dict of int counts whose keys all derive from the RowReason enum, output_limited is a bool, and the rerank circuit's opened and closed events carry only durations, counts and one of three fixed reasons. None of them says which analyte, which query or which patient.",
+  "assertions": [
+    {
+      "rubric": "no_phi_in_logs",
+      "tier": "det",
+      "check": "chk.j_turn_event_scope_fields_carry_no_content"
+    },
+    {
+      "rubric": "no_phi_in_logs",
+      "tier": "det",
+      "check": "chk.j_rerank_circuit_events_carry_no_content"
+    }
+  ],
+  "guards_against": "A count field turning into a content field without anyone editing a log line. answer_scope is a dict, so its KEYS are the risk: {\"potassium\": 1} is chart content reported as a tally, and it would arrive as an ordinary-looking change to how the scope is summarised — which is why the permitted keys are computed from the RowReason enum rather than listed. The circuit events are the other half: they fire on a latency path, which is where log lines get written in a hurry and reviewed least."
+}
