@@ -2026,36 +2026,40 @@ metabolic panel is 14 analytes.
 
 ---
 
-## D27 — The gate's rule order, and a Wilson floor that is a function of n
+## D35 — The gate's rule order, and a Wilson floor that is a function of n
 
 **Status:** DECIDED
 **Date:** 2026-09-22
 **Recorded from** work order 10 (`feat/w2-eval-gate`).
 
-**Numbering, for this entry and D28-D33.** Taken against `main` at
-`aa52e7b`, after the retrieval and write-back merges. The highest number
-there is D26, so this branch takes the contiguous block **D27-D33**.
+**Numbering, for this entry and D36-D41.** This branch takes the contiguous
+block **D35-D41**. Third time these entries have been numbered; the previous
+two are in the branch's history.
 
-Two things a later reader will want. First, `main` currently carries
-**duplicate** D23, D24 and D25: the retrieval merge brought D23/D25/D26, the
-write-back merge brought D23/D24/D25, and the locate merge had already taken
-D24. Those collisions are not this branch's to fix, and they are why "the
-next free number" is read off the highest entry rather than off the count.
-Second, no block was reserved for the two branches still unmerged
-(`feat/w2-ui`, which uses D23-D27, and `feat/w2-extractor`, which uses D24):
-every one of those numbers already collides with something merged, so both
-must renumber whatever this branch does, and a reservation that guesses how
-many entries they will end up with buys nothing and leaves permanent gaps.
-Renumber at merge time if that order changes.
+Why not D30-D34, which look free. They are reserved for the renumbering
+branch, which restores five entries an earlier merge deleted, as D30-D34, on
+top of the D29 the extractor merge added. Taking them would collide a third
+time, which is the thing this block keeps being renumbered to avoid.
+
+**Rebased onto `main` at `80e2026`, which does NOT yet carry that
+renumbering.** `git ls-remote origin refs/heads/main` returns `80e2026`; its
+highest entry is D29 and it still carries a duplicate D23. So this block is
+chosen to be right *after* the renumbering lands rather than against what is
+on the remote today: D35 is the next free number once D30-D34 exist, and
+nothing in D35-D41 depends on that having happened yet.
+
+`grep -c '^## D' docs/w2/DECISIONS.md` is **38** here — 31 from `main` plus
+these seven — checked before and after the rebase, because a merge has
+silently dropped entries from this file once already.
 
 ---
 
-## D28 — The judge is a different Claude tier; `temperature 0` is not expressible
+## D36 — The judge is a different Claude tier; `temperature 0` is not expressible
 
-**Status:** DECIDED — its `known_limitation` paragraph is SUPERSEDED by D31
+**Status:** DECIDED — its `known_limitation` paragraph is SUPERSEDED by D39
 **Date:** 2026-09-22
 **Recorded from** work order 10.
-**Numbering:** D27-D33 taken as a contiguous block against `main` at `aa52e7b`, whose highest entry is D26. Basis and the duplicate-number situation on `main`: see D27.
+**Numbering:** part of the contiguous D35-D41 block. Basis, and why not D30-D34: see D35.
 
 **Decision:** the judge tier runs `claude-haiku-4-5`, pinned to served version
 `claude-haiku-4-5-20251001`, with thinking off, a schema-constrained
@@ -2108,12 +2112,12 @@ begin with.
 
 ---
 
-## D29 — Box agreement is compared differently by page quality
+## D37 — Box agreement is compared differently by page quality
 
 **Status:** DECIDED
 **Date:** 2026-09-22
 **Raised by:** the locate spike (07), during work order 10.
-**Numbering:** D27-D33 taken as a contiguous block against `main` at `aa52e7b`, whose highest entry is D26. Basis and the duplicate-number situation on `main`: see D27.
+**Numbering:** part of the contiguous D35-D41 block. Basis, and why not D30-D34: see D35.
 
 **Scope:** this is an **eval-side tolerance**, not a locate policy. What
 counts as a correct match is D24 (numbers, units, dates and lab flags are
@@ -2149,12 +2153,12 @@ W2-C2/W2-C9 (scanned).
 
 ---
 
-## D30 — The gate has a fourth exit code, and `0` no longer means "nothing was checked"
+## D38 — The gate has a fourth exit code, and `0` no longer means "nothing was checked"
 
 **Status:** DECIDED
 **Date:** 2026-09-22
 **Recorded from** work order 10, follow-up 2.
-**Numbering:** D27-D33 taken as a contiguous block against `main` at `aa52e7b`, whose highest entry is D26. Basis and the duplicate-number situation on `main`: see D27.
+**Numbering:** part of the contiguous D35-D41 block. Basis, and why not D30-D34: see D35.
 
 **Decision:** `python -m evals.w2.gate` exits:
 
@@ -2201,14 +2205,14 @@ reads, not buried in a config file.
 
 ---
 
-## D31 — A meta-check fixture is admitted by measurement, over five rounds
+## D39 — A meta-check fixture is admitted by measurement, over five rounds
 
-**Status:** DECIDED — its admission rule is SUPERSEDED by D33
+**Status:** DECIDED — its admission rule is SUPERSEDED by D41
 **Date:** 2026-09-22
-**Supersedes:** the `known_limitation` paragraph of D28, and only that
-paragraph. The rest of D28 — the judge tier, the version pin, the cache key,
+**Supersedes:** the `known_limitation` paragraph of D36, and only that
+paragraph. The rest of D36 — the judge tier, the version pin, the cache key,
 the unavailability of `temperature 0` — stands unchanged.
-**Numbering:** D27-D33 taken as a contiguous block against `main` at `aa52e7b`, whose highest entry is D26. Basis and the duplicate-number situation on `main`: see D27.
+**Numbering:** part of the contiguous D35-D41 block. Basis, and why not D30-D34: see D35.
 
 **Decision:** a fixture enters category M only if both hold:
 
@@ -2226,7 +2230,7 @@ On that rule the set is eight: `fc_pass`, `fc_fail`, `sr_pass`, `sr_fail`,
 `fc_fail_added_clinical_judgement`, each measured at 5/5 rounds and 15/15
 votes under the committed prompt and `pass` under a generic rubric.
 
-**What D28 got wrong, and why.** It recorded that the
+**What D36 got wrong, and why.** It recorded that the
 `factually_consistent` half of the meta-check could not be closed: every
 candidate that discriminated appeared to sit on the model's decision boundary
 and to be unstable there. That conclusion was drawn from **single rounds of
@@ -2251,11 +2255,11 @@ informative:**
 
 ---
 
-## D32 — What the gate asserts about D24, and where
+## D40 — What the gate asserts about D24, and where
 
 **Status:** DECIDED
 **Date:** 2026-09-22
-**Numbering:** D27-D33 taken as a contiguous block against `main` at `aa52e7b`, whose highest entry is D26. Basis and the duplicate-number situation on `main`: see D27.
+**Numbering:** part of the contiguous D35-D41 block. Basis, and why not D30-D34: see D35.
 
 **Scope:** **D24 on `main` is the authoritative exact-only value-class
 policy.** This entry does not restate it, extend it, or vary it. It records
@@ -2274,7 +2278,7 @@ an extractor, because the tier order is where the policy would be
 re-introduced and a test that only exercises the default path would not see
 it. It is `critical`.
 
-**W2-C9** asserts D29's scanned-page box tolerance: centre-inside after the
+**W2-C9** asserts D37's scanned-page box tolerance: centre-inside after the
 recorded transform, or horizontal `IoU >= 0.9`. Not `critical` — a
 tolerance that is too tight is a false alarm, not a missed leak.
 
@@ -2298,13 +2302,13 @@ weaken.
 
 ---
 
-## D33 — Stability and discrimination are measured separately, both over five rounds
+## D41 — Stability and discrimination are measured separately, both over five rounds
 
 **Status:** DECIDED
 **Date:** 2026-09-22
-**Supersedes:** the admission rule in D31. The fixture list and the rejected
+**Supersedes:** the admission rule in D39. The fixture list and the rejected
 candidates recorded there stand, with one correction noted below.
-**Numbering:** D27-D33 taken as a contiguous block against `main` at `aa52e7b`, whose highest entry is D26. Basis and the duplicate-number situation on `main`: see D27.
+**Numbering:** part of the contiguous D35-D41 block. Basis, and why not D30-D34: see D35.
 
 **Decision:** a meta-check fixture is admitted on one condition, and the *set*
 must satisfy a second:
@@ -2326,7 +2330,7 @@ prompt, and it is labelled so that nobody reads it as if it did.
 | `sr_fail`, `sr_fail_over_refusal` | discriminating (sr) |
 | `fc_pass`, `sr_pass`, `fc_fail`, `fc_fail_invented_unit_conversion` | alive-checks |
 
-**What D31 got wrong.** D31 stated a single two-part admission rule and
+**What D39 got wrong.** D39 stated a single two-part admission rule and
 claimed three discriminating `factually_consistent` fixtures. It measured
 *stability* over five rounds and *discrimination* over one — the same error it was
 written to correct, made on the other axis. `fc_fail_invented_unit_conversion` passed that one-round test and does not

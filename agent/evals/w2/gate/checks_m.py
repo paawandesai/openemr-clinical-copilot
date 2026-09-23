@@ -24,7 +24,7 @@ What it does NOT catch: a judge that was wrong from the start. That needs
 result the gate prints says UNCALIBRATED for that reason.
 
 Both rubrics are covered, and the fixtures were chosen by measurement rather
-than by argument — see D33. Every fixture is stable: five independent
+than by argument — see D41. Every fixture is stable: five independent
 best-of-3 gradings under the committed prompt all agreeing with its label.
 Each rubric additionally has at least one *discriminating* fixture, one a
 generic one-line rubric grades the other way on all five rounds. Stability is

@@ -9,7 +9,7 @@
       "lab-scanned-heavy-abnormal-002",
       "intake-scanned-light-med-005"
     ],
-    "note": "Needs the locate step. The tolerance is D29; D24 governs what counts as a match. On a SCANNED page, map the located box back through the ground truth's transform.pages[i].pdf_points_to_image_px and assert its centre falls inside the ground-truth box; equivalently assert horizontal IoU >= 0.9 (agent/tests/locate_measurement.py reports it as `iou_x`). Do NOT assert raw IoU >= 0.5 here. Raw IoU stays for clean pages, where both boxes come from the same PyMuPDF font metrics — that is W2-C1."
+    "note": "Needs the locate step. The tolerance is D37; D24 governs what counts as a match. On a SCANNED page, map the located box back through the ground truth's transform.pages[i].pdf_points_to_image_px and assert its centre falls inside the ground-truth box; equivalently assert horizontal IoU >= 0.9 (agent/tests/locate_measurement.py reports it as `iou_x`). Do NOT assert raw IoU >= 0.5 here. Raw IoU stays for clean pages, where both boxes come from the same PyMuPDF font metrics — that is W2-C1."
   },
   "expected": "Box agreement on a scanned page is asserted as centre-inside-ground-truth after the recorded transform (or horizontal IoU >= 0.9), and a correct scanned locate passes it. Raw IoU >= 0.5 is not the criterion on a scan.",
   "assertions": [
