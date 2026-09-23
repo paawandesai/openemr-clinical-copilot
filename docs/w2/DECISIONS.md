@@ -1995,3 +1995,541 @@ absence.
 **Not settled here:** whether the 45 s alert should fire on an "all
 results" question that deliberately itemises the maximum; whether the cap
 should fall to 6 to clear it (~33 s by the same arithmetic, unmeasured).
+
+---
+
+## D42 — The gate's rule order, and a Wilson floor that is a function of n
+
+**Status:** DECIDED
+**Date:** 2026-09-22
+**Recorded from** work order 10 (`feat/w2-eval-gate`).
+
+**Numbering, for this entry and D43-D48.** This branch takes **D42-D48**,
+and this is the last renumbering: the merge order is settled rather than
+guessed. Ahead of it go `feat/w2-observability` (D36-D39), `feat/w2-graph`
+(D40) and `chore/w2-deploy-rehearsal` (D41); this branch merges last, so
+D42 is the first number free at that point.
+
+`main` at `523d445` is D1-D35, 36 entries, no duplicates but the intentional
+D1 pair. **D36-D41 are therefore a deliberate gap** — the first time this
+branch has left one. The earlier refusals to reserve were right for the
+reason given then: a reservation that guesses how many entries a branch will
+end up with leaves permanent holes. That objection is gone now that the
+counts and the order are decided, and the alternative — taking D36 and making
+three other branches move again — costs more than the gap.
+
+Fifth and final numbering of these seven entries; the earlier four are in the
+branch's history.
+
+`grep -c '^## D' docs/w2/DECISIONS.md` is **43** here — 36 from `main` plus
+these seven — checked before and after every rebase. Two merges have silently
+deleted entries from this file, so the count is verified rather than assumed,
+and any conflict in it is resolved by keeping BOTH sides.
+
+---
+
+## D43 — The judge is a different Claude tier; `temperature 0` is not expressible
+
+**Status:** DECIDED — its `known_limitation` paragraph is SUPERSEDED by D46
+**Date:** 2026-09-22
+**Recorded from** work order 10.
+**Numbering:** part of the contiguous D42-D48 block. Basis, and why not D30-D34: see D42.
+
+**Decision:** the judge tier runs `claude-haiku-4-5`, pinned to served version
+`claude-haiku-4-5-20251001`, with thinking off, a schema-constrained
+`{verdict, reason}` output, best-of-3 and a 2-of-3 majority. The system under
+test is `claude-opus-5` (`app/reasoning/draft_claims.py`), so the judge is a
+**different tier of the same family** — not another vendor, because the
+architecture claims a BAA-covered provider and routing chart-derived text to
+a second vendor for grading would break that claim for a convenience.
+
+The gate compares `response.model` against the pinned version on every call
+and fails the tier on a mismatch. A version pin nobody verifies is a comment.
+
+**`temperature=0` is not implemented, because it cannot be.** The design doc
+and the work order both ask for it. `temperature` was removed from
+`Messages.create` in the anthropic 1.x SDK — verified against anthropic 1.6.0,
+whose parameter list is `max_tokens, messages, model, cache_control,
+container, inference_geo, metadata, output_config, service_tier,
+stop_sequences, stream, system, thinking, tool_choice, tools, user_profile_id,
+workspace_id` — and the current model generation rejects sampling parameters
+on the wire. What stands in its place: thinking off, the output constrained to
+a two-field schema so there is no free-form phrasing to vary, the cache, and
+the best-of-3 majority.
+
+**The judge cache is keyed on the prompt TEXT, not its version string.** The
+design doc lists `judge_prompt_version`. That is one forgotten version bump
+away from being wrong in the only direction that matters: a loosened rubric
+would be served its old verdicts out of the cache and the meta-check set —
+the thing that exists to catch exactly that — would never run.
+
+**Self-preference risk, and how far the mitigation goes.** A same-family judge
+may prefer the system's phrasing. The mitigation is category M, five frozen
+fixtures with known labels. Measured, not assumed: it detects a loosened
+`safe_refusal` prompt (both fail fixtures grade `fail` 6/6 over two rounds
+under the committed prompt and `pass` 3/3 under a generic one-line rubric) and
+it does **not** detect a loosened `factually_consistent` prompt. Two candidate
+fc fixtures that a generic rubric grades wrong were tried and both proved
+unstable under the committed prompt across runs (3/3 then 1/3; 2/3 then 3/3),
+because a fixture that discriminates sits on the model's decision boundary and
+that is the same thing as being unstable. A critical fixture that swings
+between runs is the hostage-taking flake the design doc warns about, and the
+first response to one is to delete it — so the gap is written down rather than
+filled with a coin flip. Closing it needs either a judge tier with more
+headroom on borderline entailment (`claude-sonnet-5`, also a different tier
+from the SUT) or the 100–200 labelled examples per rubric that would let a
+boundary fixture be chosen on measured agreement. Both are out of scope here.
+
+**The judge is UNCALIBRATED and every run says so.** Category M detects a
+judge that has drifted. It does not establish that the judge was right to
+begin with.
+
+---
+
+## D44 — Box agreement is compared differently by page quality
+
+**Status:** DECIDED
+**Date:** 2026-09-22
+**Raised by:** the locate spike (07), during work order 10.
+**Numbering:** part of the contiguous D42-D48 block. Basis, and why not D30-D34: see D42.
+
+**Scope:** this is an **eval-side tolerance**, not a locate policy. What
+counts as a correct match is D24 (numbers, units, dates and lab flags are
+never near-matched); what counts as the *same box* is here.
+
+**Decision:** an eval that compares a located bounding box against the
+doc-factory's ground truth chooses its tolerance by page quality.
+
+- **Clean page:** raw `IoU >= 0.5`. Both boxes come from the same PyMuPDF
+  font metrics, so they are directly comparable.
+- **Scanned page:** map the candidate box back through the ground truth's
+  `transform.pages[i].pdf_points_to_image_px` and require its **centre to
+  fall inside the ground-truth box** — equivalently, horizontal
+  `IoU >= 0.9`. Raw IoU is not used.
+
+**Rationale.** The spike measured Tesseract's boxes against the factory's on
+*correct* output: IoU median ~0.64 against horizontal IoU ~0.95. Tesseract's
+boxes are ink-tight and the factory's are font-metric, so the vertical
+disagreement is the difference between the glyphs and the line box — not an
+error. A raw-IoU floor of 0.5 on a scan therefore goes red on work that is
+right, and an assertion that goes red on right answers does not get fixed.
+It gets lowered until it passes everything, and then it is testing nothing.
+
+D24's own evidence measures the same quantity from the other side: the share
+of located boxes over the right ink (`IoU >= 0.5`) rose 65.6% -> 70.4% on the
+heavy scan under the exact-only policy. That is a useful population
+statistic and it is not a per-case assertion, which is why this entry exists
+separately.
+
+**Where it is recorded:** `agent/evals/w2/rubrics/rubrics.json` under
+`locate_result.tolerance`, and in the case specs for W2-C1 (clean) and
+W2-C2/W2-C9 (scanned).
+
+---
+
+## D45 — The gate has a fourth exit code, and `0` no longer means "nothing was checked"
+
+**Status:** DECIDED
+**Date:** 2026-09-22
+**Recorded from** work order 10, follow-up 2.
+**Numbering:** part of the contiguous D42-D48 block. Basis, and why not D30-D34: see D42.
+
+**Decision:** `python -m evals.w2.gate` exits:
+
+| code | meaning |
+|---|---|
+| 0 | PASS — every active case was scored and no rule fired |
+| 1 | BLOCKED — a gate rule fired |
+| 2 | ERROR — the gate could not run |
+| 3 | **INCOMPLETE** — no rule fired, but a critical case was never scored |
+
+A run that exits 3 prints, on its own line:
+`NOT EVIDENCE: n critical case(s) were never scored (ids). This run does not
+show that they hold.`
+
+`--allow-incomplete` maps 3 to 0. Exactly one caller passes it: the local
+pre-push hook. **The CI job does not**, so a pipeline with no
+`ANTHROPIC_API_KEY` FAILS rather than passing with a notice.
+
+`--seed-baseline` refuses an incomplete run outright, with or without
+`--allow-incomplete`.
+
+**Rationale.** The first version exited 0 whenever no rule fired, printed a
+loud notice when the judge tier was skipped, and left it there. That was
+wrong in the only direction that matters. Every category-M case is critical
+and every one of them is judge-tier, so a CI job with the variable missing
+scored **none** of them and still reported green — a green pipeline that
+checked no critical case, which is the precise failure this gate exists to
+prevent. The notice was doing the work a exit code should do, and nobody
+reads a notice under a green tick.
+
+Rule (c) already refuses to treat an unscored case as a regression, because
+it has not been measured rather than having got worse. Exit 3 is the other
+half of that sentence: not measured is also not passed.
+
+`--seed-baseline` refuses because seeding from an incomplete run would record
+each unscored critical case as `skipped`, and rule (c) fires only on a case
+the baseline says *passed* — so every one of them would be exempt from the
+critical-case override for as long as that baseline stood. An incomplete run
+cannot be allowed to become the thing later runs are compared against.
+
+The flag lives at the call site rather than as a rule inside the gate so that
+"this run is not claiming to be evidence" is visible in the command a person
+reads, not buried in a config file.
+
+---
+
+## D46 — A meta-check fixture is admitted by measurement, over five rounds
+
+**Status:** DECIDED — its admission rule is SUPERSEDED by D48
+**Date:** 2026-09-22
+**Supersedes:** the `known_limitation` paragraph of D43, and only that
+paragraph. The rest of D43 — the judge tier, the version pin, the cache key,
+the unavailability of `temperature 0` — stands unchanged.
+**Numbering:** part of the contiguous D42-D48 block. Basis, and why not D30-D34: see D42.
+
+**Decision:** a fixture enters category M only if both hold:
+
+1. **Stable.** Five independent best-of-3 gradings under the committed prompt
+   all agree with its label.
+2. **Discriminating.** A generic one-line rubric for the same rubric grades it
+   the *other* way.
+
+(1) keeps a fixture from becoming the flake that gets the whole category
+deleted. (2) is what makes it a drift detector rather than an alive-check.
+
+On that rule the set is eight: `fc_pass`, `fc_fail`, `sr_pass`, `sr_fail`,
+`sr_fail_over_refusal`, and three added here —
+`fc_fail_guideline_as_patient_fact`, `fc_fail_invented_unit_conversion`,
+`fc_fail_added_clinical_judgement`, each measured at 5/5 rounds and 15/15
+votes under the committed prompt and `pass` under a generic rubric.
+
+**What D43 got wrong, and why.** It recorded that the
+`factually_consistent` half of the meta-check could not be closed: every
+candidate that discriminated appeared to sit on the model's decision boundary
+and to be unstable there. That conclusion was drawn from **single rounds of
+three votes**. At five rounds two of those same candidates are 15/15. Three
+votes cannot separate a stable fixture from a borderline one, and a
+measurement that cannot make the distinction it is being used to make is not
+evidence for either answer. The measurement protocol is part of this decision,
+not a detail of how it was reached.
+
+**Two candidates rejected under the rule, recorded because they are
+informative:**
+
+- *A claim citing a chunk that does not contain it* — stable at 15/15, but a
+  generic rubric fails it too. It detects nothing a loosening would do. Same
+  role as `fc_fail`: an alive-check.
+- *"The laboratory reported the potassium as normal", over a row with a blank
+  flag column* — the committed prompt graded it **pass**, 12/15. The
+  `factually_consistent` rubric does not enforce D20 at the prose level. This
+  is a finding, not a fixture: blank-is-not-normal is held deterministically
+  by W2-D2, and a judge is the wrong instrument for a safety rule that a type
+  can hold.
+
+---
+
+## D47 — What the gate asserts about D24, and where
+
+**Status:** DECIDED
+**Date:** 2026-09-22
+**Numbering:** part of the contiguous D42-D48 block. Basis, and why not D30-D34: see D42.
+
+**Scope:** **D24 on `main` is the authoritative exact-only value-class
+policy.** This entry does not restate it, extend it, or vary it. It records
+only the eval-side half that D24 does not cover: which cases assert the
+policy, over what, and why those assertions are shaped the way they are.
+If the two ever disagree, D24 wins and these cases are wrong.
+
+**Decision:** two pending cases carry the assertions.
+
+**W2-C8** asserts the policy across **all four classes and the whole tier
+order**, not against one fixture: a one-character-off candidate in a
+numeric, unit, date or flag field is located by no tier — not `exact`, not
+`numeric`, not `number_only`, and not `fuzzy` even under
+`FuzzyMode.ALWAYS`. It drives `locate()` directly rather than going through
+an extractor, because the tier order is where the policy would be
+re-introduced and a test that only exercises the default path would not see
+it. It is `critical`.
+
+**W2-C9** asserts D44's scanned-page box tolerance: centre-inside after the
+recorded transform, or horizontal `IoU >= 0.9`. Not `critical` — a
+tolerance that is too tight is a false alarm, not a missed leak.
+
+**W2-C7** predates both and stays: it is the single-fixture numeric case,
+kept because a named, readable example of the failure is worth having beside
+the exhaustive one. It is `critical`.
+
+**Rationale for asserting it at all, given D24 is already tested.**
+`agent/tests/test_locate_measurement.py` holds D24's thresholds against the
+locate module. That is the right place for it and it is not the same
+guarantee: those tests move with the branch that owns the module, and the
+gate's job is to notice when a *later* branch quietly relaxes something an
+earlier one established. The measurement suite says the policy works today;
+the gate says nobody removed it. Both, or neither is worth much.
+
+**Known overlap, stated rather than resolved.** W2-C8 and
+`test_locate_measurement.py` will fail together on the same regression. That
+is duplication and it is deliberate: `agent/tests/` is not gated and the
+cases are, so the duplicate is the copy an implementation session cannot
+weaken.
+
+---
+
+## D48 — Stability and discrimination are measured separately, both over five rounds
+
+**Status:** DECIDED
+**Date:** 2026-09-22
+**Supersedes:** the admission rule in D46. The fixture list and the rejected
+candidates recorded there stand, with one correction noted below.
+**Numbering:** part of the contiguous D42-D48 block. Basis, and why not D30-D34: see D42.
+
+**Decision:** a meta-check fixture is admitted on one condition, and the *set*
+must satisfy a second:
+
+1. **Every fixture is stable** — five independent best-of-3 gradings under the
+   committed prompt all agree with its label.
+2. **Each rubric has at least one discriminating fixture** — one that a
+   generic one-line rubric for that rubric grades the other way on all five
+   rounds.
+
+A stable fixture that does not discriminate is still admitted, as an
+**alive-check**: it catches a judge that has stopped working, a model rotated
+to something incompetent, a broken output path. It does not catch a loosened
+prompt, and it is labelled so that nobody reads it as if it did.
+
+| fixture | role |
+|---|---|
+| `fc_fail_guideline_as_patient_fact`, `fc_fail_added_clinical_judgement` | discriminating (fc) |
+| `sr_fail`, `sr_fail_over_refusal` | discriminating (sr) |
+| `fc_pass`, `sr_pass`, `fc_fail`, `fc_fail_invented_unit_conversion` | alive-checks |
+
+**What D46 got wrong.** D46 stated a single two-part admission rule and
+claimed three discriminating `factually_consistent` fixtures. It measured
+*stability* over five rounds and *discrimination* over one — the same error it was
+written to correct, made on the other axis. `fc_fail_invented_unit_conversion` passed that one-round test and does not
+hold up: a generic rubric grades it fail on two rounds in five, 7/15 votes. It
+stays in the set as an alive-check, because it is stable and because mg/dL vs
+mmol/L is a documented misread this suite exists to catch, but it is not a
+drift detector and the planted-regression harness no longer expects it to move.
+
+**How it was found, which is the point.** Not by review. The planted
+regression that replaces the `factually_consistent` prompt with a generic one
+was declared to expect W2-M6, W2-M7 and W2-M8; the harness blocked the gate,
+reported that only M6 and M8 moved, and failed on the mismatch. A claim about
+a fixture's behaviour is worth what the run that checks it is worth, and this
+is the second finding in this work order that came from the harness rather
+than from reading — the first two being the vacuous arms in W2-E1 and W2-K1.
+
+---
+
+## D49 — The PDF preview URL is the one the code serves: `<module>/public/document.php`
+
+**Status:** DECIDED — supersedes D28 and D30 on the preview URL only.
+**Date:** 2026-09-22
+**Decided by:** the project owner, raised by work order 16 (decision numbering).
+**Numbering:** D41-D48 are reserved for in-flight branches (see the
+Numbering note at the top), so this takes D49, the first unreserved number.
+
+**Decision:** The source-document preview route is
+**`GET <module>/public/document.php?document_id=<int>`**. The served URL is
+authoritative.
+
+**Why an entry is needed.** D28 (`feat/w2-ui`) and D30 (`feat/w2-writeback`)
+decide the same thing — the preview is served by a module route in the
+clinician's own session, not by `GET /fhir/Binary/:id` — and name different
+URLs for it. D28 says `<module>/document?document_id=<int>`; D30 says
+`<module>/public/document.php?document_id=<int>`. Neither was marked
+superseded, so the file specified two routes for one endpoint.
+
+**Why D30's URL.** It is the one that exists.
+`interface/modules/custom_modules/oe-module-clinical-copilot/public/document.php`
+is the handler, the viewer is given it as its `documentEndpoint`
+(`docs/w2/ui-integration.md`), and the API collection run in
+`docs/w2/evidence/api-collection-run.txt` calls it. D28's path was nominal:
+written on `feat/w2-ui` before the write-back branch had built the route.
+
+**Unchanged:** everything else in D28 and D30 — the ACL, the 403/404
+behaviour, PDF-only, no CSRF token, and why `Binary` cannot serve a
+physician. This entry settles the URL and nothing more.
+
+**D28's path appeared in prose only**, never in a code path: a doc comment
+in `public/assets/w2/document-viewer.mjs` and an acceptance line in
+`docs/w2/ui-integration.md`. Both were repointed to this entry and the
+served URL when it was recorded.
+
+---
+
+## D-unassigned (work order 17) — The Week 2 card's module routes: the chart keeps the upload, and a citation's digest opens it
+
+**Status:** DECIDED. Item 3 widens D49's `document_id=<int>`; the project
+owner signed it off on 2026-09-23 on the condition that the digest form is
+checked exactly as the integer form, which item 3 now states and
+`tests/DocumentPreviewParityTest.php` pins.
+**Date:** 2026-09-23
+**Raised by:** work order 17 (`feat/w2-php-wiring`).
+**Numbering:** no number is claimed. This entry takes **the next free,
+unreserved number on `main` when it merges** (D41-D48 are reserved and D49
+is taken, so at `f8b16c7` that would be D50, but the merge decides). Rename
+the heading and every "D-unassigned (work order 17)" reference in the same
+change.
+
+**Decision:**
+
+1. **The module files the upload in the chart, after the agent accepts
+   it.** `public/upload.php` checks the request (ChartRequest, with
+   `patients`/`docs` at write or addonly), then asks the agent
+   (`POST /documents?kind=&patient_id=`, D40 item 8), and only on the
+   agent's 200 stores the same bytes through `\Document::createDocument()`
+   (encrypted at rest, audited) via the write-back's `DocumentStore`: a lab
+   report in *Lab Report*, an intake form in *Medical Record*. Storing first
+   would leave a document on a chart the agent refused it for. The agent
+   keeps the bytes only while it extracts, so the chart copy is what the
+   preview (D30/D49) reads.
+2. **The store is idempotent on D1's document key** (invariant 6): the
+   file's SHA3-512, which is `documents.hash`. The same bytes on the same
+   chart are the row already there, in any category. OpenEMR does not
+   constrain `documents.hash`, so a named database lock per digest
+   serialises the check and the insert.
+3. **The preview also takes the digest** (signed off, conditionally). D49 fixes the
+   URL and `document_id=<int>`. A citation carries the agent's document id,
+   which is that digest; `document.php` now accepts either form and
+   resolves the digest against `documents.hash` **on the open chart only**,
+   so it reaches nothing an integer id could not, and the browser holds no
+   id mapping (it would be lost on reload). Everything else in D30/D49 —
+   ACL, 404 for anything not on the open chart, PDF only, no CSRF — is
+   unchanged. **The condition of the sign-off:** both forms pass the same
+   guard (`DocumentReadRequest`: method, id shape, the `patients`/`docs`
+   ACL, the session's open patient — only the id parse differs) and run one
+   query (`SourceDocumentReader::rowQuery()`: one template, only the key
+   column differs, `foreign_id` bound to the session's open patient and
+   `deleted = 0` for both). A digest for another patient's document is the
+   same `DocumentFailure::NotFound`, so the same 404 and body, as the
+   integer (`tests/DocumentPreviewParityTest.php`; a mutation that let the
+   digest path resolve on a fixed patient fails three of its tests).
+   Checked live on 2026-09-23: with another chart open, `document_id=2482`
+   and its digest both answer 404 with byte-identical bodies; with its own
+   chart open, both answer 200 with the same PDF bytes.
+4. **The same bytes on another chart are refused by the module as well as
+   the agent** (D40 item 8). Before the agent is asked, the module refuses,
+   `409 document_attached_elsewhere`, a file it already filed on a different
+   patient, looking only in its own two categories. The agent's binding is
+   process memory and a restart forgets it; the chart's records do not.
+5. **One correlation id per chart open.** `Bootstrap` mints a UUID4 when it
+   renders the card; the card sends it with every upload, status poll and
+   question; `AgentClient` forwards it as `X-Correlation-ID`. The agent then
+   logs the chart open as one encounter (upload, extraction, ask).
+6. **The status poll is a GET with the full check.** `ChartRequest` takes
+   the method, so the poll gets the same five checks in the same order,
+   reading the query string. It is not written to the audit log: it repeats
+   every few seconds and reads a status, not the record.
+7. **The question needs `patients`/`med` and `patients`/`docs`.** The
+   answer is accepted only if its `patient_session_key` names the patient
+   and session the module sent (the F-62 check Week 1 makes on
+   `patient_id`); the key is then dropped, and the agent's `status` reaches
+   the card as `answer_status`.
+
+**Rationale:** each item keeps a rule the module already had — the open
+chart decides the patient, the chart is the record of what was attached,
+every write has a key — and extends it to the upload and the cited page.
+
+**Not settled here:** the agent's document and conversation stores are
+still process memory (D40), so after an agent restart a chart's upload must
+be uploaded again before it can be asked about — the chart copy survives,
+and re-uploading adds no row. Each status poll mints a token, as every
+module request does (no token reuse by design), which adds `api_token` rows
+while a document extracts.
+**Bound:** 100 results per request. Not a contract rule — a ceiling on how long
+one transaction may hold row locks across the procedure tables. A comprehensive
+metabolic panel is 14 analytes.
+
+---
+
+---
+
+## D41 — The rerank budget is 4 s, measured on the deployment host; the circuit closes itself and is reported apart
+
+**Status:** DECIDED — supersedes item 5 of D25 (the 2.5 s figure, and the
+circuit's lifetime) only. The rest of D25 stands, the cross-encoder
+included, and so does D39's admission bound, on top of which this is built.
+**Date:** 2026-09-22
+**Numbering:** written as D35 on `chore/w2-deploy-rehearsal`. D35 on `main` is the
+intake-extractor decision; D41 is the number assigned to this entry, with the
+merge order observability, graph, deploy-rehearsal, eval-gate.
+**Evidence:** [`DEPLOY.md`](DEPLOY.md) §8. Measured on the Vultr host
+(`64.177.42.210`, 4 shared vCPU), 30 dev queries, top-5, inside the deployed
+agent container.
+
+**Decision:**
+
+- `RERANK_BUDGET_SECONDS` is **4.0** (`app/retrieval/retriever.py`, pinned
+  by `tests/test_retrieval_worker.py`).
+- **The reranker stays on the default path.** Nothing here drops it.
+- **The fallback is unchanged and remains the safety valve:** a rerank over
+  budget is discarded, the fused order stands, the output says
+  `reranked=false`, and the retriever opens its circuit.
+
+**The measurement, including a correction.** The first deploy rehearsal
+reported "9 of 60 over the 2.5 s budget", and this change was requested on
+the strength of "15% over at 2.5 s". **That figure was a miscount.** Only one
+rerank actually ran past 2.5 s (2.75 s); it opened the circuit, and the
+next eight queries were *skipped* by the open circuit, and the measurement
+counted each skip as over budget because `RerankOutcome.over_budget` is
+`True` for both. The true rate in that run was 1 in 52 attempted reranks.
+
+Re-measured with the circuit reset before each query, so that every query
+really reranks:
+
+| host state | rerank stage p50 / p95 / max | over 2.5 s | over 4 s |
+|---|---|---|---|
+| idle (n=90) | 1.38 / 2.08 / 2.28 s | 0% | 0% |
+| **OCR running in the same container** (n=60) | 2.45 / 3.39 / 4.09 s | **43.3%** | **1.7%** |
+
+The second row is the one this decision rests on. D7 puts extraction at
+upload time, and OCR is 5-6 s of CPU per scanned page in the same
+container, so a clinician asking a question while a scan is still
+extracting is the ordinary case, not a stress test. At 2.5 s nearly half
+of those turns would lose their rerank; at 4 s one in sixty does.
+
+**Why raising the budget does not contradict D25.** D25 said a sustained
+stream of `rerank_over_budget: true` is the condition to re-open the
+decision, not a reason to raise the budget. The measurement answers the
+question D25 left open: the cross-encoder fits this host when the host is
+idle, with 57% headroom at 4 s, and the overrun appears only under
+contention from the pipeline's own OCR. A budget set without knowing that
+was a laptop guess; this one is a host measurement. Whether that is a
+re-opening or a refinement is recorded here rather than argued.
+
+**Two defects 4 s alone does not fix, and what this entry does about them:**
+
+1. **The circuit never closed.** Nothing in `app/` called
+   `reset_rerank_circuit()`. In the contended run, the single 4.09 s rerank
+   opened it and the next 35 of 60 turns ran without reranking; on the live
+   agent that lasted until the process restarted. D25 describes the circuit
+   as sparing "the next turn", not every turn after it.
+   **Now:** the circuit closes itself after **60 s or 10 skipped turns**,
+   whichever comes first (`RERANK_CIRCUIT_RESET_SECONDS`,
+   `RERANK_CIRCUIT_RESET_TURNS`; `AGENT_RERANK_CIRCUIT_RESET_SECONDS` /
+   `_TURNS` override them). The next rerank is a single retry: if it is
+   slow too, the circuit opens again. Its state is behind a lock, because
+   D39's reranks run on two pool threads.
+2. **`over_budget` conflated "ran and was too slow" with "skipped because
+   the circuit is open".** The `rerank_over_budget` signal D25 tells an
+   operator to watch read as a steady stream after a single slow rerank.
+   That is how the 15% was miscounted.
+   **Now:** `RerankOutcome.over_budget` is true only for a rerank that ran
+   past the budget; a skipped turn is `skipped_circuit_open`, carried to
+   `evidence_retrieval_event` and the retrieval step's counts as
+   `rerank_skipped_circuit_open`, next to D39's `rerank_busy`.
+
+**Two events** make the circuit visible instead of inferable from a run of
+`reranked=false`: `rerank_circuit_opened_event` (`elapsed_ms`, `budget_ms`,
+`reset_seconds`, `reset_turns`) and `rerank_circuit_closed_event`
+(`reason`: `timeout` | `turns` | `manual`, `open_seconds`,
+`skipped_turns`). Numbers and a closed reason only (invariant 1). Pinned by
+`agent/tests/test_rerank_circuit.py`.
+
+**Why 60 s and 10 turns.** Long enough that a host under a burst of OCR is
+not re-probed every turn — each probe that fails costs a clinician the full
+4 s budget — and short enough that one bad moment costs at most a minute of
+unreranked answers rather than the life of the process.
