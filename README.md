@@ -16,7 +16,7 @@ A Clinical Co-Pilot AI agent built into a fork of [OpenEMR](https://open-emr.org
 
 ## Week 2: start here
 
-Everything in this section refers to `main@fc3143b` unless a branch is
+Everything in this section refers to `main@f8b16c7` unless a branch is
 named. The one branch you need is **`feat/w2-eval-gate`**, which holds the
 eval gate and is on `origin`. At the time of writing it had not merged into
 `main`.
@@ -176,7 +176,7 @@ says why. No committed evidence shows it has run on a GitLab runner.
 | [KEY_METRICS.md](KEY_METRICS.md) | the Week 2 metrics, with honest denominators; the Week 1 six are in [docs/KEY_METRICS.md](docs/KEY_METRICS.md) |
 | [docs/w2/COST_AND_LATENCY.md](docs/w2/COST_AND_LATENCY.md) | actual dev spend, per-encounter cost, projections at 100 to 100K encounters a day, p50/p95 and bottlenecks |
 | [docs/w2/DEMO_SCRIPT.md](docs/w2/DEMO_SCRIPT.md) | the recorded walkthrough |
-| [docs/w2/DECISIONS.md](docs/w2/DECISIONS.md) | every Week 2 decision, D1–D40 on `main` (D41 and D42–D48 are on their branches) |
+| [docs/w2/DECISIONS.md](docs/w2/DECISIONS.md) | every Week 2 decision, D1–D40 and D49 on `main` (D41 and D42–D48 are on their branches) |
 | [docs/w2/EVAL_DESIGN.md](docs/w2/EVAL_DESIGN.md), [docs/w2/GATE.md](docs/w2/GATE.md) | why the gate is shaped as it is, and how gate files are protected |
 | [docs/w2/retrieval-bakeoff.md](docs/w2/retrieval-bakeoff.md) | the corpus, its licensing, and the retrieval measurements |
 | [docs/w2/spikes/writeback.md](docs/w2/spikes/writeback.md), [docs/w2/deploy-writeback.md](docs/w2/deploy-writeback.md) | how OpenEMR can be written to, and how the endpoint deploys |

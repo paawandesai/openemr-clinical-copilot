@@ -13,9 +13,9 @@ at. A path with no branch prefix is on `main`.
 
 | Ref | Commit | On `origin`? | What it holds that this document cites |
 |---|---|---|---|
-| `main` | `fc3143b` | yes | D1–D40; extractor, retriever, supervisor, verifier, write-back module; since the merge of `feat/w2-observability` (`fc3143b`, at its `d1cbfc9`): D36–D39, `docs/w2/{OBSERVABILITY,ALERTS,LOAD_TEST}.md`, `docs/w2/evidence/`, the only real-route `/w2/ask` measurements |
+| `main` | `f8b16c7` | yes | D1–D40, D49; extractor, retriever, supervisor, verifier, write-back module; since the merge of `feat/w2-observability` (`fc3143b`, at its `d1cbfc9`): D36–D39, `docs/w2/{OBSERVABILITY,ALERTS,LOAD_TEST}.md`, `docs/w2/evidence/`, the only real-route `/w2/ask` measurements |
 | `feat/w2-eval-gate` | `647dd9a` | yes | the eval gate, D42–D48, `docs/w2/EVAL_GATE_EVIDENCE.md` |
-| `chore/w2-deploy-rehearsal` | `0c0f360` | **no, local only** | D41, `docs/w2/DEPLOY.md`, the upload guard |
+| `chore/w2-deploy-rehearsal` | `d2f22aa` (rebased from `0c0f360`; `DEPLOY.md` unchanged) | **no, local only** | D41, `docs/w2/DEPLOY.md`, the upload guard |
 | `feat/w2-php-wiring` | `405b5ac` | **no, local only** | the upload guard ported onto `main`'s real `/documents` route |
 
 The D-number reservation on `main` fixes the merge order: observability
@@ -417,7 +417,7 @@ Documents and lab values are written through a custom module endpoint.
 | Provenance | `procedure_result.comments` carries `w2x-` plus 128 bits of `sha3-256(key)`. It surfaces as `Observation.note[0].text`, and the ledger maps it to the document, page and bbox | D1, D15 |
 | Review state | `review_status = 'received'`: the result lands in *Pending Review*, not *Patient Results*, until a clinician signs it | D29 |
 | Intake guard | the write-back request type refuses any document that is not a `lab_pdf`, so an intake form has no path into the chart | `agent/app/models/w2/writeback.py`; planted regression `auto-merge-intake` |
-| Preview | `GET <module>/public/document.php`: session ACL `patients/docs`, the open patient only, PDF only. 404 is identical for missing, another patient's and deleted documents | D28, D30 |
+| Preview | `GET <module>/public/document.php`: session ACL `patients/docs`, the open patient only, PDF only. 404 is identical for missing, another patient's and deleted documents | D28, D30, D49 |
 
 **Verified on the deployment host** (`DEPLOY.md` §7.3):
 
@@ -594,7 +594,7 @@ The agent image grew from 360 MB to 1.18 GB, and idle memory from 50 MiB to
 | Contracts | D9, D14, D17, D18, D21, D22 |
 | Routing and the ask path | D4, D40 |
 | Retrieval | D25 (supersedes D5, D23), D26, D39, D41\* |
-| UI | D27, D28, D30, D32, D33, D34 |
+| UI | D27, D28, D30, D32, D33, D34, D49 (the preview URL; supersedes D28 and D30 on that point) |
 | Write-back | D1 (superseding), D2, D15, D29, D31 |
 | Observability | D36, D37, D38 |
 | Evals | D6, D8, D42\*–D48\* |

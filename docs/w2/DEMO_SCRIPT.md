@@ -2,7 +2,7 @@
 
 A shot list for recording the Week 2 demo. Each step gives what to run or
 click, what to say, and what the viewer should see. It is built only from
-what exists and works at `main@fc3143b` and `feat/w2-eval-gate@647dd9a`.
+what exists and works at `main@f8b16c7` and `feat/w2-eval-gate@647dd9a`.
 Where a step has never been rehearsed end to end, the step says so.
 
 ## Read this before recording: what the demo cannot show
@@ -38,7 +38,7 @@ In `agent/.env`:
 `EvalConfig.from_env`.
 
 No password-grant client is published. To create one, follow
-`chore/w2-deploy-rehearsal@0c0f360:docs/w2/DEPLOY.md` §5.3 or
+`chore/w2-deploy-rehearsal@d2f22aa:docs/w2/DEPLOY.md` §5.3 or
 `docs/w2/LOCAL_ENV.md` §4. The sample patient,
 `a2c373ec-57bf-41cb-8767-94410dcf663d`, exists on the live host (pid 38,
 `DEPLOY.md` §7) and on a local restore of it (`LOCAL_ENV.md` §1).

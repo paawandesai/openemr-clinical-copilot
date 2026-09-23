@@ -20,14 +20,14 @@ limits.
   arithmetic shown.
 - **Assumed**: an input with no data behind it.
 
-**Snapshot and branches.** Written 2026-09-22 against `main@fc3143b`. Two
+**Snapshot and branches.** Written 2026-09-22 against `main@f8b16c7`. Two
 sources are on branches that had not merged, and one of them exists **only
 locally**, not on `origin`. Short names used below:
 
 | Short name | Full path |
 |---|---|
 | `LOAD_TEST.md`, `OBSERVABILITY.md`, `ALERTS.md` | `docs/w2/…` on `main` (merged from `feat/w2-observability` at `fc3143b`) |
-| `DEPLOY.md` | `chore/w2-deploy-rehearsal@0c0f360:docs/w2/DEPLOY.md` (local only) |
+| `DEPLOY.md` | `chore/w2-deploy-rehearsal@d2f22aa:docs/w2/DEPLOY.md` (local only) |
 | gate README | `feat/w2-eval-gate@647dd9a:agent/evals/w2/README.md` (on `origin`) |
 
 ---

@@ -18,7 +18,7 @@ says when there is no value.
 **The rule for every number here:** a rate is shown with its numerator and
 denominator. A metric whose denominator is small says so. A metric with no
 live measurement says "not measured", not a target. Sources are on `main`
-(`fc3143b`) unless a branch is named. One branch cited,
+(`f8b16c7`) unless a branch is named. One branch cited,
 `chore/w2-deploy-rehearsal`, exists **only locally** at the time of
 writing.
 
