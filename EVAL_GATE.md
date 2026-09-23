@@ -148,7 +148,46 @@ commands above.
 **Re-run the result script after any commit, rebase or branch switch.** The
 artifact records the commit it was produced for, and the gate refuses one that
 names a different commit — so a previously good artifact is correctly rejected
-as stale and those two cases go unscored until you regenerate it.
+as stale and those two cases go unscored until you regenerate it. (Locally the
+gate compares against `git rev-parse HEAD`; before work order 28 it compared
+only in CI, and a stale local artifact was silently accepted.)
+
+## Troubleshooting
+
+**`scripts/w2-writeback-result.sh` exits 127.** `vendor/` exists but is
+incomplete: `vendor/bin/phpunit` is not there, so the container cannot find
+the command (127 is the shell's "command not found"). A missing `vendor/`
+exits 2 with its own message instead; a partial one gets this far. The
+script still writes `w2-writeback-php.result.json`, with `"exit_code":127,
+"status":"failed"`, so if you run the gate now W2-K4 and W2-K6 **fail**
+rather than go unscored. Re-run the composer install, then the script:
+
+```bash
+docker run --rm -v "$PWD":/app -w /app composer:2 composer install --ignore-platform-reqs --no-scripts
+scripts/w2-writeback-result.sh
+```
+
+**W2-K4 and W2-K6 are UNSCORED with "is stale: it records commit …".** The
+result artifact was produced for an earlier commit. It names the commit it
+tested, and a result for another commit is not evidence about this one.
+**Re-run `scripts/w2-writeback-result.sh` after every commit, rebase or
+branch switch**, then run the gate. Run it on a clean tree: on a dirty one
+the script warns that the artifact names a commit that is not what it
+tested.
+
+**The judge tier is skipped, and the run exits 3 with "ANTHROPIC_API_KEY is
+not set".** The gate reads the key from the environment of the shell that
+runs it and nowhere else. It does not read `agent/.env`. Export it in that
+same shell, without printing it:
+
+```bash
+export ANTHROPIC_API_KEY=...        # in the shell you run the gate from
+python -m evals.w2.gate
+```
+
+A key exported in another terminal, or in a subshell that has exited, does
+not count. `--det-only` needs no key, but it exits 3 as well unless you pass
+`--allow-incomplete`, because the eight category-M cases go unscored.
 
 ## What runs in CI
 

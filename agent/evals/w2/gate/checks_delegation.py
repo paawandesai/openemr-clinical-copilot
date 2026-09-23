@@ -55,6 +55,7 @@ import json
 import os
 import pathlib
 import re
+import subprocess
 import xml.etree.ElementTree as ET
 from typing import Any
 
@@ -73,12 +74,31 @@ def result_path(job_name: str) -> pathlib.Path:
 
 
 def commit_under_test() -> str | None:
-    """The commit the gate is scoring, as the runner resolves it."""
+    """
+    The commit the gate is scoring, as the runner resolves it (`run._commit`):
+    the environment first, then `git rev-parse HEAD`. None only where neither
+    works — a scratch copy with no git, as the planted-regression harness
+    makes.
+
+    The git fallback is what makes a stale LOCAL artifact visible. Without it
+    this returned None outside CI, the commit comparison below never ran, and
+    a result produced three commits ago vouched for the tree in front of you.
+    """
     for var in ("W2_GATE_COMMIT", "CI_COMMIT_SHA"):
         value = os.environ.get(var)
         if value:
             return value.strip()
-    return None
+    try:
+        head = subprocess.run(
+            ["git", "-C", str(REPO_ROOT), "rev-parse", "HEAD"],
+            capture_output=True,
+            text=True,
+            check=True,
+            timeout=10,
+        ).stdout.strip()
+    except (subprocess.SubprocessError, OSError):
+        return None
+    return head or None
 
 
 def missing_result_reason(case: Case) -> str | None:
@@ -100,12 +120,27 @@ def missing_result_reason(case: Case) -> str | None:
         # check reports it. Skipping here would let a branch disable a
         # delegated case simply by not being in CI.
         return None
-    if result_path(job_name).is_file():
-        return None
-    return (
-        f"no result artifact for the delegated job {job_name!r}: "
-        f"{result_path(job_name).name} is absent, so whether it passed is unknown here"
-    )
+    path = result_path(job_name)
+    if not path.is_file():
+        return (
+            f"no result artifact for the delegated job {job_name!r}: "
+            f"{path.name} is absent, so whether it passed is unknown here"
+        )
+    # An artifact for another commit says nothing about this one, exactly as a
+    # missing one says nothing: UNSCORED, not failed. The branch is not at
+    # fault; the artifact is out of date. Re-run scripts/w2-writeback-result.sh.
+    try:
+        recorded = str(json.loads(path.read_text(encoding="utf-8")).get("commit") or "")
+    except (OSError, json.JSONDecodeError, AttributeError):
+        return None  # unreadable: the check itself reports it, as a failure
+    expected = commit_under_test()
+    if expected and recorded and recorded != expected:
+        return (
+            f"{path.name} is stale: it records commit {recorded[:12]}, and the gate is "
+            f"scoring {expected[:12]}. Re-run scripts/w2-writeback-result.sh after every "
+            "commit, rebase or branch switch"
+        )
+    return None
 
 
 def _named_test_outcomes(junit: pathlib.Path, tests: list[str]) -> tuple[list[str], list[str]]:

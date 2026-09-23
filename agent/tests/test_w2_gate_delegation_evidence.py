@@ -16,6 +16,7 @@ condition these tests have to construct.
 from __future__ import annotations
 
 import json
+import shutil
 from pathlib import Path
 
 import pytest
@@ -123,3 +124,40 @@ def test_a_broken_delegation_is_still_scored_without_an_artifact(wired, monkeypa
     # could disable a delegated case just by not being in CI.
     monkeypatch.setattr(cd, "_structural_problem", lambda case: "job deleted")
     assert cd.missing_result_reason(_case()) is None
+
+
+def test_a_result_for_this_commit_is_scored(wired):
+    _result(wired / "w2-writeback-php.result.json")
+    assert cd.missing_result_reason(_case()) is None
+
+
+def test_a_stale_artifact_makes_the_case_unscored_and_says_why(wired):
+    # A result from another commit is no evidence about this one — the same as
+    # none at all — and the reason tells the reader to re-run the script.
+    _result(wired / "w2-writeback-php.result.json", commit="b" * 40)
+    reason = cd.missing_result_reason(_case())
+    assert reason and "stale" in reason and "w2-writeback-result.sh" in reason
+
+
+@pytest.mark.skipif(shutil.which("git") is None, reason="no git binary (the CI image has none)")
+def test_outside_ci_the_commit_under_test_is_git_head(monkeypatch):
+    # Before, this was None outside CI, so a local artifact from any earlier
+    # commit was accepted without a comparison.
+    import subprocess
+
+    monkeypatch.delenv("W2_GATE_COMMIT", raising=False)
+    monkeypatch.delenv("CI_COMMIT_SHA", raising=False)
+    head = subprocess.run(
+        ["git", "-C", str(cd.REPO_ROOT), "rev-parse", "HEAD"],
+        capture_output=True,
+        text=True,
+        check=True,
+    ).stdout.strip()
+    assert cd.commit_under_test() == head
+
+
+def test_without_git_the_commit_under_test_is_unknown(tmp_path, monkeypatch):
+    monkeypatch.delenv("W2_GATE_COMMIT", raising=False)
+    monkeypatch.delenv("CI_COMMIT_SHA", raising=False)
+    monkeypatch.setattr(cd, "REPO_ROOT", tmp_path)
+    assert cd.commit_under_test() is None
