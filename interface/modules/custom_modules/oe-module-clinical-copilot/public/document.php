@@ -6,7 +6,7 @@
  *
  * Replaces `GET /fhir/Binary/:id` for clinicians, which requires the
  * `admin`/`users` ACL and therefore 403s for a physician — see
- * WriteBack\SourceDocumentReader and DECISIONS.md D24.
+ * WriteBack\SourceDocumentReader and DECISIONS.md D30.
  *
  * Request (query): document_id.
  * Response: the PDF with `Content-Type: application/pdf`, or JSON
