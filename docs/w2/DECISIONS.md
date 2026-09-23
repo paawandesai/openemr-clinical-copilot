@@ -2360,7 +2360,7 @@ served URL when it was recorded.
 
 ---
 
-## D-unassigned (work order 17) — The Week 2 card's module routes: the chart keeps the upload, and a citation's digest opens it
+## D51 — The Week 2 card's module routes: the chart keeps the upload, and a citation's digest opens it
 
 **Status:** DECIDED. Item 3 widens D49's `document_id=<int>`; the project
 owner signed it off on 2026-09-23 on the condition that the digest form is
@@ -2368,11 +2368,11 @@ checked exactly as the integer form, which item 3 now states and
 `tests/DocumentPreviewParityTest.php` pins.
 **Date:** 2026-09-23
 **Raised by:** work order 17 (`feat/w2-php-wiring`).
-**Numbering:** no number is claimed. This entry takes **the next free,
-unreserved number on `main` when it merges** (D41-D48 are reserved and D49
-is taken, so at `f8b16c7` that would be D50, but the merge decides). Rename
-the heading and every "D-unassigned (work order 17)" reference in the same
-change.
+**Numbering:** was "D-unassigned (work order 17)" on `feat/w2-php-wiring`,
+which claimed no number and asked for the next free one at merge. Assigned
+**D51** after the merge (`2ae4d98`): D41-D48 are reserved, D49 is taken on
+`main`, and D50 is claimed by `feat/w2-answer-scope`. The heading and every
+"D-unassigned (work order 17)" reference were renamed in the same change.
 
 **Decision:**
 
