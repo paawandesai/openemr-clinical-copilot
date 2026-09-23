@@ -2371,8 +2371,12 @@ checked exactly as the integer form, which item 3 now states and
 **Numbering:** was "D-unassigned (work order 17)" on `feat/w2-php-wiring`,
 which claimed no number and asked for the next free one at merge. Assigned
 **D51** after the merge (`2ae4d98`): D41-D48 are reserved, D49 is taken on
-`main`, and D50 is claimed by `feat/w2-answer-scope`. The heading and every
-"D-unassigned (work order 17)" reference were renamed in the same change.
+`main`, and D50 is `feat/w2-answer-scope`'s (merged at `ea198c8`). The
+verbatim restore of dropped entries (`02d0ba1`, merged at `caa92f8`) brought
+this entry back as "D-unassigned (work order 17)"; it is D51 from here on.
+The heading and every "D-unassigned (work order 17)" reference were renamed
+in the same change. The next unnumbered entry to merge (the "D-NEXT" on
+`fix/w2-event-tags`) takes D52.
 
 **Decision:**
 
