@@ -94,7 +94,7 @@ from app.graph.follow_up import (
     fetch_bounded_set,
     section_parts,
 )
-from app.middleware.correlation import correlation_scope, get_correlation_id
+from app.middleware.correlation import correlation_scope, event_tags_scope, get_correlation_id
 from app.middleware.langfuse_export import LATENCY_EVENT
 from app.middleware.logging import log_event
 from app.middleware.telemetry import record_steps, step
@@ -514,7 +514,7 @@ async def run_conversation_turn(
     correlation_id = get_correlation_id() or str(uuid.uuid4())
     step_seconds: dict[str, float] = {}
 
-    with correlation_scope(correlation_id):
+    with correlation_scope(correlation_id), event_tags_scope(_USE_CASE, key):
         started = time.perf_counter()
 
         # authorize: OpenEMR accepts the token (proving `user`) and knows

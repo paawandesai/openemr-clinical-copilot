@@ -19,11 +19,16 @@ import uuid
 from collections.abc import Iterator
 from contextlib import contextmanager
 from contextvars import ContextVar
+from dataclasses import dataclass
+from typing import TYPE_CHECKING
 
 import structlog
 from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
 from starlette.requests import Request
 from starlette.responses import Response
+
+if TYPE_CHECKING:
+    from app.models.metrics_events import UseCase
 
 CORRELATION_ID_HEADER = "X-Correlation-ID"
 
@@ -88,6 +93,61 @@ def correlation_scope(correlation_id: str) -> Iterator[None]:
         _correlation_id_var.reset(token)
 
 
+@dataclass
+class EventTags:
+    """
+    The use case and patient_session_key of the turn the current request is
+    running, for the operational events whose call sites cannot be handed
+    them: a FHIR read's `tool_call_event` (`_get_bundle` keeps the
+    three-argument signature the Week 1 evals patch) and the request's own
+    `http_request_event`, which the middleware emits after the endpoint has
+    returned. Both are empty until a turn names them (`event_tags_scope`).
+    """
+
+    use_case: UseCase | None = None
+    patient_session_key: str | None = None
+
+
+# Mutable, and set by the middleware rather than by the turn: under
+# BaseHTTPMiddleware the endpoint runs in a copy of the request's context, so
+# a ContextVar the turn set would be invisible to the middleware once
+# `call_next` returns. The copy shares this object, so what the turn writes
+# into it the middleware reads. One holder per request, reset after it: a
+# request that never runs a turn (/health, /ready, an upload, a 401 before
+# the turn starts) finds it empty, never holding a previous turn's key.
+_event_tags_var: ContextVar[EventTags | None] = ContextVar("event_tags", default=None)
+
+
+def current_event_tags() -> EventTags:
+    """The tags of the turn this request is running; empty outside one."""
+    return _event_tags_var.get() or EventTags()
+
+
+@contextmanager
+def event_tags_scope(use_case: UseCase, patient_session_key: str) -> Iterator[None]:
+    """
+    Name the turn's use case and key, for operational events emitted inside
+    the block, and for the request's own event.
+
+    Inside a request, they are written into the request's holder and stay
+    there until the request ends, because the request event is emitted
+    after this block has exited. Outside one (a script, a unit test calling
+    a graph directly) there is no holder, so one is set for the block and
+    removed after it, as `correlation_scope` does with the id.
+    """
+    holder = _event_tags_var.get()
+    if holder is not None:
+        holder.use_case = use_case
+        holder.patient_session_key = patient_session_key
+        yield
+        return
+    token = _event_tags_var.set(EventTags(use_case, patient_session_key))
+    try:
+        yield
+    finally:
+        _event_tags_var.reset(token)
+
+
 class CorrelationIdMiddleware(BaseHTTPMiddleware):
     """
     Generates a UUID per request if the caller didn't supply one via the
@@ -100,7 +160,9 @@ class CorrelationIdMiddleware(BaseHTTPMiddleware):
     method, status, latency) — the request and error counts and the
     overall latency percentiles on the Week 2 dashboard. Emitted before
     the contextvars are cleared, so it carries the same correlation_id as
-    every other line the request produced.
+    every other line the request produced, and the use case and
+    patient_session_key of the turn the request ran, if it ran one
+    (`EventTags`).
     """
 
     async def dispatch(self, request: Request, call_next: RequestResponseEndpoint) -> Response:
@@ -109,6 +171,7 @@ class CorrelationIdMiddleware(BaseHTTPMiddleware):
         status_code = 500
 
         token = _correlation_id_var.set(correlation_id)
+        tags_token = _event_tags_var.set(EventTags())
         # Bind into structlog's context so every log line emitted anywhere
         # during this request — without passing correlation_id explicitly
         # at each call site — carries it (app/middleware/logging.py).
@@ -119,6 +182,7 @@ class CorrelationIdMiddleware(BaseHTTPMiddleware):
         finally:
             _emit_request_event(request, status_code, time.perf_counter() - started)
             structlog.contextvars.clear_contextvars()
+            _event_tags_var.reset(tags_token)
             _correlation_id_var.reset(token)
 
         response.headers[CORRELATION_ID_HEADER] = correlation_id
@@ -150,4 +214,10 @@ def _emit_request_event(request: Request, status_code: int, seconds: float) -> N
     except ValidationError:
         structlog.get_logger().warning("telemetry_event_invalid", event_type=HTTP_REQUEST_EVENT)
         return
-    log_event(HTTP_REQUEST_EVENT, event.model_dump(mode="json"))
+    tags = current_event_tags()
+    log_event(
+        HTTP_REQUEST_EVENT,
+        event.model_dump(mode="json"),
+        use_case=tags.use_case,
+        patient_session_key=tags.patient_session_key,
+    )

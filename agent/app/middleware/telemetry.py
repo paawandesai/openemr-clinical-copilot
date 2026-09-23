@@ -20,6 +20,12 @@ an `x-stainless-retry-count` header, so `anthropic_http_client()` returns
 an httpx client whose request hook reads that header into the tool call
 that is currently open. That is the only way the SDK exposes the count on
 a streamed call.
+
+**Tags.** A step or tool call whose caller names no `use_case` or
+`patient_session_key` takes the running turn's, from `event_tags_scope`
+(app/middleware/correlation.py). That is how a FHIR read's tool call is
+attributed to the turn without its signature changing. A caller's own value
+always wins, and outside a turn both stay empty.
 """
 
 from __future__ import annotations
@@ -34,7 +40,7 @@ from typing import Any
 import structlog
 from pydantic import ValidationError
 
-from app.middleware.correlation import get_correlation_id
+from app.middleware.correlation import current_event_tags, get_correlation_id
 from app.middleware.logging import log_event
 from app.models.metrics_events import UseCase
 from app.models.telemetry_events import (
@@ -52,6 +58,14 @@ _NO_CONTEXT = "no-request-context"
 
 def _correlation_id() -> str:
     return get_correlation_id() or _NO_CONTEXT
+
+
+def _tagged(
+    use_case: UseCase | None, patient_session_key: str | None
+) -> tuple[UseCase | None, str | None]:
+    """The caller's tags, each one falling back to the running turn's."""
+    turn = current_event_tags()
+    return use_case or turn.use_case, patient_session_key or turn.patient_session_key
 
 
 def _invalid(event_type: str, error: ValidationError) -> None:
@@ -88,6 +102,7 @@ def record_step(
     except ValidationError as error:
         _invalid(STEP_EVENT, error)
         return
+    use_case, patient_session_key = _tagged(use_case, patient_session_key)
     log_event(
         STEP_EVENT,
         event.model_dump(mode="json"),
@@ -203,6 +218,7 @@ def _record_tool_call(
     except ValidationError as error:
         _invalid(TOOL_CALL_EVENT, error)
         return
+    use_case, patient_session_key = _tagged(use_case, patient_session_key)
     log_event(
         TOOL_CALL_EVENT,
         event.model_dump(mode="json"),

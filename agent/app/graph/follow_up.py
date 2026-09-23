@@ -57,7 +57,7 @@ from typing import Any
 
 from app.fhir import client as fhir_client
 from app.graph.pre_visit_brief import NAME_NOT_AVAILABLE
-from app.middleware.correlation import correlation_scope, get_correlation_id
+from app.middleware.correlation import correlation_scope, event_tags_scope, get_correlation_id
 from app.middleware.langfuse_export import LATENCY_EVENT
 from app.middleware.logging import log_event
 from app.middleware.telemetry import record_steps
@@ -357,7 +357,7 @@ async def run_follow_up(
     correlation_id = get_correlation_id() or str(uuid.uuid4())
     step_seconds: dict[str, float] = {}
 
-    with correlation_scope(correlation_id):
+    with correlation_scope(correlation_id), event_tags_scope(_USE_CASE, patient_session_key):
         started = time.perf_counter()
         retrieved = await retrieve_bounded_set(token, patient_id, patient_session_key)
         step_seconds["retrieve"] = time.perf_counter() - started
