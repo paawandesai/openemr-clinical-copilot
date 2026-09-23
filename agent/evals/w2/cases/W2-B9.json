@@ -5,7 +5,7 @@
   "status": "pending_sut",
   "inputs": {
     "kind": "not_built",
-    "note": "Needs a factory scenario with a qualitative result (`Not Detected`)."
+    "note": "Still pending: no committed factory sample carries a qualitative result (`Not Detected`, `Trace`, `Positive`). The factory renders numeric analytes only. It needs a panel whose rows are qualitative — a urinalysis or a rapid antigen — drawing a term in the result column with a `Negative`/`Not Detected` reference range, recorded as `kind: text`. compute_abnormal_flag's qualitative arm (_QUALITATIVE_NEGATIVE/_POSITIVE) and QualitativeLabValue are already built and unexercised by any committed sample."
   },
   "expected": "A qualitative result is extracted as a QualitativeLabValue and is not coerced into a number.",
   "assertions": [

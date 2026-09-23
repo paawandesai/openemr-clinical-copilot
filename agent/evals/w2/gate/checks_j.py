@@ -335,3 +335,173 @@ def j_real_retrieval_log_line_has_no_identifier(case: Case) -> CheckOutcome:
         f"{len(event)} fields, all counts/scores/durations/ids; zero canary and zero "
         "pattern hits; neither the concept text nor any chunk text is present"
     )
+
+
+# --------------------------------------------------------------------------
+# The root-run trace gap (docs/w2/root-run-trace-gap.md).
+# --------------------------------------------------------------------------
+
+#: Input keys a graph run may carry. Bookkeeping only.
+SAFE_INPUT_KEYS = frozenset({"node_seconds"})
+RUN_METHODS = frozenset(
+    {"ainvoke", "invoke", "astream", "stream", "astream_events", "abatch", "batch"}
+)
+
+
+def _graph_names() -> set[str]:
+    """Every module-level name in `app` bound to a graph object."""
+    import importlib
+    import pkgutil
+
+    from langgraph.pregel import Pregel
+
+    import app
+    from app.graph.pre_visit_brief import UntracedGraph
+
+    found: set[str] = set()
+    for info in pkgutil.walk_packages(app.__path__, "app."):
+        module = importlib.import_module(info.name)
+        for name, value in vars(module).items():
+            if isinstance(value, UntracedGraph | Pregel):
+                found.add(name)
+    return found
+
+
+def _empty_literal(node: Any) -> bool:
+    import ast
+
+    if isinstance(node, ast.Dict | ast.List | ast.Tuple | ast.Set):
+        return not getattr(node, "keys", None) and not getattr(node, "elts", None)
+    if isinstance(node, ast.Call) and isinstance(node.func, ast.Name):
+        return node.func.id in {"dict", "list", "tuple", "set"} and not node.args
+    return isinstance(node, ast.Constant) and node.value in (None, 0, 0.0, "")
+
+
+def _receiver(node: Any) -> str | None:
+    import ast
+
+    if isinstance(node, ast.Name):
+        return node.id
+    if isinstance(node, ast.Attribute):
+        return node.attr
+    return None
+
+
+def scan_graph_inputs(source: str, where: str, graph_names: set[str]) -> list[str]:
+    """Every way `source` runs a graph with something worth leaking in its input."""
+    import ast
+
+    problems: list[str] = []
+    for node in ast.walk(ast.parse(source)):
+        if isinstance(node, ast.Assign):
+            value = node.value
+            if value is not None and _receiver(value) in graph_names:
+                for target in node.targets:
+                    if isinstance(target, ast.Name) and target.id not in graph_names:
+                        problems.append(
+                            f"{where}:{node.lineno}: graph aliased as {target.id!r}; "
+                            "calls through it would go unchecked"
+                        )
+        if not (isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute)):
+            continue
+        if node.func.attr not in RUN_METHODS or _receiver(node.func.value) not in graph_names:
+            continue
+        arg = (
+            node.args[0]
+            if node.args
+            else next((kw.value for kw in node.keywords if kw.arg in ("input", "inputs")), None)
+        )
+        if not isinstance(arg, ast.Dict):
+            problems.append(f"{where}:{node.lineno}: graph input is not a dict literal")
+            continue
+        for key, value in zip(arg.keys, arg.values, strict=True):
+            if not (isinstance(key, ast.Constant) and key.value in SAFE_INPUT_KEYS):
+                label = key.value if isinstance(key, ast.Constant) else "**expansion"
+                problems.append(f"{where}:{node.lineno}: input key {label!r} is not bookkeeping")
+            elif not _empty_literal(value):
+                problems.append(f"{where}:{node.lineno}: input {key.value!r} is not empty")
+    return problems
+
+
+@check("chk.j_graph_input_carries_nothing_worth_leaking")
+def j_graph_input_carries_nothing_worth_leaking(case: Case) -> CheckOutcome:
+    """
+    The root-run trace gap, which the extractor branch found.
+
+    Every node in a Week 2 graph runs inside Week 1's `_untraced` guard and
+    refuses to execute with a LangSmith tracer attached (findings.md F-56).
+    But a tracer attached to the compiled graph posts the ROOT RUN — carrying
+    the caller's input dict verbatim — *before* any node gets the chance to
+    refuse. `UntracedGraph` stops that on its own entry point; it cannot stop
+    a caller that reaches the compiled graph another way, and the node guard
+    cannot either.
+
+    So the input has to hold nothing worth leaking, whatever path runs the
+    graph. Per-run data — tokens, patient ids, document bytes, questions —
+    belongs in LangGraph runtime *context*, which a tracer does not receive.
+
+    `agent/tests/test_graph_inputs_carry_nothing.py` is the branch's own
+    version with five controls. This is the gated copy, for the same reason
+    W2-C8 duplicates the locate measurement: `agent/tests/` is not gated and
+    the gate must hold a copy an implementation session cannot weaken. Its
+    two controls below are what stop it passing because it stopped looking.
+    """
+    del case
+    from pathlib import Path
+
+    import app
+
+    names = _graph_names()
+    if not names:
+        return CheckOutcome.failed(
+            "no compiled graph found anywhere in app/. Either the graphs moved or "
+            "discovery is broken — and a scanner that finds nothing reports nothing."
+        )
+
+    root = Path(app.__file__).resolve().parent
+    problems: list[str] = []
+    scanned = 0
+    for path in sorted(root.rglob("*.py")):
+        scanned += 1
+        problems += scan_graph_inputs(
+            path.read_text(encoding="utf-8"), path.relative_to(root).as_posix(), names
+        )
+    if problems:
+        return CheckOutcome.failed(
+            f"{len(problems)} graph run(s) in app/ carry something in their input: "
+            + "; ".join(problems[:4])
+        )
+
+    # Controls: the scanner sees what it claims to.
+    control_names = {"GRAPH"}
+    caught = scan_graph_inputs(
+        "async def run(pdf):\n    await GRAPH.ainvoke({'pdf_bytes': pdf})\n",
+        "<control>",
+        control_names,
+    )
+    if not caught:
+        return CheckOutcome.failed(
+            "the scanner did not catch document bytes in a graph input; it is not "
+            "looking, and its silence on app/ means nothing"
+        )
+    aliased = scan_graph_inputs(
+        "def run():\n    g = GRAPH\n    return g.invoke({'node_seconds': {}})\n",
+        "<control>",
+        control_names,
+    )
+    if not aliased:
+        return CheckOutcome.failed("the scanner did not catch a graph rebound to another name")
+    quiet = scan_graph_inputs(
+        "async def run():\n    await GRAPH.ainvoke({'node_seconds': {}})\n",
+        "<control>",
+        control_names,
+    )
+    if quiet:
+        return CheckOutcome.failed(
+            f"the scanner fired on the safe shape: {quiet}. A check that rejects the "
+            "correct call is one somebody deletes."
+        )
+    return CheckOutcome.ok(
+        f"{len(names)} graph name(s), {scanned} modules scanned, zero runs carrying "
+        "anything but empty bookkeeping; scanner controls all fire"
+    )

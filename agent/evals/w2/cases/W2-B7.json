@@ -2,19 +2,20 @@
   "id": "W2-B7",
   "category": "B",
   "critical": false,
-  "status": "pending_sut",
+  "status": "active",
   "inputs": {
     "kind": "factory_scenario",
     "scenario_ids": [
       "lab-clean-001"
-    ]
+    ],
+    "note": "MODE: recorded — driven by fixtures/transcriptions/, real claude-opus-5 output recorded against this exact PDF and replayed with no network. Not the ground-truth stub: a case that grades extraction is worthless run against a vision seam that is handed the right answer."
   },
-  "expected": "The reference range is kept as printed in ReferenceRange.text even where the numeric bounds parse, because the text is what a citation quotes.",
+  "expected": "The printed reference range survives in ReferenceRange.text even where the bounds parse, and the citation quotes that text.",
   "assertions": [
     {
       "rubric": "citation_present",
       "tier": "det",
-      "check": "pending.w2_b7_citation_present"
+      "check": "chk.b_reference_range_text_is_kept"
     }
   ],
   "guards_against": "A parsed range replacing the printed one, so a citation quotes something the page does not say."

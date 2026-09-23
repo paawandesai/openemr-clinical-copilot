@@ -80,6 +80,12 @@ w2-eval-gate:
     paths:
       - .cache/pip
   before_script:
+    # tesseract is not optional any more. Category B's scanned-page cases and
+    # W2-C2 drive the OCR locate path, and they FAIL rather than skip without
+    # it — a scanned case that goes green on an image with no OCR is exactly
+    # the silent pass this gate exists to prevent.
+    - apt-get update && apt-get install -y --no-install-recommends tesseract-ocr
+    - tesseract --version | head -1
     - python -V
     - python -m pip install --upgrade pip
     - python -m pip install -r agent/requirements.txt -r agent/requirements-dev.txt

@@ -41,6 +41,7 @@ pre-push hook (`scripts/install-w2-pre-push-hook.sh`) runs
 | `judge_config.json` | yes | Pinned judge model and version, prompts, cache key, and what the judge does not cover. |
 | `judge_prompts/` | yes | The two judge rubrics, as text. Their sha256 is part of the cache key. |
 | `fixtures/` | yes | PHI canary bundles and the frozen judge meta-check fixtures. |
+| `fixtures/transcriptions/` | yes | Six recorded live transcriptions — real `claude-opus-5` output against the committed PDFs, promoted from `staging/`. Replayed offline; a recording made against a different PDF, prompt or schema is refused, not replayed. |
 | `baseline.json` | yes | The committed scores a run is compared against. |
 | `gate/` | yes | The machinery: loader, checkers, judge, statistics, verdict, runner. |
 | `gate/checks_delegation.py` | yes | Checks that a `delegated` case's CI job really enforces it. |
@@ -62,6 +63,31 @@ Rule 3 is the detector and rule 5 is the backstop, not the other way round: on
 a 4-to-10-case category one case is worth 10 to 25 percentage points, so a 5%
 band is below the resolution of a single case. See `docs/w2/DECISIONS.md`
 D35.
+
+## Running it needs tesseract
+
+Category B's scanned-page cases and W2-C2 drive the OCR locate path.
+Without `tesseract-ocr` they **fail rather than skip**: a scanned-page case
+that goes green on a machine with no OCR is exactly the silent pass this gate
+exists to prevent. The CI job installs it; a dev machine needs
+`brew install tesseract` or `apt-get install tesseract-ocr`, and the
+pre-push hook will block until it is there.
+
+## Recorded model output, or the ground-truth stub
+
+Every B case names its mode.
+
+`MODE_RECORDED` drives the worker from `fixtures/transcriptions/` — what
+`claude-opus-5` actually returned for that PDF, about $0.78 of real inference
+recorded once and replayed for nothing. `MODE_STUB` drives it from the
+factory's own ground truth, which hands the worker the right answer and
+therefore proves plumbing, not extraction. A case that claims the model did
+not invent a value has to use the first.
+
+The recordings carry the PDF's SHA-256 and a fingerprint of the prompt and
+output schema. A recording that no longer matches is **refused**, not
+replayed: it answers a question the worker no longer asks, and grading an old
+run silently is worse than failing.
 
 ## Case status
 

@@ -1,0 +1,19 @@
+{
+  "id": "W2-J7",
+  "category": "J",
+  "critical": true,
+  "status": "active",
+  "inputs": {
+    "kind": "contract",
+    "note": "Static analysis over every module in app/, plus three controls the scanner is run against directly. No graph is executed: the leak happens before any node does, so what matters is what callers PASS, and that is readable from source."
+  },
+  "expected": "No compiled graph in app/ is ever run with document bytes, chart content or a patient identifier in its input. Every graph run passes a dict literal whose keys are bookkeeping and whose values are empty; no graph is rebound to another name; and the scanner's own controls fire.",
+  "assertions": [
+    {
+      "rubric": "no_phi_in_logs",
+      "tier": "det",
+      "check": "chk.j_graph_input_carries_nothing_worth_leaking"
+    }
+  ],
+  "guards_against": "The root-run trace gap the extractor branch found. Every Week 2 node runs inside Week 1's _untraced guard and refuses to execute with a LangSmith tracer attached — but the tracer posts the ROOT RUN, carrying the caller's input dict verbatim, before any node can refuse. UntracedGraph closes that on its own entry point and cannot close it for a caller that reaches the compiled graph another way. So a graph whose input carries document bytes or a patient identifier leaks them to LangSmith no matter what the node guard does, and W2-J1..J4 would not see it: they scan what the app logs, and this is posted by the tracer."
+}

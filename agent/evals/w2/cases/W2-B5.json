@@ -2,20 +2,22 @@
   "id": "W2-B5",
   "category": "B",
   "critical": false,
-  "status": "pending_sut",
+  "status": "active",
   "inputs": {
     "kind": "factory_scenario",
     "scenario_ids": [
-      "lab-scanned-heavy-abnormal-002"
-    ]
+      "lab-clean-001",
+      "lab-multipage-003"
+    ],
+    "note": "MODE: recorded — driven by fixtures/transcriptions/, real claude-opus-5 output recorded against this exact PDF and replayed with no network. Not the ground-truth stub: a case that grades extraction is worthless run against a vision seam that is handed the right answer."
   },
-  "expected": "An ambiguously rendered collection date is either parsed to the ISO date ground truth records or flagged unsupported; it is never guessed into the wrong century or the wrong day/month order.",
+  "expected": "Every extracted collection date is a parsed date or is disclosed. Never a guess at day/month order.",
   "assertions": [
     {
       "rubric": "schema_valid",
       "tier": "det",
-      "check": "pending.w2_b5_schema_valid"
+      "check": "chk.b_dates_are_iso_or_unsupported"
     }
   ],
-  "guards_against": "Date-format ambiguity read as fact."
+  "guards_against": "Date-format ambiguity read as fact, which silently attaches a result to the wrong encounter."
 }

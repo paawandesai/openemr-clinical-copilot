@@ -2,18 +2,18 @@
   "id": "W2-B10",
   "category": "B",
   "critical": false,
-  "status": "pending_sut",
+  "status": "active",
   "inputs": {
-    "kind": "not_built",
-    "note": "Needs the extractor: a forced invalid model output."
+    "kind": "contract",
+    "note": "MODE: synthetic — a VisionExtractor that raises VisionFailure(MODEL_OUTPUT_INVALID). No recording needed: the assertion is about what the worker does with a model that returned nothing usable."
   },
-  "expected": "Unparseable extractor output produces status=failed with failure_reason=model_output_invalid and no payload at all (D7).",
+  "expected": "Unparseable model output produces status=failed with failure_reason=model_output_invalid and NO payload.",
   "assertions": [
     {
       "rubric": "schema_valid",
       "tier": "det",
-      "check": "pending.w2_b10_schema_valid"
+      "check": "chk.b_unparseable_output_fails_with_no_payload"
     }
   ],
-  "guards_against": "A partial extraction returned alongside a non-complete status — up to 73.7% unparseable JSON has been measured for some models on medical IE."
+  "guards_against": "A partial extraction returned beside a non-complete status (D7). Up to 73.7% unparseable JSON has been measured for some models on medical IE, so this is the common failure, not the exotic one."
 }

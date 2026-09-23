@@ -2,25 +2,21 @@
   "id": "W2-B4",
   "category": "B",
   "critical": false,
-  "status": "pending_sut",
+  "status": "active",
   "inputs": {
     "kind": "factory_scenario",
     "scenario_ids": [
       "intake-missing-allergy-006"
-    ]
+    ],
+    "note": "MODE: recorded — driven by fixtures/transcriptions/, real claude-opus-5 output recorded against this exact PDF and replayed with no network. Not the ground-truth stub: a case that grades extraction is worthless run against a vision seam that is handed the right answer. PENDING, and not asserted here: the [J] half — that the answer's prose does not assert the unreadable value either. That needs an answer step and the judge tier."
   },
-  "expected": "A field scribbled out on the page comes back illegible with no value at all — not the chart's value, not a plausible one — and is disclosed as unsupported.",
+  "expected": "A field scribbled out on the page comes back with no value — not the chart's, not a plausible one — and is disclosed as unsupported.",
   "assertions": [
     {
       "rubric": "locate_result",
       "tier": "det",
-      "check": "pending.w2_b4_locate_result"
-    },
-    {
-      "rubric": "factually_consistent",
-      "tier": "judge",
-      "check": "pending.w2_b4_factually_consistent"
+      "check": "chk.b_illegible_is_not_guessed"
     }
   ],
-  "guards_against": "An invented value on an illegible field: rare but real, and overconfident precisely on the lowest-quality scans."
+  "guards_against": "An invented value on an illegible field: rare, and overconfident precisely on the lowest-quality scans. The [J] half — that the prose does not assert it either — is pending an answer step."
 }

@@ -2,18 +2,23 @@
   "id": "W2-C6",
   "category": "C",
   "critical": false,
-  "status": "pending_sut",
+  "status": "active",
   "inputs": {
-    "kind": "not_built",
-    "note": "Needs the extractor: a value the model reports on page 1 that the locate step finds only on page 2."
+    "kind": "factory_scenario",
+    "scenario_ids": [
+      "lab-clean-001",
+      "intake-missing-allergy-006",
+      "lab-multipage-003"
+    ],
+    "note": "MODE: recorded — driven by fixtures/transcriptions/, real claude-opus-5 output recorded against this exact PDF and replayed with no network. Not the ground-truth stub: a case that grades extraction is worthless run against a vision seam that is handed the right answer."
   },
-  "expected": "Where the model claims a page and the locate step places the value on another, the field is unsupported — the disagreement is not resolved in favour of either.",
+  "expected": "End to end through the worker: no field is presentable without a box, and every field the locate step could not place is disclosed.",
   "assertions": [
     {
       "rubric": "locate_result",
       "tier": "det",
-      "check": "pending.w2_c6_locate_result"
+      "check": "chk.c_unlocatable_value_is_disclosed"
     }
   ],
-  "guards_against": "A located-on-the-wrong-page value presented as fact with a confident citation."
+  "guards_against": "The model's word becoming a fact without the locate step agreeing. W2-C3 asserts this at the contract; this asserts the worker actually behaves that way on real model output."
 }

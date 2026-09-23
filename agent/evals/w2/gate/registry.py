@@ -46,6 +46,7 @@ def load_all_checks() -> None:
     """
     from evals.w2.gate import (  # noqa: F401  (imported for registration)
         checks_a,
+        checks_b,
         checks_c,
         checks_d,
         checks_delegation,
