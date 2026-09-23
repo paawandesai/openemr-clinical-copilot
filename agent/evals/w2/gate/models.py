@@ -75,6 +75,10 @@ class Case:
         value = self.inputs.get("scenario_ids", [])
         return list(value) if isinstance(value, list) else []
 
+    def requires(self) -> list[str]:
+        value = self.inputs.get("requires", [])
+        return list(value) if isinstance(value, list) else []
+
     def fixtures(self) -> list[str]:
         value = self.inputs.get("fixtures", [])
         return list(value) if isinstance(value, list) else []

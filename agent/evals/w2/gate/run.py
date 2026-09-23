@@ -44,6 +44,7 @@ from evals.w2.gate.registry import load_all_checks, resolve
 from evals.w2.gate.verdict import CategoryScore, Violation, evaluate
 
 PENDING_REASON = "pending_sut: specified, waiting on the supervisor graph"
+MISSING_TOOL_REASON = "cannot run here: {why}"
 JUDGE_SKIPPED_REASON = "judge tier skipped: no ANTHROPIC_API_KEY"
 DET_ONLY_REASON = "judge tier not run: --det-only"
 
@@ -66,11 +67,47 @@ def _run_case(case: Case) -> CaseResult:
     return CaseResult(case=case, results=tuple(results))
 
 
+def _missing_tools(case: Case) -> list[str]:
+    """
+    External binaries a case declares and this machine does not have.
+
+    Checked by the runner, not inside the checker, so the outcome is a SKIP
+    with a notice rather than a failure that reads like broken code. The
+    distinction matters because the two want opposite responses: a failure
+    says fix the branch, a missing binary says install something.
+    """
+    missing: list[str] = []
+    for tool in case.requires():
+        if tool == "tesseract":
+            # Ask the code that actually needs it, and quote its own reason.
+            # "tesseract is not installed" was wrong on the first machine that
+            # hit this: the binary was on PATH and `pytesseract` was not, and
+            # a message that names the wrong missing thing sends people to
+            # install something they already have.
+            from app.extraction.words import OcrUnavailableError, _require_tesseract
+
+            try:
+                _require_tesseract()
+            except OcrUnavailableError as exc:
+                missing.append(str(exc))
+    return missing
+
+
 def execute(cases: list[Case], *, det_only: bool, judge_available: bool) -> list[CaseResult]:
     out: list[CaseResult] = []
     for case in cases:
         if not case.is_scored:
             out.append(CaseResult(case=case, results=(), skipped_reason=PENDING_REASON))
+            continue
+        absent = _missing_tools(case)
+        if absent:
+            out.append(
+                CaseResult(
+                    case=case,
+                    results=(),
+                    skipped_reason=MISSING_TOOL_REASON.format(why="; ".join(absent)),
+                )
+            )
             continue
         if case.tier is Tier.JUDGE:
             if det_only:
@@ -359,10 +396,13 @@ def main(argv: list[str] | None = None) -> int:
     _print_violations(violations)
 
     blocked = bool(violations)
-    unscored_critical = [
-        r for r in results if r.case.is_active and r.case.critical and not r.scored
-    ]
-    incomplete = bool(unscored_critical)
+    unscored = [r for r in results if r.case.is_scored and not r.scored]
+    unscored_critical = [r for r in unscored if r.case.critical]
+    # Any active case the run did not execute makes the run incomplete, not
+    # only a critical one. A skipped case is not a passing case, and the
+    # difference between "4 scanned cases did not run" and "everything is
+    # green" has to survive into the exit code.
+    incomplete = bool(unscored)
 
     print()
     print(RULE)
@@ -379,17 +419,23 @@ def main(argv: list[str] | None = None) -> int:
         outcome = "PASS (INCOMPLETE, --allow-incomplete)"
     else:
         outcome = "INCOMPLETE"
+    skipped_note = f" | SKIPPED {len(unscored)}" if unscored else ""
     print(
         f"VERDICT: {outcome} | "
         f"specs {aggregate.specs} | active {aggregate.active} | pending {aggregate.pending} | "
         f"det {aggregate.det.passed}/{aggregate.det.scored} | "
         f"judge {aggregate.judge.passed}/{aggregate.judge.scored} ({judge_state})"
+        f"{skipped_note}"
     )
     if incomplete:
+        reasons: dict[str, list[str]] = {}
+        for result in unscored:
+            reasons.setdefault(result.skipped_reason or "?", []).append(result.case.id)
+        detail = "; ".join(f"{len(ids)} {why} [{', '.join(ids)}]" for why, ids in reasons.items())
+        critical_note = f" {len(unscored_critical)} of them CRITICAL." if unscored_critical else ""
         print(
-            f"NOT EVIDENCE: {len(unscored_critical)} critical case(s) were never scored "
-            f"({', '.join(r.case.id for r in unscored_critical)}). This run does not show "
-            "that they hold."
+            f"NOT EVIDENCE: {len(unscored)} active case(s) were never scored.{critical_note} "
+            f"{detail}"
         )
     print(RULE)
 
@@ -399,6 +445,7 @@ def main(argv: list[str] | None = None) -> int:
     ]
     payload["blocked"] = blocked
     payload["incomplete"] = incomplete
+    payload["unscored"] = [r.case.id for r in unscored]
     payload["unscored_critical"] = [r.case.id for r in unscored_critical]
     if args.json_path:
         with open(args.json_path, "w", encoding="utf-8") as handle:
@@ -410,14 +457,14 @@ def main(argv: list[str] | None = None) -> int:
             print("refusing to seed a baseline from a blocked run", file=sys.stderr)
             return 2
         if incomplete:
-            # Seeding here would record every unscored critical case as
+            # Seeding here would record every unscored case as
             # "skipped", and rule (c) fires only on a case the baseline says
             # passed — so each of them would be exempt from the critical-case
             # override for as long as that baseline stood.
             print(
                 "refusing to seed a baseline from a run that did not score "
-                f"{len(unscored_critical)} critical case(s): "
-                f"{', '.join(r.case.id for r in unscored_critical)}",
+                f"{len(unscored)} active case(s): "
+                f"{', '.join(r.case.id for r in unscored)}",
                 file=sys.stderr,
             )
             return 2
@@ -439,7 +486,7 @@ def main(argv: list[str] | None = None) -> int:
         seed = {
             key: value
             for key, value in payload.items()
-            if key not in ("violations", "blocked", "incomplete", "unscored_critical")
+            if key not in ("violations", "blocked", "incomplete", "unscored", "unscored_critical")
         }
         BASELINE.write_text(json.dumps(seed, indent=2) + "\n", encoding="utf-8")
         print(f"baseline written to {BASELINE}")

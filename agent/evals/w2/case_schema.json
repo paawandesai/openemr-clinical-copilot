@@ -80,6 +80,17 @@
         "note": {
           "type": "string",
           "minLength": 1
+        },
+        "requires": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "tesseract"
+            ]
+          },
+          "minItems": 1,
+          "description": "External binaries this case needs. Declared here rather than discovered inside the checker so the runner can skip the case with a notice instead of reporting a failure that is about the machine, not the code."
         }
       }
     },

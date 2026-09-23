@@ -9,10 +9,13 @@ invent a value" is worth nothing run against the ground-truth stub, which
 hands the worker the right answer — so every case here names its mode, and
 the ones that make a claim about extraction use the recording.
 
-Scanned samples need tesseract. When it is missing these checks FAIL rather
-than skip: a scanned-page case that quietly passes on a machine with no OCR
-is exactly the silent pass the gate exists to prevent, and the CI image
-installs it.
+Scanned samples need tesseract. Those cases declare `requires: [tesseract]`
+and the RUNNER skips them when the binary is absent, with the reason named in
+the run and a `SKIPPED n` on the verdict line — a skip is never a pass, and
+the exit code is 3 (INCOMPLETE) rather than 0. The check itself does not test
+for the binary: a missing tool is a fact about the machine and wants
+"install this", where a failure wants "fix the branch", and reporting the
+first as the second is how people learn to ignore both.
 """
 
 from __future__ import annotations
@@ -34,17 +37,6 @@ SCANNED_LIGHT = "intake-scanned-light-med-005"
 MULTIPAGE = "lab-multipage-003"
 CLEAN_LAB = "lab-clean-001"
 ILLEGIBLE = "intake-missing-allergy-006"
-
-
-def _needs_tesseract() -> CheckOutcome | None:
-    if samples.tesseract_is_available():
-        return None
-    return CheckOutcome.failed(
-        "tesseract is not installed, so the OCR path cannot run and this scanned-page "
-        "case cannot be scored. It fails rather than skips: a scanned case that goes "
-        "green on a machine with no OCR is a silent pass. Install tesseract-ocr — the "
-        "CI image does."
-    )
 
 
 def _lab(sample: str, mode: str = samples.MODE_RECORDED):
@@ -146,9 +138,6 @@ def b_unit_is_transcribed_not_converted(case: Case) -> CheckOutcome:
     mmol/L, which it can do whether or not code could then find the number.
     """
     del case
-    blocked = _needs_tesseract()
-    if blocked:
-        return blocked
     _, extraction = _lab(SCANNED_HEAVY)
     checked = 0
     for result in extraction.results:
@@ -182,9 +171,6 @@ def b_value_is_not_the_reference_range_bound(case: Case) -> CheckOutcome:
     given in B1.
     """
     del case
-    blocked = _needs_tesseract()
-    if blocked:
-        return blocked
     _, extraction = _lab(SCANNED_HEAVY)
     checked = 0
     for result in extraction.results:
@@ -363,9 +349,6 @@ def b_ocr_values_match_the_clean_layout(case: Case) -> CheckOutcome:
     with a box behind it would be contradicted by nothing downstream.
     """
     del case
-    blocked = _needs_tesseract()
-    if blocked:
-        return blocked
     report, extraction = _lab(SCANNED_HEAVY)
     if extraction.document.has_text_layer:
         return CheckOutcome.failed(f"{SCANNED_HEAVY} is supposed to have no text layer")
@@ -495,9 +478,6 @@ def c_ocr_path_locates_on_a_scanned_page(case: Case) -> CheckOutcome:
     light one is where most fields should land.
     """
     del case
-    blocked = _needs_tesseract()
-    if blocked:
-        return blocked
 
     totals: dict[str, tuple[int, int]] = {}
     for sample in (SCANNED_HEAVY, SCANNED_LIGHT):

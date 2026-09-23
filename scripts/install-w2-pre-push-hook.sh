@@ -17,8 +17,9 @@
 # factually_consistent or safe_refusal assertion, which today means the judge
 # meta-check set, all of it critical). CI runs those.
 #
-# The gate exits 3 for a run that scored no critical case, and 3 is nonzero, so
-# the hook passes --allow-incomplete to map it to 0. That flag lives HERE, at
+# The gate exits 3 for a run that left any active case unscored — the judge
+# tier here, and the OCR cases on a machine with no tesseract — and 3 is
+# nonzero, so the hook passes --allow-incomplete to map it to 0. That flag lives HERE, at
 # the call site, and not inside the gate: this hook is the one caller entitled
 # to say "I am not claiming to be evidence", and anyone reading the hook can
 # see it claim that. CI never passes it, so a CI run with no credential fails.
@@ -113,6 +114,8 @@ cd "\$top/agent"
 if "\$python" -m evals.w2.gate --det-only --allow-incomplete; then
   echo "pre-push: deterministic tier passed. The judge tier was NOT run here — CI runs it,"
   echo "pre-push: and this run is not evidence that the category-M cases hold."
+  echo "pre-push: any case listed above as SKIPPED did not run. The gate names what is"
+  echo "pre-push: missing and how to install it; CI has it, so they are still enforced."
   exit 0
 fi
 cat >&2 <<'MSG'
