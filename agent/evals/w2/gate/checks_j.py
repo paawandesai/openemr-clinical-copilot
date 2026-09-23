@@ -266,7 +266,7 @@ def j_real_retrieval_log_line_has_no_identifier(case: Case) -> CheckOutcome:
 
     Captured from a real retrieval with `log_event` intercepted, not copied
     into a fixture here — a copy would go on passing for ever after somebody
-    added a field to the real one. Seventeen fields: counts, scores,
+    added a field to the real one. Nineteen fields: counts, scores,
     milliseconds, ids. No query text, no chunk text, no patient anything.
     """
     del case
@@ -289,6 +289,12 @@ def j_real_retrieval_log_line_has_no_identifier(case: Case) -> CheckOutcome:
         # content whatever is on the right of it. Same shape as the three
         # rerank_* flags above it.
         "rerank_busy",
+        # Added by chore/w2-deploy-rehearsal's circuit-breaker fix (D41) and
+        # admitted on the same doctrine: app/retrieval/worker.py emits it as
+        # bool(rerank and rerank.skipped_circuit_open), and the retriever sets
+        # that to a literal True only when the circuit's own open-time and
+        # skip counter say to skip. No query, chunk or patient input reaches it.
+        "rerank_skipped_circuit_open",
         "lexical_ms",
         "dense_ms",
         "fusion_ms",
