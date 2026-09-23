@@ -20,29 +20,32 @@ limits.
   arithmetic shown.
 - **Assumed**: an input with no data behind it.
 
-**Snapshot: `main@2ae4d98`**, which is on `origin`. A claim marked PENDING
-rests on a branch not yet merged into `main`: **[PENDING `chore/w2-deploy-rehearsal`]**, **[PENDING `feat/w2-eval-gate`]** or **[PENDING `feat/w2-answer-scope`, not on `origin`]**.
+**Snapshot: `main@21f1053`**, which is on `origin`. A claim marked PENDING
+rests on a branch not yet merged into `main`: **[PENDING `feat/w2-eval-gate`]** or **[PENDING `feat/w2-answer-scope`, not on `origin`]**.
 
-- **Merged:** `feat/w2-php-wiring` merged into `main` at `2ae4d98`
-  (the Documents & Sources card, its routes, the upload guard on the real
-  `/documents`, the correlation header). Its claims are no longer marked.
-- **Merge order for the rest:** `chore/w2-deploy-rehearsal` (which
-  deploys), then `feat/w2-eval-gate`. Every citation is then repinned to the
-  one resulting `main` commit, and the markers come out.
+- **Merged, no longer marked:**
+  - `feat/w2-php-wiring`, at `2ae4d98`: the Documents & Sources card, its
+    routes, the upload guard on the real `/documents`, and the correlation
+    header;
+  - `chore/w2-deploy-rehearsal`, at `21f1053`: `docs/w2/DEPLOY.md`, D41,
+    the self-closing rerank circuit, single-threaded Tesseract, and the
+    agent's 4.5 GiB memory cap.
+- **Still to merge:** `feat/w2-eval-gate`. Every citation is then repinned
+  to the one resulting `main` commit, and the markers come out.
+- **The host is not redeployed yet.** It still runs `a78ba51`.
 - **Answer-scope is not on `origin`.** `feat/w2-answer-scope` fixes the
   slow whole-report question. It numbers its decision D49, which `main` has
   already assigned to the preview URL. Its figures cannot be checked from
   `origin` until it is pushed and renumbered.
-- **Live host:** figures from the live host are labelled "rehearsal host, before the Week 2 deploy". The
-  deploy session re-measures after it deploys, and those numbers replace
-  them.
+- **Live host:** host figures are labelled "rehearsal host, before the Week 2 deploy". The deploy session
+  re-measures after it deploys, and those numbers replace them.
 
 Short names used below:
 
 | Short name | Full path |
 |---|---|
 | `LOAD_TEST.md`, `OBSERVABILITY.md`, `ALERTS.md` | `docs/w2/…` on `main` |
-| `DEPLOY.md` | `docs/w2/DEPLOY.md` **[PENDING `chore/w2-deploy-rehearsal`]** |
+| `DEPLOY.md` | `docs/w2/DEPLOY.md` |
 | gate README | `agent/evals/w2/README.md` **[PENDING `feat/w2-eval-gate`]** |
 
 ---
@@ -96,7 +99,7 @@ Short names used below:
   - With at most two reranks at once (D39) it is **259 ms**.
   - The cost of that fix: only **1%** of those burst retrievals, and 6.2% at
     50 paced users, were actually reranked.
-  - The admission bound is on `main`, but not on the live host (rehearsal host, before the Week 2 deploy) **[PENDING `chore/w2-deploy-rehearsal`]** (§4.3).
+  - The admission bound is on `main`, but not on the live host (rehearsal host, before the Week 2 deploy) (§4.3).
 
 ---
 
@@ -114,7 +117,7 @@ rounded up.
 | 4 | Week 1-route API collection runs: 3 runs, 5 calls | **$0.38** ($0.150 + $0.087 + $0.145) | Measured, from logs | `LOAD_TEST.md`, "What it cost" |
 | 5 | Two real-route Week 2 encounters through the API collection (`c8661931-…`, `07c0fd35-…`) | **$1.64** (2 × $0.82; the `07c0fd35` trace reads $0.821785) | Measured: Langfuse trace cost | `OBSERVABILITY.md` §2; `LOAD_TEST.md` §6. **Not in `LOAD_TEST.md`'s "What it cost" table**, which predates them |
 | 6 | Eval-gate judge, one cold run: 24 calls, 15,825 in / 2,593 out on `claude-haiku-4-5` at $1/$5 per MTok | **$0.0288** | Measured (15,825 × $1 + 2,593 × $5 = $0.02879) | gate README **[PENDING `feat/w2-eval-gate`]**, "What a run costs" |
-| 7 | Deploy rehearsal on Vultr: brief + 4 turns × 3 patients | **$1.204075** ($0.180445 + $0.37474 + $0.64889) | Tokens measured from `llm_usage_event`; cost = tokens × $5/$25 per MTok | `DEPLOY.md` §8 **[PENDING `chore/w2-deploy-rehearsal`]**, "Cost per encounter" |
+| 7 | Deploy rehearsal on Vultr: brief + 4 turns × 3 patients | **$1.204075** ($0.180445 + $0.37474 + $0.64889) | Tokens measured from `llm_usage_event`; cost = tokens × $5/$25 per MTok | `DEPLOY.md` §8, "Cost per encounter" |
 | | **Total located** | **$7.371725 ≈ $7.37** | Sum of measured rows | this table |
 
 **Reported but not located.**
@@ -201,7 +204,7 @@ follow-up turns (Week 1's usage assumption, `docs/COST_ANALYSIS.md` §3) and
 
 | Component | Low | Mid | High | Kind and source |
 |---|---|---|---|---|
-| Brief + 4 turns | $0.180445 (pid 5) | $0.37474 (pid 38) | $0.64889 (pid 40) | **Measured** on the rehearsal host, before the Week 2 deploy, `DEPLOY.md` §8 **[PENDING `chore/w2-deploy-rehearsal`]** |
+| Brief + 4 turns | $0.180445 (pid 5) | $0.37474 (pid 38) | $0.64889 (pid 40) | **Measured** on the rehearsal host, before the Week 2 deploy, `DEPLOY.md` §8 |
 | One extraction | $0.09553 | $0.130198 (mean of six) | $0.227645 (2-page multipage) | **Measured**, the six recordings' `cost_usd` |
 | Guideline chunks in 4 turns | $0.0174 | $0.0174 | $0.0174 | **Estimated**: 4 chunks × 4 turns × (602,041 chars ÷ 693 chunks ÷ 4 chars/token, the 4 **assumed**) ≈ 3,475 tokens × $5/MTok |
 | **Encounter** | **$0.29** | **$0.52** | **$0.89** | **Estimated** (sum) |
@@ -266,7 +269,7 @@ How each column is derived:
   scoping fix, a whole-report answer is 6.9 s p50 and the column falls about
   13×.
 - **OCR cores** = 1.67 pages per document (10 pages across the six samples)
-  × 5.7 s per page (host p50, `DEPLOY.md` §8 **[PENDING `chore/w2-deploy-rehearsal`]**). It is an upper bound: a
+  × 5.7 s per page (host p50, `DEPLOY.md` §8). It is an upper bound: a
   text-layer page needs no OCR.
 - **Retrieval turns/s** = encounters/min × 4 turns ÷ 60.
 
@@ -279,7 +282,7 @@ rerank at a time per slot give:
 | Live host, OCR running | 2.45 s | ≈ **0.82 reranks/s** |
 | Laptop (M5 Pro) | about 250 ms | about 8/s (D39's own figure) |
 
-The host figures are from `DEPLOY.md` §8 **[PENDING `chore/w2-deploy-rehearsal`]**.
+The host figures are from `DEPLOY.md` §8.
 
 ### 3.2 What each level needs
 
@@ -301,7 +304,7 @@ not cost.**
   (`docs/w2/ui-integration.md` §2–3).
 - Deploy the upload guard, which is on `main` since `2ae4d98`: `/documents`
   authorizes, rate-limits and caps before reading a body (`DEPLOY.md` §2.2
-  **[PENDING `chore/w2-deploy-rehearsal`]**).
+ ).
 - Persist the document and extraction store, so a restart does not forget
   uploads or bill them again.
 - One process holds this load: under one concurrent document question, and
@@ -313,9 +316,9 @@ constraint.**
 - The Scale tier is needed; $17,220 a month is well under its $200K cap.
 - Take extraction out of the serving process. Vision needs 1.8 concurrent
   slots against a default of 2 (`AGENT_EXTRACTION_MAX_CONCURRENT`,
-  `DEPLOY.md` §9 **[PENDING `chore/w2-deploy-rehearsal`]**), so any burst returns 503 `extraction_capacity`.
+  `DEPLOY.md` §9), so any burst returns 503 `extraction_capacity`.
 - Take extraction off the OpenEMR host. OCR in the same container raises
-  rerank p95 from 2.08 s to 3.39 s (`DEPLOY.md` §8 **[PENDING `chore/w2-deploy-rehearsal`]**). A separate extraction
+  rerank p95 from 2.08 s to 3.39 s (`DEPLOY.md` §8). A separate extraction
   worker is what `LOAD_TEST.md` ("Where the new bottleneck is") already
   recommends.
 - About 6 document questions are in flight at the peak minute. Each holds a
@@ -323,10 +326,14 @@ constraint.**
   headroom for that, unless the fix above lands.
 - Retrieval fits: 0.28 turns/s against about 0.82–1.45 reranks/s on the
   host.
-- Memory is the next wall. The reranker reaches 3.1 GiB under paced load
-  (D39), on a 7.2 GiB host where OpenEMR peaks at 4.9 GiB.
-- Deploy D39 (on `main`, not on the rehearsal host, before the Week 2 deploy **[PENDING `chore/w2-deploy-rehearsal`]**), and fix the circuit breaker
-  that never closes (D41 **[PENDING `chore/w2-deploy-rehearsal`]**). Both are needed at this level.
+- Memory is the next wall.
+  - Measured on the host, the agent peaks at **3.7 GiB** at demo load (2
+    rerank threads + 1 OCR worker), leaving about 2.2 GiB of the 7.2 GiB.
+  - A heavier mix was OOM-killed at a 5 GiB test cap.
+  - The agent is therefore capped at 4.5 GiB. Past demo load it restarts,
+    and the database is never the victim (`DEPLOY.md` §8).
+- Deploy what `main` already has and the rehearsal host, before the Week 2 deploy does not: the D39
+  admission bound, and the D41 circuit that closes itself.
 
 **10K encounters a day (about 500 clinicians, many EHR deployments).
 Replicas, and a real reranking tier.**
@@ -384,14 +391,14 @@ tier.**
 | Document extraction, real vision | local, sequential | 3 | — | — | 15.3 s, 29.5 s, 32.9 s (mean 25.9 s); vision is 93–99% | `LOAD_TEST.md` §4b |
 | Extraction, vision replayed, 1 concurrent | local | 2 | 1.17 s | 2.21 s | | `LOAD_TEST.md` §4a |
 | Extraction, vision replayed, 50 concurrent | local | 100 | 4.81 s | 10.20 s | 8.25 cores busy, 1,233 MiB RSS | `LOAD_TEST.md` §4a |
-| OCR per page, Tesseract at 300 dpi | **rehearsal host, before the Week 2 deploy** **[PENDING `chore/w2-deploy-rehearsal`]** | 3 pages, best of 3 | 5.7 s | — | max 6.2 s | `DEPLOY.md` §8 |
-| Text layer per page | **rehearsal host, before the Week 2 deploy** **[PENDING `chore/w2-deploy-rehearsal`]** | 5 pages | 6 ms | — | max 14 ms | `DEPLOY.md` §8 |
-| Retrieval, hybrid, no rerank | **rehearsal host, before the Week 2 deploy** **[PENDING `chore/w2-deploy-rehearsal`]** | 60 | 7.8 ms | 9.4 ms | | `DEPLOY.md` §8 |
-| Rerank stage, idle host | **rehearsal host, before the Week 2 deploy** **[PENDING `chore/w2-deploy-rehearsal`]** | 90 | 1.38 s | 2.08 s | max 2.28 s | `DEPLOY.md` §8 |
-| Rerank stage, OCR in the same container | **rehearsal host, before the Week 2 deploy** **[PENDING `chore/w2-deploy-rehearsal`]** | 60 | 2.45 s | 3.39 s | max 4.09 s; 43.3% over 2.5 s | `DEPLOY.md` §8 |
+| OCR per page, Tesseract at 300 dpi | **rehearsal host, before the Week 2 deploy** | 3 pages, best of 3 | 5.7 s | — | max 6.2 s | `DEPLOY.md` §8 |
+| Text layer per page | **rehearsal host, before the Week 2 deploy** | 5 pages | 6 ms | — | max 14 ms | `DEPLOY.md` §8 |
+| Retrieval, hybrid, no rerank | **rehearsal host, before the Week 2 deploy** | 60 | 7.8 ms | 9.4 ms | | `DEPLOY.md` §8 |
+| Rerank stage, idle host | **rehearsal host, before the Week 2 deploy** | 90 | 1.38 s | 2.08 s | max 2.28 s | `DEPLOY.md` §8 |
+| Rerank stage, OCR in the same container | **rehearsal host, before the Week 2 deploy** | 60 | 2.45 s | 3.39 s | max 4.09 s; 43.3% over 2.5 s | `DEPLOY.md` §8 |
 | Conversation turn, real LLM, 10 users | local | 100 | 5.25 s | 6.41 s | draft p95 5.56 s | `LOAD_TEST.md` §2 |
-| Pre-Visit Brief, real LLM | **rehearsal host, before the Week 2 deploy** **[PENDING `chore/w2-deploy-rehearsal`]** | 3 patients | 19.7 s | — | max 22.8 s | `DEPLOY.md` §8 |
-| Follow-up turn, real LLM | **rehearsal host, before the Week 2 deploy** **[PENDING `chore/w2-deploy-rehearsal`]** | 3 patients × 4 | 9.2 s | — | max 18.2 s | `DEPLOY.md` §8 |
+| Pre-Visit Brief, real LLM | **rehearsal host, before the Week 2 deploy** | 3 patients | 19.7 s | — | max 22.8 s | `DEPLOY.md` §8 |
+| Follow-up turn, real LLM | **rehearsal host, before the Week 2 deploy** | 3 patients × 4 | 9.2 s | — | max 18.2 s | `DEPLOY.md` §8 |
 | Brief, LLM stubbed, 10 users | local | 280 | 1.14 s | 1.52 s | 0% errors | `LOAD_TEST.md` §1 |
 | Brief, LLM stubbed, 50 users | local | 200 | 16.08 s | 28.05 s | **58% errors**, all `fhir_unavailable` | `LOAD_TEST.md` §1 |
 
@@ -406,7 +413,7 @@ retrieving `/w2/ask`:
 | Part | p95 | Source |
 |---|---|---|
 | FHIR retrieve | 1.41 s | `LOAD_TEST.md` §2 |
-| Rerank, contended host | 3.39 s | `DEPLOY.md` §8 **[PENDING `chore/w2-deploy-rehearsal`]** |
+| Rerank, contended host | 3.39 s | `DEPLOY.md` §8 |
 | Draft | 5.56 s | `LOAD_TEST.md` §2 |
 
 The guideline question then measured 10.5 s and 10.6 s. The same method
@@ -459,7 +466,7 @@ the local stack:
   60× range of claims (3 to 180).
 - **Retrieval is small.**
   - A retrieval with reranking is milliseconds to about 2 s on the idle
-    rehearsal host (§4.1); the budget is 2.5 s on `main`.
+    rehearsal host (§4.1); the budget is 4.0 s on `main` (D41).
   - A guideline-only question takes 10.5–10.6 s end to end
     (`LOAD_TEST.md` §6).
 - **Not shown:**
@@ -510,17 +517,18 @@ Source: `docs/w2/evidence/php-wiring-e2e-run.md`, on `main`.
   suspended, but the cause is not established. Runs C and D repeated it
   without the delay.
 
-### 4.1c Post-deploy re-measurement **[PENDING `chore/w2-deploy-rehearsal`]**
+### 4.1c Post-deploy re-measurement
 
-After `chore/w2-deploy-rehearsal` deploys, the deploy session re-measures on
+When the host is redeployed from `main` (`chore/w2-deploy-rehearsal` merged
+at `21f1053`), the deploy session re-measures on
 the host. These rows replace the figures labelled "rehearsal host, before the
 Week 2 deploy" in §4.1:
 
 | Measurement | Before the Week 2 deploy (rehearsal host) | After the deploy |
 |---|---|---|
 | Vision extraction, cost per page | not measured on the host | *awaiting the deploy session* |
-| Vision extraction, latency per page | not measured on the host (OCR alone: p50 5.7 s) | *awaiting the deploy session* |
-| Peak memory under OCR + reranking | not measured (idle 760–900 MiB) | *awaiting the deploy session* |
+| Vision extraction, latency per page | not measured on the host. OCR alone: p50 5.7 s per page; 5.6 s with two workers under `OMP_THREAD_LIMIT=1`, against ~162 s without it (`DEPLOY.md` §8) | *awaiting the deploy session* |
+| Peak memory under OCR + reranking | 3.7 GiB at demo load (2 rerank threads + 1 OCR worker); OOM-killed at a 5 GiB test cap under a heavier mix. Measured on the host, in a throwaway container from the merged image's code, before the deploy (`DEPLOY.md` §8) | *awaiting the deploy session, on the running service* |
 | One answer citing a document and a guideline | the host did not run `/w2/ask` | *awaiting the deploy session* |
 
 ### 4.1d The document-question fix **[PENDING `feat/w2-answer-scope`, not on `origin`]**
@@ -558,7 +566,7 @@ measured $0.82 until an encounter is measured on the merged code.
 | Question → answer, capacity | **OpenEMR's PHP tier**, unchanged from Week 1: 420% CPU at 10 users, 58% failures at 50, and throughput *falling* from 4.53 to 2.70 req/s | `LOAD_TEST.md` §1 |
 | Other questions, wall clock | **The LLM draft**: 85% of a real turn | `LOAD_TEST.md` §2 |
 | Document → extraction, wall clock and cost | **The vision call**: 15–33 s and $0.10–0.23 per document, off the question path (D7) | `LOAD_TEST.md` §4b; §1 row 1 |
-| Document → extraction, local CPU | **OCR**: 5.7 s per scanned page on the rehearsal host, before the Week 2 deploy **[PENDING `chore/w2-deploy-rehearsal`]**; 8.25 cores busy at 50 concurrent locally | `DEPLOY.md` §8; `LOAD_TEST.md` §4a |
+| Document → extraction, local CPU | **OCR**: 5.7 s per scanned page on the rehearsal host, before the Week 2 deploy; 8.25 cores busy at 50 concurrent locally | `DEPLOY.md` §8; `LOAD_TEST.md` §4a |
 | Guideline retrieval | **The cross-encoder reranker** (§4.3) | `LOAD_TEST.md` §5, §5b; D39 |
 | Embedding and fusion | Not a bottleneck: p95 77 ms at 50 concurrent, locally | `LOAD_TEST.md` §5 |
 
@@ -586,16 +594,22 @@ Under that load, that property holds for 1 retrieval in 16.
 
 **Still open:**
 
-- **Memory.** Peak RSS is 3.1 GiB with the reranker against 0.26 GiB
-  without. The growth follows input-shape variety, and two fixes were
-  measured and rejected (D39).
-- **The circuit never closes** (D41 **[PENDING `chore/w2-deploy-rehearsal`]**). After one slow rerank on the host, 35
-  of the next 60 turns ran unreranked. The circuit stays open until the
-  process restarts.
-- **Deployment.** The live host (rehearsal host, before the Week 2 deploy) **[PENDING `chore/w2-deploy-rehearsal`]** has the 4 s budget (D41) but not the
-  admission bound (D39). `main` has the admission bound
-  (`MAX_CONCURRENT_RERANKS = 2`, `retriever.py:77`) but still the 2.5 s
-  budget (`retriever.py:67`).
+- **Memory, still open.**
+  - Locally, peak RSS is 3.1 GiB with the reranker against 0.26 GiB without
+    (D39). The growth follows input-shape variety, and two fixes were
+    measured and rejected.
+  - On the host at demo load, the agent peaks at 3.7 GiB, OCR included.
+  - The 4.5 GiB cap turns overload into an agent restart, not a database
+    kill (`DEPLOY.md` §8).
+- **The circuit: fixed on `main`** (D41).
+  - It used to latch: after one slow rerank on the host, 35 of the next 60
+    turns ran unreranked.
+  - It now closes after 60 s or 10 skipped turns, and a skipped turn is
+    logged apart from a slow rerank (`retriever.py:91–92`).
+- **Deployment.**
+  - `main` has all three: the admission bound (`retriever.py:82`), the 4.0 s
+    budget (`:72`) and the self-closing circuit.
+  - The rehearsal host, before the Week 2 deploy (`a78ba51`) has only the 4 s budget.
 
 ---
 
@@ -605,8 +619,8 @@ Under that load, that property holds for 1 retrieval in 16.
 |---|---|
 | Two real-route Week 2 encounters: cost ($0.82 each) and per-request latency | `/w2/ask` under any concurrent load |
 | Vision cost per document: six samples plus three more live runs | Concurrent vision throughput and Anthropic rate limits (`LOAD_TEST.md`, "Not measured") |
-| Brief + 4-turn session cost on three live-host charts | Any Week 2 route on the live host (rehearsal host, before the Week 2 deploy) **[PENDING `chore/w2-deploy-rehearsal`]**: the host does not run it |
-| Rerank, OCR and retrieval latency on the live host (rehearsal host, before the Week 2 deploy) **[PENDING `chore/w2-deploy-rehearsal`]** | The per-call token split inside the $0.82 encounter, other than the document question |
+| Brief + 4-turn session cost on three live-host charts | Any Week 2 route on the live host (rehearsal host, before the Week 2 deploy): the host does not run it |
+| Rerank, OCR and retrieval latency on the live host (rehearsal host, before the Week 2 deploy) | The per-call token split inside the $0.82 encounter, other than the document question |
 | Judge cost per cold CI run | Judge calls spent selecting fixtures and on cold harness runs |
 | Seven rows of dev spend (§1) | A Week 2 Anthropic Console total; the "$1.21 I-suite run" |
 | | A cheaper vision or answer model; prompt caching on the extraction prompt |

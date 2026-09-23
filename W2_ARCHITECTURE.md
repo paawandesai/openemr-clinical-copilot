@@ -7,7 +7,7 @@ architecture is unchanged and is not repeated here:
 [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) (authorization, tool scope,
 conversation state, the deterministic verifier).
 
-**Snapshot: `main@2ae4d98`.** Every path and number below is on that commit
+**Snapshot: `main@21f1053`.** Every path and number below is on that commit
 unless it is marked PENDING. That commit is on `origin`.
 
 **PENDING** marks a claim that rests on a branch not yet merged into `main`,
@@ -15,12 +15,12 @@ and names the branch:
 
 | Marker | Branch | On `origin`? | What rests on it |
 |---|---|---|---|
-| **[PENDING `chore/w2-deploy-rehearsal`]** | `chore/w2-deploy-rehearsal` | yes, unmerged; merges **next** and deploys | `docs/w2/DEPLOY.md` and every live-host measurement; D41; the upload guard for the stub route |
 | **[PENDING `feat/w2-eval-gate`]** | `feat/w2-eval-gate` | yes, unmerged; merges **last** | the eval gate, its cases and evidence (`docs/w2/EVAL_GATE_EVIDENCE.md`); D42–D48 |
 | **[PENDING `feat/w2-answer-scope`, not on `origin`]** | `feat/w2-answer-scope` | **no** | the scoped answer and its before/after numbers (`LOAD_TEST.md` §7). It numbers its decision D49, which `main` already uses for the preview URL |
 
-`feat/w2-php-wiring` merged at `2ae4d98`, and its claims are no longer marked.
-When the rest are in, every citation is repinned to the one resulting
+`feat/w2-php-wiring` (at `2ae4d98`) and `chore/w2-deploy-rehearsal` (at
+`21f1053`) have merged, and their claims are no longer marked. The host is
+not redeployed yet: it still runs `a78ba51`. When the gate is in, every citation is repinned to the one resulting
 `main` commit and the markers come out. Until then a PENDING claim cannot be
 checked from `main`.
 
@@ -79,7 +79,7 @@ beside chart facts without the two blurring. Nine decisions carry the weight.
 - **Reranking for latency.** Under load most retrievals go unreranked rather
   than queue (D39).
 - **Local models for privacy.** Idle memory is 760–900 MiB against Week 1's
-  50 MiB (`DEPLOY.md` §8 **[PENDING `chore/w2-deploy-rehearsal`]**), and in return D5 is structural.
+  50 MiB (`DEPLOY.md` §8), and in return D5 is structural.
 - **One worker.** Correct for the demo, wrong for production (D40 item 10).
 
 **Not true yet:**
@@ -93,8 +93,8 @@ beside chart facts without the two blurring. Nine decisions carry the weight.
     citations and answers in 17.2–19.5 s (`docs/w2/evidence/php-wiring-e2e-run.md`).
   - Scoping brings the whole-report answer to 6.9 s p50
     (`docs/w2/COST_AND_LATENCY.md` §4.1a, §4.1d).
-- The live host (rehearsal host, before the Week 2 deploy) **[PENDING `chore/w2-deploy-rehearsal`]** does not run the Week 2 ask path (`a78ba51` predates
-  `feat/w2-graph`, `DEPLOY.md` §0 **[PENDING `chore/w2-deploy-rehearsal`]**).
+- The live host (rehearsal host, before the Week 2 deploy) does not run the Week 2 ask path (`a78ba51` predates
+  `feat/w2-graph`, `DEPLOY.md` §0).
 - The eval gate has not merged **[PENDING `feat/w2-eval-gate`]**.
 
 §11 lists every known limitation.
@@ -211,7 +211,7 @@ numerator and the denominator. Also measured, in replay:
 Per document, the vision call takes 15.3–32.9 s, 93–99% of the extraction
 time, and costs $0.0955–$0.2276 (`LOAD_TEST.md` §4b; the `cost_usd` field
 of the six recordings in `agent/evals/w2/staging/transcriptions/`).
-OCR on the rehearsal host, before the Week 2 deploy, is p50 5.7 s per page **[PENDING `chore/w2-deploy-rehearsal`]** (`DEPLOY.md` §8).
+OCR on the rehearsal host, before the Week 2 deploy, is p50 5.7 s per page (`DEPLOY.md` §8).
 
 ---
 
@@ -333,8 +333,8 @@ Potassium, for example, is critical below 2.5 and above 6.0 mmol/L.
 | Chunking | section-aware; the heading path becomes `page_or_section`, and the body becomes the quotable text | `retrieval-bakeoff.md` §3 |
 | Sparse + dense | BM25 plus `BAAI/bge-small-en-v1.5` (fastembed/ONNX, 384-d, local), each searched to depth 30, fused with RRF at **equal** weights. Dense 2× scored better but was fitted on the same 30 queries it was measured on | D25 |
 | Rerank | local cross-encoder `Xenova/ms-marco-MiniLM-L-6-v2` over the top 20, on every retrieval; 4 chunks passed to the answer step | D25 |
-| Budget | over budget, the fused order stands, `reranked=false`, and the circuit opens. **2.5 s on `main`**; 4.0 s on `chore/w2-deploy-rehearsal` (D41 **[PENDING `chore/w2-deploy-rehearsal`]**, measured on the host) | `agent/app/retrieval/retriever.py:67`; D41 |
-| Admission | at most 2 concurrent reranks; the rest take the fallback at once (`rerank_busy`). On `main`; **not on the live host** (rehearsal host, before the Week 2 deploy) **[PENDING `chore/w2-deploy-rehearsal`]** | D39; `retriever.py:77` |
+| Budget and circuit | **4.0 s** (D41, measured on the host). Over budget, the fused order stands, `reranked=false`, and the circuit opens. It **closes itself** after 60 s or 10 skipped turns, and a skipped turn is logged as `rerank_skipped_circuit_open`, apart from a slow one | `agent/app/retrieval/retriever.py:72`, `:91–92`; D41 |
+| Admission | at most 2 concurrent reranks; the rest take the fallback at once (`rerank_busy`). On `main`; **not on the live host** (rehearsal host, before the Week 2 deploy) | D39; `retriever.py:77` |
 | Cohere | adapter present, never run (no key) | D25 item 6 |
 
 **The concept-only query rule.** `routing.CONCEPT_LEXICON` maps wording to
@@ -432,7 +432,7 @@ Documents and lab values are written through a custom module endpoint.
 | Intake guard | the write-back request type refuses any document that is not a `lab_pdf`, so an intake form has no path into the chart | `agent/app/models/w2/writeback.py`; planted regression **[PENDING `feat/w2-eval-gate`]** `auto-merge-intake` |
 | Preview | `GET <module>/public/document.php`: session ACL `patients/docs`, the open patient only, PDF only. 404 is identical for missing, another patient's and deleted documents | D28, D30, D49 |
 
-**Verified on the rehearsal host, before the Week 2 deploy** (`DEPLOY.md` §7.3) **[PENDING `chore/w2-deploy-rehearsal`]**:
+**Verified on the rehearsal host, before the Week 2 deploy** (`DEPLOY.md` §7.3):
 
 | Check | Result |
 |---|---|
@@ -447,7 +447,7 @@ Two identical requests fired together leave exactly one chain (D31, local
 stack).
 
 **Not built:** no agent route or graph calls the write-back client, and the
-chart-embed broker never requests the write scope (`DEPLOY.md` §0, §10 **[PENDING `chore/w2-deploy-rehearsal`]**).
+chart-embed broker never requests the write scope (`DEPLOY.md` §0, §10).
 Write-back is a verified endpoint plus a library, not a user-facing feature.
 
 ---
@@ -592,17 +592,18 @@ API-collection encounter, `07c0fd35-…`, is one Langfuse trace: 2 min 52 s,
 - Extraction inherits the upload's id only when that id is a UUID;
   otherwise the two traces are linked by a logged event, not merged.
 - The hosted Langfuse has no BAA, so production metrics come from stdout
-  (Week 1, `agent/docs/observability.md` §1). The live host (rehearsal host, before the Week 2 deploy) **[PENDING `chore/w2-deploy-rehearsal`]** runs with
-  Langfuse `disabled` (`DEPLOY.md` §7.2 **[PENDING `chore/w2-deploy-rehearsal`]**).
+  (Week 1, `agent/docs/observability.md` §1). The live host (rehearsal host, before the Week 2 deploy) runs with
+  Langfuse `disabled` (`DEPLOY.md` §7.2).
 
 ---
 
 ## 8. Deployment state
 
-The host column is the rehearsal host, before the Week 2 deploy. `chore/w2-deploy-rehearsal` deploys when it
-merges, and the deploy session's re-measurement replaces this column.
+The host column is the rehearsal host, before the Week 2 deploy.
+`chore/w2-deploy-rehearsal` merged at `21f1053`, but the host still runs
+`a78ba51`. The deploy session's re-measurement replaces this column.
 
-| Surface | `main` | Live host `64.177.42.210`, rehearsal host, before the Week 2 deploy (`a78ba51`, per `DEPLOY.md`) **[PENDING `chore/w2-deploy-rehearsal`]** |
+| Surface | `main` | Live host `64.177.42.210`, rehearsal host, before the Week 2 deploy (`a78ba51`, per `DEPLOY.md`) |
 |---|---|---|
 | Week 1 brief + conversation in the chart | yes | yes, v2 OAuth client (`2ps8qgz4…`) |
 | Retrieval (baked models, warmed at start, offline) | yes | yes, preload 2.63 s |
@@ -614,7 +615,7 @@ merges, and the deploy session's re-measurement replaces this column.
 | Eval gate | no (branch) | n/a (runs on fixtures, D6) |
 
 The upload guard is on `main` for the real route since `2ae4d98`, and on
-`chore/w2-deploy-rehearsal` for the stub **[PENDING `chore/w2-deploy-rehearsal`]**. The checks run in this order,
+`chore/w2-deploy-rehearsal` for the stub. The checks run in this order,
 and only then is the body read:
 
 1. the token, its scopes, and OpenEMR's acceptance;
@@ -623,10 +624,10 @@ and only then is the body read:
 4. an extraction slot.
 
 `main` is no longer unsafe to deploy on this point. The graph deploy precondition is in
-`DEPLOY.md` §2.2 **[PENDING `chore/w2-deploy-rehearsal`]**.
+`DEPLOY.md` §2.2.
 
 The agent image grew from 360 MB to 1.18 GB, and idle memory from 50 MiB to
-760–900 MiB (`DEPLOY.md` §8 **[PENDING `chore/w2-deploy-rehearsal`]**).
+760–900 MiB (`DEPLOY.md` §8).
 
 ---
 
@@ -636,11 +637,11 @@ The agent image grew from 360 MB to 1.18 GB, and idle memory from 50 MiB to
 |---|---|---|---|
 | **The whole-report answer** | one `/w2/ask` about a whole uploaded report: answer step 88.2–91.8 s, 91 citations, ~11.5k tokens out, about $0.45 (`LOAD_TEST.md` §7 on `feat/w2-answer-scope` **[PENDING `feat/w2-answer-scope`, not on `origin`]**); whole request 91.9 s and 130.5 s (`LOAD_TEST.md` §6) | the 45 s `answer_p95_latency` alert covers `/w2/ask` (`ALERTS.md` §1) | past the 90 s budget with no load at all; the fix (bound the output, or answer only from the rows the question names) is in progress on `feat/w2-answer-scope` **[PENDING `feat/w2-answer-scope`, not on `origin`]** |
 | **One process, in-memory stores** (conversations, documents, extraction jobs, the rerank circuit) | a second worker or replica makes uploads invisible (`404`), re-bills extraction, and loses follow-up context; a restart forgets every upload | one uvicorn worker; a startup warning when more are configured (D40 item 10, `agent/docs/deployment.md` §7) | a second *replica* is invisible to the check; no persistence |
-| **Reranker under load** | 50 concurrent retrievals: p95 335,224 ms, 0% reranked, 5.3 GiB peak RSS on a cold run (`LOAD_TEST.md` §5) | D39 admission bound: p95 259 ms, but only 1% reranked in the burst and 6.2% at 50 paced users (§5b) | on `main`, not on the live host (rehearsal host, before the Week 2 deploy) **[PENDING `chore/w2-deploy-rehearsal`]**; memory still up to 3.1 GiB against a 7.24 GiB host that OpenEMR already takes 4.9 GiB of (D39) |
-| **The rerank circuit never closes** | one slow rerank turns reranking off until restart; 35 of the next 60 turns ran unreranked (D41 **[PENDING `chore/w2-deploy-rehearsal`]**) | none | `rerank_over_budget` conflates "slow" with "skipped" (D41) |
-| **OCR contends with retrieval** | OCR in the same container raises rerank p95 from 2.08 s to 3.39 s (`DEPLOY.md` §8 **[PENDING `chore/w2-deploy-rehearsal`]**) | 4 s budget (D41, branch) | extraction still runs in the serving process (`LOAD_TEST.md`, "Where the new bottleneck is") |
+| **Reranker under load** | 50 concurrent retrievals: p95 335,224 ms, 0% reranked, 5.3 GiB peak RSS on a cold run (`LOAD_TEST.md` §5) | D39 admission bound: p95 259 ms, but only 1% reranked in the burst and 6.2% at 50 paced users (§5b). A 4.5 GiB memory cap on the agent, so overload restarts the agent rather than the kernel killing the database (`DEPLOY.md` §8) | not on the live host (rehearsal host, before the Week 2 deploy). Memory at demo load (2 rerank threads + 1 OCR worker) peaks at **3.7 GiB** on the 7.2 GiB host, and a heavier mix was OOM-killed at a 5 GiB test cap (`DEPLOY.md` §8) |
+| **The rerank circuit latched** (fixed on `main`) | one slow rerank turned reranking off until restart; 35 of the next 60 turns ran unreranked (D41) | it closes itself after 60 s or 10 skipped turns, and skipped turns are reported apart from slow ones (D41); at demo load it opened, skipped 10 turns and closed (`DEPLOY.md` §8) | not on the live host (rehearsal host, before the Week 2 deploy) |
+| **OCR contends with retrieval** | OCR in the same container raises rerank p95 from 2.08 s to 3.39 s. Two concurrent OCR jobs took ~162 s per page with Tesseract's default threads (`DEPLOY.md` §8) | 4 s budget (D41); `OMP_THREAD_LIMIT=1` baked into the image, 5.6 s per page with two workers (`DEPLOY.md` §8) | extraction still runs in the serving process (`LOAD_TEST.md`, "Where the new bottleneck is") |
 | **OpenEMR's PHP tier** | saturated at 10 users locally (420% CPU) and failing 58% at 50 (`LOAD_TEST.md` §1) | none agent-side | Week 1 finding, unchanged |
-| **Upload surface** | `/documents` accepts uploads from any clinician token | the upload guard, on `main` since `2ae4d98` (§8) | not deployed until `chore/w2-deploy-rehearsal` deploys |
+| **Upload surface** | `/documents` accepts uploads from any clinician token | the upload guard, on `main` since `2ae4d98` (§8) | not deployed: the host still runs `a78ba51` |
 | **Recall versus honesty on scans** | a heavy scan presents a third of its values | unsupported values disclosed, possible criticals named without a number | a clinician must open the PDF for the rest |
 | **USPSTF licensing reading** | verbatim-only redistribution | substring-enforced quotes (D26) | human sign-off pending; the "no AHRQ endorsement" UI constraint is not implemented (D26 item 3) |
 | **Critical-value table** | a demo list | exact LOINC and unit match | not reviewed for any site (D40 item 9) |
@@ -654,13 +655,13 @@ The agent image grew from 360 MB to 1.18 GB, and idle memory from 50 MiB to
 | Extraction | D3, D7, D10, D11, D13, D16, D20 (supersedes D12), D24, D35 |
 | Contracts | D9, D14, D17, D18, D21, D22 |
 | Routing and the ask path | D4, D40 |
-| Retrieval | D25 (supersedes D5, D23), D26, D39, D41 **[PENDING `chore/w2-deploy-rehearsal`]** |
+| Retrieval | D25 (supersedes D5, D23), D26, D39, D41 |
 | UI | D27, D28, D30, D32, D33, D34, D49 (the preview URL; supersedes D28 and D30 on that point) |
 | Write-back | D1 (superseding), D2, D15, D29, D31 |
 | Observability | D36, D37, D38 |
 | Evals | D6, D8, D42–D48 **[PENDING `feat/w2-eval-gate`]** |
 
-D41 and D42–D48 are on unmerged branches (marked PENDING above). This document
+D42–D48 are on an unmerged branch (marked PENDING above). This document
 makes no new decision and takes no D-number.
 
 ---
@@ -733,6 +734,7 @@ makes no new decision and takes no D-number.
 11. **A wrapped field's multi-box path is unit-tested only.** No sample wraps a
     field (D34).
 12. **The chart card, its routes and the correlation header are on `main`
-    but not on the host** until `chore/w2-deploy-rehearsal` deploys **[PENDING `chore/w2-deploy-rehearsal`]**.
+    but not on the host**, which still runs `a78ba51` until it is redeployed
+    from `main`.
     Until then, the full flow runs only on a local stack (`docs/w2/evidence/php-wiring-e2e-run.md`).
 13. **No FHIR paging.** `_count` is the sharp edge (`docs/w2/WEEK1_DEBT.md` §4).

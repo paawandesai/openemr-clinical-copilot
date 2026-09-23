@@ -4,22 +4,25 @@ A shot list for recording the Week 2 demo. Each step gives what to run or
 click, what to say, and what the viewer should see. It is built only from
 what exists and works at the snapshot below.
 
-**Snapshot: `main@2ae4d98`**, which is on `origin`. A claim marked PENDING
-rests on a branch not yet merged into `main`: **[PENDING `chore/w2-deploy-rehearsal`]**, **[PENDING `feat/w2-eval-gate`]** or **[PENDING `feat/w2-answer-scope`, not on `origin`]**.
+**Snapshot: `main@21f1053`**, which is on `origin`. A claim marked PENDING
+rests on a branch not yet merged into `main`: **[PENDING `feat/w2-eval-gate`]** or **[PENDING `feat/w2-answer-scope`, not on `origin`]**.
 
-- **Merged:** `feat/w2-php-wiring` merged into `main` at `2ae4d98`
-  (the Documents & Sources card, its routes, the upload guard on the real
-  `/documents`, the correlation header). Its claims are no longer marked.
-- **Merge order for the rest:** `chore/w2-deploy-rehearsal` (which
-  deploys), then `feat/w2-eval-gate`. Every citation is then repinned to the
-  one resulting `main` commit, and the markers come out.
+- **Merged, no longer marked:**
+  - `feat/w2-php-wiring`, at `2ae4d98`: the Documents & Sources card, its
+    routes, the upload guard on the real `/documents`, and the correlation
+    header;
+  - `chore/w2-deploy-rehearsal`, at `21f1053`: `docs/w2/DEPLOY.md`, D41,
+    the self-closing rerank circuit, single-threaded Tesseract, and the
+    agent's 4.5 GiB memory cap.
+- **Still to merge:** `feat/w2-eval-gate`. Every citation is then repinned
+  to the one resulting `main` commit, and the markers come out.
+- **The host is not redeployed yet.** It still runs `a78ba51`.
 - **Answer-scope is not on `origin`.** `feat/w2-answer-scope` fixes the
   slow whole-report question. It numbers its decision D49, which `main` has
   already assigned to the preview URL. Its figures cannot be checked from
   `origin` until it is pushed and renumbered.
-- **Live host:** figures from the live host are labelled "rehearsal host, before the Week 2 deploy". The
-  deploy session re-measures after it deploys, and those numbers replace
-  them.
+- **Live host:** host figures are labelled "rehearsal host, before the Week 2 deploy". The deploy session
+  re-measures after it deploys, and those numbers replace them.
 Where a step has never been rehearsed end to end, the step says so.
 
 ## Read this before recording: what the demo cannot show
@@ -30,9 +33,9 @@ Where a step has never been rehearsed end to end, the step says so.
   - 34–35 s from upload to extraction complete;
   - 17.2–19.5 s to answer this script's default question;
   - 0 unverified.
-  Once `chore/w2-deploy-rehearsal` deploys **[PENDING `chore/w2-deploy-rehearsal`]**, film them in the chart
+  Once the host is redeployed from `main`, film them in the chart
   instead, and revise the shot list against the deployed host.
-- **There is no single live UI for Week 2 on `main` yet.** The live host (rehearsal host, before the Week 2 deploy) **[PENDING `chore/w2-deploy-rehearsal`]**
+- **There is no single live UI for Week 2 on `main` yet.** The live host (rehearsal host, before the Week 2 deploy)
   (`64.177.42.210`) does not run the Week 2 ask path. And the documents card
   is not registered in the OpenEMR module on `main` (`W2_ARCHITECTURE.md`
   §8). So the demo uses three surfaces, and says so on camera:
@@ -63,10 +66,10 @@ In `agent/.env`:
 `EvalConfig.from_env`.
 
 No password-grant client is published. To create one, follow
-`docs/w2/DEPLOY.md` §5.3 **[PENDING `chore/w2-deploy-rehearsal`]** or
+`docs/w2/DEPLOY.md` §5.3 or
 `docs/w2/LOCAL_ENV.md` §4. The sample patient,
-`a2c373ec-57bf-41cb-8767-94410dcf663d`, exists on the live host (rehearsal host, before the Week 2 deploy) **[PENDING `chore/w2-deploy-rehearsal`]** (pid 38,
-`DEPLOY.md` §7 **[PENDING `chore/w2-deploy-rehearsal`]**) and on a local restore of it (`LOCAL_ENV.md` §1).
+`a2c373ec-57bf-41cb-8767-94410dcf663d`, exists on the live host (rehearsal host, before the Week 2 deploy) (pid 38,
+`DEPLOY.md` §7) and on a local restore of it (`LOCAL_ENV.md` §1).
 
 ### 2. Tesseract
 
@@ -279,7 +282,7 @@ demo list, not reviewed for any site."
   - the rendered answer does not state the document's potassium, which is
     3.1 on this page.
 - The chart may also hold potassium results; pid 38 has 170 lab results
-  (`DEPLOY.md` §8 **[PENDING `chore/w2-deploy-rehearsal`]**). If it does, the answer may state the chart's value
+  (`DEPLOY.md` §8). If it does, the answer may state the chart's value
   under a `[chart]` citation. That is correct: it is a different source,
   verified separately. If it happens, point it out.
 
@@ -381,7 +384,7 @@ dashboard runs locally; production metrics come from stdout, because no BAA
 covers a hosted tracing service."
 
 Sources: D36; D38; Week 1 `agent/docs/observability.md` §1. The screenshot is
-the **local** Langfuse. The live host (rehearsal host, before the Week 2 deploy) **[PENDING `chore/w2-deploy-rehearsal`]** runs with Langfuse disabled.
+the **local** Langfuse. The live host (rehearsal host, before the Week 2 deploy) runs with Langfuse disabled.
 
 ### 4:40–5:00 — Close, honestly
 

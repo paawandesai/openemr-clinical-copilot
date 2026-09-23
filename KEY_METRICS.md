@@ -19,22 +19,25 @@ says when there is no value.
 denominator. A metric whose denominator is small says so. A metric with no
 live measurement says "not measured", not a target.
 
-**Snapshot: `main@2ae4d98`**, which is on `origin`. A claim marked PENDING
-rests on a branch not yet merged into `main`: **[PENDING `chore/w2-deploy-rehearsal`]**, **[PENDING `feat/w2-eval-gate`]** or **[PENDING `feat/w2-answer-scope`, not on `origin`]**.
+**Snapshot: `main@21f1053`**, which is on `origin`. A claim marked PENDING
+rests on a branch not yet merged into `main`: **[PENDING `feat/w2-eval-gate`]** or **[PENDING `feat/w2-answer-scope`, not on `origin`]**.
 
-- **Merged:** `feat/w2-php-wiring` merged into `main` at `2ae4d98`
-  (the Documents & Sources card, its routes, the upload guard on the real
-  `/documents`, the correlation header). Its claims are no longer marked.
-- **Merge order for the rest:** `chore/w2-deploy-rehearsal` (which
-  deploys), then `feat/w2-eval-gate`. Every citation is then repinned to the
-  one resulting `main` commit, and the markers come out.
+- **Merged, no longer marked:**
+  - `feat/w2-php-wiring`, at `2ae4d98`: the Documents & Sources card, its
+    routes, the upload guard on the real `/documents`, and the correlation
+    header;
+  - `chore/w2-deploy-rehearsal`, at `21f1053`: `docs/w2/DEPLOY.md`, D41,
+    the self-closing rerank circuit, single-threaded Tesseract, and the
+    agent's 4.5 GiB memory cap.
+- **Still to merge:** `feat/w2-eval-gate`. Every citation is then repinned
+  to the one resulting `main` commit, and the markers come out.
+- **The host is not redeployed yet.** It still runs `a78ba51`.
 - **Answer-scope is not on `origin`.** `feat/w2-answer-scope` fixes the
   slow whole-report question. It numbers its decision D49, which `main` has
   already assigned to the preview URL. Its figures cannot be checked from
   `origin` until it is pushed and renumbered.
-- **Live host:** figures from the live host are labelled "rehearsal host, before the Week 2 deploy". The
-  deploy session re-measures after it deploys, and those numbers replace
-  them.
+- **Live host:** host figures are labelled "rehearsal host, before the Week 2 deploy". The deploy session
+  re-measures after it deploys, and those numbers replace them.
 
 | # | Metric | Current value | Target | Strength of evidence |
 |---|---|---|---|---|
@@ -280,8 +283,11 @@ only configuration with no total misses (D25), is actually running.
 | Reranked, 10 paced users | 35% |
 | Reranked, 50 paced users | 6.2% |
 
-The reranked rates are from `LOAD_TEST.md` §5b. On the live host (rehearsal host, before the Week 2 deploy) **[PENDING `chore/w2-deploy-rehearsal`]**, one slow
-rerank opened the circuit and 35 of the next 60 turns ran unreranked (D41 **[PENDING `chore/w2-deploy-rehearsal`]**).
+The reranked rates are from `LOAD_TEST.md` §5b. On the live host (rehearsal host, before the Week 2 deploy), one slow
+rerank opened the circuit and 35 of the next 60 turns ran unreranked (D41).
+On `main` the circuit now closes itself after 60 s or 10 skipped turns; at
+demo load on the host it opened, skipped 10 turns and closed
+(`docs/w2/DEPLOY.md` §8).
 
 **Read it as:** "0/30 at zero recall" holds only when the reranker runs.
 Under load it mostly does not.

@@ -9,34 +9,37 @@ A Clinical Co-Pilot AI agent built into a fork of [OpenEMR](https://open-emr.org
 | | Week 1: baseline | Week 2: multimodal |
 |---|---|---|
 | What it does | Pre-Visit Brief and multi-turn follow-up, read from the chart over FHIR; every claim deterministically verified | lab PDFs and intake forms extracted to a strict schema with page-located values; a supervisor over an intake-extractor and an evidence-retriever; hybrid RAG over guideline evidence; an eval gate |
-| Deployed at `64.177.42.210`? | **Yes**, the whole Week 1 surface | **Partly**, as of the rehearsal host, before the Week 2 deploy **[PENDING `chore/w2-deploy-rehearsal`]**. Retrieval, OCR and the write-back endpoint are deployed. The Week 2 ask path (`POST /w2/ask`) is on `main` but **not** on the rehearsal host, before the Week 2 deploy **[PENDING `chore/w2-deploy-rehearsal`]** |
+| Deployed at `64.177.42.210`? | **Yes**, the whole Week 1 surface | **Partly**, as of the rehearsal host, before the Week 2 deploy. Retrieval, OCR and the write-back endpoint are deployed. The Week 2 ask path (`POST /w2/ask`) is on `main` but **not** on the rehearsal host, before the Week 2 deploy |
 | Start reading | [Week 1 baseline](#week-1-baseline) below | [Week 2: start here](#week-2-start-here), next |
 
 ---
 
 ## Week 2: start here
 
-**Snapshot: `main@2ae4d98`**, which is on `origin`. Everything in this
+**Snapshot: `main@21f1053`**, which is on `origin`. Everything in this
 section is on that commit unless it is marked PENDING, which names the
-unmerged branch the claim rests on: **[PENDING `chore/w2-deploy-rehearsal`]**, **[PENDING `feat/w2-eval-gate`]** or **[PENDING `feat/w2-answer-scope`, not on `origin`]**.
+unmerged branch the claim rests on: **[PENDING `feat/w2-eval-gate`]** or **[PENDING `feat/w2-answer-scope`, not on `origin`]**.
 
-- **Merged:** `feat/w2-php-wiring` merged into `main` at `2ae4d98`
-  (the Documents & Sources card, its routes, the upload guard on the real
-  `/documents`, the correlation header). Its claims are no longer marked.
-- **Merge order for the rest:** `chore/w2-deploy-rehearsal` (which
-  deploys), then `feat/w2-eval-gate`. Every citation is then repinned to the
-  one resulting `main` commit, and the markers come out.
+- **Merged, no longer marked:**
+  - `feat/w2-php-wiring`, at `2ae4d98`: the Documents & Sources card, its
+    routes, the upload guard on the real `/documents`, and the correlation
+    header;
+  - `chore/w2-deploy-rehearsal`, at `21f1053`: `docs/w2/DEPLOY.md`, D41,
+    the self-closing rerank circuit, single-threaded Tesseract, and the
+    agent's 4.5 GiB memory cap.
+- **Still to merge:** `feat/w2-eval-gate`. Every citation is then repinned
+  to the one resulting `main` commit, and the markers come out.
+- **The host is not redeployed yet.** It still runs `a78ba51`.
 - **Answer-scope is not on `origin`.** `feat/w2-answer-scope` fixes the
   slow whole-report question. It numbers its decision D49, which `main` has
   already assigned to the preview URL. Its figures cannot be checked from
   `origin` until it is pushed and renumbered.
-- **Live host:** figures from the live host are labelled "rehearsal host, before the Week 2 deploy". The
-  deploy session re-measures after it deploys, and those numbers replace
-  them.
+- **Live host:** host figures are labelled "rehearsal host, before the Week 2 deploy". The deploy session
+  re-measures after it deploys, and those numbers replace them.
 
 ### What Week 2 adds, and where it runs
 
-| Piece | Code | On `main` | On the live host (rehearsal host, before the Week 2 deploy) **[PENDING `chore/w2-deploy-rehearsal`]** |
+| Piece | Code | On `main` | On the live host (rehearsal host, before the Week 2 deploy) |
 |---|---|---|---|
 | Document extraction: text layer / OCR → one vision call → deterministic locate → flag cross-check → discrepancies | `agent/app/graph/intake_extractor.py`, `agent/app/workers/intake_extractor/`, `agent/app/extraction/` | yes | library only: the deployed `/documents` is a stub that hashes and discards |
 | Supervisor + workers, `POST /w2/ask` | `agent/app/graph/supervisor.py`, `agent/app/supervisor/`, `agent/app/api/ask.py` | yes | **no** |
@@ -192,7 +195,7 @@ run is not recorded in the repository.
 | [KEY_METRICS.md](KEY_METRICS.md) | the Week 2 metrics, with honest denominators; the Week 1 six are in [docs/KEY_METRICS.md](docs/KEY_METRICS.md) |
 | [docs/w2/COST_AND_LATENCY.md](docs/w2/COST_AND_LATENCY.md) | actual dev spend, per-encounter cost, projections at 100 to 100K encounters a day, p50/p95 and bottlenecks |
 | [docs/w2/DEMO_SCRIPT.md](docs/w2/DEMO_SCRIPT.md) | the recorded walkthrough |
-| [docs/w2/DECISIONS.md](docs/w2/DECISIONS.md) | every Week 2 decision, D1–D40 and D49 on `main` (D41 **[PENDING `chore/w2-deploy-rehearsal`]** and D42–D48 **[PENDING `feat/w2-eval-gate`]** are on their branches) |
+| [docs/w2/DECISIONS.md](docs/w2/DECISIONS.md) | every Week 2 decision, D1–D40 and D49 on `main` (D41 and D42–D48 **[PENDING `feat/w2-eval-gate`]** are on their branches) |
 | [docs/w2/EVAL_DESIGN.md](docs/w2/EVAL_DESIGN.md), [docs/w2/GATE.md](docs/w2/GATE.md) | why the gate is shaped as it is, and how gate files are protected |
 | [docs/w2/retrieval-bakeoff.md](docs/w2/retrieval-bakeoff.md) | the corpus, its licensing, and the retrieval measurements |
 | [docs/w2/spikes/writeback.md](docs/w2/spikes/writeback.md), [docs/w2/deploy-writeback.md](docs/w2/deploy-writeback.md) | how OpenEMR can be written to, and how the endpoint deploys |
@@ -201,10 +204,10 @@ run is not recorded in the repository.
 
 `docs/w2/OBSERVABILITY.md`, `ALERTS.md` and `LOAD_TEST.md` (tracing,
 dashboard, alerts, load tests and the real-route `/w2/ask` measurements)
-are on `main`. `docs/w2/DEPLOY.md` **[PENDING `chore/w2-deploy-rehearsal`]**, the host rehearsal and its
-measurements, is on `chore/w2-deploy-rehearsal`, which **is not on
-`origin`**. Until it is pushed or merged, the numbers the documents above
-cite from it cannot be checked from a clone.
+are on `main`, and so is `docs/w2/DEPLOY.md`, the host rehearsal and its
+measurements (merged at `21f1053`). What is not yet on `main`: the eval
+gate (`feat/w2-eval-gate`, on `origin`) and the scoped answer
+(`feat/w2-answer-scope`, **not on `origin`**).
 
 ---
 
