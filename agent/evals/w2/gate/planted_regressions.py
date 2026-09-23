@@ -228,8 +228,8 @@ REGRESSIONS: tuple[Regression, ...] = (
             "it was written."
         ),
         relative_path=".gitlab-ci.yml",
-        old="w2-writeback-php:\n  stage: eval",
-        new="w2-writeback-php:\n  allow_failure: true\n  stage: eval",
+        old="w2-writeback-php:\n  stage: writeback",
+        new="w2-writeback-php:\n  allow_failure: true\n  stage: writeback",
         expected=("W2-K4", "W2-K6"),
         why=(
             "One line, and the PHP job stops failing the pipeline. This is the "
@@ -546,6 +546,47 @@ def main(argv: list[str] | None = None) -> int:
             f"({judge_cfg.get('calibration', '?')})"
         )
     lines.append(f"- Python: `{sys.version.split()[0]}`")
+    lines.append("")
+
+    lines.append("## What `delegated` does and does not prove")
+    lines.append("")
+    lines.append(
+        "Two cases in this suite (W2-K4, W2-K6) are `delegated`: the behaviour is "
+        "enforced by the `w2-writeback-php` job rather than by a Python check here. "
+        "Read the word precisely."
+    )
+    lines.append("")
+    lines.append(
+        "**Proved.** The job exists in `.gitlab-ci.yml`; it is not `allow_failure`, "
+        "so its failure fails the pipeline; it runs the named suite; the named test "
+        "methods are still in that suite; and — from the result artifact the job "
+        "itself writes and this gate consumes as a dependency — it RAN and PASSED "
+        "those tests **for the commit being scored**. A result naming a different "
+        "commit is refused, so one green run cannot vouch for later ones."
+    )
+    lines.append("")
+    lines.append(
+        "**Not proved.** That the PHP tests assert the right thing. The gate reads "
+        "their outcome, not their meaning."
+    )
+    lines.append("")
+    lines.append(
+        "**Not proved outside CI.** There is no artifact in a local tree, so both "
+        "cases are reported UNSCORED and the run exits 3 (INCOMPLETE). That is "
+        "deliberate: until this was added the check verified only the four "
+        "structural conditions, and W2-K4 and W2-K6 reported a perfectly valid "
+        "delegation through six consecutive pipelines in which the job they delegate "
+        "to failed every time on a missing `unzip`. The delegation was real; the "
+        "enforcement was not. A reader who saw `delegated` and read it as `covered` "
+        "was reading it the way the author did."
+    )
+    lines.append("")
+    lines.append(
+        "The artifact is not signed. Anyone who can edit `.gitlab-ci.yml` can make "
+        "the job print what they like, so a signature would authenticate the party "
+        "it is meant to constrain; this gate is a guard against drift and mistakes, "
+        "not against someone editing the pipeline on purpose."
+    )
     lines.append("")
 
     lines.append("## Control — unpatched tree")

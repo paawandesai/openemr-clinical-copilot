@@ -36,9 +36,10 @@ import sys
 from datetime import UTC, datetime
 from typing import Any
 
+from evals.w2.gate import checks_delegation
 from evals.w2.gate import judge as judge_module
 from evals.w2.gate.loader import load_cases, load_categories
-from evals.w2.gate.models import AssertionResult, Case, CaseResult, GateError, Tier
+from evals.w2.gate.models import AssertionResult, Case, CaseResult, GateError, Status, Tier
 from evals.w2.gate.paths import BASELINE, REPO_ROOT
 from evals.w2.gate.registry import load_all_checks, resolve
 from evals.w2.gate.verdict import CategoryScore, Violation, evaluate
@@ -47,6 +48,7 @@ PENDING_REASON = "pending_sut: specified, waiting on the supervisor graph"
 MISSING_TOOL_REASON = "cannot run here: {why}"
 JUDGE_SKIPPED_REASON = "judge tier skipped: no ANTHROPIC_API_KEY"
 DET_ONLY_REASON = "judge tier not run: --det-only"
+DELEGATED_NO_RESULT_REASON = "{why}"
 
 RULE = "=" * 78
 
@@ -99,6 +101,22 @@ def execute(cases: list[Case], *, det_only: bool, judge_available: bool) -> list
         if not case.is_scored:
             out.append(CaseResult(case=case, results=(), skipped_reason=PENDING_REASON))
             continue
+        if case.status is Status.DELEGATED:
+            # A delegated case is scored against the artifact its job uploads.
+            # Outside CI there is no artifact, and "the job is declared
+            # correctly" is not the same claim as "the job passed" — the six
+            # red pipelines that still reported a valid delegation are the
+            # proof of that. Unscored, with a notice, never a pass.
+            why = checks_delegation.missing_result_reason(case)
+            if why:
+                out.append(
+                    CaseResult(
+                        case=case,
+                        results=(),
+                        skipped_reason=DELEGATED_NO_RESULT_REASON.format(why=why),
+                    )
+                )
+                continue
         absent = _missing_tools(case)
         if absent:
             out.append(
@@ -349,13 +367,17 @@ def main(argv: list[str] | None = None) -> int:
         )
         for result in delegated:
             job = result.case.delegation().get("job", "?")
-            mark = "ok " if result.passed else "FAIL"
+            if not result.scored:
+                mark = "  ? "
+            elif result.passed:
+                mark = " ok "
+            else:
+                mark = "FAIL"
             print(f"  [{mark}] {result.case.id} [{result.case.category}] -> {job}")
-        print("  What this gate scored for them is only that the delegation holds: the job exists,")
-        print(
-            "  it is not allow_failure, and the named tests are still in the suite. The job itself"
-        )
-        print("  fails the pipeline on its own if the behaviour regresses.")
+        print("  Scored for them: the job exists, it is not allow_failure, the named tests are")
+        print("  still in the suite, AND that job's own result artifact says it ran and passed")
+        print("  those tests for the commit under test. [  ? ] means there is no artifact here,")
+        print("  so the case is UNSCORED — outside CI the gate cannot know, and does not guess.")
 
     if skipped:
         print(f"Active but NOT SCORED this run: {len(skipped)} — not passes")

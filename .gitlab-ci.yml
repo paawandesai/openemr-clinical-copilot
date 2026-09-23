@@ -37,6 +37,11 @@
 # ---------------------------------------------------------------------------
 
 stages:
+  # Two stages, not one, because the gate now SCORES the write-back job's
+  # result rather than merely checking that the job is declared. The suite has
+  # to have finished before the gate reads it, and `dependencies:` only fetches
+  # artifacts from an earlier stage.
+  - writeback
   - eval
 
 # When a pipeline is created at all.
@@ -68,6 +73,16 @@ variables:
 w2-eval-gate:
   stage: eval
   image: python:3.12-slim
+  # `when: always` so a failed write-back suite does not SKIP this job. If the
+  # suite goes red the gate must still run and say so — W2-K4 and W2-K6 fail
+  # against its result file, and the gate's own verdict is then the truthful
+  # one. Skipping here would leave the pipeline red with a gate that never
+  # rendered an opinion, which is the state this whole file exists to avoid.
+  when: always
+  # Named explicitly: with no `dependencies:` a job downloads the artifacts of
+  # every earlier job, and this pins it to the one that is actually evidence.
+  dependencies:
+    - w2-writeback-php
   tags:
     - w2-eval
   interruptible: true
@@ -136,7 +151,7 @@ w2-eval-gate:
 # `composer install` 65 s cold, and the suite 143 tests / 294 assertions in
 # 0.097 s.
 w2-writeback-php:
-  stage: eval
+  stage: writeback
   image: php:8.3-cli
   tags:
     - w2-eval
@@ -176,7 +191,22 @@ w2-writeback-php:
     - curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer
     - composer install --no-interaction --no-progress --ignore-platform-reqs --no-scripts
   script:
-    - vendor/bin/phpunit -c interface/modules/custom_modules/oe-module-clinical-copilot/phpunit.xml --log-junit "$CI_PROJECT_DIR/w2-writeback-php.xml"
+    # The suite's exit code is captured rather than allowed to end the job,
+    # because the result file has to be written on failure too — a delegated
+    # case that goes unscored whenever the suite breaks would be enforced by
+    # nothing precisely when it matters. The captured code is re-raised at the
+    # end, so this job still fails exactly when phpunit fails.
+    - |
+      set +e
+      vendor/bin/phpunit -c interface/modules/custom_modules/oe-module-clinical-copilot/phpunit.xml --log-junit "$CI_PROJECT_DIR/w2-writeback-php.xml"
+      rc=$?
+      set -e
+      if [ "$rc" -eq 0 ]; then status=success; else status=failed; fi
+      printf '{"schema":"w2-gate/delegated-result/1.0.0","job":"%s","commit":"%s","pipeline_id":"%s","job_id":"%s","job_url":"%s","exit_code":%d,"status":"%s","junit":"w2-writeback-php.xml"}\n' \
+        "$CI_JOB_NAME" "$CI_COMMIT_SHA" "$CI_PIPELINE_ID" "$CI_JOB_ID" "$CI_JOB_URL" "$rc" "$status" \
+        > "$CI_PROJECT_DIR/w2-writeback-php.result.json"
+      cat "$CI_PROJECT_DIR/w2-writeback-php.result.json"
+      exit "$rc"
   artifacts:
     when: always
     expire_in: 30 days
@@ -185,3 +215,4 @@ w2-writeback-php:
       junit: w2-writeback-php.xml
     paths:
       - w2-writeback-php.xml
+      - w2-writeback-php.result.json
