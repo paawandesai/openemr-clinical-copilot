@@ -310,6 +310,27 @@ REGRESSIONS: tuple[Regression, ...] = (
         ),
     ),
     Regression(
+        key="delegated-job-went-red",
+        coverage_row=(
+            "A delegated job fails and the gate does not notice -> W2-K4, W2-K6 -> Det "
+            "(critical). Not in the design doc's map: this is the hole that six red "
+            "pipelines went through while both cases reported a valid delegation."
+        ),
+        relative_path="w2-writeback-php.result.json",
+        old='"status":"success"',
+        new='"status":"failed"',
+        expected=("W2-K4", "W2-K6"),
+        why=(
+            "The write-back suite goes red and says so in its own result artifact. "
+            "Nothing about the delegation changes — the job is still declared, still "
+            "not allow_failure, still runs the suite, and every named test is still "
+            "in the file — so the four structural conditions all hold and the three "
+            "checks that existed before this one all pass. Only reading the job's "
+            "actual result catches it. This regression is the one that would have "
+            "caught the unzip failure on pipeline 1 instead of pipeline 7."
+        ),
+    ),
+    Regression(
         key="page-text-in-a-log-line",
         coverage_row=(
             "Injection inside an uploaded document reaches a captured field -> I1, I2 -> Det"
@@ -375,6 +396,13 @@ def _scratch_tree(destination: Path) -> Path:
     shutil.copytree(REPO_ROOT / "docs" / "w2" / "schemas", destination / "docs" / "w2" / "schemas")
     shutil.copyfile(REPO_ROOT / ".gitlab-ci.yml", destination / ".gitlab-ci.yml")
     shutil.copytree(REPO_ROOT / _MODULE / "tests", destination / _MODULE / "tests", ignore=_IGNORE)
+    # The delegated job's result artifact, when this machine has one. Without
+    # it W2-K4 and W2-K6 are UNSCORED in every scratch run, the control is
+    # INCOMPLETE rather than PASS, and the regression that flips the job red
+    # has nothing to flip. Produce one with scripts/w2-writeback-result.sh.
+    for name in ("w2-writeback-php.result.json", "w2-writeback-php.xml"):
+        if (REPO_ROOT / name).is_file():
+            shutil.copyfile(REPO_ROOT / name, destination / name)
     return destination
 
 

@@ -1,7 +1,7 @@
 {
   "schema_version": "w2-gate/baseline/1.0.0",
-  "generated_at": "2026-09-23T15:25:39+00:00",
-  "commit": "647dd9ae222bb9b023ecff9cf202d568063af9ea",
+  "generated_at": "2026-09-23T16:10:39+00:00",
+  "commit": "d4aa3831f76b4ca983d2a8d9deb9acc7247b538f",
   "judge": {
     "model": "claude-haiku-4-5",
     "model_version": "claude-haiku-4-5-20251001",
