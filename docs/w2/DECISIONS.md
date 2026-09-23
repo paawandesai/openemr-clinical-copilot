@@ -1931,6 +1931,7 @@ written on `feat/w2-ui` before the write-back branch had built the route.
 behaviour, PDF-only, no CSRF token, and why `Binary` cannot serve a
 physician. This entry settles the URL and nothing more.
 
-**Known stale mentions of D28's path**, in prose only, not in any code
-path: `public/assets/w2/document-viewer.mjs:12` (a doc comment) and
-`docs/w2/ui-integration.md:447` (an acceptance line).
+**D28's path appeared in prose only**, never in a code path: a doc comment
+in `public/assets/w2/document-viewer.mjs` and an acceptance line in
+`docs/w2/ui-integration.md`. Both were repointed to this entry and the
+served URL when it was recorded.

@@ -444,7 +444,7 @@ OpenEMR (`dev/README.md`). What only a browser in a real chart can show:
 
 1. The card appears on the patient dashboard for a user with
    `patients`/`docs`, and does not for one without.
-2. `GET <module>/document?document_id=<id>` returns the PDF for a document
+2. `GET <module>/public/document.php?document_id=<id>` (D49) returns the PDF for a document
    on the open patient, 403 without the ACL, 404 for an unknown id.
 3. The upload control posts, and the status advances to `complete`.
 4. No PHI in the browser console: open devtools, exercise every path

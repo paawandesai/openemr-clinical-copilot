@@ -9,7 +9,7 @@
  *
  * Never from the browser's own credentials against FHIR. The page asks a
  * `DocumentSource` for an ArrayBuffer and has no idea what is behind it. In
- * OpenEMR that is `GET <module>/document?document_id=<int>`, a module route
+ * OpenEMR that is `GET <module>/public/document.php?document_id=<int>` (D49), a module route
  * that checks the clinician's own session and the `patients`/`docs` ACL and
  * streams the file server-side, so no token, and no FHIR base URL, is ever
  * in this document. In fixture mode it is a file next to the page.
