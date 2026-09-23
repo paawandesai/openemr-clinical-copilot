@@ -9,7 +9,7 @@ A Clinical Co-Pilot AI agent built into a fork of [OpenEMR](https://open-emr.org
 | | Week 1: baseline | Week 2: multimodal |
 |---|---|---|
 | What it does | Pre-Visit Brief and multi-turn follow-up, read from the chart over FHIR; every claim deterministically verified | lab PDFs and intake forms extracted to a strict schema with page-located values; a supervisor over an intake-extractor and an evidence-retriever; hybrid RAG over guideline evidence; an eval gate |
-| Deployed at `64.177.42.210`? | **Yes**, the whole Week 1 surface | **Partly.** Retrieval, OCR and the write-back endpoint are deployed. The Week 2 ask path (`POST /w2/ask`) is on `main` but **not** on the host **[PENDING `chore/w2-deploy-rehearsal`]** |
+| Deployed at `64.177.42.210`? | **Yes**, the whole Week 1 surface | **Partly**, as of the rehearsal host, before the Week 2 deploy **[PENDING `chore/w2-deploy-rehearsal`]**. Retrieval, OCR and the write-back endpoint are deployed. The Week 2 ask path (`POST /w2/ask`) is on `main` but **not** on the rehearsal host, before the Week 2 deploy **[PENDING `chore/w2-deploy-rehearsal`]** |
 | Start reading | [Week 1 baseline](#week-1-baseline) below | [Week 2: start here](#week-2-start-here), next |
 
 ---
@@ -18,20 +18,26 @@ A Clinical Co-Pilot AI agent built into a fork of [OpenEMR](https://open-emr.org
 
 **Snapshot: `main@f8b16c7`**, which is on `origin`. Everything in this
 section is on that commit unless it is marked PENDING, which names the
-unmerged branch the claim rests on: **[PENDING `chore/w2-deploy-rehearsal`]**, **[PENDING `feat/w2-php-wiring`]** or **[PENDING `feat/w2-eval-gate`]**. The first two are not
-on `origin`. All three are due to merge before submission, when every
-citation is repinned to the one resulting `main` commit and the markers come
-out.
+unmerged branch the claim rests on: **[PENDING `feat/w2-php-wiring`]**, **[PENDING `chore/w2-deploy-rehearsal`]**, **[PENDING `feat/w2-eval-gate`]** or **[PENDING `feat/w2-answer-scope`]**.
+
+- **Merge order:** the first three merge before submission in this order:
+  `feat/w2-php-wiring`, then `chore/w2-deploy-rehearsal` (which deploys),
+  then `feat/w2-eval-gate`.
+- **Repin:** every citation is then repinned to the one resulting `main`
+  commit, and the markers come out.
+- **Answer-scope:** `feat/w2-answer-scope` fixes the slow document question.
+- **Live host:** figures are labelled "rehearsal host, before the Week 2 deploy" until the deploy session
+  re-measures.
 
 ### What Week 2 adds, and where it runs
 
-| Piece | Code | On `main` | On the live host **[PENDING `chore/w2-deploy-rehearsal`]** |
+| Piece | Code | On `main` | On the live host (rehearsal host, before the Week 2 deploy) **[PENDING `chore/w2-deploy-rehearsal`]** |
 |---|---|---|---|
 | Document extraction: text layer / OCR → one vision call → deterministic locate → flag cross-check → discrepancies | `agent/app/graph/intake_extractor.py`, `agent/app/workers/intake_extractor/`, `agent/app/extraction/` | yes | library only: the deployed `/documents` is a stub that hashes and discards |
 | Supervisor + workers, `POST /w2/ask` | `agent/app/graph/supervisor.py`, `agent/app/supervisor/`, `agent/app/api/ask.py` | yes | **no** |
 | Guideline retrieval: 28 documents, BM25 + local embeddings + local rerank | `agent/app/retrieval/` | yes | yes, preloaded, nothing reads it |
 | Week 2 verifier, citation contract | `agent/app/verification/w2_checker.py`, `agent/app/models/w2/` | yes | no (it serves `/w2/ask`) |
-| Source-grounded answer view: PDF.js with bbox overlay | `interface/modules/custom_modules/oe-module-clinical-copilot/public/assets/w2/` | yes, **fixture mode only**: the chart card is not registered | no |
+| Source-grounded answer view: PDF.js with bbox overlay | `interface/modules/custom_modules/oe-module-clinical-copilot/public/assets/w2/` | yes, **fixture mode only**: the chart card is not registered on `main`. It is wired into the chart on `feat/w2-php-wiring` **[PENDING `feat/w2-php-wiring`]** | no |
 | Lab write-back endpoint + idempotency ledger | the same module, `src/WriteBack/` | yes | yes, rehearsed |
 | Eval gate: 96 cases, CI job **[PENDING `feat/w2-eval-gate`]** | `agent/evals/w2/gate/`, `.gitlab-ci.yml` | **no**, `feat/w2-eval-gate` | n/a: runs on recorded fixtures |
 

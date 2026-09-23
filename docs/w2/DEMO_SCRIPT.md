@@ -5,17 +5,32 @@ click, what to say, and what the viewer should see. It is built only from
 what exists and works at the snapshot below.
 
 **Snapshot: `main@f8b16c7`**, which is on `origin`. A claim marked PENDING
-rests on a branch not yet merged into `main`: **[PENDING `chore/w2-deploy-rehearsal`]**, **[PENDING `feat/w2-php-wiring`]** or
-**[PENDING `feat/w2-eval-gate`]**. The first two are not on `origin`. All three are due to merge before
-submission, when every citation is repinned to the one resulting `main`
-commit and the markers come out.
+rests on a branch not yet merged into `main`: **[PENDING `feat/w2-php-wiring`]**, **[PENDING `chore/w2-deploy-rehearsal`]**, **[PENDING `feat/w2-eval-gate`]** or **[PENDING `feat/w2-answer-scope`]**.
+
+- **Merge order:** the first three merge before submission in this order:
+  `feat/w2-php-wiring`, then `chore/w2-deploy-rehearsal` (which deploys),
+  then `feat/w2-eval-gate`.
+- **Repin:** every citation is then repinned to the one resulting `main`
+  commit, and the markers come out.
+- **Answer-scope:** `feat/w2-answer-scope` fixes the slow document
+  question. Its before/after numbers land before submission.
+- **Live host:** figures from the live host are labelled "rehearsal host, before the Week 2 deploy". The
+  deploy session re-measures after it deploys, and those numbers replace
+  them.
+- **[UNSOURCED: reported by the `feat/w2-php-wiring` session; not yet in a committed artifact]** marks a figure a session reported that no committed file holds yet.
 Where a step has never been rehearsed end to end, the step says so.
 
 ## Read this before recording: what the demo cannot show
 
-- **There is no single live UI for Week 2 yet.** The live host **[PENDING `chore/w2-deploy-rehearsal`]**
+- **This script is written for the state before the merges.** Once
+  `feat/w2-php-wiring` merges and `chore/w2-deploy-rehearsal` deploys, the
+  upload, the answer and the chip → box steps can run in the real chart
+  **[PENDING `feat/w2-php-wiring`]** **[PENDING `chore/w2-deploy-rehearsal`]**. The PHP session reports that flow working: 35.3 s to
+  extraction, 17–19 s to answer **[UNSOURCED: reported by the `feat/w2-php-wiring` session; not yet in a committed artifact]**. Revise the shot list against the
+  deployed host before recording.
+- **There is no single live UI for Week 2 on `main` yet.** The live host (rehearsal host, before the Week 2 deploy) **[PENDING `chore/w2-deploy-rehearsal`]**
   (`64.177.42.210`) does not run the Week 2 ask path. And the documents card
-  is not registered in the OpenEMR module on any branch (`W2_ARCHITECTURE.md`
+  is not registered in the OpenEMR module on `main` (`W2_ARCHITECTURE.md`
   §8). So the demo uses three surfaces, and says so on camera:
   1. **A terminal** running the real ask path in process:
      `agent/scripts/w2_e2e_ask.py`. It calls real OpenEMR FHIR and makes one
@@ -46,7 +61,7 @@ In `agent/.env`:
 No password-grant client is published. To create one, follow
 `docs/w2/DEPLOY.md` §5.3 **[PENDING `chore/w2-deploy-rehearsal`]** or
 `docs/w2/LOCAL_ENV.md` §4. The sample patient,
-`a2c373ec-57bf-41cb-8767-94410dcf663d`, exists on the live host **[PENDING `chore/w2-deploy-rehearsal`]** (pid 38,
+`a2c373ec-57bf-41cb-8767-94410dcf663d`, exists on the live host (rehearsal host, before the Week 2 deploy) **[PENDING `chore/w2-deploy-rehearsal`]** (pid 38,
 `DEPLOY.md` §7 **[PENDING `chore/w2-deploy-rehearsal`]**) and on a local restore of it (`LOCAL_ENV.md` §1).
 
 ### 2. Tesseract
@@ -356,13 +371,12 @@ dashboard runs locally; production metrics come from stdout, because no BAA
 covers a hosted tracing service."
 
 Sources: D36; D38; Week 1 `agent/docs/observability.md` §1. The screenshot is
-the **local** Langfuse. The live host **[PENDING `chore/w2-deploy-rehearsal`]** runs with Langfuse disabled.
+the **local** Langfuse. The live host (rehearsal host, before the Week 2 deploy) **[PENDING `chore/w2-deploy-rehearsal`]** runs with Langfuse disabled.
 
 ### 4:40–5:00 — Close, honestly
 
 **Say:** "What's not done: a question about a whole report is too slow, at
-92 to 131 seconds. The documents card isn't wired into the OpenEMR chart
-yet. The live server runs last week's ask path. And the four
+92 to 131 seconds, and the fix is still landing. The live server runs last week's ask path. And the four
 prompt-injection cases only prove containment so far: whether a model
 that reads an injected PDF refuses it is specified but not yet tested. Each of those
 is written down in the architecture doc's limitations section. Everything we

@@ -20,10 +20,19 @@ denominator. A metric whose denominator is small says so. A metric with no
 live measurement says "not measured", not a target.
 
 **Snapshot: `main@f8b16c7`**, which is on `origin`. A claim marked PENDING
-rests on a branch not yet merged into `main`: **[PENDING `chore/w2-deploy-rehearsal`]**, **[PENDING `feat/w2-php-wiring`]** or
-**[PENDING `feat/w2-eval-gate`]**. The first two are not on `origin`. All three are due to merge before
-submission, when every citation is repinned to the one resulting `main`
-commit and the markers come out.
+rests on a branch not yet merged into `main`: **[PENDING `feat/w2-php-wiring`]**, **[PENDING `chore/w2-deploy-rehearsal`]**, **[PENDING `feat/w2-eval-gate`]** or **[PENDING `feat/w2-answer-scope`]**.
+
+- **Merge order:** the first three merge before submission in this order:
+  `feat/w2-php-wiring`, then `chore/w2-deploy-rehearsal` (which deploys),
+  then `feat/w2-eval-gate`.
+- **Repin:** every citation is then repinned to the one resulting `main`
+  commit, and the markers come out.
+- **Answer-scope:** `feat/w2-answer-scope` fixes the slow document
+  question. Its before/after numbers land before submission.
+- **Live host:** figures from the live host are labelled "rehearsal host, before the Week 2 deploy". The
+  deploy session re-measures after it deploys, and those numbers replace
+  them.
+- **[UNSOURCED: reported by the `feat/w2-php-wiring` session; not yet in a committed artifact]** marks a figure a session reported that no committed file holds yet.
 
 | # | Metric | Current value | Target | Strength of evidence |
 |---|---|---|---|---|
@@ -35,7 +44,7 @@ commit and the markers come out.
 | W2-6 | Critical values surfaced | **not measured live**; gate H6 and G7 pass | 100%, absolute | one fixture |
 | W2-7 | Guideline retrieval: recall and the share actually reranked | recall@4 0.666, zero-recall queries 0/30; reranked 35% at 10 paced users, 6.2% at 50 | reranked rate is watched, not targeted | 30 dev queries; laptop measurements only |
 | W2-8 | Eval gate: regressions caught **[PENDING `feat/w2-eval-gate`]** | 13/13 planted regressions blocked; 78/96 cases active | every planted regression blocks | harness-proved; judge uncalibrated |
-| W2-9 | Cost and latency per encounter | **$0.82 measured** (n = 2); a document question takes **92–131 s** | ≤ 90 s per answer (Week 1 budget) | 2 real-route encounters; **fails the budget** |
+| W2-9 | Cost and latency per encounter | **$0.82 measured** (n = 2); a document question takes **92–131 s** | ≤ 90 s per answer (Week 1 budget) | 2 real-route encounters; **fails the budget**; fix on `feat/w2-answer-scope` **[PENDING `feat/w2-answer-scope`]** |
 
 ---
 
@@ -204,6 +213,9 @@ UNVERIFIED and never dropped (D40 item 7).
   Those assert the shape of the answer. They are not a per-claim pass rate,
   and no committed run shows one answer citing a document and a guideline
   together.
+- The PHP session reports a live run from the chart with 6 document, 4
+  chart and 2 guideline citations and **0 unverified** **[UNSOURCED: reported by the `feat/w2-php-wiring` session; not yet in a committed artifact]**. It becomes
+  evidence when it is committed.
 - In-process tests: `agent/tests/test_w2_checker.py` and
   `test_w2_supervisor_graph.py`.
 - Gate categories A and F, part of the deterministic tier's 72/72 **[PENDING `feat/w2-eval-gate`]**.
@@ -265,7 +277,7 @@ only configuration with no total misses (D25), is actually running.
 | Reranked, 10 paced users | 35% |
 | Reranked, 50 paced users | 6.2% |
 
-The reranked rates are from `LOAD_TEST.md` §5b. On the live host **[PENDING `chore/w2-deploy-rehearsal`]**, one slow
+The reranked rates are from `LOAD_TEST.md` §5b. On the live host (rehearsal host, before the Week 2 deploy) **[PENDING `chore/w2-deploy-rehearsal`]**, one slow
 rerank opened the circuit and 35 of the next 60 turns ran unreranked (D41 **[PENDING `chore/w2-deploy-rehearsal`]**).
 
 **Read it as:** "0/30 at zero recall" holds only when the reranker runs.
@@ -328,7 +340,13 @@ the write-back cases") **[PENDING `feat/w2-eval-gate`]**.
 - A Week 1 conversation turn is p95 6.41 s locally at 10 users.
 
 **This metric is failing today**, on a single request, and the cause is
-known: the answer step drafts over every extracted result.
+known: the answer step drafts over every extracted result. The fix is on
+`feat/w2-answer-scope` **[PENDING `feat/w2-answer-scope`]**; its before/after numbers are not in yet
+(`docs/w2/COST_AND_LATENCY.md` §4.1c).
+
+The PHP session reports a live run from the chart: upload to extraction
+complete in 35.3 s, and an ask answered in 17–19 s **[UNSOURCED: reported by the `feat/w2-php-wiring` session; not yet in a committed artifact]**. The question behind
+that run is not recorded (`docs/w2/COST_AND_LATENCY.md` §4.1a).
 
 Derivations, projections and sources:
 [docs/w2/COST_AND_LATENCY.md](docs/w2/COST_AND_LATENCY.md).

@@ -15,13 +15,24 @@ and names the branch:
 
 | Marker | Branch | On `origin`? | What rests on it |
 |---|---|---|---|
-| **[PENDING `chore/w2-deploy-rehearsal`]** | `chore/w2-deploy-rehearsal` | **no** | `docs/w2/DEPLOY.md`, the live-host rehearsal and every live-host measurement; D41; the upload guard for the stub route |
-| **[PENDING `feat/w2-php-wiring`]** | `feat/w2-php-wiring` | **no** | the upload guard on `main`'s real `/documents` route |
-| **[PENDING `feat/w2-eval-gate`]** | `feat/w2-eval-gate` | yes, unmerged | the eval gate, its cases and evidence (`docs/w2/EVAL_GATE_EVIDENCE.md`); D42–D48 |
+| **[PENDING `feat/w2-php-wiring`]** | `feat/w2-php-wiring` | yes, unmerged; merges **1st** | the Documents & Sources card and its routes in the chart; the upload guard on `main`'s real `/documents` route |
+| **[PENDING `chore/w2-deploy-rehearsal`]** | `chore/w2-deploy-rehearsal` | yes, unmerged; merges **2nd** and deploys | `docs/w2/DEPLOY.md` and every live-host measurement; D41; the upload guard for the stub route |
+| **[PENDING `feat/w2-eval-gate`]** | `feat/w2-eval-gate` | yes, unmerged; merges **3rd** | the eval gate, its cases and evidence (`docs/w2/EVAL_GATE_EVIDENCE.md`); D42–D48 |
+| **[PENDING `feat/w2-answer-scope`]** | `feat/w2-answer-scope` | no | the fix for the 90–130 s document question; its before/after numbers |
 
-All three are due to merge before submission. At that point every citation
-is repinned to the one resulting `main` commit and the markers come out.
-Until then a PENDING claim cannot be checked from `main`.
+When the first three are in, every citation is repinned to the one resulting
+`main` commit and the markers come out. Until then a PENDING claim cannot be
+checked from `main`.
+
+**Live-host figures are labelled "rehearsal host, before the Week 2 deploy".** They describe the host as it was
+before the Week 2 deploy (`a78ba51`), so after the deploy they are false,
+not merely out of date. The deploy session re-measures after it deploys:
+vision cost and latency per page, peak memory under OCR plus reranking, and
+an answer citing both a document and a guideline. Those numbers replace the
+pre-deploy ones, and any pre-deploy figure kept for comparison stays
+labelled.
+
+**[UNSOURCED: reported by the `feat/w2-php-wiring` session; not yet in a committed artifact]** marks a figure a session reported that no committed file holds yet.
 
 ---
 
@@ -78,9 +89,10 @@ beside chart facts without the two blurring. Nine decisions carry the weight.
   one drafting call over every extracted result, writing 11.5k tokens: past
   the 90 s budget, and about half the $0.82 encounter cost (`LOAD_TEST.md`
   §6).
-- The live host **[PENDING `chore/w2-deploy-rehearsal`]** does not run the Week 2 ask path (`a78ba51` predates
+- The live host (rehearsal host, before the Week 2 deploy) **[PENDING `chore/w2-deploy-rehearsal`]** does not run the Week 2 ask path (`a78ba51` predates
   `feat/w2-graph`, `DEPLOY.md` §0 **[PENDING `chore/w2-deploy-rehearsal`]**).
-- The documents card is not registered in the module.
+- The documents card is not registered in the module on `main`. It is
+  wired into the chart on `feat/w2-php-wiring` **[PENDING `feat/w2-php-wiring`]**.
 - The eval gate has not merged **[PENDING `feat/w2-eval-gate`]**.
 
 §11 lists every known limitation.
@@ -197,7 +209,7 @@ numerator and the denominator. Also measured, in replay:
 Per document, the vision call takes 15.3–32.9 s, 93–99% of the extraction
 time, and costs $0.0955–$0.2276 (`LOAD_TEST.md` §4b; the `cost_usd` field
 of the six recordings in `agent/evals/w2/staging/transcriptions/`).
-OCR on the deployment host **[PENDING `chore/w2-deploy-rehearsal`]** is p50 5.7 s per page (`DEPLOY.md` §8).
+OCR on the rehearsal host, before the Week 2 deploy, is p50 5.7 s per page **[PENDING `chore/w2-deploy-rehearsal`]** (`DEPLOY.md` §8).
 
 ---
 
@@ -320,7 +332,7 @@ Potassium, for example, is critical below 2.5 and above 6.0 mmol/L.
 | Sparse + dense | BM25 plus `BAAI/bge-small-en-v1.5` (fastembed/ONNX, 384-d, local), each searched to depth 30, fused with RRF at **equal** weights. Dense 2× scored better but was fitted on the same 30 queries it was measured on | D25 |
 | Rerank | local cross-encoder `Xenova/ms-marco-MiniLM-L-6-v2` over the top 20, on every retrieval; 4 chunks passed to the answer step | D25 |
 | Budget | over budget, the fused order stands, `reranked=false`, and the circuit opens. **2.5 s on `main`**; 4.0 s on `chore/w2-deploy-rehearsal` (D41 **[PENDING `chore/w2-deploy-rehearsal`]**, measured on the host) | `agent/app/retrieval/retriever.py:67`; D41 |
-| Admission | at most 2 concurrent reranks; the rest take the fallback at once (`rerank_busy`). On `main`; **not on the live host** **[PENDING `chore/w2-deploy-rehearsal`]** | D39; `retriever.py:77` |
+| Admission | at most 2 concurrent reranks; the rest take the fallback at once (`rerank_busy`). On `main`; **not on the live host** (rehearsal host, before the Week 2 deploy) **[PENDING `chore/w2-deploy-rehearsal`]** | D39; `retriever.py:77` |
 | Cohere | adapter present, never run (no key) | D25 item 6 |
 
 **The concept-only query rule.** `routing.CONCEPT_LEXICON` maps wording to
@@ -418,7 +430,7 @@ Documents and lab values are written through a custom module endpoint.
 | Intake guard | the write-back request type refuses any document that is not a `lab_pdf`, so an intake form has no path into the chart | `agent/app/models/w2/writeback.py`; planted regression **[PENDING `feat/w2-eval-gate`]** `auto-merge-intake` |
 | Preview | `GET <module>/public/document.php`: session ACL `patients/docs`, the open patient only, PDF only. 404 is identical for missing, another patient's and deleted documents | D28, D30, D49 |
 
-**Verified on the deployment host** (`DEPLOY.md` §7.3) **[PENDING `chore/w2-deploy-rehearsal`]**:
+**Verified on the rehearsal host, before the Week 2 deploy** (`DEPLOY.md` §7.3) **[PENDING `chore/w2-deploy-rehearsal`]**:
 
 | Check | Result |
 |---|---|
@@ -549,27 +561,31 @@ API-collection encounter, `07c0fd35-…`, is one Langfuse trace: 2 min 52 s,
 
 **Open chain breaks:**
 
-- The chart card never sends `X-Correlation-ID`, so each UI request is its
+- On `main`, the chart card never sends `X-Correlation-ID` (it does on
+  `feat/w2-php-wiring` **[PENDING `feat/w2-php-wiring`]**: one UUID per chart open), so each UI request is its
   own trace.
 - Write-back carries no correlation id into PHP.
 - Extraction inherits the upload's id only when that id is a UUID;
   otherwise the two traces are linked by a logged event, not merged.
 - The hosted Langfuse has no BAA, so production metrics come from stdout
-  (Week 1, `agent/docs/observability.md` §1). The live host **[PENDING `chore/w2-deploy-rehearsal`]** runs with
+  (Week 1, `agent/docs/observability.md` §1). The live host (rehearsal host, before the Week 2 deploy) **[PENDING `chore/w2-deploy-rehearsal`]** runs with
   Langfuse `disabled` (`DEPLOY.md` §7.2 **[PENDING `chore/w2-deploy-rehearsal`]**).
 
 ---
 
 ## 8. Deployment state
 
-| Surface | `main` | Live host `64.177.42.210` (`a78ba51` **[PENDING `chore/w2-deploy-rehearsal`]**, per `DEPLOY.md`) |
+The host column is the rehearsal host, before the Week 2 deploy. `chore/w2-deploy-rehearsal` deploys when it
+merges, and the deploy session's re-measurement replaces this column.
+
+| Surface | `main` | Live host `64.177.42.210`, rehearsal host, before the Week 2 deploy (`a78ba51`, per `DEPLOY.md`) **[PENDING `chore/w2-deploy-rehearsal`]** |
 |---|---|---|
 | Week 1 brief + conversation in the chart | yes | yes, v2 OAuth client (`2ps8qgz4…`) |
 | Retrieval (baked models, warmed at start, offline) | yes | yes, preload 2.63 s |
 | OCR (Tesseract in the image) | yes | yes |
 | `POST /documents` | the real extractor, **but it reads the body before checking the token**, with no scope check, rate limit or concurrency cap (`DEPLOY.md` §2.2 **[PENDING `chore/w2-deploy-rehearsal`]**) | the **stub** (hash and discard), behind the upload guard |
 | `POST /w2/ask` (supervisor) | yes | **no**: forwarded by Caddy, but the deployed image predates it |
-| Source-documents card and module upload routes | **no** (not registered in `Bootstrap.php`) | no |
+| Source-documents card and module upload routes | **no** on `main`; registered on `feat/w2-php-wiring` **[PENDING `feat/w2-php-wiring`]** | no |
 | Lab write-back endpoint and ledger | yes | yes, rehearsed (§5) |
 | Eval gate | no (branch) | n/a (runs on fixtures, D6) |
 
@@ -591,9 +607,9 @@ The agent image grew from 360 MB to 1.18 GB, and idle memory from 50 MiB to
 
 | Risk | Where it bites | Mitigation today | What is still exposed |
 |---|---|---|---|
-| **The whole-report answer** | one `/w2/ask` about an uploaded report: 91.9 s and 130.5 s, one call at 34,948 in / 11,523 out, $0.46 (`LOAD_TEST.md` §6) | the 45 s `answer_p95_latency` alert covers `/w2/ask` (`ALERTS.md` §1) | past the 90 s budget with no load at all; the fix (bound the output, or answer only from the rows the question names) is not built |
+| **The whole-report answer** | one `/w2/ask` about an uploaded report: 91.9 s and 130.5 s, one call at 34,948 in / 11,523 out, $0.46 (`LOAD_TEST.md` §6) | the 45 s `answer_p95_latency` alert covers `/w2/ask` (`ALERTS.md` §1) | past the 90 s budget with no load at all; the fix (bound the output, or answer only from the rows the question names) is in progress on `feat/w2-answer-scope` **[PENDING `feat/w2-answer-scope`]** |
 | **One process, in-memory stores** (conversations, documents, extraction jobs, the rerank circuit) | a second worker or replica makes uploads invisible (`404`), re-bills extraction, and loses follow-up context; a restart forgets every upload | one uvicorn worker; a startup warning when more are configured (D40 item 10, `agent/docs/deployment.md` §7) | a second *replica* is invisible to the check; no persistence |
-| **Reranker under load** | 50 concurrent retrievals: p95 335,224 ms, 0% reranked, 5.3 GiB peak RSS on a cold run (`LOAD_TEST.md` §5) | D39 admission bound: p95 259 ms, but only 1% reranked in the burst and 6.2% at 50 paced users (§5b) | on `main`, not on the live host **[PENDING `chore/w2-deploy-rehearsal`]**; memory still up to 3.1 GiB against a 7.24 GiB host that OpenEMR already takes 4.9 GiB of (D39) |
+| **Reranker under load** | 50 concurrent retrievals: p95 335,224 ms, 0% reranked, 5.3 GiB peak RSS on a cold run (`LOAD_TEST.md` §5) | D39 admission bound: p95 259 ms, but only 1% reranked in the burst and 6.2% at 50 paced users (§5b) | on `main`, not on the live host (rehearsal host, before the Week 2 deploy) **[PENDING `chore/w2-deploy-rehearsal`]**; memory still up to 3.1 GiB against a 7.24 GiB host that OpenEMR already takes 4.9 GiB of (D39) |
 | **The rerank circuit never closes** | one slow rerank turns reranking off until restart; 35 of the next 60 turns ran unreranked (D41 **[PENDING `chore/w2-deploy-rehearsal`]**) | none | `rerank_over_budget` conflates "slow" with "skipped" (D41) |
 | **OCR contends with retrieval** | OCR in the same container raises rerank p95 from 2.08 s to 3.39 s (`DEPLOY.md` §8 **[PENDING `chore/w2-deploy-rehearsal`]**) | 4 s budget (D41, branch) | extraction still runs in the serving process (`LOAD_TEST.md`, "Where the new bottleneck is") |
 | **OpenEMR's PHP tier** | saturated at 10 users locally (420% CPU) and failing 58% at 50 (`LOAD_TEST.md` §1) | none agent-side | Week 1 finding, unchanged |
@@ -667,8 +683,10 @@ makes no new decision and takes no D-number.
    reads the payload declines it. That is W2-I5 **[PENDING `feat/w2-eval-gate`]**, which is pending, along with
    I3 and I4 (§6). The structural defences are that the model writes no prose,
    its citation ids are narrowed by schema, and it has no write channel.
-9. **No committed live run shows one answer citing a document and a
-   guideline together.** The real-route API collection asks two separate
+9. **No committed live run yet shows one answer citing a document and a
+   guideline together.** The PHP session reports one from the real chart:
+   6 document, 4 chart and 2 guideline citations, 0 unverified **[UNSOURCED: reported by the `feat/w2-php-wiring` session; not yet in a committed artifact]**. Until
+   that run is committed, the statement below stands. The real-route API collection asks two separate
    questions, one about the document and one about guidance, and asserts on
    each (`docs/w2/evidence/api-collection-run.txt`).
    `agent/scripts/w2_e2e_ask.py` asks the combined question and exits non-zero
@@ -678,10 +696,12 @@ makes no new decision and takes no D-number.
     expensive.** 91.9 s and 130.5 s (n = 2) and about $0.46 per call: one
     drafting call over every extracted result, writing 11.5k tokens
     (`LOAD_TEST.md` §6). It breaks the 90 s budget for a single user with no
-    load. It is a product fix, not a scale fix, and it is not built.
+    load. It is a product fix, not a scale fix. It is being fixed on
+    `feat/w2-answer-scope` **[PENDING `feat/w2-answer-scope`]**, and its before/after numbers are not in yet.
 11. **A wrapped field's multi-box path is unit-tested only.** No sample wraps a
     field (D34).
 12. **The chart card, the module upload routes and the correlation header are
-    not wired** (§8, `docs/w2/ui-integration.md`). The UI is demonstrable in
+    not wired on `main`** (§8, `docs/w2/ui-integration.md`). All three are
+    wired on `feat/w2-php-wiring` **[PENDING `feat/w2-php-wiring`]**, which merges first. The UI is demonstrable in
     fixture mode only.
 13. **No FHIR paging.** `_count` is the sharp edge (`docs/w2/WEEK1_DEBT.md` §4).

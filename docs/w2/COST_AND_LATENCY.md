@@ -21,10 +21,19 @@ limits.
 - **Assumed**: an input with no data behind it.
 
 **Snapshot: `main@f8b16c7`**, which is on `origin`. A claim marked PENDING
-rests on a branch not yet merged into `main`: **[PENDING `chore/w2-deploy-rehearsal`]**, **[PENDING `feat/w2-php-wiring`]** or
-**[PENDING `feat/w2-eval-gate`]**. The first two are not on `origin`. All three are due to merge before
-submission, when every citation is repinned to the one resulting `main`
-commit and the markers come out.
+rests on a branch not yet merged into `main`: **[PENDING `feat/w2-php-wiring`]**, **[PENDING `chore/w2-deploy-rehearsal`]**, **[PENDING `feat/w2-eval-gate`]** or **[PENDING `feat/w2-answer-scope`]**.
+
+- **Merge order:** the first three merge before submission in this order:
+  `feat/w2-php-wiring`, then `chore/w2-deploy-rehearsal` (which deploys),
+  then `feat/w2-eval-gate`.
+- **Repin:** every citation is then repinned to the one resulting `main`
+  commit, and the markers come out.
+- **Answer-scope:** `feat/w2-answer-scope` fixes the slow document
+  question. Its before/after numbers land before submission.
+- **Live host:** figures from the live host are labelled "rehearsal host, before the Week 2 deploy". The
+  deploy session re-measures after it deploys, and those numbers replace
+  them.
+- **[UNSOURCED: reported by the `feat/w2-php-wiring` session; not yet in a committed artifact]** marks a figure a session reported that no committed file holds yet.
 
 Short names used below:
 
@@ -65,6 +74,11 @@ Short names used below:
   - All of it is one drafting call, over every extracted result
     (`LOAD_TEST.md` §6).
   - A guideline question takes 10.5 s and 10.6 s.
+  - The fix for the document question is on `feat/w2-answer-scope` **[PENDING `feat/w2-answer-scope`]**;
+    its before/after numbers go in §4.1c.
+  - The first run of the real flow from a chart is reported at 35.3 s from
+    upload to extraction complete, and 17–19 s from ask to answer, with 0
+    unverified citations **[UNSOURCED: reported by the `feat/w2-php-wiring` session; not yet in a committed artifact]**. Details in §4.1a.
   - Extraction takes 15–33 s per document, but runs at upload (D7).
 - **The local bottleneck is the reranker.**
   - At 50 concurrent retrievals its p95 was **335 s** (335,224 ms) before
@@ -72,7 +86,7 @@ Short names used below:
   - With at most two reranks at once (D39) it is **259 ms**.
   - The cost of that fix: only **1%** of those burst retrievals, and 6.2% at
     50 paced users, were actually reranked.
-  - The admission bound is on `main`, but not on the live host **[PENDING `chore/w2-deploy-rehearsal`]** (§4.3).
+  - The admission bound is on `main`, but not on the live host (rehearsal host, before the Week 2 deploy) **[PENDING `chore/w2-deploy-rehearsal`]** (§4.3).
 
 ---
 
@@ -177,7 +191,7 @@ follow-up turns (Week 1's usage assumption, `docs/COST_ANALYSIS.md` §3) and
 
 | Component | Low | Mid | High | Kind and source |
 |---|---|---|---|---|
-| Brief + 4 turns | $0.180445 (pid 5) | $0.37474 (pid 38) | $0.64889 (pid 40) | **Measured** on the live host **[PENDING `chore/w2-deploy-rehearsal`]**, `DEPLOY.md` §8 |
+| Brief + 4 turns | $0.180445 (pid 5) | $0.37474 (pid 38) | $0.64889 (pid 40) | **Measured** on the rehearsal host, before the Week 2 deploy, `DEPLOY.md` §8 **[PENDING `chore/w2-deploy-rehearsal`]** |
 | One extraction | $0.09553 | $0.130198 (mean of six) | $0.227645 (2-page multipage) | **Measured**, the six recordings' `cost_usd` |
 | Guideline chunks in 4 turns | $0.0174 | $0.0174 | $0.0174 | **Estimated**: 4 chunks × 4 turns × (602,041 chars ÷ 693 chunks ÷ 4 chars/token, the 4 **assumed**) ≈ 3,475 tokens × $5/MTok |
 | **Encounter** | **$0.29** | **$0.52** | **$0.89** | **Estimated** (sum) |
@@ -257,7 +271,8 @@ The host figures are from `DEPLOY.md` §8 **[PENDING `chore/w2-deploy-rehearsal`
 
 ### 3.2 What each level needs
 
-**Before any scale: fix the whole-report question.** At 92–131 s it
+**Before any scale: fix the whole-report question** (in progress on
+`feat/w2-answer-scope` **[PENDING `feat/w2-answer-scope`]**). At 92–131 s it
 already breaks the 90 s budget for a single clinician with no load
 (`LOAD_TEST.md` §6), and it is about 56% of the measured encounter's cost
 ($0.4628 of $0.82). Bounding its output, or answering only from the rows the
@@ -297,7 +312,7 @@ constraint.**
   host.
 - Memory is the next wall. The reranker reaches 3.1 GiB under paced load
   (D39), on a 7.2 GiB host where OpenEMR peaks at 4.9 GiB.
-- Deploy D39 (on `main`, not on the host **[PENDING `chore/w2-deploy-rehearsal`]**), and fix the circuit breaker
+- Deploy D39 (on `main`, not on the rehearsal host, before the Week 2 deploy **[PENDING `chore/w2-deploy-rehearsal`]**), and fix the circuit breaker
   that never closes (D41 **[PENDING `chore/w2-deploy-rehearsal`]**). Both are needed at this level.
 
 **10K encounters a day (about 500 clinicians, many EHR deployments).
@@ -354,14 +369,14 @@ tier.**
 | Document extraction, real vision | local, sequential | 3 | — | — | 15.3 s, 29.5 s, 32.9 s (mean 25.9 s); vision is 93–99% | `LOAD_TEST.md` §4b |
 | Extraction, vision replayed, 1 concurrent | local | 2 | 1.17 s | 2.21 s | | `LOAD_TEST.md` §4a |
 | Extraction, vision replayed, 50 concurrent | local | 100 | 4.81 s | 10.20 s | 8.25 cores busy, 1,233 MiB RSS | `LOAD_TEST.md` §4a |
-| OCR per page, Tesseract at 300 dpi | **live host** **[PENDING `chore/w2-deploy-rehearsal`]** | 3 pages, best of 3 | 5.7 s | — | max 6.2 s | `DEPLOY.md` §8 |
-| Text layer per page | **live host** **[PENDING `chore/w2-deploy-rehearsal`]** | 5 pages | 6 ms | — | max 14 ms | `DEPLOY.md` §8 |
-| Retrieval, hybrid, no rerank | **live host** **[PENDING `chore/w2-deploy-rehearsal`]** | 60 | 7.8 ms | 9.4 ms | | `DEPLOY.md` §8 |
-| Rerank stage, idle host | **live host** **[PENDING `chore/w2-deploy-rehearsal`]** | 90 | 1.38 s | 2.08 s | max 2.28 s | `DEPLOY.md` §8 |
-| Rerank stage, OCR in the same container | **live host** **[PENDING `chore/w2-deploy-rehearsal`]** | 60 | 2.45 s | 3.39 s | max 4.09 s; 43.3% over 2.5 s | `DEPLOY.md` §8 |
+| OCR per page, Tesseract at 300 dpi | **rehearsal host, before the Week 2 deploy** **[PENDING `chore/w2-deploy-rehearsal`]** | 3 pages, best of 3 | 5.7 s | — | max 6.2 s | `DEPLOY.md` §8 |
+| Text layer per page | **rehearsal host, before the Week 2 deploy** **[PENDING `chore/w2-deploy-rehearsal`]** | 5 pages | 6 ms | — | max 14 ms | `DEPLOY.md` §8 |
+| Retrieval, hybrid, no rerank | **rehearsal host, before the Week 2 deploy** **[PENDING `chore/w2-deploy-rehearsal`]** | 60 | 7.8 ms | 9.4 ms | | `DEPLOY.md` §8 |
+| Rerank stage, idle host | **rehearsal host, before the Week 2 deploy** **[PENDING `chore/w2-deploy-rehearsal`]** | 90 | 1.38 s | 2.08 s | max 2.28 s | `DEPLOY.md` §8 |
+| Rerank stage, OCR in the same container | **rehearsal host, before the Week 2 deploy** **[PENDING `chore/w2-deploy-rehearsal`]** | 60 | 2.45 s | 3.39 s | max 4.09 s; 43.3% over 2.5 s | `DEPLOY.md` §8 |
 | Conversation turn, real LLM, 10 users | local | 100 | 5.25 s | 6.41 s | draft p95 5.56 s | `LOAD_TEST.md` §2 |
-| Pre-Visit Brief, real LLM | **live host** **[PENDING `chore/w2-deploy-rehearsal`]** | 3 patients | 19.7 s | — | max 22.8 s | `DEPLOY.md` §8 |
-| Follow-up turn, real LLM | **live host** **[PENDING `chore/w2-deploy-rehearsal`]** | 3 patients × 4 | 9.2 s | — | max 18.2 s | `DEPLOY.md` §8 |
+| Pre-Visit Brief, real LLM | **rehearsal host, before the Week 2 deploy** **[PENDING `chore/w2-deploy-rehearsal`]** | 3 patients | 19.7 s | — | max 22.8 s | `DEPLOY.md` §8 |
+| Follow-up turn, real LLM | **rehearsal host, before the Week 2 deploy** **[PENDING `chore/w2-deploy-rehearsal`]** | 3 patients × 4 | 9.2 s | — | max 18.2 s | `DEPLOY.md` §8 |
 | Brief, LLM stubbed, 10 users | local | 280 | 1.14 s | 1.52 s | 0% errors | `LOAD_TEST.md` §1 |
 | Brief, LLM stubbed, 50 users | local | 200 | 16.08 s | 28.05 s | **58% errors**, all `fhir_unavailable` | `LOAD_TEST.md` §1 |
 
@@ -382,6 +397,58 @@ retrieving `/w2/ask`:
 The guideline question then measured 10.5 s and 10.6 s. The same method
 could not have predicted the document question, whose draft is 20× longer.
 
+### 4.1a The first end-to-end run from a chart **[UNSOURCED: reported by the `feat/w2-php-wiring` session; not yet in a committed artifact]**
+
+Reported by the `feat/w2-php-wiring` session from a live run on the real
+flow, through the Documents & Sources card:
+
+| Step | Reported |
+|---|---|
+| Upload → extraction complete | **35.3 s** |
+| Ask → answer | **17–19 s** |
+| Citations in that answer | 6 document + 4 chart + 2 guideline; **0 unverified** |
+
+**This is the first end-to-end measurement of the real flow from a chart.**
+It is also the first live answer to cite a document and a guideline together.
+
+**Not yet sourced.** No committed file on any branch holds these figures.
+They need a committed run log, for example in `docs/w2/evidence/`, before
+the repin, or they come out. Not yet known:
+
+- which question was asked, and on which document;
+- whether the run was local or on the host;
+- n.
+
+17–19 s against the 92–131 s document question in §4.1 suggests a
+narrower question. That is not established.
+
+### 4.1b Post-deploy re-measurement **[PENDING `chore/w2-deploy-rehearsal`]**
+
+After `chore/w2-deploy-rehearsal` deploys, the deploy session re-measures on
+the host. These rows replace the figures labelled "rehearsal host, before the
+Week 2 deploy" in §4.1:
+
+| Measurement | Before the Week 2 deploy (rehearsal host) | After the deploy |
+|---|---|---|
+| Vision extraction, cost per page | not measured on the host | *awaiting the deploy session* |
+| Vision extraction, latency per page | not measured on the host (OCR alone: p50 5.7 s) | *awaiting the deploy session* |
+| Peak memory under OCR + reranking | not measured (idle 760–900 MiB) | *awaiting the deploy session* |
+| One answer citing a document and a guideline | the host did not run `/w2/ask` | *awaiting the deploy session* |
+
+### 4.1c The document-question fix **[PENDING `feat/w2-answer-scope`]**
+
+`feat/w2-answer-scope` fixes the whole-report document question. Its
+before/after numbers go here:
+
+| Measure | Before (`main`, `LOAD_TEST.md` §6) | After (`feat/w2-answer-scope`) |
+|---|---|---|
+| `/w2/ask` about the uploaded report, latency | 91.9 s, 130.5 s (n = 2) | *awaiting the branch's numbers* |
+| Tokens in / out for that call | 34,948 / 11,523 (run `c8661931`) | *awaiting* |
+| Cost of that call | $0.4628 | *awaiting* |
+| Encounter cost | $0.82 (n = 2) | *awaiting* |
+
+§2, §3 and §4.2 use the "before" figures until the "after" figures land.
+
 ### 4.2 The bottleneck on each path
 
 | Path | Bottleneck | Evidence |
@@ -390,7 +457,7 @@ could not have predicted the document question, whose draft is 20× longer.
 | Question → answer, capacity | **OpenEMR's PHP tier**, unchanged from Week 1: 420% CPU at 10 users, 58% failures at 50, and throughput *falling* from 4.53 to 2.70 req/s | `LOAD_TEST.md` §1 |
 | Other questions, wall clock | **The LLM draft**: 85% of a real turn | `LOAD_TEST.md` §2 |
 | Document → extraction, wall clock and cost | **The vision call**: 15–33 s and $0.10–0.23 per document, off the question path (D7) | `LOAD_TEST.md` §4b; §1 row 1 |
-| Document → extraction, local CPU | **OCR**: 5.7 s per scanned page on the host **[PENDING `chore/w2-deploy-rehearsal`]**; 8.25 cores busy at 50 concurrent locally | `DEPLOY.md` §8; `LOAD_TEST.md` §4a |
+| Document → extraction, local CPU | **OCR**: 5.7 s per scanned page on the rehearsal host, before the Week 2 deploy **[PENDING `chore/w2-deploy-rehearsal`]**; 8.25 cores busy at 50 concurrent locally | `DEPLOY.md` §8; `LOAD_TEST.md` §4a |
 | Guideline retrieval | **The cross-encoder reranker** (§4.3) | `LOAD_TEST.md` §5, §5b; D39 |
 | Embedding and fusion | Not a bottleneck: p95 77 ms at 50 concurrent, locally | `LOAD_TEST.md` §5 |
 
@@ -424,7 +491,7 @@ Under that load, that property holds for 1 retrieval in 16.
 - **The circuit never closes** (D41 **[PENDING `chore/w2-deploy-rehearsal`]**). After one slow rerank on the host, 35
   of the next 60 turns ran unreranked. The circuit stays open until the
   process restarts.
-- **Deployment.** The live host **[PENDING `chore/w2-deploy-rehearsal`]** has the 4 s budget (D41) but not the
+- **Deployment.** The live host (rehearsal host, before the Week 2 deploy) **[PENDING `chore/w2-deploy-rehearsal`]** has the 4 s budget (D41) but not the
   admission bound (D39). `main` has the admission bound
   (`MAX_CONCURRENT_RERANKS = 2`, `retriever.py:77`) but still the 2.5 s
   budget (`retriever.py:67`).
@@ -437,8 +504,8 @@ Under that load, that property holds for 1 retrieval in 16.
 |---|---|
 | Two real-route Week 2 encounters: cost ($0.82 each) and per-request latency | `/w2/ask` under any concurrent load |
 | Vision cost per document: six samples plus three more live runs | Concurrent vision throughput and Anthropic rate limits (`LOAD_TEST.md`, "Not measured") |
-| Brief + 4-turn session cost on three live-host charts | Any Week 2 route on the live host **[PENDING `chore/w2-deploy-rehearsal`]**: the host does not run it |
-| Rerank, OCR and retrieval latency on the live host **[PENDING `chore/w2-deploy-rehearsal`]** | The per-call token split inside the $0.82 encounter, other than the document question |
+| Brief + 4-turn session cost on three live-host charts | Any Week 2 route on the live host (rehearsal host, before the Week 2 deploy) **[PENDING `chore/w2-deploy-rehearsal`]**: the host does not run it |
+| Rerank, OCR and retrieval latency on the live host (rehearsal host, before the Week 2 deploy) **[PENDING `chore/w2-deploy-rehearsal`]** | The per-call token split inside the $0.82 encounter, other than the document question |
 | Judge cost per cold CI run | Judge calls spent selecting fixtures and on cold harness runs |
 | Seven rows of dev spend (§1) | A Week 2 Anthropic Console total; the "$1.21 I-suite run" |
 | | A cheaper vision or answer model; prompt caching on the extraction prompt |
