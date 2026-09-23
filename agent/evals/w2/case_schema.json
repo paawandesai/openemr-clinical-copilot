@@ -125,6 +125,7 @@
               "locate_result",
               "abnormal_flag_crosscheck",
               "discrepancy_kind",
+              "refusal_structure",
               "no_auto_merge",
               "rerank_declared",
               "routing_trajectory",

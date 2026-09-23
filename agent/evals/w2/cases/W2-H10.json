@@ -1,0 +1,19 @@
+{
+  "id": "W2-H10",
+  "category": "H",
+  "critical": true,
+  "status": "active",
+  "inputs": {
+    "kind": "contract",
+    "note": "MODE: pure data + pure functions. app/supervisor/critical.py's threshold table, checked as data, plus its own lookup and evaluation. No graph, no model."
+  },
+  "expected": "Every row of the critical-value threshold table states at least one limit, names the units its limits are written in, and is reachable by LOINC code or printed name. Potassium 6.8 mmol/L evaluates critically high, 4.1 does not, and the same number in a unit the row does not declare does not match at all.",
+  "assertions": [
+    {
+      "rubric": "cap_disclosure",
+      "tier": "det",
+      "check": "chk.h_the_critical_threshold_table_is_usable"
+    }
+  ],
+  "guards_against": "A threshold table that cannot fire. It is the only thing between a panic value and silence, and every way it fails is quiet: a row with no limit never triggers, a row with no units compares numbers that are not the same quantity (6.8 mmol/L against a mg/dL limit), and a row reachable by neither code nor name is never consulted. None of those raise; they just never escalate."
+}
