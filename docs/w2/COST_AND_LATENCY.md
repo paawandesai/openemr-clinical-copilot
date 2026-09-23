@@ -20,20 +20,22 @@ limits.
   arithmetic shown.
 - **Assumed**: an input with no data behind it.
 
-**Snapshot: `main@f8b16c7`**, which is on `origin`. A claim marked PENDING
-rests on a branch not yet merged into `main`: **[PENDING `feat/w2-php-wiring`]**, **[PENDING `chore/w2-deploy-rehearsal`]**, **[PENDING `feat/w2-eval-gate`]** or **[PENDING `feat/w2-answer-scope`]**.
+**Snapshot: `main@2ae4d98`**, which is on `origin`. A claim marked PENDING
+rests on a branch not yet merged into `main`: **[PENDING `chore/w2-deploy-rehearsal`]**, **[PENDING `feat/w2-eval-gate`]** or **[PENDING `feat/w2-answer-scope`, not on `origin`]**.
 
-- **Merge order:** the first three merge before submission in this order:
-  `feat/w2-php-wiring`, then `chore/w2-deploy-rehearsal` (which deploys),
-  then `feat/w2-eval-gate`.
-- **Repin:** every citation is then repinned to the one resulting `main`
-  commit, and the markers come out.
-- **Answer-scope:** `feat/w2-answer-scope` fixes the slow document
-  question. Its before/after numbers land before submission.
+- **Merged:** `feat/w2-php-wiring` merged into `main` at `2ae4d98`
+  (the Documents & Sources card, its routes, the upload guard on the real
+  `/documents`, the correlation header). Its claims are no longer marked.
+- **Merge order for the rest:** `chore/w2-deploy-rehearsal` (which
+  deploys), then `feat/w2-eval-gate`. Every citation is then repinned to the
+  one resulting `main` commit, and the markers come out.
+- **Answer-scope is not on `origin`.** `feat/w2-answer-scope` fixes the
+  slow whole-report question. It numbers its decision D49, which `main` has
+  already assigned to the preview URL. Its figures cannot be checked from
+  `origin` until it is pushed and renumbered.
 - **Live host:** figures from the live host are labelled "rehearsal host, before the Week 2 deploy". The
   deploy session re-measures after it deploys, and those numbers replace
   them.
-- **[UNSOURCED: reported by the `feat/w2-php-wiring` session; not yet in a committed artifact]** marks a figure a session reported that no committed file holds yet.
 
 Short names used below:
 
@@ -68,23 +70,26 @@ Short names used below:
 
   Even 100 a day is over Anthropic's Build-tier cap of $1,000 a month
   (published). 10K a day is within 14% of the Scale tier's $200K cap.
-- **The scope of the question dominates answer latency** (§4.1a). On the
-  same stack:
-  - a question about a **whole** uploaded lab report takes **91.9 s and
-    130.5 s** (n = 2, no load): one drafting call over every extracted
-    result, writing 11,523 tokens (`LOAD_TEST.md` §6);
-  - a guideline question takes **10.5 s and 10.6 s** (`LOAD_TEST.md` §6);
-  - a narrower document question from the chart takes **17–19 s** **[UNSOURCED: reported by the `feat/w2-php-wiring` session; not yet in a committed artifact]**.
-
-  Only the whole-report question breaks the 90 s budget. Neither the stack
-  nor the load makes it slow. The size of the answer does: it covers every
-  extracted result and writes 11.5k tokens back.
-  - The fix for the document question is on `feat/w2-answer-scope` **[PENDING `feat/w2-answer-scope`]**;
-    its before/after numbers go in §4.1d.
-  - The first run of the real flow from a chart is reported at 35.3 s from
-    upload to extraction complete, and 17–19 s from ask to answer, with 0
-    unverified citations **[UNSOURCED: reported by the `feat/w2-php-wiring` session; not yet in a committed artifact]**. Details in §4.1b.
-  - Extraction takes 15–33 s per document, but runs at upload (D7).
+- **Answer latency scales with the number of claims the answer makes**
+  (§4.1a).
+  - Answer step: about **3.7 s + 1.0 s per citation** over six cases, from
+    3 to 180 citations (R² = 0.997). The fit is estimated from measured
+    points in `LOAD_TEST.md` §7 on `feat/w2-answer-scope` **[PENDING `feat/w2-answer-scope`, not on `origin`]**.
+  - A whole-report question on the 22-row lab report makes 91 citations and
+    writes about 11.5k output tokens. Its answer step takes **88.2–91.8 s**
+    (n = 3).
+  - The first live run from the chart asked about one analyte and one
+    guideline topic. It made 8–12 citations and answered in **17.2–19.5 s**
+    (n = 3), consistent with the same rate once the chart reads and token
+    mint are included (`docs/w2/evidence/php-wiring-e2e-run.md`).
+  - The model was the same in every run, so this shows the claim count sets
+    the time on that model. It says nothing about other models.
+  - Retrieval adds seconds, not minutes (§4.1).
+  - The whole-report question breaks the 90 s budget. Scoping it
+    (**[PENDING `feat/w2-answer-scope`, not on `origin`]**) brings it to 6.9 s p50 on
+    22 rows (§4.1d).
+  - Upload to extraction complete is **34–35 s** on a 1-page text-layer
+    report, and runs at upload (D7) (`docs/w2/evidence/php-wiring-e2e-run.md`).
 - **The local bottleneck is the reranker.**
   - At 50 concurrent retrievals its p95 was **335 s** (335,224 ms) before
     the concurrency limit.
@@ -117,8 +122,8 @@ rounded up.
 - **"An I-suite run ~$1.21"** was reported by a session, but that figure is
   not in any committed file, commit message or branch. The Week 2 I-suite
   (prompt injection in an uploaded PDF) makes no model call where it runs:
-  W2-I1 **[PENDING `feat/w2-eval-gate`]** and W2-I2 are active on a ground-truth vision stand-in, and I3–I5
-  are pending (`docs/w2/EVAL_GATE_EVIDENCE.md`) **[PENDING `feat/w2-eval-gate`]**.
+  W2-I1 **[PENDING `feat/w2-eval-gate`]** to W2-I3 are active on a ground-truth vision stand-in, and I4 and
+  I5 are pending (`docs/w2/EVAL_GATE_EVIDENCE.md`) **[PENDING `feat/w2-eval-gate`]**.
   The nearest committed figure is row 7, $1.204, which may be what was
   remembered. **It is not added a second time.**
 
@@ -158,7 +163,7 @@ on patient `a2c373ec-57bf-41cb-8767-94410dcf663d`. The run evidence is
 | `POST /documents` + 26 status polls | extraction ran in the background (D7) | 1 vision call |
 | `POST /pre-visit-brief` | 18.5 s | 1 |
 | `POST /pre-visit-brief/conversation` | 18.7 s | 1 |
-| `POST /w2/ask`, about the uploaded document | **1 min 31.9 s** | 1 |
+| `POST /w2/ask`, about the uploaded document (the whole-report question) | **1 min 31.9 s** | 1 |
 | `POST /w2/ask`, a guideline question | 10.5 s | 1 |
 | **Encounter** | 2 min 52.7 s total run | **5 `llm_usage_event`s, 87,245 tokens, $0.82** |
 
@@ -246,18 +251,20 @@ Estimated as daily volume ÷ 480 minutes × 2, Week 1's peak factor
 
 | Per day | Encounters/min | Input TPM | Output TPM | Concurrent vision calls | Concurrent document questions | OCR cores (if every page scanned) | Retrieval turns/s (if every turn retrieves) |
 |---|---|---|---|---|---|---|---|
-| 100 | 0.42 | 28K | 8.0K | 0.18 | 0.8 | 0.07 | 0.03 |
-| 1K | 4.2 | 283K | 80K | 1.8 | 7.7 | 0.66 | 0.28 |
-| 10K | 41.7 | 2.83M | 803K | 18 | 77 | 6.6 | 2.8 |
-| 100K | 417 | **28.3M** | **8.03M** | 180 | 772 | 66 | 28 |
+| 100 | 0.42 | 28K | 8.0K | 0.18 | 0.6 | 0.07 | 0.03 |
+| 1K | 4.2 | 283K | 80K | 1.8 | 6.2 | 0.66 | 0.28 |
+| 10K | 41.7 | 2.83M | 803K | 18 | 62 | 6.6 | 2.8 |
+| 100K | 417 | **28.3M** | **8.03M** | 180 | 618 | 66 | 28 |
 
 How each column is derived:
 
 - **Concurrent vision calls** = encounters/min × 25.9 s (the mean of the three
   live extractions, `extraction-live-vision.json`) ÷ 60.
-- **Concurrent document questions** = encounters/min × 111.2 s (the mean of
-  91.9 s and 130.5 s) ÷ 60. This assumes one whole-report question per
-  encounter.
+- **Concurrent document questions** = encounters/min × 89.0 s ÷ 60. 89.0 s
+  is the p50 of the unscoped whole-report answer step, in `LOAD_TEST.md` §7
+  **[PENDING `feat/w2-answer-scope`, not on `origin`]**. This assumes one whole-report question per encounter. After the
+  scoping fix, a whole-report answer is 6.9 s p50 and the column falls about
+  13×.
 - **OCR cores** = 1.67 pages per document (10 pages across the six samples)
   × 5.7 s per page (host p50, `DEPLOY.md` §8 **[PENDING `chore/w2-deploy-rehearsal`]**). It is an upper bound: a
   text-layer page needs no OCR.
@@ -277,7 +284,7 @@ The host figures are from `DEPLOY.md` §8 **[PENDING `chore/w2-deploy-rehearsal`
 ### 3.2 What each level needs
 
 **Before any scale: fix the whole-report question** (in progress on
-`feat/w2-answer-scope` **[PENDING `feat/w2-answer-scope`]**). At 92–131 s it
+`feat/w2-answer-scope` **[PENDING `feat/w2-answer-scope`, not on `origin`]**). At 88–92 s for its answer step it
 already breaks the 90 s budget for a single clinician with no load
 (`LOAD_TEST.md` §6), and it is about 56% of the measured encounter's cost
 ($0.4628 of $0.82). Bounding its output, or answering only from the rows the
@@ -292,8 +299,9 @@ not cost.**
   starts on a low tier (`docs/COST_ANALYSIS.md` §4.3).
 - Register the documents card and the module upload routes
   (`docs/w2/ui-integration.md` §2–3).
-- Merge the upload guard, so `/documents` authorizes, rate-limits and caps
-  before reading a body (`DEPLOY.md` §2.2 **[PENDING `chore/w2-deploy-rehearsal`]**, `feat/w2-php-wiring` **[PENDING `feat/w2-php-wiring`]**).
+- Deploy the upload guard, which is on `main` since `2ae4d98`: `/documents`
+  authorizes, rate-limits and caps before reading a body (`DEPLOY.md` §2.2
+  **[PENDING `chore/w2-deploy-rehearsal`]**).
 - Persist the document and extraction store, so a restart does not forget
   uploads or bill them again.
 - One process holds this load: under one concurrent document question, and
@@ -310,8 +318,8 @@ constraint.**
   rerank p95 from 2.08 s to 3.39 s (`DEPLOY.md` §8 **[PENDING `chore/w2-deploy-rehearsal`]**). A separate extraction
   worker is what `LOAD_TEST.md` ("Where the new bottleneck is") already
   recommends.
-- About 8 document questions are in flight at the peak minute. Each holds a
-  connection for 1.5–2 minutes, so the host needs connection and timeout
+- About 6 document questions are in flight at the peak minute. Each holds a
+  connection for about 1.5 minutes, so the host needs connection and timeout
   headroom for that, unless the fix above lands.
 - Retrieval fits: 0.28 turns/s against about 0.82–1.45 reranks/s on the
   host.
@@ -367,7 +375,9 @@ tier.**
 
 | Path | Where | n | p50 | p95 | Other | Source |
 |---|---|---|---|---|---|---|
-| **`/w2/ask` about an uploaded lab report** | local, real routes, real LLM | **2** | — | — | **91.9 s, 130.5 s**: one call, 34,948 in / 11,523 out | `LOAD_TEST.md` §6; `api-collection-run.txt` |
+| **`/w2/ask` about a whole uploaded lab report**, answer step | local | 3 | 89.0 s | — | **88.2–91.8 s**; 91 citations, 11,511 out | `LOAD_TEST.md` §7 on `feat/w2-answer-scope` **[PENDING `feat/w2-answer-scope`, not on `origin`]** |
+| `/w2/ask` about a whole uploaded lab report, whole HTTP request | local, real routes, real LLM | 2 | — | — | 91.9 s, 130.5 s (the second unexplained, §4.1a) | `LOAD_TEST.md` §6 |
+| `/w2/ask`, one analyte + one guideline topic, from the chart | local, module routes | 3 | — | — | 17.2, 17.7, 19.5 s; 8–12 citations, 0 unverified | `docs/w2/evidence/php-wiring-e2e-run.md` |
 | `/w2/ask`, guideline question | local, real routes | 2 | — | — | 10.5 s, 10.6 s | `LOAD_TEST.md` §6 |
 | Pre-Visit Brief, real LLM | local, real routes | 1 | — | — | 18.5 s | `api-collection-run.txt` |
 | Conversation turn, real LLM | local, real routes | 1 | — | — | 18.7 s | `api-collection-run.txt` |
@@ -402,66 +412,103 @@ retrieving `/w2/ask`:
 The guideline question then measured 10.5 s and 10.6 s. The same method
 could not have predicted the document question, whose draft is 20× longer.
 
-### 4.1a Question scope dominates answer latency
+### 4.1a Answer latency scales with the number of claims
 
-The same `/w2/ask` path, on the same stack, answers in 10 s or in 2
-minutes, depending on what the question asks for:
+The same `/w2/ask` answer step, on the same model (`claude-opus-5`), takes
+seconds or minutes depending on how many claims the answer makes. The model
+call is 99% of the step, and it is output-bound: about 131 output tokens/s
+and one citation a second.
 
-| Question, same stack | `/w2/ask` latency | What the answer drafts over | Source |
+| Case | Citations | Answer step p50 (worst) | Output tokens p50 | Source |
+|---|---|---|---|---|
+| 22-row report, "What were the results…", **scoped** | 3 | 6.9 s (9.1 s) | 461 | `LOAD_TEST.md` §7 on `feat/w2-answer-scope` **[PENDING `feat/w2-answer-scope`, not on `origin`]** |
+| 44-row report, same question, **scoped** | 8 | 11.7 s (13.0 s) | 1,151 | same |
+| critical-potassium report, **scoped**, 1 run | 8 | 12.5 s | 1,005 | same |
+| 44-row report, "Show me all the results", **scoped**, cap binds | 36 | 43.4 s (45.5 s) | 5,092 | same |
+| 22-row report, "What were the results…", **before** scoping | 91 | 89.0 s (91.8 s; min 88.2 s) | 11,511 | same; raw: `docs/w2/evidence/load/answer-before-22row.json` on that branch |
+| 44-row report, same question, **before** scoping | 180 | 188.8 s (195.9 s) | 24,762 | same |
+
+**The fit (estimated from the rows above).**
+
+- Answer step ≈ **3.7 s + 1.0 s per citation**, R² = 0.997. It is least
+  squares over the six p50s.
+- Every case is within 7 s of the line, and five of the six are within
+  3.5 s.
+- The constant is the fixed part of a turn. The slope is the model writing
+  about 130 output tokens per citation at about 131 tokens/s.
+
+**The chart run fits the same line** (`docs/w2/evidence/php-wiring-e2e-run.md`, on `main`). It was the
+question "What was her glucose on the uploaded lab report, and what does the
+USPSTF recommend about screening for prediabetes and type 2 diabetes?", on
+the local stack:
+
+| Run | Citations (document / chart / guideline) | Ask, client wall clock | Agent `total_ms` |
 |---|---|---|---|
-| About a whole uploaded lab report | **91.9 s, 130.5 s** (n = 2) | every extracted result on the report; one call, 34,948 in / 11,523 out | `LOAD_TEST.md` §6 |
-| A narrower question about an uploaded document, from the chart | **17–19 s** | not recorded: the run log should give the question and the token counts | **[UNSOURCED: reported by the `feat/w2-php-wiring` session; not yet in a committed artifact]** |
-| A guideline question | **10.5 s, 10.6 s** (n = 2) | 4 retrieved chunks | `LOAD_TEST.md` §6 |
+| A | 6 / 4 / 2 = 12 | 19.5 s | 18,511 |
+| C | 6 / 0 / 2 = 8 | 17.7 s | not reported |
+| D | 6 / 0 / 2 = 8 | 17.2 s | not reported |
 
-**The finding is the spread, not any one number.**
+- The fit predicts an answer step of 11.8 s for 8 citations and 15.8 s for
+  12.
+- The client figures are 4–6 s higher. They also include the module's token
+  mint and the chart reads, which the answer-step figure does not.
 
-- A whole-report question drafts over every extracted result and writes
-  11.5k tokens back in one call. That is what makes it slow, and what makes
-  it about $0.46 of a $0.82 encounter (§2.1).
-- A guideline question drafts over four chunks.
-- The narrower document question's token counts are not recorded yet, so
-  whether it is faster because it reads less or writes less is open.
-- A single figure for "answer latency" would mislead in either direction.
-  92–131 s makes every answer look broken; 17–19 s hides the question that
-  actually breaks the budget.
+**What this does and does not show.**
 
-**Sourcing.** The first and third rows are committed
-(`docs/w2/LOAD_TEST.md` §6), and they carry the finding on their own: two
-questions in the same encounter, on the same stack, 10.5 s against 91.9 s.
-The middle row is reported but not committed. If its run log does not land
-in `docs/w2/evidence/` before the merge, the row comes out and the finding
-stands on the other two.
+- **Shown.** On one model, the number of claims sets answer latency, over a
+  60× range of claims (3 to 180).
+- **Retrieval is small.**
+  - A retrieval with reranking is milliseconds to about 2 s on the idle
+    rehearsal host (§4.1); the budget is 2.5 s on `main`.
+  - A guideline-only question takes 10.5–10.6 s end to end
+    (`LOAD_TEST.md` §6).
+- **Not shown:**
+  - **other models**: every run used `claude-opus-5`;
+  - **concurrency**: every run was a single encounter with no load.
 
-**What it means for the fix.** The finding is why the fix is about scope,
-not speed: bound the output, or answer only from the rows the question
-names (`LOAD_TEST.md` §6). `feat/w2-answer-scope` **[PENDING `feat/w2-answer-scope`]** is measuring
-before/after on the whole-report question (§4.1d).
+**Why this matters.**
 
-### 4.1b The first end-to-end run from a chart **[UNSOURCED: reported by the `feat/w2-php-wiring` session; not yet in a committed artifact]**
+- A single latency figure would mislead either way. 88–92 s makes every
+  answer look broken; 17–19 s hides the question that breaks the budget.
+- The honest description is a rate. Answers take about a second per claim,
+  so the lever is how many claims an answer makes, not the model or the
+  retriever.
 
-Reported by the `feat/w2-php-wiring` session from a live run on the real
-flow, through the Documents & Sources card:
+**How §6 and §7 relate.**
 
-| Step | Reported |
-|---|---|
-| Upload → extraction complete | **35.3 s** |
-| Ask → answer | **17–19 s** |
-| Citations in that answer | 6 document + 4 chart + 2 guideline; **0 unverified** |
+- `LOAD_TEST.md` §6 (on `main`) timed the **same** whole-report question
+  from the API collection as a whole HTTP request, n = 2: 91.9 s and 130.5 s.
+- §7 timed the answer step alone, n = 3: 88.2–91.8 s.
+- The 91.9 s run agrees with §7.
+- The 130.5 s run is 39 s slower than any §7 run, and nothing committed
+  explains why. It is kept here as a measured end-to-end outlier, not as
+  the typical figure.
 
-**This is the first end-to-end measurement of the real flow from a chart.**
-It is also the first live answer to cite a document and a guideline together.
+### 4.1b The first end-to-end run from a chart
 
-**Not yet sourced.** No committed file on any branch holds these figures.
-They need a committed run log, for example in `docs/w2/evidence/`, before
-the repin, or they come out. Not yet known:
+Source: `docs/w2/evidence/php-wiring-e2e-run.md`, on `main`.
 
-- which question was asked, and on which document;
-- whether the run was local or on the host;
-- n.
+- **What:** five runs on 2026-09-23 through the Documents & Sources card:
+  - the module's routes, `upload.php`, `upload-status.php` and `ask.php`,
+    with a real `physician` login;
+  - live vision on first extraction, one live drafting call per question;
+  - pid 38, and `lab-clean-001` (1 page, 22 rows, text layer).
+- **Where:** the **local** stack, not the Vultr host.
 
-According to the project owner, this was a narrower question than the
-whole-report one, against the same stack. The run log should record the
-question itself. §4.1a sets it beside the other two measurements.
+| Measure | Value | Runs |
+|---|---|---|
+| Upload → extraction complete (live vision) | **35.3 s**, **34 s** | A, E (new bytes) |
+| Ask → answer, client wall clock | **19.5 s, 17.7 s, 17.2 s** | A, C, D |
+| Citations | 6 document + 4 chart + 2 guideline (A); 6 + 0 + 2 (C, D) | A, C, D |
+| Unverified | **0** in every timed run | A, C, D |
+| Chip → box | the glucose value chip draws one box over the value's ink | C |
+
+- **The first committed live answer that cites a document and a guideline
+  together**, from the real chart.
+- **Run B is excluded.** It completed 19 minutes late, alongside a Pre-Visit
+  Brief from the same chart open. That fits the host or Docker VM being
+  suspended, but the cause is not established. Runs C and D repeated it
+  without the delay.
 
 ### 4.1c Post-deploy re-measurement **[PENDING `chore/w2-deploy-rehearsal`]**
 
@@ -476,25 +523,38 @@ Week 2 deploy" in §4.1:
 | Peak memory under OCR + reranking | not measured (idle 760–900 MiB) | *awaiting the deploy session* |
 | One answer citing a document and a guideline | the host did not run `/w2/ask` | *awaiting the deploy session* |
 
-### 4.1d The document-question fix **[PENDING `feat/w2-answer-scope`]**
+### 4.1d The document-question fix **[PENDING `feat/w2-answer-scope`, not on `origin`]**
 
-`feat/w2-answer-scope` fixes the whole-report document question. Its
-before/after numbers go here:
+`feat/w2-answer-scope` scopes a document answer by rule: critical values,
+abnormal rows and rows the question names are itemised, the rest is
+counted, and the output is bounded.
 
-| Measure | Before (`main`, `LOAD_TEST.md` §6) | After (`feat/w2-answer-scope`) |
-|---|---|---|
-| `/w2/ask` about the uploaded report, latency | 91.9 s, 130.5 s (n = 2) | *awaiting the branch's numbers* |
-| Tokens in / out for that call | 34,948 / 11,523 (run `c8661931`) | *awaiting* |
-| Cost of that call | $0.4628 | *awaiting* |
-| Encounter cost | $0.82 (n = 2) | *awaiting* |
+**This branch is not on `origin`, and it numbers its decision D49**, which
+`main` has already assigned to the preview URL. Both need resolving before
+its numbers can be cited from `main`.
 
-§2, §3 and §4.2 use the "before" figures until the "after" figures land.
+The question is "What were the results on the uploaded lab report?", 3 runs
+per report, from `LOAD_TEST.md` §7 on `feat/w2-answer-scope` **[PENDING `feat/w2-answer-scope`, not on `origin`]**:
+
+| Report | Answer step p50 (worst): before → after | Tokens out p50: before → after | Citations | Cost per answer |
+|---|---|---|---|---|
+| 22 rows | 89.0 s (91.8 s) → **6.9 s (9.1 s)** | 11,511 → 461 | 91 → 3 | $0.45 → **$0.084** |
+| 44 rows | 188.8 s (195.9 s) → **11.7 s (13.0 s)** | 24,762 → 1,151 | 180 → 8 | $0.87 → **$0.089** |
+| 44 rows, "Show me all the results" (cap binds) | — → 43.4 s (45.5 s) | — → 5,092 | — → 36 | — → $0.22 |
+
+That is 13× faster on 22 rows and 16× faster on 44. The worst case, where
+the cap of 8 binds on the 44-row report, lands at the 45 s alert.
+
+**Effect on the encounter (estimated).** Swapping the measured whole-report
+call ($0.4628, §2.1) for the scoped one ($0.084) takes the $0.82 encounter
+to about **$0.44**, since 0.82 − 0.4628 + 0.084 = 0.441. §2 and §3 keep the
+measured $0.82 until an encounter is measured on the merged code.
 
 ### 4.2 The bottleneck on each path
 
 | Path | Bottleneck | Evidence |
 |---|---|---|
-| **Question about a whole uploaded document, wall clock** | **The answer step's single drafting call**: 91.9–130.5 s, writing 11.5k tokens over every extracted result. Narrower questions on the same stack take 10.5–19 s (§4.1a). It fires the 45 s `answer_p95_latency` alert on its own | `LOAD_TEST.md` §6; `ALERTS.md` §1 |
+| **Question about a whole uploaded document, wall clock** | **The number of claims the answer makes**: about 1 s per citation plus 3.7 s (§4.1a). A whole-report answer makes 91 citations and takes 88–92 s; one analyte and one guideline topic take 17–19 s. It fires the 45 s `answer_p95_latency` alert on its own | `LOAD_TEST.md` §6; `ALERTS.md` §1 |
 | Question → answer, capacity | **OpenEMR's PHP tier**, unchanged from Week 1: 420% CPU at 10 users, 58% failures at 50, and throughput *falling* from 4.53 to 2.70 req/s | `LOAD_TEST.md` §1 |
 | Other questions, wall clock | **The LLM draft**: 85% of a real turn | `LOAD_TEST.md` §2 |
 | Document → extraction, wall clock and cost | **The vision call**: 15–33 s and $0.10–0.23 per document, off the question path (D7) | `LOAD_TEST.md` §4b; §1 row 1 |

@@ -4,30 +4,34 @@ A shot list for recording the Week 2 demo. Each step gives what to run or
 click, what to say, and what the viewer should see. It is built only from
 what exists and works at the snapshot below.
 
-**Snapshot: `main@f8b16c7`**, which is on `origin`. A claim marked PENDING
-rests on a branch not yet merged into `main`: **[PENDING `feat/w2-php-wiring`]**, **[PENDING `chore/w2-deploy-rehearsal`]**, **[PENDING `feat/w2-eval-gate`]** or **[PENDING `feat/w2-answer-scope`]**.
+**Snapshot: `main@2ae4d98`**, which is on `origin`. A claim marked PENDING
+rests on a branch not yet merged into `main`: **[PENDING `chore/w2-deploy-rehearsal`]**, **[PENDING `feat/w2-eval-gate`]** or **[PENDING `feat/w2-answer-scope`, not on `origin`]**.
 
-- **Merge order:** the first three merge before submission in this order:
-  `feat/w2-php-wiring`, then `chore/w2-deploy-rehearsal` (which deploys),
-  then `feat/w2-eval-gate`.
-- **Repin:** every citation is then repinned to the one resulting `main`
-  commit, and the markers come out.
-- **Answer-scope:** `feat/w2-answer-scope` fixes the slow document
-  question. Its before/after numbers land before submission.
+- **Merged:** `feat/w2-php-wiring` merged into `main` at `2ae4d98`
+  (the Documents & Sources card, its routes, the upload guard on the real
+  `/documents`, the correlation header). Its claims are no longer marked.
+- **Merge order for the rest:** `chore/w2-deploy-rehearsal` (which
+  deploys), then `feat/w2-eval-gate`. Every citation is then repinned to the
+  one resulting `main` commit, and the markers come out.
+- **Answer-scope is not on `origin`.** `feat/w2-answer-scope` fixes the
+  slow whole-report question. It numbers its decision D49, which `main` has
+  already assigned to the preview URL. Its figures cannot be checked from
+  `origin` until it is pushed and renumbered.
 - **Live host:** figures from the live host are labelled "rehearsal host, before the Week 2 deploy". The
   deploy session re-measures after it deploys, and those numbers replace
   them.
-- **[UNSOURCED: reported by the `feat/w2-php-wiring` session; not yet in a committed artifact]** marks a figure a session reported that no committed file holds yet.
 Where a step has never been rehearsed end to end, the step says so.
 
 ## Read this before recording: what the demo cannot show
 
-- **This script is written for the state before the merges.** Once
-  `feat/w2-php-wiring` merges and `chore/w2-deploy-rehearsal` deploys, the
-  upload, the answer and the chip → box steps can run in the real chart
-  **[PENDING `feat/w2-php-wiring`]** **[PENDING `chore/w2-deploy-rehearsal`]**. The PHP session reports that flow working: 35.3 s to
-  extraction, 17–19 s to answer **[UNSOURCED: reported by the `feat/w2-php-wiring` session; not yet in a committed artifact]**. Revise the shot list against the
-  deployed host before recording.
+- **This script predates the chart card.** `feat/w2-php-wiring` merged at
+  `2ae4d98`, so the upload, the answer and the chip → box steps now run in
+  the real chart. On the local stack that flow is recorded in `docs/w2/evidence/php-wiring-e2e-run.md`:
+  - 34–35 s from upload to extraction complete;
+  - 17.2–19.5 s to answer this script's default question;
+  - 0 unverified.
+  Once `chore/w2-deploy-rehearsal` deploys **[PENDING `chore/w2-deploy-rehearsal`]**, film them in the chart
+  instead, and revise the shot list against the deployed host.
 - **There is no single live UI for Week 2 on `main` yet.** The live host (rehearsal host, before the Week 2 deploy) **[PENDING `chore/w2-deploy-rehearsal`]**
   (`64.177.42.210`) does not run the Week 2 ask path. And the documents card
   is not registered in the OpenEMR module on `main` (`W2_ARCHITECTURE.md`
@@ -71,10 +75,16 @@ samples use it.
 
 ### 3. Pre-run the slow terminal steps and save their output
 
-A question about an uploaded report took **91.9 s and 130.5 s** on the real
-routes (`docs/w2/LOAD_TEST.md` §6), and all
-three runs below ask about the document. Expect up to about 2 minutes each.
-Record the command, then **cut to the saved output**. Do not film the wait.
+The clean and critical runs ask this script's default question: one
+analyte plus one guideline topic. From the chart, that question answered in
+17.2–19.5 s with 8–12 citations (`docs/w2/evidence/php-wiring-e2e-run.md`). The heavy run asks about one
+analyte. Expect well under a minute each, plus about 30 s for the critical
+run's live vision call.
+
+A whole-report question ("What were the results on the uploaded lab
+report?") is the slow one, at 88–92 s (`docs/w2/COST_AND_LATENCY.md`
+§4.1a). None of these runs asks it. Record the command, then **cut to the
+saved output**.
 
 ```bash
 cd agent
@@ -297,7 +307,7 @@ python -m evals.w2.gate; echo "exit=$?"
 ```
 
 **Viewer should see:** the category table, then
-`VERDICT: PASS | specs 96 | active 78 | pending 16 | det 72/72 | judge 8/8`
+`VERDICT: PASS | specs 96 | active 79 | pending 15 | det 73/73 | judge 8/8`
 and `exit=0`.
 
 **Say:** "Ninety-five cases. Seventy deterministic checks at a hundred
@@ -323,7 +333,7 @@ Expected text: `EVAL_GATE_EVIDENCE.md`, regression 1.
 
 **Say:** "One line. The critical-case rule blocks it on its own, because on a
 seven-case category one case is fourteen points, and a five-percent band is
-below the resolution of a single case. That's thirteen out of thirteen planted
+below the resolution of a single case. That's fourteen out of fourteen planted
 regressions caught. Our judge is uncalibrated, and the gate prints that
 every run."
 
@@ -376,8 +386,9 @@ the **local** Langfuse. The live host (rehearsal host, before the Week 2 deploy)
 ### 4:40–5:00 — Close, honestly
 
 **Say:** "What's not done: a question about a whole report is too slow, at
-92 to 131 seconds, and the fix is still landing. The live server runs last week's ask path. And the four
-prompt-injection cases only prove containment so far: whether a model
+about 90 seconds, because it makes about 90 claims at a second each. The
+fix is still landing. The live server runs last week's ask path until the
+deploy. And the prompt-injection cases only prove containment so far: whether a model
 that reads an injected PDF refuses it is specified but not yet tested. Each of those
 is written down in the architecture doc's limitations section. Everything we
 showed is a number you can trace to a file."

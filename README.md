@@ -16,18 +16,23 @@ A Clinical Co-Pilot AI agent built into a fork of [OpenEMR](https://open-emr.org
 
 ## Week 2: start here
 
-**Snapshot: `main@f8b16c7`**, which is on `origin`. Everything in this
+**Snapshot: `main@2ae4d98`**, which is on `origin`. Everything in this
 section is on that commit unless it is marked PENDING, which names the
-unmerged branch the claim rests on: **[PENDING `feat/w2-php-wiring`]**, **[PENDING `chore/w2-deploy-rehearsal`]**, **[PENDING `feat/w2-eval-gate`]** or **[PENDING `feat/w2-answer-scope`]**.
+unmerged branch the claim rests on: **[PENDING `chore/w2-deploy-rehearsal`]**, **[PENDING `feat/w2-eval-gate`]** or **[PENDING `feat/w2-answer-scope`, not on `origin`]**.
 
-- **Merge order:** the first three merge before submission in this order:
-  `feat/w2-php-wiring`, then `chore/w2-deploy-rehearsal` (which deploys),
-  then `feat/w2-eval-gate`.
-- **Repin:** every citation is then repinned to the one resulting `main`
-  commit, and the markers come out.
-- **Answer-scope:** `feat/w2-answer-scope` fixes the slow document question.
-- **Live host:** figures are labelled "rehearsal host, before the Week 2 deploy" until the deploy session
-  re-measures.
+- **Merged:** `feat/w2-php-wiring` merged into `main` at `2ae4d98`
+  (the Documents & Sources card, its routes, the upload guard on the real
+  `/documents`, the correlation header). Its claims are no longer marked.
+- **Merge order for the rest:** `chore/w2-deploy-rehearsal` (which
+  deploys), then `feat/w2-eval-gate`. Every citation is then repinned to the
+  one resulting `main` commit, and the markers come out.
+- **Answer-scope is not on `origin`.** `feat/w2-answer-scope` fixes the
+  slow whole-report question. It numbers its decision D49, which `main` has
+  already assigned to the preview URL. Its figures cannot be checked from
+  `origin` until it is pushed and renumbered.
+- **Live host:** figures from the live host are labelled "rehearsal host, before the Week 2 deploy". The
+  deploy session re-measures after it deploys, and those numbers replace
+  them.
 
 ### What Week 2 adds, and where it runs
 
@@ -37,7 +42,7 @@ unmerged branch the claim rests on: **[PENDING `feat/w2-php-wiring`]**, **[PENDI
 | Supervisor + workers, `POST /w2/ask` | `agent/app/graph/supervisor.py`, `agent/app/supervisor/`, `agent/app/api/ask.py` | yes | **no** |
 | Guideline retrieval: 28 documents, BM25 + local embeddings + local rerank | `agent/app/retrieval/` | yes | yes, preloaded, nothing reads it |
 | Week 2 verifier, citation contract | `agent/app/verification/w2_checker.py`, `agent/app/models/w2/` | yes | no (it serves `/w2/ask`) |
-| Source-grounded answer view: PDF.js with bbox overlay | `interface/modules/custom_modules/oe-module-clinical-copilot/public/assets/w2/` | yes, **fixture mode only**: the chart card is not registered on `main`. It is wired into the chart on `feat/w2-php-wiring` **[PENDING `feat/w2-php-wiring`]** | no |
+| Source-grounded answer view: PDF.js with bbox overlay | `interface/modules/custom_modules/oe-module-clinical-copilot/public/assets/w2/` | yes, in the chart: the Documents & Sources card, its upload, status and ask routes (since `2ae4d98`) | no |
 | Lab write-back endpoint + idempotency ledger | the same module, `src/WriteBack/` | yes | yes, rehearsed |
 | Eval gate: 96 cases, CI job **[PENDING `feat/w2-eval-gate`]** | `agent/evals/w2/gate/`, `.gitlab-ci.yml` | **no**, `feat/w2-eval-gate` | n/a: runs on recorded fixtures |
 
@@ -103,10 +108,10 @@ python scripts/w2_e2e_ask.py --sample lab-critical-potassium-007 \
   --live-vision --expect-critical                                    # + one live vision call: a critical potassium leads the answer
 ```
 
-A question about the uploaded report takes about 1.5–2 minutes: 91.9 s and
-130.5 s in the only two real-route runs, about $0.46 each
-(`docs/w2/LOAD_TEST.md` §6). That is a known
-problem, recorded in `W2_ARCHITECTURE.md` §11.
+The default question (one analyte plus one guideline topic) answered in
+17.2–19.5 s from the chart (`docs/w2/evidence/php-wiring-e2e-run.md`). **A whole-report question takes about
+90 s**: 88.2–91.8 s for 91 citations. Answer latency is about a second per
+claim (`docs/w2/COST_AND_LATENCY.md` §4.1a; `W2_ARCHITECTURE.md` §11).
 
 What each printed section means, and what to expect:
 [`docs/w2/DEMO_SCRIPT.md`](docs/w2/DEMO_SCRIPT.md). **No output from this
@@ -170,12 +175,14 @@ python -m evals.w2.gate.planted_regressions --out ../docs/w2/EVAL_GATE_EVIDENCE.
 meta-check cases go unscored. The gate README on that branch
 (`agent/evals/w2/README.md`) covers the five rules, the cases and the judge.
 The committed evidence is `docs/w2/EVAL_GATE_EVIDENCE.md` on that branch:
-the control run passes, and 13 of 13 planted regressions block.
+the control run passes, and 14 of 14 planted regressions block.
 
 In CI the gate is the `w2-eval-gate` job in `.gitlab-ci.yml` on that branch.
 It needs a masked, **unprotected** `ANTHROPIC_API_KEY` variable, a runner
 tagged `w2-eval`, and "Pipelines must succeed" enabled; the file's header
-says why. No committed evidence shows it has run on a GitLab runner.
+says why. The pipelines have run: the write-back job failed six in a row
+on a missing `unzip` before it was fixed. Whether a fully green pipeline has
+run is not recorded in the repository.
 
 ### Week 2 documents
 

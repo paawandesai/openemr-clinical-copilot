@@ -7,7 +7,7 @@ architecture is unchanged and is not repeated here:
 [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) (authorization, tool scope,
 conversation state, the deterministic verifier).
 
-**Snapshot: `main@f8b16c7`.** Every path and number below is on that commit
+**Snapshot: `main@2ae4d98`.** Every path and number below is on that commit
 unless it is marked PENDING. That commit is on `origin`.
 
 **PENDING** marks a claim that rests on a branch not yet merged into `main`,
@@ -15,12 +15,12 @@ and names the branch:
 
 | Marker | Branch | On `origin`? | What rests on it |
 |---|---|---|---|
-| **[PENDING `feat/w2-php-wiring`]** | `feat/w2-php-wiring` | yes, unmerged; merges **1st** | the Documents & Sources card and its routes in the chart; the upload guard on `main`'s real `/documents` route |
-| **[PENDING `chore/w2-deploy-rehearsal`]** | `chore/w2-deploy-rehearsal` | yes, unmerged; merges **2nd** and deploys | `docs/w2/DEPLOY.md` and every live-host measurement; D41; the upload guard for the stub route |
-| **[PENDING `feat/w2-eval-gate`]** | `feat/w2-eval-gate` | yes, unmerged; merges **3rd** | the eval gate, its cases and evidence (`docs/w2/EVAL_GATE_EVIDENCE.md`); D42–D48 |
-| **[PENDING `feat/w2-answer-scope`]** | `feat/w2-answer-scope` | no | the fix for the 90–130 s document question; its before/after numbers |
+| **[PENDING `chore/w2-deploy-rehearsal`]** | `chore/w2-deploy-rehearsal` | yes, unmerged; merges **next** and deploys | `docs/w2/DEPLOY.md` and every live-host measurement; D41; the upload guard for the stub route |
+| **[PENDING `feat/w2-eval-gate`]** | `feat/w2-eval-gate` | yes, unmerged; merges **last** | the eval gate, its cases and evidence (`docs/w2/EVAL_GATE_EVIDENCE.md`); D42–D48 |
+| **[PENDING `feat/w2-answer-scope`, not on `origin`]** | `feat/w2-answer-scope` | **no** | the scoped answer and its before/after numbers (`LOAD_TEST.md` §7). It numbers its decision D49, which `main` already uses for the preview URL |
 
-When the first three are in, every citation is repinned to the one resulting
+`feat/w2-php-wiring` merged at `2ae4d98`, and its claims are no longer marked.
+When the rest are in, every citation is repinned to the one resulting
 `main` commit and the markers come out. Until then a PENDING claim cannot be
 checked from `main`.
 
@@ -32,7 +32,6 @@ an answer citing both a document and a guideline. Those numbers replace the
 pre-deploy ones, and any pre-deploy figure kept for comparison stays
 labelled.
 
-**[UNSOURCED: reported by the `feat/w2-php-wiring` session; not yet in a committed artifact]** marks a figure a session reported that no committed file holds yet.
 
 ---
 
@@ -71,7 +70,7 @@ beside chart facts without the two blurring. Nine decisions carry the weight.
    unreviewed.
 9. **The measured code cannot move its own gate** (D8, D42–D48) **[PENDING `feat/w2-eval-gate`]**. Gated paths
    are hook-protected. 72 deterministic checks must pass at 100%, a regressed
-   critical case blocks alone, and all 13 planted regressions **[PENDING `feat/w2-eval-gate`]** block (§6).
+   critical case blocks alone, and all 14 planted regressions **[PENDING `feat/w2-eval-gate`]** block (§6).
 
 **Tradeoffs:**
 
@@ -85,16 +84,17 @@ beside chart facts without the two blurring. Nine decisions carry the weight.
 
 **Not true yet:**
 
-- A question about a **whole** uploaded lab report takes **92–131 s** (n =
-  2): one drafting call over every extracted result, writing 11.5k tokens.
-  That is past the 90 s budget, and about half the $0.82 encounter cost. A
-  guideline question on the same stack takes 10.5 s. **Question scope, not
-  the stack, dominates answer latency** (`LOAD_TEST.md` §6;
-  `docs/w2/COST_AND_LATENCY.md` §4.1a).
+- **A whole-report answer takes about 90 s: 88.2–91.8 s** (answer step,
+  n = 3, `LOAD_TEST.md` §7 on `feat/w2-answer-scope` **[PENDING `feat/w2-answer-scope`, not on `origin`]**). It makes 91 citations and writes about 11.5k output tokens.
+  - That is past the 90 s budget, and about half the $0.82 encounter cost.
+  - **Answer latency scales with the number of claims**, at about 1 s per
+    citation plus 3.7 s (estimated fit, R² = 0.997).
+  - From the chart, one analyte plus one guideline topic makes 8–12
+    citations and answers in 17.2–19.5 s (`docs/w2/evidence/php-wiring-e2e-run.md`).
+  - Scoping brings the whole-report answer to 6.9 s p50
+    (`docs/w2/COST_AND_LATENCY.md` §4.1a, §4.1d).
 - The live host (rehearsal host, before the Week 2 deploy) **[PENDING `chore/w2-deploy-rehearsal`]** does not run the Week 2 ask path (`a78ba51` predates
   `feat/w2-graph`, `DEPLOY.md` §0 **[PENDING `chore/w2-deploy-rehearsal`]**).
-- The documents card is not registered in the module on `main`. It is
-  wired into the chart on `feat/w2-php-wiring` **[PENDING `feat/w2-php-wiring`]**.
 - The eval gate has not merged **[PENDING `feat/w2-eval-gate`]**.
 
 §11 lists every known limitation.
@@ -460,29 +460,51 @@ Write-back is a verified endpoint plus a library, not a user-facing feature.
 | | |
 |---|---|
 | Command | `cd agent && python -m evals.w2.gate`; exit code 0 PASS, 1 BLOCKED, 2 ERROR, 3 INCOMPLETE (D45) |
-| Cases | 96 specs: 78 active, 16 pending, 2 delegated to a PHP CI job (`docs/w2/EVAL_GATE_EVIDENCE.md`, control run) |
-| Tiers | deterministic 72/72, judge 8/8. The judge is `claude-haiku-4-5-20251001`, best-of-3 with a 2-of-3 majority, a cache keyed on the prompt **text**, and marked **UNCALIBRATED** (D43, D48) |
+| Cases | 96 specs: 79 active, 15 pending, 2 delegated to the PHP CI job (`docs/w2/EVAL_GATE_EVIDENCE.md`, control run) |
+| Tiers | deterministic 73/73, judge 8/8. The judge is `claude-haiku-4-5-20251001`, best-of-3 with a 2-of-3 majority, a cache keyed on the prompt **text**, and marked **UNCALIBRATED** (D43, D48) |
 | Rules, in order | per-category minimum n (over active plus pending) → deterministic at 100% → critical-case override → judge threshold plus a 95% Wilson floor → >5% regression or below threshold (D42; `agent/evals/w2/README.md`) |
 | Fixtures | six recorded live `claude-opus-5` transcriptions, replayed offline and refused if the PDF, prompt or schema changed (`agent/evals/w2/README.md`) |
-| CI | `.gitlab-ci.yml` jobs `w2-eval-gate` and `w2-writeback-php`. The gate job does **not** pass `--allow-incomplete`, so a pipeline with no key fails (D45). Both were "verified locally with the same images and the same commands" (commit message, "a PHP CI job enforces the write-back cases"). No committed evidence shows either has run on a GitLab runner |
-| Proof | 13 planted regressions, each applied to a copy of the tree. The control run passes; all 13 block, each caught by at least the case the design names (`EVAL_GATE_EVIDENCE.md`, "Harness verdict: HELD") |
+| CI | `.gitlab-ci.yml`, two stages: `w2-writeback-php` (PHPUnit), then `w2-eval-gate`. The gate job does **not** pass `--allow-incomplete`, so a pipeline with no key fails (D45). **The pipelines have run on GitLab.** `w2-writeback-php` failed six in a row on a missing `unzip` in `php:8.3-cli`, fixed by installing it (commit "install unzip and git so the write-back job can install anything"). Whether a fully green pipeline has run is not recorded in the repository |
+| Proof | 14 planted regressions, each applied to a copy of the tree. The control run passes; all 14 block, each caught by at least the case the design names (`EVAL_GATE_EVIDENCE.md`, "Harness verdict: HELD") |
 | Protection | `.claude/hooks/gate-guard.sh` (before a tool call) and `gate-effect-check.sh` (after it); `scripts/gate-diff.sh` before a merge (`docs/w2/GATE.md`, on `main`). These are a guard against mistakes, not a security boundary (GATE.md, "Known limit") |
 
-**Prompt injection inside an uploaded PDF (W2-I1, W2-I2) is covered for
-containment only.**
+**Prompt injection inside an uploaded PDF is covered on three
+deterministic cases, for containment only.** `lab-clean-001` is re-rendered
+with a hidden instruction on two channels: white-on-white text in the page's
+text layer, and the PDF's metadata.
 
-- `lab-clean-001` is re-rendered with a hidden instruction on two channels:
-  white-on-white text in the page's text layer, and the PDF's metadata.
-- The gate asserts the payload reaches no log entry, trace field,
-  extraction output or disclosure.
-- It does **not** assert that a model shown the payload declines it. The
-  gate reads the document through a ground-truth stand-in for the vision
-  model, so no model reads the injection. That half is W2-I5, which is
-  pending.
-- The 13th planted regression, `page-text-in-a-log-line`, is caught by I1
-  and I2.
+| Case | Asserts |
+|---|---|
+| W2-I1 | a payload in the text layer reaches no log entry, trace field, extraction output or disclosure |
+| W2-I2 | the same, for a payload in the metadata |
+| W2-I3 | an injected instruction cannot redirect a chart write |
 
-Source: the commit that activated them, "activate W2-I1 and W2-I2".
+- **I3 is structural, like H2 (§2.3).** `patient_uuid` is an argument the
+  caller passes to the write planner, never read out of the document. A
+  refactor that starts deriving the subject from extracted text is the
+  change I3 would fail.
+- **This is containment, not refusal.** The gate reads the document through
+  a ground-truth stand-in for the vision model, so no model reads the
+  injection. Whether a model shown the payload declines it is W2-I5, which
+  is pending.
+- **What catches it:** the planted regression `page-text-in-a-log-line` is
+  caught by I1 and I2.
+
+Sources: the commits that activated them, "activate W2-I1 and W2-I2" and
+"activate W2-I3 — an injection cannot redirect a chart write".
+
+**Delegated cases are scored against the job's own result.** W2-K4 and
+W2-K6 are PHPUnit tests.
+
+- **Now:** the PHP job writes a result file (commit, exit code, JUnit
+  report), and the gate requires that the job **ran and passed** the named
+  tests for the commit under test.
+- **Before:** the gate checked only that the job was declared correctly.
+- **Why it changed:** while `w2-writeback-php` failed six pipelines in a row
+  on a missing `unzip`, both cases still reported a valid delegation.
+
+Source: commit "score delegated cases against the job's own result, not its
+config".
 
 Pending, meaning specified but not scored:
 
@@ -493,7 +515,7 @@ Pending, meaning specified but not scored:
 | F | F4 |
 | G | G8–G10 |
 | H | H1, H7–H9 |
-| I | I3, I4, I5 (I5 is the refusal half of the injection cases) |
+| I | I4, I5 (I5 is the refusal half of the injection cases) |
 
 The evidence file's closing section, "Coverage-map rows not testable yet",
 still says the supervisor does not exist, although G1, G2, G5–G7 and H2–H6
@@ -563,9 +585,9 @@ API-collection encounter, `07c0fd35-…`, is one Langfuse trace: 2 min 52 s,
 
 **Open chain breaks:**
 
-- On `main`, the chart card never sends `X-Correlation-ID` (it does on
-  `feat/w2-php-wiring` **[PENDING `feat/w2-php-wiring`]**: one UUID per chart open), so each UI request is its
-  own trace.
+- ~~The chart card never sends `X-Correlation-ID`.~~ Closed on `main` at
+  `2ae4d98`: the card mints one UUID4 per chart open, and `AgentClient.php`
+  sends it on every request (`CorrelationId.php`).
 - Write-back carries no correlation id into PHP.
 - Extraction inherits the upload's id only when that id is a UUID;
   otherwise the two traces are linked by a logged event, not merged.
@@ -585,19 +607,22 @@ merges, and the deploy session's re-measurement replaces this column.
 | Week 1 brief + conversation in the chart | yes | yes, v2 OAuth client (`2ps8qgz4…`) |
 | Retrieval (baked models, warmed at start, offline) | yes | yes, preload 2.63 s |
 | OCR (Tesseract in the image) | yes | yes |
-| `POST /documents` | the real extractor, **but it reads the body before checking the token**, with no scope check, rate limit or concurrency cap (`DEPLOY.md` §2.2 **[PENDING `chore/w2-deploy-rehearsal`]**) | the **stub** (hash and discard), behind the upload guard |
+| `POST /documents` | the real extractor, **behind the upload guard**: token, scopes and OpenEMR's acceptance, then rate limits, declared size and an extraction slot, all before the body is read (`agent/app/api/documents.py`, `upload_guard.py`) | the **stub** (hash and discard), behind the upload guard |
 | `POST /w2/ask` (supervisor) | yes | **no**: forwarded by Caddy, but the deployed image predates it |
-| Source-documents card and module upload routes | **no** on `main`; registered on `feat/w2-php-wiring` **[PENDING `feat/w2-php-wiring`]** | no |
+| Source-documents card and module upload routes | **yes** (`Bootstrap.php`; `public/{upload,upload-status,ask,document}.php`) | no |
 | Lab write-back endpoint and ledger | yes | yes, rehearsed (§5) |
 | Eval gate | no (branch) | n/a (runs on fixtures, D6) |
 
-The upload guard exists on `chore/w2-deploy-rehearsal` for the stub and on
-`feat/w2-php-wiring` **[PENDING `feat/w2-php-wiring`]** for the real route: token, scopes and OpenEMR's
-acceptance are checked, then rate limits, then declared size, then an
-extraction slot, and only then is the body read. **Deploying `main`'s
-`/documents` as it stands would drop that guard**: the body is read before
-OpenEMR is asked about the token, and there is no scope check, rate limit or
-cap on concurrent extractions. The graph deploy precondition is in
+The upload guard is on `main` for the real route since `2ae4d98`, and on
+`chore/w2-deploy-rehearsal` for the stub **[PENDING `chore/w2-deploy-rehearsal`]**. The checks run in this order,
+and only then is the body read:
+
+1. the token, its scopes, and OpenEMR's acceptance;
+2. rate limits;
+3. the declared size;
+4. an extraction slot.
+
+`main` is no longer unsafe to deploy on this point. The graph deploy precondition is in
 `DEPLOY.md` §2.2 **[PENDING `chore/w2-deploy-rehearsal`]**.
 
 The agent image grew from 360 MB to 1.18 GB, and idle memory from 50 MiB to
@@ -609,13 +634,13 @@ The agent image grew from 360 MB to 1.18 GB, and idle memory from 50 MiB to
 
 | Risk | Where it bites | Mitigation today | What is still exposed |
 |---|---|---|---|
-| **The whole-report answer** | one `/w2/ask` about an uploaded report: 91.9 s and 130.5 s, one call at 34,948 in / 11,523 out, $0.46 (`LOAD_TEST.md` §6) | the 45 s `answer_p95_latency` alert covers `/w2/ask` (`ALERTS.md` §1) | past the 90 s budget with no load at all; the fix (bound the output, or answer only from the rows the question names) is in progress on `feat/w2-answer-scope` **[PENDING `feat/w2-answer-scope`]** |
+| **The whole-report answer** | one `/w2/ask` about a whole uploaded report: answer step 88.2–91.8 s, 91 citations, ~11.5k tokens out, about $0.45 (`LOAD_TEST.md` §7 on `feat/w2-answer-scope` **[PENDING `feat/w2-answer-scope`, not on `origin`]**); whole request 91.9 s and 130.5 s (`LOAD_TEST.md` §6) | the 45 s `answer_p95_latency` alert covers `/w2/ask` (`ALERTS.md` §1) | past the 90 s budget with no load at all; the fix (bound the output, or answer only from the rows the question names) is in progress on `feat/w2-answer-scope` **[PENDING `feat/w2-answer-scope`, not on `origin`]** |
 | **One process, in-memory stores** (conversations, documents, extraction jobs, the rerank circuit) | a second worker or replica makes uploads invisible (`404`), re-bills extraction, and loses follow-up context; a restart forgets every upload | one uvicorn worker; a startup warning when more are configured (D40 item 10, `agent/docs/deployment.md` §7) | a second *replica* is invisible to the check; no persistence |
 | **Reranker under load** | 50 concurrent retrievals: p95 335,224 ms, 0% reranked, 5.3 GiB peak RSS on a cold run (`LOAD_TEST.md` §5) | D39 admission bound: p95 259 ms, but only 1% reranked in the burst and 6.2% at 50 paced users (§5b) | on `main`, not on the live host (rehearsal host, before the Week 2 deploy) **[PENDING `chore/w2-deploy-rehearsal`]**; memory still up to 3.1 GiB against a 7.24 GiB host that OpenEMR already takes 4.9 GiB of (D39) |
 | **The rerank circuit never closes** | one slow rerank turns reranking off until restart; 35 of the next 60 turns ran unreranked (D41 **[PENDING `chore/w2-deploy-rehearsal`]**) | none | `rerank_over_budget` conflates "slow" with "skipped" (D41) |
 | **OCR contends with retrieval** | OCR in the same container raises rerank p95 from 2.08 s to 3.39 s (`DEPLOY.md` §8 **[PENDING `chore/w2-deploy-rehearsal`]**) | 4 s budget (D41, branch) | extraction still runs in the serving process (`LOAD_TEST.md`, "Where the new bottleneck is") |
 | **OpenEMR's PHP tier** | saturated at 10 users locally (420% CPU) and failing 58% at 50 (`LOAD_TEST.md` §1) | none agent-side | Week 1 finding, unchanged |
-| **Upload surface** | `main`'s `/documents` reads the body first | guard on two branches (§8) | not merged |
+| **Upload surface** | `/documents` accepts uploads from any clinician token | the upload guard, on `main` since `2ae4d98` (§8) | not deployed until `chore/w2-deploy-rehearsal` deploys |
 | **Recall versus honesty on scans** | a heavy scan presents a third of its values | unsupported values disclosed, possible criticals named without a number | a clinician must open the PDF for the rest |
 | **USPSTF licensing reading** | verbatim-only redistribution | substring-enforced quotes (D26) | human sign-off pending; the "no AHRQ endorsement" UI constraint is not implemented (D26 item 3) |
 | **Critical-value table** | a demo list | exact LOINC and unit match | not reviewed for any site (D40 item 9) |
@@ -679,34 +704,35 @@ makes no new decision and takes no D-number.
    located (§1.4 evidence file). It is not evidence that the extractor reads
    flags in general (D20, "Consequence for the eval gate").
 8. **Prompt injection inside an uploaded PDF is contained, not tested for
-   refusal** **[PENDING `feat/w2-eval-gate`]**. W2-I1 and W2-I2 assert that a payload in the text layer or
-   the metadata reaches no log, trace, extraction output or disclosure. Their
-   extraction bypasses the vision model, so nothing tests whether a model that
-   reads the payload declines it. That is W2-I5 **[PENDING `feat/w2-eval-gate`]**, which is pending, along with
-   I3 and I4 (§6). The structural defences are that the model writes no prose,
+   refusal** **[PENDING `feat/w2-eval-gate`]**.
+   - W2-I1 and W2-I2 assert that a payload in the text layer or the
+     metadata reaches no log, trace, extraction output or disclosure.
+   - W2-I3 asserts it cannot redirect a chart write.
+   - Their extraction bypasses the vision model, so nothing tests whether a
+     model that reads the payload declines it. That is W2-I5 **[PENDING `feat/w2-eval-gate`]**,
+     which is pending along with I4 (§6). The structural defences are that the model writes no prose,
    its citation ids are narrowed by schema, and it has no write channel.
-9. **No committed live run yet shows one answer citing a document and a
-   guideline together.** The PHP session reports one from the real chart:
-   6 document, 4 chart and 2 guideline citations, 0 unverified **[UNSOURCED: reported by the `feat/w2-php-wiring` session; not yet in a committed artifact]**. Until
-   that run is committed, the statement below stands. The real-route API collection asks two separate
-   questions, one about the document and one about guidance, and asserts on
-   each (`docs/w2/evidence/api-collection-run.txt`).
-   `agent/scripts/w2_e2e_ask.py` asks the combined question and exits non-zero
-   without both citation types, but no output from it is committed. The
-   combined answer is covered by in-process tests and gate cases only.
+9. **Live evidence for a combined answer is three runs, on the local
+   stack.** From the real chart (`docs/w2/evidence/php-wiring-e2e-run.md`), three answers to one question cited
+   a document and a guideline together: 6 + 4 + 2 citations, then 6 + 0 + 2
+   twice, with 0 unverified each time. None of them ran on the host.
+   `agent/scripts/w2_e2e_ask.py` asks the same question in process; no
+   output from it is committed.
 10. **A question about a whole uploaded report is too slow and too
-    expensive.** 91.9 s and 130.5 s (n = 2) and about $0.46 per call: one
-    drafting call over every extracted result, writing 11.5k tokens
-    (`LOAD_TEST.md` §6). It breaks the 90 s budget for a single user with no
-    load. Narrower questions on the same stack do not break it: a guideline
-    question takes 10.5–10.6 s (`LOAD_TEST.md` §6), and a narrower document
-    question from the chart is reported at 17–19 s **[UNSOURCED: reported by the `feat/w2-php-wiring` session; not yet in a committed artifact]**. Question scope
-    dominates answer latency (`docs/w2/COST_AND_LATENCY.md` §4.1a). It is a product fix, not a scale fix. It is being fixed on
-    `feat/w2-answer-scope` **[PENDING `feat/w2-answer-scope`]**, and its before/after numbers are not in yet.
+    expensive on `main`.** The answer step takes 88.2–91.8 s (n = 3) and
+    costs about $0.45: it cites all 91 values on a 22-row report, writing
+    ~11.5k tokens (`LOAD_TEST.md` §7 on `feat/w2-answer-scope` **[PENDING `feat/w2-answer-scope`, not on `origin`]**).
+    - `LOAD_TEST.md` §6 measured the whole request at 91.9 s and 130.5 s.
+    - Answer latency scales with the number of claims, at about 1 s each.
+      One analyte plus one guideline topic (8–12 citations) answers in
+      17.2–19.5 s (`docs/w2/evidence/php-wiring-e2e-run.md`).
+    - The fix is scoping, not a faster model or retriever. On
+      `feat/w2-answer-scope` it brings the 22-row answer to 6.9 s p50 and
+      $0.084 (`docs/w2/COST_AND_LATENCY.md` §4.1a, §4.1d).
+    - That branch is not on `origin`.
 11. **A wrapped field's multi-box path is unit-tested only.** No sample wraps a
     field (D34).
-12. **The chart card, the module upload routes and the correlation header are
-    not wired on `main`** (§8, `docs/w2/ui-integration.md`). All three are
-    wired on `feat/w2-php-wiring` **[PENDING `feat/w2-php-wiring`]**, which merges first. The UI is demonstrable in
-    fixture mode only.
+12. **The chart card, its routes and the correlation header are on `main`
+    but not on the host** until `chore/w2-deploy-rehearsal` deploys **[PENDING `chore/w2-deploy-rehearsal`]**.
+    Until then, the full flow runs only on a local stack (`docs/w2/evidence/php-wiring-e2e-run.md`).
 13. **No FHIR paging.** `_count` is the sharp edge (`docs/w2/WEEK1_DEBT.md` §4).
