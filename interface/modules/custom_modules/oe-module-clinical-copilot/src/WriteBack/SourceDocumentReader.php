@@ -44,8 +44,39 @@ final readonly class SourceDocumentReader
      */
     public const PREVIEWABLE_MIME_TYPE = 'application/pdf';
 
-    public function __construct(private LoggerInterface $logger)
+    /** @var \Closure(string, list<int|string|null>): mixed */
+    private \Closure $querySingleRow;
+
+    /**
+     * @param ?\Closure(string, list<int|string|null>): mixed $querySingleRow
+     *     QueryUtils::querySingleRow() outside tests.
+     */
+    public function __construct(private LoggerInterface $logger, ?\Closure $querySingleRow = null)
     {
+        $this->querySingleRow = $querySingleRow ?? QueryUtils::querySingleRow(...);
+    }
+
+    /**
+     * The one query both forms of `document_id` run. Only the key column
+     * differs — `id` for OpenEMR's integer, `hash` for a Week 2 citation's
+     * SHA3-512 — so "belongs to the open chart, not deleted" is the same
+     * clause, bound to the same session pid, whichever form was asked for.
+     * A digest stored twice on one chart (OpenEMR does not deduplicate) is
+     * the same bytes, so the oldest row serves; an integer matches one row.
+     *
+     * @return array{string, list<int|string|null>}
+     */
+    public static function rowQuery(DocumentReadRequest $request): array
+    {
+        [$column, $key] = $request->sha3512 !== null
+            ? ['hash', $request->sha3512]
+            : ['id', $request->documentId];
+        return [
+            'SELECT `id`, `name`, `mimetype` FROM `documents`'
+            . ' WHERE `' . $column . '` = ? AND `foreign_id` = ? AND `deleted` = 0'
+            . ' ORDER BY `id` ASC LIMIT 1',
+            [$key, $request->pid],
+        ];
     }
 
     /**
@@ -53,20 +84,10 @@ final readonly class SourceDocumentReader
      */
     public function read(DocumentReadRequest $request): SourceDocumentBytes
     {
-        // By id, or by the digest a Week 2 citation carries: either way only
-        // on the open chart. A digest stored twice on one chart (OpenEMR
-        // does not deduplicate) is the same bytes, so the oldest row serves.
-        $row = $request->sha3512 === null
-            ? QueryUtils::querySingleRow(
-                'SELECT `id`, `name`, `mimetype` FROM `documents`'
-                . ' WHERE `id` = ? AND `foreign_id` = ? AND `deleted` = 0',
-                [$request->documentId, $request->pid]
-            )
-            : QueryUtils::querySingleRow(
-                'SELECT `id`, `name`, `mimetype` FROM `documents`'
-                . ' WHERE `hash` = ? AND `foreign_id` = ? AND `deleted` = 0 ORDER BY `id` ASC LIMIT 1',
-                [$request->sha3512, $request->pid]
-            );
+        // By id, or by the digest a Week 2 citation carries: one query,
+        // scoped to the open chart either way (rowQuery()).
+        [$sql, $binds] = self::rowQuery($request);
+        $row = ($this->querySingleRow)($sql, $binds);
         if (!is_array($row) || !isset($row['id'])) {
             // One answer for "no such id", "another patient's document" and
             // "deleted": see DocumentFailure.

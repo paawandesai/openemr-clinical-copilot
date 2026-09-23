@@ -1940,8 +1940,10 @@ served URL when it was recorded.
 
 ## D-unassigned (work order 17) — The Week 2 card's module routes: the chart keeps the upload, and a citation's digest opens it
 
-**Status:** DECIDED — except item 3, which widens D49's `document_id=<int>`
-and **needs sign-off** from the owner of the preview route.
+**Status:** DECIDED. Item 3 widens D49's `document_id=<int>`; the project
+owner signed it off on 2026-09-23 on the condition that the digest form is
+checked exactly as the integer form, which item 3 now states and
+`tests/DocumentPreviewParityTest.php` pins.
 **Date:** 2026-09-23
 **Raised by:** work order 17 (`feat/w2-php-wiring`).
 **Numbering:** no number is claimed. This entry takes **the next free,
@@ -1967,14 +1969,25 @@ change.
    chart are the row already there, in any category. OpenEMR does not
    constrain `documents.hash`, so a named database lock per digest
    serialises the check and the insert.
-3. **The preview also takes the digest** (needs sign-off). D49 fixes the
+3. **The preview also takes the digest** (signed off, conditionally). D49 fixes the
    URL and `document_id=<int>`. A citation carries the agent's document id,
    which is that digest; `document.php` now accepts either form and
    resolves the digest against `documents.hash` **on the open chart only**,
    so it reaches nothing an integer id could not, and the browser holds no
    id mapping (it would be lost on reload). Everything else in D30/D49 —
    ACL, 404 for anything not on the open chart, PDF only, no CSRF — is
-   unchanged.
+   unchanged. **The condition of the sign-off:** both forms pass the same
+   guard (`DocumentReadRequest`: method, id shape, the `patients`/`docs`
+   ACL, the session's open patient — only the id parse differs) and run one
+   query (`SourceDocumentReader::rowQuery()`: one template, only the key
+   column differs, `foreign_id` bound to the session's open patient and
+   `deleted = 0` for both). A digest for another patient's document is the
+   same `DocumentFailure::NotFound`, so the same 404 and body, as the
+   integer (`tests/DocumentPreviewParityTest.php`; a mutation that let the
+   digest path resolve on a fixed patient fails three of its tests).
+   Checked live on 2026-09-23: with another chart open, `document_id=2482`
+   and its digest both answer 404 with byte-identical bodies; with its own
+   chart open, both answer 200 with the same PDF bytes.
 4. **The same bytes on another chart are refused by the module as well as
    the agent** (D40 item 8). Before the agent is asked, the module refuses,
    `409 document_attached_elsewhere`, a file it already filed on a different
