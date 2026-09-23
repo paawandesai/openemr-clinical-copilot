@@ -20,8 +20,8 @@ limits.
   arithmetic shown.
 - **Assumed**: an input with no data behind it.
 
-**Snapshot: `main@21f1053`**, which is on `origin`. A claim marked PENDING
-rests on a branch not yet merged into `main`: **[PENDING `feat/w2-eval-gate`]** or **[PENDING `feat/w2-answer-scope`, not on `origin`]**.
+**Snapshot: `main@bc5236f`**, which is on `origin`. A claim marked PENDING
+rests on a branch not yet merged into `main`: **[PENDING `feat/w2-eval-gate`]** or **[PENDING `feat/w2-answer-scope`]**.
 
 - **Merged, no longer marked:**
   - `feat/w2-php-wiring`, at `2ae4d98`: the Documents & Sources card, its
@@ -30,15 +30,18 @@ rests on a branch not yet merged into `main`: **[PENDING `feat/w2-eval-gate`]** 
   - `chore/w2-deploy-rehearsal`, at `21f1053`: `docs/w2/DEPLOY.md`, D41,
     the self-closing rerank circuit, single-threaded Tesseract, and the
     agent's 4.5 GiB memory cap.
-- **Still to merge:** `feat/w2-eval-gate`. Every citation is then repinned
-  to the one resulting `main` commit, and the markers come out.
-- **The host is not redeployed yet.** It still runs `a78ba51`.
-- **Answer-scope is not on `origin`.** `feat/w2-answer-scope` fixes the
-  slow whole-report question. It numbers its decision D49, which `main` has
-  already assigned to the preview URL. Its figures cannot be checked from
-  `origin` until it is pushed and renumbered.
-- **Live host:** host figures are labelled "rehearsal host, before the Week 2 deploy". The deploy session
-  re-measures after it deploys, and those numbers replace them.
+- **Still to merge:** `feat/w2-eval-gate` and `feat/w2-answer-scope`, both
+  on `origin`. Every citation is then repinned to the one resulting `main`
+  commit, and the markers come out.
+- **The host runs `main@21f1053`**, deployed 2026-09-23 and measured after
+  the deploy (`docs/w2/DEPLOY.md` §8.0). The snapshot adds only that section
+  on top of it.
+- **Answer-scope:** `feat/w2-answer-scope` fixes the slow whole-report
+  question. Its decision is D50.
+- **Host figures:**
+  - post-deploy figures come from `docs/w2/DEPLOY.md` §8.0;
+  - figures measured before the deploy stay labelled "rehearsal host, before the Week 2 deploy", and are kept
+    only where no post-deploy figure exists, or for comparison.
 
 Short names used below:
 
@@ -52,11 +55,19 @@ Short names used below:
 
 ## Summary
 
-- **Located Week 2 dev spend: $7.37** (measured; itemised in §1). The true
+- **Located Week 2 dev spend: $8.59** (measured; itemised in §1). The true
   total is higher by an unrecorded amount: no Anthropic Console reading was
   taken for Week 2, and several sets of live calls left no cost in the
   repository. Week 1's total was $0.36 (`docs/COST_ANALYSIS.md` §2.2).
-- **One measured Week 2 encounter costs $0.82** (§2), in each of two runs.
+- **On the deployed host** (`DEPLOY.md` §8.0), one document at a time:
+  - a lab page costs **$0.11–0.13** and takes 27.8–39.8 s to extract;
+  - an intake page costs **about $0.05** and takes 8.3–15.0 s;
+  - the document + guideline question costs **about $0.178** and answers in
+    **15.3–21.2 s**, with 7 document + 2 guideline citations and 0
+    unverified, 3 of 3 times.
+  - With Week 1's brief + 4 turns, an encounter is an estimated
+    **$0.54–1.06** (§2.3).
+- **One measured Week 2 encounter costs $0.82** (§2), in each of two local runs.
   The encounter was an upload with live extraction, a brief, a conversation
   turn, a question about the document and a guideline question: 87,245
   tokens (`OBSERVABILITY.md` §2, `LOAD_TEST.md` §6). **Most of that is one
@@ -77,7 +88,7 @@ Short names used below:
   (§4.1a).
   - Answer step: about **3.7 s + 1.0 s per citation** over six cases, from
     3 to 180 citations (R² = 0.997). The fit is estimated from measured
-    points in `LOAD_TEST.md` §7 on `feat/w2-answer-scope` **[PENDING `feat/w2-answer-scope`, not on `origin`]**.
+    points in `LOAD_TEST.md` §7 on `feat/w2-answer-scope` **[PENDING `feat/w2-answer-scope`]**.
   - A whole-report question on the 22-row lab report makes 91 citations and
     writes about 11.5k output tokens. Its answer step takes **88.2–91.8 s**
     (n = 3).
@@ -89,7 +100,7 @@ Short names used below:
     the time on that model. It says nothing about other models.
   - Retrieval adds seconds, not minutes (§4.1).
   - The whole-report question breaks the 90 s budget. Scoping it
-    (**[PENDING `feat/w2-answer-scope`, not on `origin`]**) brings it to 6.9 s p50 on
+    (**[PENDING `feat/w2-answer-scope`]**) brings it to 6.9 s p50 on
     22 rows (§4.1d).
   - Upload to extraction complete is **34–35 s** on a 1-page text-layer
     report, and runs at upload (D7) (`docs/w2/evidence/php-wiring-e2e-run.md`).
@@ -99,7 +110,8 @@ Short names used below:
   - With at most two reranks at once (D39) it is **259 ms**.
   - The cost of that fix: only **1%** of those burst retrievals, and 6.2% at
     50 paced users, were actually reranked.
-  - The admission bound is on `main`, but not on the live host (rehearsal host, before the Week 2 deploy) (§4.3).
+  - The admission bound is deployed (`main@21f1053`). In the post-deploy
+    questions every rerank ran, and none was over budget, busy or skipped (§4.3).
 
 ---
 
@@ -118,7 +130,8 @@ rounded up.
 | 5 | Two real-route Week 2 encounters through the API collection (`c8661931-…`, `07c0fd35-…`) | **$1.64** (2 × $0.82; the `07c0fd35` trace reads $0.821785) | Measured: Langfuse trace cost | `OBSERVABILITY.md` §2; `LOAD_TEST.md` §6. **Not in `LOAD_TEST.md`'s "What it cost" table**, which predates them |
 | 6 | Eval-gate judge, one cold run: 24 calls, 15,825 in / 2,593 out on `claude-haiku-4-5` at $1/$5 per MTok | **$0.0288** | Measured (15,825 × $1 + 2,593 × $5 = $0.02879) | gate README **[PENDING `feat/w2-eval-gate`]**, "What a run costs" |
 | 7 | Deploy rehearsal on Vultr: brief + 4 turns × 3 patients | **$1.204075** ($0.180445 + $0.37474 + $0.64889) | Tokens measured from `llm_usage_event`; cost = tokens × $5/$25 per MTok | `DEPLOY.md` §8, "Cost per encounter" |
-| | **Total located** | **$7.371725 ≈ $7.37** | Sum of measured rows | this table |
+| 8 | Post-deploy run on the host: 5 documents extracted (live vision) and the document + guideline question 3 times | **$1.21341** (vision $0.126 + $0.227 + $0.126 + $0.104 + $0.096 = $0.679; questions 31,109 in × $5 plus 873, 873 and 965 out × $25 per MTok = $0.53441) | Vision: the agent's own `cost_usd`; questions: tokens measured, cost = tokens × list price | `DEPLOY.md` §8.0 |
+| | **Total located** | **$8.585135 ≈ $8.59** | Sum of measured rows | this table |
 
 **Reported but not located.**
 
@@ -138,6 +151,7 @@ rounded up.
 | Planted-regression harness runs | each run re-grades the judge tier on the patched copies | the committed evidence run shows 0 calls (warm cache); earlier cold runs are not recorded |
 | `agent/scripts/w2_e2e_ask.py` live runs | one drafting call per run, plus vision with `--live-vision` | no output committed on any branch |
 | Week 1 live eval re-runs on Vultr, 2026-09-20 and 21 (43 cases) | real model calls | no dollar figure committed |
+| The Week 1 embed check after the deploy (brief 24/24, medication and lab turns) | real model calls | no cost recorded (`DEPLOY.md` §8.0) |
 
 **Zero by design:**
 
@@ -227,6 +241,22 @@ What neither unit cost captures:
   again (D40 item 10).
 - **CI.** The judge costs $0.0288 per cold run (§1 row 6).
 
+### 2.3 On the deployed host
+
+`DEPLOY.md` §8.0 builds the encounter from host measurements:
+
+| Component | Cost | Kind |
+|---|---|---|
+| Week 1 brief + 4 turns, by chart size | $0.18–0.65 | measured on the rehearsal host, before the Week 2 deploy (`DEPLOY.md` §8) |
+| One lab upload | about $0.13 | measured after the deploy (`cost_usd`) |
+| One intake form | $0.05–0.10 | measured after the deploy (`cost_usd`) |
+| One document + guideline question | about $0.18 | measured tokens × list price, after the deploy |
+| **Encounter** | **≈ $0.54–1.06** | estimated sum |
+
+The measured local encounter, $0.82 (§2.1), lies inside that range. Its
+composition differs: one lab, no intake form, a whole-report question and a
+guideline question. §3 keeps the measured $0.82.
+
 ---
 
 ## 3. Projected production cost, and what each level forces
@@ -265,7 +295,7 @@ How each column is derived:
   live extractions, `extraction-live-vision.json`) ÷ 60.
 - **Concurrent document questions** = encounters/min × 89.0 s ÷ 60. 89.0 s
   is the p50 of the unscoped whole-report answer step, in `LOAD_TEST.md` §7
-  **[PENDING `feat/w2-answer-scope`, not on `origin`]**. This assumes one whole-report question per encounter. After the
+  **[PENDING `feat/w2-answer-scope`]**. This assumes one whole-report question per encounter. After the
   scoping fix, a whole-report answer is 6.9 s p50 and the column falls about
   13×.
 - **OCR cores** = 1.67 pages per document (10 pages across the six samples)
@@ -287,7 +317,7 @@ The host figures are from `DEPLOY.md` §8.
 ### 3.2 What each level needs
 
 **Before any scale: fix the whole-report question** (in progress on
-`feat/w2-answer-scope` **[PENDING `feat/w2-answer-scope`, not on `origin`]**). At 88–92 s for its answer step it
+`feat/w2-answer-scope` **[PENDING `feat/w2-answer-scope`]**). At 88–92 s for its answer step it
 already breaks the 90 s budget for a single clinician with no load
 (`LOAD_TEST.md` §6), and it is about 56% of the measured encounter's cost
 ($0.4628 of $0.82). Bounding its output, or answering only from the rows the
@@ -332,8 +362,9 @@ constraint.**
   - A heavier mix was OOM-killed at a 5 GiB test cap.
   - The agent is therefore capped at 4.5 GiB. Past demo load it restarts,
     and the database is never the victim (`DEPLOY.md` §8).
-- Deploy what `main` already has and the rehearsal host, before the Week 2 deploy does not: the D39
-  admission bound, and the D41 circuit that closes itself.
+- Deployed 2026-09-23 (`main@21f1053`): the D39 admission bound and the D41
+  circuit that closes itself. After the deploy every rerank ran, but only
+  one question at a time (`DEPLOY.md` §8.0).
 
 **10K encounters a day (about 500 clinicians, many EHR deployments).
 Replicas, and a real reranking tier.**
@@ -382,7 +413,7 @@ tier.**
 
 | Path | Where | n | p50 | p95 | Other | Source |
 |---|---|---|---|---|---|---|
-| **`/w2/ask` about a whole uploaded lab report**, answer step | local | 3 | 89.0 s | — | **88.2–91.8 s**; 91 citations, 11,511 out | `LOAD_TEST.md` §7 on `feat/w2-answer-scope` **[PENDING `feat/w2-answer-scope`, not on `origin`]** |
+| **`/w2/ask` about a whole uploaded lab report**, answer step | local | 3 | 89.0 s | — | **88.2–91.8 s**; 91 citations, 11,511 out | `LOAD_TEST.md` §7 on `feat/w2-answer-scope` **[PENDING `feat/w2-answer-scope`]** |
 | `/w2/ask` about a whole uploaded lab report, whole HTTP request | local, real routes, real LLM | 2 | — | — | 91.9 s, 130.5 s (the second unexplained, §4.1a) | `LOAD_TEST.md` §6 |
 | `/w2/ask`, one analyte + one guideline topic, from the chart | local, module routes | 3 | — | — | 17.2, 17.7, 19.5 s; 8–12 citations, 0 unverified | `docs/w2/evidence/php-wiring-e2e-run.md` |
 | `/w2/ask`, guideline question | local, real routes | 2 | — | — | 10.5 s, 10.6 s | `LOAD_TEST.md` §6 |
@@ -399,6 +430,9 @@ tier.**
 | Conversation turn, real LLM, 10 users | local | 100 | 5.25 s | 6.41 s | draft p95 5.56 s | `LOAD_TEST.md` §2 |
 | Pre-Visit Brief, real LLM | **rehearsal host, before the Week 2 deploy** | 3 patients | 19.7 s | — | max 22.8 s | `DEPLOY.md` §8 |
 | Follow-up turn, real LLM | **rehearsal host, before the Week 2 deploy** | 3 patients × 4 | 9.2 s | — | max 18.2 s | `DEPLOY.md` §8 |
+| **Document + guideline question, end to end** | **host, after the deploy** | 3 | — | — | 15.3, 20.9, 21.2 s; drafting call 12.7–18.5 s; retrieval incl. rerank 1.55–1.68 s | `DEPLOY.md` §8.0 |
+| **Vision extraction per document** | **host, after the deploy** | 5 | — | — | 15.7–54.5 s; OCR +4.9–6.1 s per scanned page; locate + verify ~1 s | `DEPLOY.md` §8.0 |
+| **Upload → extraction complete, as the card sees it** | **host, after the deploy** | 3 | — | — | 20.8 s (clean intake), 35.3 s (scanned intake), 42.2 s (scanned lab) | `DEPLOY.md` §8.0 |
 | Brief, LLM stubbed, 10 users | local | 280 | 1.14 s | 1.52 s | 0% errors | `LOAD_TEST.md` §1 |
 | Brief, LLM stubbed, 50 users | local | 200 | 16.08 s | 28.05 s | **58% errors**, all `fhir_unavailable` | `LOAD_TEST.md` §1 |
 
@@ -428,7 +462,7 @@ and one citation a second.
 
 | Case | Citations | Answer step p50 (worst) | Output tokens p50 | Source |
 |---|---|---|---|---|
-| 22-row report, "What were the results…", **scoped** | 3 | 6.9 s (9.1 s) | 461 | `LOAD_TEST.md` §7 on `feat/w2-answer-scope` **[PENDING `feat/w2-answer-scope`, not on `origin`]** |
+| 22-row report, "What were the results…", **scoped** | 3 | 6.9 s (9.1 s) | 461 | `LOAD_TEST.md` §7 on `feat/w2-answer-scope` **[PENDING `feat/w2-answer-scope`]** |
 | 44-row report, same question, **scoped** | 8 | 11.7 s (13.0 s) | 1,151 | same |
 | critical-potassium report, **scoped**, 1 run | 8 | 12.5 s | 1,005 | same |
 | 44-row report, "Show me all the results", **scoped**, cap binds | 36 | 43.4 s (45.5 s) | 5,092 | same |
@@ -457,6 +491,9 @@ the local stack:
 
 - The fit predicts an answer step of 11.8 s for 8 citations and 15.8 s for
   12.
+- **On the deployed host** the same question made 9 citations (7 document + 2
+  guideline). Its drafting call took 12.7–18.5 s, against 12.8 s predicted
+  for 9 citations (`DEPLOY.md` §8.0).
 - The client figures are 4–6 s higher. They also include the module's token
   mint and the chart reads, which the answer-step figure does not.
 
@@ -519,19 +556,17 @@ Source: `docs/w2/evidence/php-wiring-e2e-run.md`, on `main`.
 
 ### 4.1c Post-deploy re-measurement
 
-When the host is redeployed from `main` (`chore/w2-deploy-rehearsal` merged
-at `21f1053`), the deploy session re-measures on
-the host. These rows replace the figures labelled "rehearsal host, before the
-Week 2 deploy" in §4.1:
+The host was redeployed from `main@21f1053` on 2026-09-23 and re-measured
+through the real chart card, one document at a time (`DEPLOY.md` §8.0):
 
 | Measurement | Before the Week 2 deploy (rehearsal host) | After the deploy |
 |---|---|---|
-| Vision extraction, cost per page | not measured on the host | *awaiting the deploy session* |
-| Vision extraction, latency per page | not measured on the host. OCR alone: p50 5.7 s per page; 5.6 s with two workers under `OMP_THREAD_LIMIT=1`, against ~162 s without it (`DEPLOY.md` §8) | *awaiting the deploy session* |
-| Peak memory under OCR + reranking | 3.7 GiB at demo load (2 rerank threads + 1 OCR worker); OOM-killed at a 5 GiB test cap under a heavier mix. Measured on the host, in a throwaway container from the merged image's code, before the deploy (`DEPLOY.md` §8) | *awaiting the deploy session, on the running service* |
-| One answer citing a document and a guideline | the host did not run `/w2/ask` | *awaiting the deploy session* |
+| Vision extraction, cost per page | not measured on the host | **lab $0.11–0.13; intake about $0.05.** Output tokens are most of it: 3,704–6,811 per lab |
+| Vision extraction, latency per page | not measured on the host. OCR alone: p50 5.7 s per page; 5.6 s with two workers under `OMP_THREAD_LIMIT=1`, against ~162 s without it (`DEPLOY.md` §8) | **lab 27.8–39.8 s; intake 8.3–15.0 s.** Vision is 15.7–54.5 s per document, OCR adds 4.9–6.1 s per scanned page |
+| Peak memory under OCR + reranking | 3.7 GiB at demo load (2 rerank threads + 1 OCR worker); OOM-killed at a 5 GiB test cap under a heavier mix. Measured on the host, in a throwaway container from the merged image's code, before the deploy (`DEPLOY.md` §8) | **1.32 GiB** over the whole run, one document at a time, 0 OOM kills. The 3.7 GiB figure stays the bound under concurrent reranking |
+| One answer citing a document and a guideline | the host did not run `/w2/ask` | **3 of 3:** 7 document + 2 guideline citations, 0 unverified, 15.3–21.2 s end to end, about $0.178 each |
 
-### 4.1d The document-question fix **[PENDING `feat/w2-answer-scope`, not on `origin`]**
+### 4.1d The document-question fix **[PENDING `feat/w2-answer-scope`]**
 
 `feat/w2-answer-scope` scopes a document answer by rule: critical values,
 abnormal rows and rows the question names are itemised, the rest is
@@ -542,7 +577,7 @@ counted, and the output is bounded.
 its numbers can be cited from `main`.
 
 The question is "What were the results on the uploaded lab report?", 3 runs
-per report, from `LOAD_TEST.md` §7 on `feat/w2-answer-scope` **[PENDING `feat/w2-answer-scope`, not on `origin`]**:
+per report, from `LOAD_TEST.md` §7 on `feat/w2-answer-scope` **[PENDING `feat/w2-answer-scope`]**:
 
 | Report | Answer step p50 (worst): before → after | Tokens out p50: before → after | Citations | Cost per answer |
 |---|---|---|---|---|
@@ -609,7 +644,9 @@ Under that load, that property holds for 1 retrieval in 16.
 - **Deployment.**
   - `main` has all three: the admission bound (`retriever.py:82`), the 4.0 s
     budget (`:72`) and the self-closing circuit.
-  - The rehearsal host, before the Week 2 deploy (`a78ba51`) has only the 4 s budget.
+  - All three are deployed (`main@21f1053`). In the three post-deploy
+    questions every rerank ran, and none was over budget, busy or skipped
+    (`DEPLOY.md` §8.0). None of it has been measured under load on the host.
 
 ---
 
@@ -617,12 +654,12 @@ Under that load, that property holds for 1 retrieval in 16.
 
 | Measured | Not measured |
 |---|---|
-| Two real-route Week 2 encounters: cost ($0.82 each) and per-request latency | `/w2/ask` under any concurrent load |
+| Two real-route Week 2 encounters: cost ($0.82 each) and per-request latency; the deployed flow one document at a time: vision cost and latency per page, the combined answer, memory (`DEPLOY.md` §8.0) | `/w2/ask` under any concurrent load |
 | Vision cost per document: six samples plus three more live runs | Concurrent vision throughput and Anthropic rate limits (`LOAD_TEST.md`, "Not measured") |
-| Brief + 4-turn session cost on three live-host charts | Any Week 2 route on the live host (rehearsal host, before the Week 2 deploy): the host does not run it |
+| Brief + 4-turn session cost on three live-host charts | Any Week 2 route on the host **under load**: the post-deploy run was one document at a time |
 | Rerank, OCR and retrieval latency on the live host (rehearsal host, before the Week 2 deploy) | The per-call token split inside the $0.82 encounter, other than the document question |
 | Judge cost per cold CI run | Judge calls spent selecting fixtures and on cold harness runs |
-| Seven rows of dev spend (§1) | A Week 2 Anthropic Console total; the "$1.21 I-suite run" |
+| Eight rows of dev spend (§1) | A Week 2 Anthropic Console total; the "$1.21 I-suite run" |
 | | A cheaper vision or answer model; prompt caching on the extraction prompt |
 
 The two measurements that would move this document most, in order:

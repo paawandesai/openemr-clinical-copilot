@@ -19,8 +19,8 @@ says when there is no value.
 denominator. A metric whose denominator is small says so. A metric with no
 live measurement says "not measured", not a target.
 
-**Snapshot: `main@21f1053`**, which is on `origin`. A claim marked PENDING
-rests on a branch not yet merged into `main`: **[PENDING `feat/w2-eval-gate`]** or **[PENDING `feat/w2-answer-scope`, not on `origin`]**.
+**Snapshot: `main@bc5236f`**, which is on `origin`. A claim marked PENDING
+rests on a branch not yet merged into `main`: **[PENDING `feat/w2-eval-gate`]** or **[PENDING `feat/w2-answer-scope`]**.
 
 - **Merged, no longer marked:**
   - `feat/w2-php-wiring`, at `2ae4d98`: the Documents & Sources card, its
@@ -29,15 +29,18 @@ rests on a branch not yet merged into `main`: **[PENDING `feat/w2-eval-gate`]** 
   - `chore/w2-deploy-rehearsal`, at `21f1053`: `docs/w2/DEPLOY.md`, D41,
     the self-closing rerank circuit, single-threaded Tesseract, and the
     agent's 4.5 GiB memory cap.
-- **Still to merge:** `feat/w2-eval-gate`. Every citation is then repinned
-  to the one resulting `main` commit, and the markers come out.
-- **The host is not redeployed yet.** It still runs `a78ba51`.
-- **Answer-scope is not on `origin`.** `feat/w2-answer-scope` fixes the
-  slow whole-report question. It numbers its decision D49, which `main` has
-  already assigned to the preview URL. Its figures cannot be checked from
-  `origin` until it is pushed and renumbered.
-- **Live host:** host figures are labelled "rehearsal host, before the Week 2 deploy". The deploy session
-  re-measures after it deploys, and those numbers replace them.
+- **Still to merge:** `feat/w2-eval-gate` and `feat/w2-answer-scope`, both
+  on `origin`. Every citation is then repinned to the one resulting `main`
+  commit, and the markers come out.
+- **The host runs `main@21f1053`**, deployed 2026-09-23 and measured after
+  the deploy (`docs/w2/DEPLOY.md` §8.0). The snapshot adds only that section
+  on top of it.
+- **Answer-scope:** `feat/w2-answer-scope` fixes the slow whole-report
+  question. Its decision is D50.
+- **Host figures:**
+  - post-deploy figures come from `docs/w2/DEPLOY.md` §8.0;
+  - figures measured before the deploy stay labelled "rehearsal host, before the Week 2 deploy", and are kept
+    only where no post-deploy figure exists, or for comparison.
 
 | # | Metric | Current value | Target | Strength of evidence |
 |---|---|---|---|---|
@@ -45,11 +48,11 @@ rests on a branch not yet merged into `main`: **[PENDING `feat/w2-eval-gate`]** 
 | W2-2 | Unlocated values stated as fact | 0, enforced by the type system | 0, absolute | gate critical case plus planted regression **[PENDING `feat/w2-eval-gate`]** |
 | W2-3 | Flag cross-check agreement, comparable flags only | 100% (**1/1**) | none set; the denominator is the finding | very weak: n = 1 |
 | W2-4 | Intake discrepancy accuracy; never merged | precision 2/2, recall 2/2, false positives 0/25; merges 0 | 0 merges, absolute | weak: n = 2 |
-| W2-5 | Verified and disclosed on the ask path | no live rate; 2 real-route runs pass their citation assertions; gate det 73/73 **[PENDING `feat/w2-eval-gate`]** | 100% disclosed, absolute | tests plus 2 live runs; no runtime disclosure signal |
+| W2-5 | Verified and disclosed on the ask path | no rate; 6 live combined answers (3 on the deployed host, 3 local), 0 unverified; 2 real-route runs pass their citation assertions; gate det 73/73 **[PENDING `feat/w2-eval-gate`]** | 100% disclosed, absolute | tests plus 2 live runs; no runtime disclosure signal |
 | W2-6 | Critical values surfaced | **not measured live**; gate H6 and G7 pass | 100%, absolute | one fixture |
 | W2-7 | Guideline retrieval: recall and the share actually reranked | recall@4 0.666, zero-recall queries 0/30; reranked 35% at 10 paced users, 6.2% at 50 | reranked rate is watched, not targeted | 30 dev queries; laptop measurements only |
 | W2-8 | Eval gate: regressions caught **[PENDING `feat/w2-eval-gate`]** | 14/14 planted regressions blocked; 79/96 cases active | every planted regression blocks | harness-proved; judge uncalibrated |
-| W2-9 | Cost and latency per encounter | **$0.82 measured** (n = 2); answer latency scales with the number of claims: about 1 s per citation, so 88–92 s for a whole-report answer (91 citations) and 17–19 s for one analyte and one guideline topic (8–12 citations) | ≤ 90 s per answer (Week 1 budget) | 2 real-route encounters; **fails the budget**; fix on `feat/w2-answer-scope` **[PENDING `feat/w2-answer-scope`, not on `origin`]** |
+| W2-9 | Cost and latency per encounter | **$0.82 measured** (n = 2); answer latency scales with the number of claims: about 1 s per citation, so 88–92 s for a whole-report answer (91 citations) and 17–19 s for one analyte and one guideline topic (8–12 citations) | ≤ 90 s per answer (Week 1 budget) | 2 real-route encounters; **fails the budget**; fix on `feat/w2-answer-scope` **[PENDING `feat/w2-answer-scope`]** |
 
 ---
 
@@ -216,6 +219,9 @@ UNVERIFIED and never dropped (D40 item 7).
   and "a routing decision was made and recorded with its reason"
   (`docs/w2/evidence/api-collection-run.txt`).
   Those assert the shape of the answer. They are not a per-claim pass rate.
+- **On the deployed host** (`DEPLOY.md` §8.0), the document + guideline question
+  answered 3 of 3 times with **7 document + 2 guideline citations, 0
+  unverified**.
 - **From the real chart** (`docs/w2/evidence/php-wiring-e2e-run.md`, local stack), three timed answers to one
   question cited a document and a guideline together:
   - 6 document + 4 chart + 2 guideline citations, then 6 + 0 + 2 twice;
@@ -287,7 +293,8 @@ The reranked rates are from `LOAD_TEST.md` §5b. On the live host (rehearsal hos
 rerank opened the circuit and 35 of the next 60 turns ran unreranked (D41).
 On `main` the circuit now closes itself after 60 s or 10 skipped turns; at
 demo load on the host it opened, skipped 10 turns and closed
-(`docs/w2/DEPLOY.md` §8).
+(`docs/w2/DEPLOY.md` §8). In the three post-deploy questions every rerank ran,
+and none was over budget, busy or skipped (§8.0).
 
 **Read it as:** "0/30 at zero recall" holds only when the reranker runs.
 Under load it mostly does not.
@@ -348,7 +355,7 @@ is not recorded in the repository.
 - **Answer latency scales with the number of claims the answer makes**
   (`docs/w2/COST_AND_LATENCY.md` §4.1a). The answer step is about **3.7 s +
   1.0 s per citation** over six cases from 3 to 180 citations (R² = 0.997,
-  estimated from `LOAD_TEST.md` §7 on `feat/w2-answer-scope` **[PENDING `feat/w2-answer-scope`, not on `origin`]**).
+  estimated from `LOAD_TEST.md` §7 on `feat/w2-answer-scope` **[PENDING `feat/w2-answer-scope`]**).
   - A whole-report answer makes **91 citations and ~11.5k output tokens,
     and takes 88.2–91.8 s** (answer step, n = 3, same source). That is over
     the 90 s budget with one user and no load, and the call is about $0.46
@@ -366,12 +373,22 @@ is not recorded in the repository.
 
 **This metric fails today for whole-report questions**, on a single
 request, and the cause is known: the answer cites every extracted result.
-Scoping the answer (`feat/w2-answer-scope` **[PENDING `feat/w2-answer-scope`, not on `origin`]**) brings the 22-row
+Scoping the answer (`feat/w2-answer-scope` **[PENDING `feat/w2-answer-scope`]**) brings the 22-row
 whole-report answer to **6.9 s p50** with 3 citations, and the 44-row one to
 11.7 s (`docs/w2/COST_AND_LATENCY.md` §4.1d).
 
-Upload to extraction complete, from the chart: **34–35 s** on a 1-page
-text-layer report with live vision (runs A and E, `docs/w2/evidence/php-wiring-e2e-run.md`).
+**On the deployed host** (`DEPLOY.md` §8.0), one document at a time:
+
+| Measure | Value |
+|---|---|
+| Document + guideline question | 15.3–21.2 s end to end, about **$0.178** a question |
+| Vision, lab page | 27.8–39.8 s and $0.11–0.13 |
+| Vision, intake page | 8.3–15.0 s and about $0.05 |
+| Upload → complete, as the card sees it | 20.8 s (clean intake), 35.3 s (scanned intake), 42.2 s (scanned lab) |
+| Per encounter, adding Week 1's brief + 4 turns | an estimated **$0.54–1.06** |
+
+Locally, upload to extraction complete was 34–35 s on a 1-page text-layer
+report (`docs/w2/evidence/php-wiring-e2e-run.md`).
 
 Derivations, projections and sources:
 [docs/w2/COST_AND_LATENCY.md](docs/w2/COST_AND_LATENCY.md).
