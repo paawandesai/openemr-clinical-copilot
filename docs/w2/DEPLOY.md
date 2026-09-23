@@ -13,7 +13,15 @@ rehearsal's test records were deleted afterwards (§7.4).
 
 **Follow-up the same day:** the branch was rebased onto `main@cf182df` (which
 adds `feat/w2-extractor`), `/documents` was routed through the proxy (§2.1)
-and the rerank budget raised to 4 s (D41). The host now runs **`9922314`**.
+and the rerank budget raised to 4 s (D41).
+
+**Security fix the same night:** `/documents` accepted any non-empty bearer
+string. It was denied at the proxy (`22585d2`, 503 from Caddy), the agent
+gained an upload guard (`98f1758`, §2.2), and the route was reopened behind
+it with `/w2/ask` forwarded too (`a78ba51`). The host now runs
+**`a78ba51`** (agent image built from `98f1758`; the two differ only in the
+Caddyfile), rebased on `main@523d445`. `feat/w2-graph` (D40) is on `main`
+but **not deployed** — see §2.2 before deploying it.
 
 Background, not repeated here: [`deploy-writeback.md`](deploy-writeback.md)
 (why the ledger and the client re-registration), [`retrieval-deploy.md`](retrieval-deploy.md)
@@ -33,7 +41,7 @@ Read this before promising a demo. As of `d65dac4`, these pieces exist and
 | OCR + text-layer word boxes (D3 stage 1) and the locate step (stage 3) | agent image (library code) | runs in the container; per-page numbers in §8 |
 | Lab write-back endpoint, ledger, idempotent replay | OpenEMR module | 200, replay returns the same ids, audited, reads back over FHIR |
 | Source-document preview route (`document.php`, D28) | OpenEMR module | 200 PDF for the open chart, 404 for any other |
-| `POST /documents`, `GET /documents/{id}/extraction` | agent, **through the proxy** since `9922314` | **still a stub** on `main@cf182df`: takes the bytes, hashes them, throws them away, walks `pending → in_progress → complete` on a timer, never returns a payload (`app/api/documents.py`) — and **accepts any non-empty bearer string** without checking it with OpenEMR |
+| `POST /documents`, `GET /documents/{id}/extraction` | agent, through the proxy, **behind the upload guard** (§2.2) | the deployed build is still the stub (hashes and discards; no payload). `feat/w2-graph`'s real route is on `main`, not deployed |
 
 And these **do not exist on `main` yet**, so there is nothing to deploy for them:
 
@@ -197,11 +205,58 @@ outside:
 | 25 MiB + 1 byte | **413 from Caddy** |
 | 20 KB body to `/pre-visit-brief` | 413 from Caddy (the small cap still binds) |
 
-**Exposure to know about:** until the route checks the token with OpenEMR,
-anyone who can reach `:8443` can POST up to 25 MiB to `/documents` with a
-made-up bearer. The agent reads the whole body into memory, hashes it and
-discards it. Nothing is stored or extracted, but that is a memory and CPU
-cost per request with no authentication behind it (§10).
+**This exposure was live on the host from `9922314` until the deny in
+`22585d2` the same night:** the stub accepted any non-empty bearer string
+with a body up to 25 MiB. Nothing was stored or extracted. It is closed by
+the upload guard (§2.2).
+
+### 2.2 The upload guard — never serve `/documents` without it
+
+`agent/app/api/upload_guard.py`. Everything below is decided **before the
+body is read**:
+
+| check | refusal |
+|---|---|
+| no bearer | 401 `missing_bearer_token` |
+| not an OpenEMR access token (a JWT with `sub`, `aud`, `scopes`) | 401 `malformed_bearer_token` — OpenEMR is never called |
+| `scopes` lacks any of `user/Patient.read`, `user/MedicationRequest.read`, `user/AllergyIntolerance.read` (what extraction reads from the chart) | 403 `insufficient_scope`, naming the missing ones |
+| OpenEMR refuses the token on `GET Patient/<patient_id>` (signature, expiry, revocation, access) | 401 `fhir_token_rejected` |
+| unknown patient | 404 `patient_not_found` |
+| over a sliding-window limit per OAuth client (`aud`), per user (`sub`) or per patient | 429 `rate_limited` + `Retry-After` (refused requests are not counted) |
+| declared `Content-Length` over 25 MiB | 413, body unread |
+| every extraction slot taken | 503 `extraction_capacity` + `Retry-After: 10` (no queue) |
+
+There is no introspection call: the agent holds no OAuth client credential
+(ARCHITECTURE.md §2), and no other agent route introspects either. The
+claims are read unverified and nothing is done on their strength until
+OpenEMR accepts the same token — the pattern `/pre-visit-brief` already
+uses for `sub`, plus the scope check. Both routes take `patient_id`; a
+document is visible only under the chart it was uploaded to.
+
+Verified on the host with real OpenEMR tokens (a temporary password-grant
+client, deleted afterwards with its tokens), first against the agent
+directly behind the Caddy deny, then through `:8443`:
+
+| request | result |
+|---|---|
+| no bearer | 401 `missing_bearer_token` |
+| made-up bearer | **401** `malformed_bearer_token` |
+| valid token with only `openid user/Patient.read user/Condition.read` | **403** `insufficient_scope` |
+| valid token with the three scopes | **200** |
+| status, same chart / other chart / made-up bearer | 200 / 404 / 401 |
+| unknown patient | 404 `patient_not_found` |
+| 11th upload for one patient inside 10 min | **429** `rate_limited`, `Retry-After: 555` |
+| 4 simultaneous 24 MiB uploads, 2 slots | 3 × 200, **1 × 503** `extraction_capacity`, `Retry-After: 10` (a slot frees as soon as a body is read) |
+
+**Before deploying `feat/w2-graph` or anything after it:** `main`'s
+`/documents` (from graph) checks the token with OpenEMR only *after*
+reading the body, and has no scope check, rate limit or concurrency cap.
+The reconciled route must call `upload_guard.authorize_document_request`
+and `LIMITS.check_and_record` first, and the extraction must hold an
+`ExtractionSlots` slot for as long as it runs (it is background work under
+D7: `try_acquire()` before the request returns, `release()` when the
+extraction ends). Check with the §2.2 table before the proxy serves it. If
+it is not there, redeploy the deny (`22585d2`'s `handle /documents*`).
 
 **Rollback:** restore `Caddyfile-<old>` from the backup directory into
 `deploy/` and recreate the proxy the same way.
@@ -645,6 +700,9 @@ the code tree (`--env-file`, interpolated by `docker-compose.agent.yml`):
 | `AGENT_STUB_LLM_DRAFTING` | no | `false` | load tests only; never for a real brief |
 | `AGENT_PRELOAD_RETRIEVAL` | no | **`true` in compose** (code default off) | **new in W2** — warm retrieval at startup |
 | `AGENT_CONVERSATION_TTL_SECONDS`, `AGENT_CONVERSATION_MAX_AGE_SECONDS` | no | code defaults | conversation store expiry |
+| `AGENT_UPLOAD_LIMIT_PER_CLIENT` / `_PER_USER` / `_PER_PATIENT` | no | 120 / 20 / 10 | uploads per window, per OAuth client, user, patient (§2.2) |
+| `AGENT_UPLOAD_LIMIT_WINDOW_SECONDS` | no | 600 | the sliding window |
+| `AGENT_EXTRACTION_MAX_CONCURRENT` | no | 2 | extraction slots; the rest get 503 |
 | `LANGFUSE_BASE_URL`, `LANGFUSE_PUBLIC_KEY`, `LANGFUSE_SECRET_KEY` | no | unset | unset → `/ready` reports `observability_backend: disabled` |
 | `COHERE_API_KEY` | no | unset | only for the unmeasured Cohere rerank adapter; the deployed path does not use it |
 
@@ -671,7 +729,7 @@ Co-Pilot):
 
 | when this lands | add this step |
 |---|---|
-| module upload route (server-side call to the agent's `/documents`) | the proxy route and cap are done (§2.1). Still needed: a real token check in the agent route — the stub accepts any bearer string, and it is now public |
+| module upload route (server-side call to the agent's `/documents`) | proxy route, cap and upload guard are done (§2.1, §2.2). The module must send `patient_id` and a token carrying the three §2.2 scopes — the chart-embed conversation token does |
 | source-documents card | register it in `Bootstrap`; confirm Apache serves `.mjs` as `text/javascript` (D32) |
 | `/documents` wired to the extractor, and `feat/w2-graph` (supervisor) | redeploy; measure vision extraction cost and latency per page on this host, and one question answered with both a document citation and a guideline citation; decide where extraction runs relative to the ~0.9 GiB agent, given that OCR in the same container more than doubles rerank p95 (§8) |
 | agent-driven write-back | a broker scope set that includes `api:oemr user/lab-writeback.c`; the v2 client already allows it |
@@ -691,6 +749,11 @@ Co-Pilot):
 | steady `rerank_over_budget: true` in `evidence_retrieval_event` | agent log | **first check whether it is one slow rerank followed by an open circuit**: the flag is also `True` on every skipped turn, and the circuit never closes until the process restarts (D41). A restart closes it. A stream of genuinely slow reranks means OCR or another load is contending for the CPU (§8) |
 | 413 on an upload | response has no JSON body → Caddy; JSON → the agent | over 25 MiB. Both caps are the same number (§2.1); if only one refuses, they have drifted |
 | 413 on a brief or a question | Caddy | body over 16 KB; the small cap applies to everything but `/documents*` |
+| upload 401 `malformed_bearer_token` from the card | agent log `w2_document_auth_refused` | the module sent something that is not an OpenEMR JWT |
+| upload 403 `insufficient_scope` | response `message` names the scopes | the brokered token lacks `user/MedicationRequest.read` or `user/AllergyIntolerance.read` — the brief-only scope set does |
+| upload 429 `rate_limited` | agent log `w2_document_rate_limited` (`dimensions`) | a per-client/user/patient window is full; `Retry-After` says when. Limits are env vars (§9) |
+| upload 503 `extraction_capacity` | agent log `w2_extraction_capacity_full` | all `AGENT_EXTRACTION_MAX_CONCURRENT` slots busy; retry after 10 s |
+| `POST /w2/ask` returns the static UI's HTML | Caddyfile | the `/w2/ask*` handle is missing — `a78ba51` adds it |
 | `OcrUnavailableError` | agent log | image built without Tesseract — i.e. from before `35f76ae` |
 | agent OOM-killed / host swapping | `docker stats`, `dmesg` | the W2 agent idles at ~0.9 GiB; OCR at 300 dpi adds to it per page |
 | `/ready` 503 `fhir` | `/ready` detail | OpenEMR down, or `FHIR_BASE_URL` wrong |
