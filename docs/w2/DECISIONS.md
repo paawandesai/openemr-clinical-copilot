@@ -2377,6 +2377,7 @@ this entry back as "D-unassigned (work order 17)"; it is D51 from here on.
 The heading and every "D-unassigned (work order 17)" reference were renamed
 in the same change. The next unnumbered entry to merge (the "D-NEXT" on
 `fix/w2-event-tags`) takes D52.
+Removed from the end of this entry on 2026-09-23: a stray copy of D31's "**Bound:** 100 results per request" paragraph, merge debris from `feat/w2-eval-gate` that the verbatim restore carried in; it was never part of this decision, and D31 keeps the original.
 
 **Decision:**
 
@@ -2443,9 +2444,6 @@ be uploaded again before it can be asked about — the chart copy survives,
 and re-uploading adds no row. Each status poll mints a token, as every
 module request does (no token reuse by design), which adds `api_token` rows
 while a document extracts.
-**Bound:** 100 results per request. Not a contract rule — a ceiling on how long
-one transaction may hold row locks across the procedure tables. A comprehensive
-metabolic panel is 14 analytes.
 
 ---
 
