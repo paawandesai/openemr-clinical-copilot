@@ -1,0 +1,421 @@
+{
+  "doc_type": "intake_form",
+  "document_sha256": "aba1f1e747bfd16f19d4a3772d36150494dfdb5e7383dc46634c7c521057e213",
+  "extractor_version": "intake-extractor/1.0.0+claude-opus-5",
+  "format": "w2-staging/vision-transcription/1.0.0",
+  "prompt_fingerprint": "2b76c554980f34a1541fc18dfe0f9d2a46c8bd57cf57077a0c72c9c7391fa632",
+  "raw": {
+    "allergies": [
+      {
+        "reaction": {
+          "page": 1,
+          "state": "present",
+          "text": "Severe"
+        },
+        "substance": {
+          "page": 1,
+          "state": "present",
+          "text": "Allergic disposition (finding)"
+        }
+      },
+      {
+        "reaction": {
+          "page": null,
+          "state": "absent",
+          "text": ""
+        },
+        "substance": {
+          "page": 1,
+          "state": "present",
+          "text": "Bee venom (substance)"
+        }
+      },
+      {
+        "reaction": {
+          "page": null,
+          "state": "absent",
+          "text": ""
+        },
+        "substance": {
+          "page": 1,
+          "state": "present",
+          "text": "Mold (organism)"
+        }
+      },
+      {
+        "reaction": {
+          "page": 1,
+          "state": "present",
+          "text": "Mild"
+        },
+        "substance": {
+          "page": 1,
+          "state": "present",
+          "text": "Animal dander (substance)"
+        }
+      },
+      {
+        "reaction": {
+          "page": null,
+          "state": "absent",
+          "text": ""
+        },
+        "substance": {
+          "page": 1,
+          "state": "present",
+          "text": "Tree pollen (substance)"
+        }
+      },
+      {
+        "reaction": {
+          "page": null,
+          "state": "absent",
+          "text": ""
+        },
+        "substance": {
+          "page": 1,
+          "state": "present",
+          "text": "Aspirin"
+        }
+      },
+      {
+        "reaction": {
+          "page": 1,
+          "state": "present",
+          "text": "Mild"
+        },
+        "substance": {
+          "page": 1,
+          "state": "present",
+          "text": "Cow's milk (substance)"
+        }
+      },
+      {
+        "reaction": {
+          "page": 1,
+          "state": "present",
+          "text": "Moderate"
+        },
+        "substance": {
+          "page": 1,
+          "state": "present",
+          "text": "Wheat (substance)"
+        }
+      },
+      {
+        "reaction": {
+          "page": 2,
+          "state": "present",
+          "text": "Mild"
+        },
+        "substance": {
+          "page": 2,
+          "state": "present",
+          "text": "Shellfish (substance)"
+        }
+      }
+    ],
+    "chief_concern": {
+      "page": 1,
+      "state": "present",
+      "text": "gingival disease - recheck and medication review"
+    },
+    "family_history": [
+      {
+        "condition": {
+          "label": "Diabetes",
+          "page": 2,
+          "state": "ticked"
+        },
+        "relation": {
+          "page": 2,
+          "state": "present",
+          "text": "paternal grandfather"
+        }
+      },
+      {
+        "condition": {
+          "label": "High blood pressure",
+          "page": 2,
+          "state": "unticked"
+        },
+        "relation": {
+          "page": null,
+          "state": "absent",
+          "text": ""
+        }
+      },
+      {
+        "condition": {
+          "label": "Heart disease",
+          "page": 2,
+          "state": "ticked"
+        },
+        "relation": {
+          "page": 2,
+          "state": "present",
+          "text": "maternal grandmother"
+        }
+      },
+      {
+        "condition": {
+          "label": "Cancer",
+          "page": 2,
+          "state": "ticked"
+        },
+        "relation": {
+          "page": 2,
+          "state": "present",
+          "text": "brother"
+        }
+      },
+      {
+        "condition": {
+          "label": "Stroke",
+          "page": 2,
+          "state": "unticked"
+        },
+        "relation": {
+          "page": null,
+          "state": "absent",
+          "text": ""
+        }
+      },
+      {
+        "condition": {
+          "label": "Asthma",
+          "page": 2,
+          "state": "ticked"
+        },
+        "relation": {
+          "page": 2,
+          "state": "present",
+          "text": "sister"
+        }
+      }
+    ],
+    "medications": [
+      {
+        "dose": {
+          "page": 1,
+          "state": "present",
+          "text": "30 MG"
+        },
+        "frequency": {
+          "page": 1,
+          "state": "present",
+          "text": "as needed"
+        },
+        "name": {
+          "page": 1,
+          "state": "present",
+          "text": "Fexofenadine hydrochloride"
+        },
+        "route": {
+          "page": null,
+          "state": "absent",
+          "text": ""
+        }
+      },
+      {
+        "dose": {
+          "page": 1,
+          "state": "present",
+          "text": "0.3 ML"
+        },
+        "frequency": {
+          "page": 1,
+          "state": "present",
+          "text": "at bedtime"
+        },
+        "name": {
+          "page": 1,
+          "state": "present",
+          "text": "Epinephrine"
+        },
+        "route": {
+          "page": null,
+          "state": "absent",
+          "text": ""
+        }
+      },
+      {
+        "dose": {
+          "page": 1,
+          "state": "present",
+          "text": "0.0272 MG"
+        },
+        "frequency": {
+          "page": 1,
+          "state": "present",
+          "text": "every morning"
+        },
+        "name": {
+          "page": 1,
+          "state": "present",
+          "text": "sodium fluoride"
+        },
+        "route": {
+          "page": null,
+          "state": "absent",
+          "text": ""
+        }
+      },
+      {
+        "dose": {
+          "page": 1,
+          "state": "present",
+          "text": "160 MG"
+        },
+        "frequency": {
+          "page": 1,
+          "state": "present",
+          "text": "at bedtime"
+        },
+        "name": {
+          "page": 1,
+          "state": "present",
+          "text": "Acetaminophen"
+        },
+        "route": {
+          "page": null,
+          "state": "absent",
+          "text": ""
+        }
+      },
+      {
+        "dose": {
+          "page": 1,
+          "state": "present",
+          "text": "250 MG"
+        },
+        "frequency": {
+          "page": 1,
+          "state": "present",
+          "text": "twice daily"
+        },
+        "name": {
+          "page": 1,
+          "state": "present",
+          "text": "Penicillin Potassium"
+        },
+        "route": {
+          "page": null,
+          "state": "absent",
+          "text": ""
+        }
+      },
+      {
+        "dose": {
+          "page": 1,
+          "state": "present",
+          "text": "250 MG"
+        },
+        "frequency": {
+          "page": 1,
+          "state": "present",
+          "text": "twice daily"
+        },
+        "name": {
+          "page": 1,
+          "state": "present",
+          "text": "Amoxicillin Clavulanate"
+        },
+        "route": {
+          "page": null,
+          "state": "absent",
+          "text": ""
+        }
+      },
+      {
+        "dose": {
+          "page": 1,
+          "state": "present",
+          "text": "325 MG"
+        },
+        "frequency": {
+          "page": 1,
+          "state": "present",
+          "text": "three times daily"
+        },
+        "name": {
+          "page": 1,
+          "state": "present",
+          "text": "Acetaminophen"
+        },
+        "route": {
+          "page": null,
+          "state": "absent",
+          "text": ""
+        }
+      }
+    ],
+    "no_known_drug_allergies": {
+      "label": "No known drug allergies",
+      "page": 1,
+      "state": "unticked"
+    },
+    "patient": {
+      "address": {
+        "page": 1,
+        "state": "present",
+        "text": "887 Watsica Divide"
+      },
+      "city_state_zip": {
+        "page": 1,
+        "state": "illegible",
+        "text": ""
+      },
+      "date_of_birth": {
+        "page": null,
+        "state": "absent",
+        "text": ""
+      },
+      "mrn": {
+        "page": null,
+        "state": "absent",
+        "text": ""
+      },
+      "name": {
+        "page": 1,
+        "state": "present",
+        "text": "Tonja658 Grant908"
+      },
+      "sex": {
+        "page": 1,
+        "state": "present",
+        "text": "Female"
+      }
+    },
+    "signature_date": {
+      "page": 2,
+      "state": "present",
+      "text": "09/14/2026"
+    },
+    "signature_name": {
+      "page": 2,
+      "state": "present",
+      "text": "Tonja658 Grant908"
+    },
+    "visit_date": {
+      "page": 1,
+      "state": "present",
+      "text": "09/14/2026"
+    }
+  },
+  "recorded_at": "2026-09-22T22:14:55+00:00",
+  "requested_model": "claude-opus-5",
+  "sample": "intake-missing-allergy-006",
+  "served_models": [
+    "claude-opus-5"
+  ],
+  "usage": {
+    "cache_creation_input_tokens": 0,
+    "cache_read_input_tokens": 0,
+    "calls": 1,
+    "cost_usd": 0.101855,
+    "input_tokens": 11531,
+    "latency_ms": 18165,
+    "output_tokens": 1768
+  }
+}

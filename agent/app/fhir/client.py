@@ -468,6 +468,40 @@ async def ensure_patient_exists(token: str, patient_id: str) -> None:
     _raise_for_status(response)
 
 
+async def get_patient_identity(token: str, patient_id: str) -> dict[str, Any]:
+    """
+    The chart's own name and birth date, for one comparison only: whether
+    an uploaded document is about this patient (the intake-extractor's
+    wrong-patient flag, app/workers/intake_extractor/identity.py).
+
+    Same read as ensure_patient_exists, but the body is kept — narrowed to
+    `{"given": [str], "family": str | None, "birth_date": str | None}` from
+    the first `name` entry marked `official` (else the first entry) and
+    `birthDate`. Nothing else in the Patient resource is returned. Returns
+    no FHIR JSON, logs nothing, and emits no retrieval_event: Patient is a
+    precondition, not a tool-scope resource (§3). Callers must not log what
+    it returns (CLAUDE.md invariant 1).
+    """
+    headers = {"Authorization": f"Bearer {token}"}
+    async with httpx.AsyncClient(verify=_VERIFY_TLS, timeout=_TIMEOUT_SECONDS) as http:
+        response = await http.get(
+            f"{FHIR_BASE_URL}/Patient/{quote(patient_id, safe='')}", headers=headers
+        )
+    if response.status_code in (400, 404):
+        raise PatientNotFoundError(
+            f"FHIR Patient read returned {response.status_code} for the requested id"
+        )
+    _raise_for_status(response)
+    resource = response.json()
+    names = resource.get("name") or []
+    chosen = next((n for n in names if n.get("use") == "official"), names[0] if names else {})
+    return {
+        "given": [str(part) for part in chosen.get("given") or []],
+        "family": chosen.get("family"),
+        "birth_date": resource.get("birthDate"),
+    }
+
+
 async def get_conditions(
     token: str,
     patient_id: str,

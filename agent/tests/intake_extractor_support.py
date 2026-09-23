@@ -1,0 +1,309 @@
+"""
+Test support for the intake-extractor: a vision stub built from ground truth,
+and a chart built from the factory's chart cache. Not a test module.
+
+**The stub transcribes exactly what the ground truth says is drawn.** Each
+raw field is the record's `rendered_text` (never its `value`, which for an
+absent or illegible field is chart truth — D18), with the record's page and
+its status mapped onto the transcription's three states. So a run through
+the worker with this stub measures everything *after* the model: stage 1
+(text layer / OCR), the locate step, the domain checks and the discrepancy
+logic — against a perfect transcriber. The live test in
+`test_intake_extractor_live.py` is what measures the model itself.
+
+**The chart is the factory's own chart cache**, in the shape the Week 1
+FHIR client returns (`MedicationRequest`, `AllergyIntolerance`), with every
+record `active` — the factory renders every cached medication and allergy
+onto the form, so that is the chart the form was generated against.
+"""
+
+from __future__ import annotations
+
+import json
+import re
+from datetime import date, datetime
+from functools import cache
+from pathlib import Path
+from typing import Any
+
+from app.models.fhir_resources import AllergyIntolerance, MedicationRequest
+from app.models.w2.documents import DocumentKind
+from app.workers.intake_extractor.chart import ChartSnapshot, PatientIdentity
+from app.workers.intake_extractor.vision import VisionResult, VisionUsage
+from app.workers.intake_extractor.vision_schema import (
+    RawAllergy,
+    RawCheckbox,
+    RawFamilyHistory,
+    RawField,
+    RawIntakeDocument,
+    RawLabDocument,
+    RawLabResult,
+    RawMedication,
+    RawOrder,
+    RawPatient,
+    RawPerformingLab,
+)
+
+AGENT_ROOT = Path(__file__).resolve().parents[1]
+SAMPLES_DIR = AGENT_ROOT / "evals/w2/factory/output/samples"
+CACHE_DIR = AGENT_ROOT / "evals/w2/factory/cache"
+
+SAMPLES = (
+    "lab-clean-001",
+    "lab-scanned-heavy-abnormal-002",
+    "lab-multipage-003",
+    "intake-clean-004",
+    "intake-scanned-light-med-005",
+    "intake-missing-allergy-006",
+)
+LAB_SAMPLES = tuple(sample for sample in SAMPLES if sample.startswith("lab"))
+INTAKE_SAMPLES = tuple(sample for sample in SAMPLES if sample.startswith("intake"))
+
+#: The factory's printed family-history labels (content._FAMILY_HISTORY_CONDITIONS)
+#: and the NKDA box label (render_intake.py). Ground truth records a key, not
+#: the label drawn beside the box, and the transcription reports the label.
+FAMILY_LABELS = {
+    "diabetes": "Diabetes",
+    "hypertension": "High blood pressure",
+    "heart_disease": "Heart disease",
+    "cancer": "Cancer",
+    "stroke": "Stroke",
+    "asthma": "Asthma",
+}
+NKDA_LABEL = "No known drug allergies"
+
+
+@cache
+def ground_truth(sample: str) -> dict[str, Any]:
+    return json.loads((SAMPLES_DIR / sample / f"{sample}.ground_truth.json").read_text())
+
+
+def pdf_bytes(sample: str) -> bytes:
+    return (SAMPLES_DIR / sample / f"{sample}.pdf").read_bytes()
+
+
+def doc_kind(sample: str) -> DocumentKind:
+    return DocumentKind(ground_truth(sample)["scenario"]["doc_type"])
+
+
+def patient_uuid(sample: str) -> str:
+    return ground_truth(sample)["chart_source"]["patient_uuid"]
+
+
+def _records(sample: str) -> dict[str, dict[str, Any]]:
+    return {record["field_path"]: record for record in ground_truth(sample)["fields"]}
+
+
+_ABSENT = RawField(state="absent", text="", page=None)
+
+
+def _raw(record: dict[str, Any] | None) -> RawField:
+    if record is None:
+        return _ABSENT
+    status = record["status"]
+    if status == "absent":
+        return _ABSENT
+    if status == "illegible":
+        return RawField(state="illegible", text="", page=record["page"])
+    return RawField(state="present", text=record.get("rendered_text", ""), page=record["page"])
+
+
+def _checkbox(record: dict[str, Any] | None, label: str) -> RawCheckbox:
+    if record is None or record["status"] == "absent":
+        return RawCheckbox(label=label, state="absent", page=None)
+    if record["status"] == "illegible":
+        return RawCheckbox(label=label, state="illegible", page=record["page"])
+    ticked = bool(record.get("rendered_text", "").strip())
+    return RawCheckbox(label=label, state="ticked" if ticked else "unticked", page=record["page"])
+
+
+def _patient(records: dict[str, dict[str, Any]]) -> RawPatient:
+    return RawPatient(
+        name=_raw(records.get("patient.name")),
+        date_of_birth=_raw(records.get("patient.dob")),
+        sex=_raw(records.get("patient.sex")),
+        address=_raw(records.get("patient.address")),
+        city_state_zip=_raw(records.get("patient.city_state_zip")),
+        mrn=_raw(records.get("patient.mrn")),
+    )
+
+
+_RESULT = re.compile(r"^results\.(?P<panel>[^.]+)\.(?P<test>[^.]+)\.(?P<attr>[^.]+)$")
+
+
+def raw_from_ground_truth(sample: str) -> RawLabDocument | RawIntakeDocument:
+    """A perfect transcription of the sample, from its ground truth."""
+    records = _records(sample)
+    if doc_kind(sample) is DocumentKind.LAB_PDF:
+        rows: dict[str, dict[str, Any]] = {}
+        for path, record in records.items():
+            match = _RESULT.match(path)
+            if match:
+                row = rows.setdefault(match["test"], {"panel": match["panel"]})
+                row[match["attr"]] = record
+        return RawLabDocument(
+            patient=_patient(records),
+            performing_lab=RawPerformingLab(
+                name=_raw(records.get("lab.name")),
+                address=_raw(records.get("lab.address")),
+                clia=_raw(records.get("lab.clia")),
+                director=_raw(records.get("lab.director")),
+            ),
+            order=RawOrder(
+                accession=_raw(records.get("order.accession")),
+                specimen=_raw(records.get("order.specimen")),
+                collected_at=_raw(records.get("order.collected")),
+                received_at=_raw(records.get("order.received")),
+                reported_at=_raw(records.get("order.reported")),
+                ordering_provider=_raw(records.get("order.ordering_provider")),
+            ),
+            results=[
+                RawLabResult(
+                    panel=row["panel"],
+                    test_key=test,
+                    test_name=_raw(row.get("name")),
+                    value=_raw(row.get("value")),
+                    unit=_raw(row.get("unit")),
+                    reference_range=_raw(row.get("reference_range")),
+                    flag=_raw(row.get("flag")),
+                )
+                for test, row in rows.items()
+            ],
+        )
+
+    def indexed(group: str) -> list[int]:
+        found = {int(m[1]) for p in records if (m := re.match(rf"^{group}\[(\d+)\]", p))}
+        return sorted(found)
+
+    return RawIntakeDocument(
+        patient=_patient(records),
+        visit_date=_raw(records.get("visit.date")),
+        chief_concern=_raw(records.get("chief_concern")),
+        medications=[
+            RawMedication(
+                name=_raw(records.get(f"medications[{i}].name")),
+                dose=_raw(records.get(f"medications[{i}].dose")),
+                frequency=_raw(records.get(f"medications[{i}].frequency")),
+                route=_raw(records.get(f"medications[{i}].route")),
+            )
+            for i in indexed("medications")
+        ],
+        no_known_drug_allergies=_checkbox(records.get("allergies.none_known"), NKDA_LABEL),
+        allergies=[
+            RawAllergy(
+                substance=_raw(records.get(f"allergies[{i}].allergen")),
+                reaction=_raw(records.get(f"allergies[{i}].reaction")),
+            )
+            for i in indexed("allergies")
+        ],
+        family_history=[
+            RawFamilyHistory(
+                condition=_checkbox(records.get(f"family_history.{key}"), label),
+                relation=_raw(records.get(f"family_history.{key}.relation")),
+            )
+            for key, label in FAMILY_LABELS.items()
+            if f"family_history.{key}" in records
+        ],
+        signature_name=_raw(records.get("signature.name")),
+        signature_date=_raw(records.get("signature.date")),
+    )
+
+
+def ground_truth_vision(sample: str):  # noqa: ANN201 - a VisionExtractor
+    """A `VisionExtractor` that returns the sample's perfect transcription."""
+
+    async def extract(kind: DocumentKind, pdf: bytes, page_count: int) -> VisionResult:
+        return VisionResult(raw=raw_from_ground_truth(sample), usage=VisionUsage(cost_usd=0.0))
+
+    return extract
+
+
+def chart_for(sample: str) -> ChartSnapshot:
+    """The chart the sample was generated against, as the FHIR client would return it."""
+    uuid = patient_uuid(sample)
+    record = json.loads((CACHE_DIR / f"patient-{uuid}.json").read_text())["record"]
+    medications = [
+        MedicationRequest(
+            source_id=f"med-{index}",
+            display=med["name"],
+            status="active",
+            rxnorm_code=None,
+            authored_date=datetime.fromisoformat(med["started"])
+            if med.get("started")
+            else datetime.min,
+        )
+        for index, med in enumerate(record["medications"])
+    ]
+    allergies = [
+        AllergyIntolerance(
+            source_id=f"allergy-{index}",
+            display=allergy["allergen"],
+            clinical_status="active",
+            recorded_date=None,
+        )
+        for index, allergy in enumerate(record["allergies"])
+    ]
+    given = record["first_name"].split()
+    return ChartSnapshot(
+        identity=PatientIdentity(
+            source_id=uuid,
+            given=tuple(given),
+            family=record["last_name"],
+            birth_date=date.fromisoformat(record["dob"]) if record.get("dob") else None,
+        ),
+        medications=medications,
+        allergies=allergies,
+    )
+
+
+# --------------------------------------------------------------------------
+# Recorded live transcriptions (evals/w2/factory/record_transcriptions.py)
+# --------------------------------------------------------------------------
+
+TRANSCRIPTIONS_DIR = AGENT_ROOT / "evals/w2/staging/transcriptions"
+
+
+def recorded_transcription(sample: str) -> dict[str, Any] | None:
+    path = TRANSCRIPTIONS_DIR / f"{sample}.transcription.json"
+    return json.loads(path.read_text()) if path.exists() else None
+
+
+def recorded_vision(sample: str):  # noqa: ANN201 - a VisionExtractor
+    """
+    A `VisionExtractor` that replays the sample's recorded real transcription.
+
+    Refuses a stale recording rather than replaying it: a different PDF
+    (the factory regenerated the sample) or a changed prompt or output
+    schema means the recorded output no longer answers the question the
+    worker would now ask.
+    """
+    import hashlib
+
+    from app.workers.intake_extractor.vision_schema import RAW_MODEL
+    from evals.w2.factory.record_transcriptions import prompt_fingerprint
+
+    recorded = recorded_transcription(sample)
+    if recorded is None:
+        raise FileNotFoundError(f"no recorded transcription for {sample}")
+    kind = DocumentKind(recorded["doc_type"])
+    if recorded["document_sha256"] != hashlib.sha256(pdf_bytes(sample)).hexdigest():
+        raise ValueError(f"{sample}: recorded against a different PDF; re-record it")
+    if recorded["prompt_fingerprint"] != prompt_fingerprint(kind):
+        raise ValueError(f"{sample}: prompt or schema changed since recording; re-record it")
+    raw = RAW_MODEL[kind].model_validate_json(json.dumps(recorded["raw"]))
+    usage = recorded["usage"]
+
+    async def extract(kind: DocumentKind, pdf: bytes, page_count: int) -> VisionResult:
+        return VisionResult(
+            raw=raw,
+            usage=VisionUsage(
+                calls=usage["calls"],
+                input_tokens=usage["input_tokens"],
+                output_tokens=usage["output_tokens"],
+                latency_ms=usage["latency_ms"],
+                served_models=list(recorded["served_models"]),
+                cost_usd=usage["cost_usd"],
+            ),
+        )
+
+    return extract

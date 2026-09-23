@@ -1,0 +1,1388 @@
+{
+  "doc_type": "lab_pdf",
+  "document_sha256": "82e1c416b944c2f2310f5747e3854f01a944d0366f79e25ea64d86a80142cd8a",
+  "extractor_version": "intake-extractor/1.0.0+claude-opus-5",
+  "format": "w2-staging/vision-transcription/1.0.0",
+  "prompt_fingerprint": "5fd2e6afff94a609db2f6066bbdc92fa42ff2ba2fc7d0229744b28b1693addd1",
+  "raw": {
+    "order": {
+      "accession": {
+        "page": 1,
+        "state": "present",
+        "text": "260905-271-1676"
+      },
+      "collected_at": {
+        "page": 1,
+        "state": "present",
+        "text": "2026-09-05 09:24"
+      },
+      "ordering_provider": {
+        "page": 1,
+        "state": "present",
+        "text": "Hannah Lindqvist, NP"
+      },
+      "received_at": {
+        "page": 1,
+        "state": "present",
+        "text": "2026-09-05 13:41"
+      },
+      "reported_at": {
+        "page": 1,
+        "state": "present",
+        "text": "2026-09-05 16:41"
+      },
+      "specimen": {
+        "page": 1,
+        "state": "present",
+        "text": "Plasma, lithium heparin"
+      }
+    },
+    "patient": {
+      "address": {
+        "page": 1,
+        "state": "present",
+        "text": "887 Watsica Divide"
+      },
+      "city_state_zip": {
+        "page": 1,
+        "state": "present",
+        "text": "Everett, Massachusetts 02149"
+      },
+      "date_of_birth": {
+        "page": 1,
+        "state": "present",
+        "text": "2014-01-24"
+      },
+      "mrn": {
+        "page": 1,
+        "state": "present",
+        "text": "49"
+      },
+      "name": {
+        "page": 1,
+        "state": "present",
+        "text": "Tonja658 Grant908"
+      },
+      "sex": {
+        "page": 1,
+        "state": "present",
+        "text": "Female"
+      }
+    },
+    "performing_lab": {
+      "address": {
+        "page": 1,
+        "state": "present",
+        "text": "1400 Cabot Industrial Way, Suite 210 Peabody, MA 01960   Tel (978) 555-0142"
+      },
+      "clia": {
+        "page": 1,
+        "state": "present",
+        "text": "22D0451193"
+      },
+      "director": {
+        "page": 1,
+        "state": "present",
+        "text": "Alan R. Petrosian, MD, PhD"
+      },
+      "name": {
+        "page": 1,
+        "state": "present",
+        "text": "NORTHFIELD REGIONAL LABORATORY"
+      }
+    },
+    "results": [
+      {
+        "flag": {
+          "page": 1,
+          "state": "present",
+          "text": ""
+        },
+        "panel": "comprehensive metabolic panel",
+        "reference_range": {
+          "page": 1,
+          "state": "present",
+          "text": "70 - 99"
+        },
+        "test_key": "glucose",
+        "test_name": {
+          "page": 1,
+          "state": "present",
+          "text": "Glucose"
+        },
+        "unit": {
+          "page": 1,
+          "state": "present",
+          "text": "mg/dL"
+        },
+        "value": {
+          "page": 1,
+          "state": "present",
+          "text": "81"
+        }
+      },
+      {
+        "flag": {
+          "page": 1,
+          "state": "present",
+          "text": ""
+        },
+        "panel": "comprehensive metabolic panel",
+        "reference_range": {
+          "page": 1,
+          "state": "present",
+          "text": "7 - 20"
+        },
+        "test_key": "bun",
+        "test_name": {
+          "page": 1,
+          "state": "present",
+          "text": "BUN (Urea Nitrogen)"
+        },
+        "unit": {
+          "page": 1,
+          "state": "present",
+          "text": "mg/dL"
+        },
+        "value": {
+          "page": 1,
+          "state": "present",
+          "text": "15"
+        }
+      },
+      {
+        "flag": {
+          "page": 1,
+          "state": "present",
+          "text": ""
+        },
+        "panel": "comprehensive metabolic panel",
+        "reference_range": {
+          "page": 1,
+          "state": "present",
+          "text": "0.50 - 1.10"
+        },
+        "test_key": "creatinine",
+        "test_name": {
+          "page": 1,
+          "state": "present",
+          "text": "Creatinine"
+        },
+        "unit": {
+          "page": 1,
+          "state": "present",
+          "text": "mg/dL"
+        },
+        "value": {
+          "page": 1,
+          "state": "present",
+          "text": "0.83"
+        }
+      },
+      {
+        "flag": {
+          "page": 1,
+          "state": "present",
+          "text": ""
+        },
+        "panel": "comprehensive metabolic panel",
+        "reference_range": {
+          "page": 1,
+          "state": "present",
+          "text": "60 - 120"
+        },
+        "test_key": "egfr",
+        "test_name": {
+          "page": 1,
+          "state": "present",
+          "text": "eGFR"
+        },
+        "unit": {
+          "page": 1,
+          "state": "present",
+          "text": "mL/min/1.73"
+        },
+        "value": {
+          "page": 1,
+          "state": "present",
+          "text": "86"
+        }
+      },
+      {
+        "flag": {
+          "page": 1,
+          "state": "present",
+          "text": ""
+        },
+        "panel": "comprehensive metabolic panel",
+        "reference_range": {
+          "page": 1,
+          "state": "present",
+          "text": "136 - 145"
+        },
+        "test_key": "sodium",
+        "test_name": {
+          "page": 1,
+          "state": "present",
+          "text": "Sodium"
+        },
+        "unit": {
+          "page": 1,
+          "state": "present",
+          "text": "mmol/L"
+        },
+        "value": {
+          "page": 1,
+          "state": "present",
+          "text": "142"
+        }
+      },
+      {
+        "flag": {
+          "page": 1,
+          "state": "present",
+          "text": ""
+        },
+        "panel": "comprehensive metabolic panel",
+        "reference_range": {
+          "page": 1,
+          "state": "present",
+          "text": "3.5 - 5.1"
+        },
+        "test_key": "potassium",
+        "test_name": {
+          "page": 1,
+          "state": "present",
+          "text": "Potassium"
+        },
+        "unit": {
+          "page": 1,
+          "state": "present",
+          "text": "mmol/L"
+        },
+        "value": {
+          "page": 1,
+          "state": "present",
+          "text": "4.3"
+        }
+      },
+      {
+        "flag": {
+          "page": 1,
+          "state": "present",
+          "text": ""
+        },
+        "panel": "comprehensive metabolic panel",
+        "reference_range": {
+          "page": 1,
+          "state": "present",
+          "text": "98 - 107"
+        },
+        "test_key": "chloride",
+        "test_name": {
+          "page": 1,
+          "state": "present",
+          "text": "Chloride"
+        },
+        "unit": {
+          "page": 1,
+          "state": "present",
+          "text": "mmol/L"
+        },
+        "value": {
+          "page": 1,
+          "state": "present",
+          "text": "103"
+        }
+      },
+      {
+        "flag": {
+          "page": 1,
+          "state": "present",
+          "text": ""
+        },
+        "panel": "comprehensive metabolic panel",
+        "reference_range": {
+          "page": 1,
+          "state": "present",
+          "text": "22 - 29"
+        },
+        "test_key": "co2",
+        "test_name": {
+          "page": 1,
+          "state": "present",
+          "text": "CO2 (Bicarbonate)"
+        },
+        "unit": {
+          "page": 1,
+          "state": "present",
+          "text": "mmol/L"
+        },
+        "value": {
+          "page": 1,
+          "state": "present",
+          "text": "25"
+        }
+      },
+      {
+        "flag": {
+          "page": 1,
+          "state": "present",
+          "text": ""
+        },
+        "panel": "comprehensive metabolic panel",
+        "reference_range": {
+          "page": 1,
+          "state": "present",
+          "text": "8.6 - 10.2"
+        },
+        "test_key": "calcium",
+        "test_name": {
+          "page": 1,
+          "state": "present",
+          "text": "Calcium"
+        },
+        "unit": {
+          "page": 1,
+          "state": "present",
+          "text": "mg/dL"
+        },
+        "value": {
+          "page": 1,
+          "state": "present",
+          "text": "9.1"
+        }
+      },
+      {
+        "flag": {
+          "page": 1,
+          "state": "present",
+          "text": ""
+        },
+        "panel": "comprehensive metabolic panel",
+        "reference_range": {
+          "page": 1,
+          "state": "present",
+          "text": "6.4 - 8.3"
+        },
+        "test_key": "protein_total",
+        "test_name": {
+          "page": 1,
+          "state": "present",
+          "text": "Protein, Total"
+        },
+        "unit": {
+          "page": 1,
+          "state": "present",
+          "text": "g/dL"
+        },
+        "value": {
+          "page": 1,
+          "state": "present",
+          "text": "7.7"
+        }
+      },
+      {
+        "flag": {
+          "page": 1,
+          "state": "present",
+          "text": ""
+        },
+        "panel": "comprehensive metabolic panel",
+        "reference_range": {
+          "page": 1,
+          "state": "present",
+          "text": "3.5 - 5.0"
+        },
+        "test_key": "albumin",
+        "test_name": {
+          "page": 1,
+          "state": "present",
+          "text": "Albumin"
+        },
+        "unit": {
+          "page": 1,
+          "state": "present",
+          "text": "g/dL"
+        },
+        "value": {
+          "page": 1,
+          "state": "present",
+          "text": "4.5"
+        }
+      },
+      {
+        "flag": {
+          "page": 1,
+          "state": "present",
+          "text": ""
+        },
+        "panel": "comprehensive metabolic panel",
+        "reference_range": {
+          "page": 1,
+          "state": "present",
+          "text": "0.2 - 1.2"
+        },
+        "test_key": "bilirubin_total",
+        "test_name": {
+          "page": 1,
+          "state": "present",
+          "text": "Bilirubin, Total"
+        },
+        "unit": {
+          "page": 1,
+          "state": "present",
+          "text": "mg/dL"
+        },
+        "value": {
+          "page": 1,
+          "state": "present",
+          "text": "0.8"
+        }
+      },
+      {
+        "flag": {
+          "page": 1,
+          "state": "present",
+          "text": ""
+        },
+        "panel": "comprehensive metabolic panel",
+        "reference_range": {
+          "page": 1,
+          "state": "present",
+          "text": "40 - 129"
+        },
+        "test_key": "alkaline_phosphatase",
+        "test_name": {
+          "page": 1,
+          "state": "present",
+          "text": "Alkaline Phosphatase"
+        },
+        "unit": {
+          "page": 1,
+          "state": "present",
+          "text": "U/L"
+        },
+        "value": {
+          "page": 1,
+          "state": "present",
+          "text": "85"
+        }
+      },
+      {
+        "flag": {
+          "page": 1,
+          "state": "present",
+          "text": ""
+        },
+        "panel": "comprehensive metabolic panel",
+        "reference_range": {
+          "page": 1,
+          "state": "present",
+          "text": "10 - 40"
+        },
+        "test_key": "ast",
+        "test_name": {
+          "page": 1,
+          "state": "present",
+          "text": "AST (SGOT)"
+        },
+        "unit": {
+          "page": 1,
+          "state": "present",
+          "text": "U/L"
+        },
+        "value": {
+          "page": 1,
+          "state": "present",
+          "text": "18"
+        }
+      },
+      {
+        "flag": {
+          "page": 1,
+          "state": "present",
+          "text": ""
+        },
+        "panel": "comprehensive metabolic panel",
+        "reference_range": {
+          "page": 1,
+          "state": "present",
+          "text": "7 - 56"
+        },
+        "test_key": "alt",
+        "test_name": {
+          "page": 1,
+          "state": "present",
+          "text": "ALT (SGPT)"
+        },
+        "unit": {
+          "page": 1,
+          "state": "present",
+          "text": "U/L"
+        },
+        "value": {
+          "page": 1,
+          "state": "present",
+          "text": "47"
+        }
+      },
+      {
+        "flag": {
+          "page": 1,
+          "state": "present",
+          "text": ""
+        },
+        "panel": "cbc with differential",
+        "reference_range": {
+          "page": 1,
+          "state": "present",
+          "text": "4.0 - 11.0"
+        },
+        "test_key": "wbc",
+        "test_name": {
+          "page": 1,
+          "state": "present",
+          "text": "WBC"
+        },
+        "unit": {
+          "page": 1,
+          "state": "present",
+          "text": "K/uL"
+        },
+        "value": {
+          "page": 1,
+          "state": "present",
+          "text": "9.7"
+        }
+      },
+      {
+        "flag": {
+          "page": 1,
+          "state": "present",
+          "text": ""
+        },
+        "panel": "cbc with differential",
+        "reference_range": {
+          "page": 1,
+          "state": "present",
+          "text": "3.80 - 5.20"
+        },
+        "test_key": "rbc",
+        "test_name": {
+          "page": 1,
+          "state": "present",
+          "text": "RBC"
+        },
+        "unit": {
+          "page": 1,
+          "state": "present",
+          "text": "M/uL"
+        },
+        "value": {
+          "page": 1,
+          "state": "present",
+          "text": "4.57"
+        }
+      },
+      {
+        "flag": {
+          "page": 1,
+          "state": "present",
+          "text": ""
+        },
+        "panel": "cbc with differential",
+        "reference_range": {
+          "page": 1,
+          "state": "present",
+          "text": "12.0 - 15.5"
+        },
+        "test_key": "hemoglobin",
+        "test_name": {
+          "page": 1,
+          "state": "present",
+          "text": "Hemoglobin"
+        },
+        "unit": {
+          "page": 1,
+          "state": "present",
+          "text": "g/dL"
+        },
+        "value": {
+          "page": 1,
+          "state": "present",
+          "text": "13.7"
+        }
+      },
+      {
+        "flag": {
+          "page": 1,
+          "state": "present",
+          "text": ""
+        },
+        "panel": "cbc with differential",
+        "reference_range": {
+          "page": 1,
+          "state": "present",
+          "text": "36.0 - 46.0"
+        },
+        "test_key": "hematocrit",
+        "test_name": {
+          "page": 1,
+          "state": "present",
+          "text": "Hematocrit"
+        },
+        "unit": {
+          "page": 1,
+          "state": "present",
+          "text": "%"
+        },
+        "value": {
+          "page": 1,
+          "state": "present",
+          "text": "39.5"
+        }
+      },
+      {
+        "flag": {
+          "page": 1,
+          "state": "present",
+          "text": ""
+        },
+        "panel": "cbc with differential",
+        "reference_range": {
+          "page": 1,
+          "state": "present",
+          "text": "80 - 100"
+        },
+        "test_key": "mcv",
+        "test_name": {
+          "page": 1,
+          "state": "present",
+          "text": "MCV"
+        },
+        "unit": {
+          "page": 1,
+          "state": "present",
+          "text": "fL"
+        },
+        "value": {
+          "page": 1,
+          "state": "present",
+          "text": "88"
+        }
+      },
+      {
+        "flag": {
+          "page": 1,
+          "state": "present",
+          "text": ""
+        },
+        "panel": "cbc with differential",
+        "reference_range": {
+          "page": 1,
+          "state": "present",
+          "text": "27.0 - 33.0"
+        },
+        "test_key": "mch",
+        "test_name": {
+          "page": 1,
+          "state": "present",
+          "text": "MCH"
+        },
+        "unit": {
+          "page": 1,
+          "state": "present",
+          "text": "pg"
+        },
+        "value": {
+          "page": 1,
+          "state": "present",
+          "text": "29.9"
+        }
+      },
+      {
+        "flag": {
+          "page": 1,
+          "state": "present",
+          "text": ""
+        },
+        "panel": "cbc with differential",
+        "reference_range": {
+          "page": 1,
+          "state": "present",
+          "text": "32.0 - 36.0"
+        },
+        "test_key": "mchc",
+        "test_name": {
+          "page": 1,
+          "state": "present",
+          "text": "MCHC"
+        },
+        "unit": {
+          "page": 1,
+          "state": "present",
+          "text": "g/dL"
+        },
+        "value": {
+          "page": 1,
+          "state": "present",
+          "text": "33.4"
+        }
+      },
+      {
+        "flag": {
+          "page": 1,
+          "state": "present",
+          "text": ""
+        },
+        "panel": "cbc with differential",
+        "reference_range": {
+          "page": 1,
+          "state": "present",
+          "text": "11.5 - 14.5"
+        },
+        "test_key": "rdw",
+        "test_name": {
+          "page": 1,
+          "state": "present",
+          "text": "RDW"
+        },
+        "unit": {
+          "page": 1,
+          "state": "present",
+          "text": "%"
+        },
+        "value": {
+          "page": 1,
+          "state": "present",
+          "text": "13.9"
+        }
+      },
+      {
+        "flag": {
+          "page": 1,
+          "state": "present",
+          "text": ""
+        },
+        "panel": "cbc with differential",
+        "reference_range": {
+          "page": 1,
+          "state": "present",
+          "text": "150 - 400"
+        },
+        "test_key": "platelets",
+        "test_name": {
+          "page": 1,
+          "state": "present",
+          "text": "Platelets"
+        },
+        "unit": {
+          "page": 1,
+          "state": "present",
+          "text": "K/uL"
+        },
+        "value": {
+          "page": 1,
+          "state": "present",
+          "text": "267"
+        }
+      },
+      {
+        "flag": {
+          "page": 1,
+          "state": "present",
+          "text": ""
+        },
+        "panel": "cbc with differential",
+        "reference_range": {
+          "page": 1,
+          "state": "present",
+          "text": "40 - 70"
+        },
+        "test_key": "neutrophils",
+        "test_name": {
+          "page": 1,
+          "state": "present",
+          "text": "Neutrophils"
+        },
+        "unit": {
+          "page": 1,
+          "state": "present",
+          "text": "%"
+        },
+        "value": {
+          "page": 1,
+          "state": "present",
+          "text": "61"
+        }
+      },
+      {
+        "flag": {
+          "page": 1,
+          "state": "present",
+          "text": ""
+        },
+        "panel": "cbc with differential",
+        "reference_range": {
+          "page": 1,
+          "state": "present",
+          "text": "20 - 45"
+        },
+        "test_key": "lymphocytes",
+        "test_name": {
+          "page": 1,
+          "state": "present",
+          "text": "Lymphocytes"
+        },
+        "unit": {
+          "page": 1,
+          "state": "present",
+          "text": "%"
+        },
+        "value": {
+          "page": 1,
+          "state": "present",
+          "text": "28"
+        }
+      },
+      {
+        "flag": {
+          "page": 1,
+          "state": "present",
+          "text": ""
+        },
+        "panel": "cbc with differential",
+        "reference_range": {
+          "page": 1,
+          "state": "present",
+          "text": "2 - 12"
+        },
+        "test_key": "monocytes",
+        "test_name": {
+          "page": 1,
+          "state": "present",
+          "text": "Monocytes"
+        },
+        "unit": {
+          "page": 1,
+          "state": "present",
+          "text": "%"
+        },
+        "value": {
+          "page": 1,
+          "state": "present",
+          "text": "5"
+        }
+      },
+      {
+        "flag": {
+          "page": 1,
+          "state": "present",
+          "text": ""
+        },
+        "panel": "lipid panel",
+        "reference_range": {
+          "page": 1,
+          "state": "present",
+          "text": "125 - 200"
+        },
+        "test_key": "cholesterol_total",
+        "test_name": {
+          "page": 1,
+          "state": "present",
+          "text": "Cholesterol, Total"
+        },
+        "unit": {
+          "page": 1,
+          "state": "present",
+          "text": "mg/dL"
+        },
+        "value": {
+          "page": 1,
+          "state": "present",
+          "text": "177"
+        }
+      },
+      {
+        "flag": {
+          "page": 1,
+          "state": "present",
+          "text": ""
+        },
+        "panel": "lipid panel",
+        "reference_range": {
+          "page": 1,
+          "state": "present",
+          "text": "35 - 150"
+        },
+        "test_key": "triglycerides",
+        "test_name": {
+          "page": 1,
+          "state": "present",
+          "text": "Triglycerides"
+        },
+        "unit": {
+          "page": 1,
+          "state": "present",
+          "text": "mg/dL"
+        },
+        "value": {
+          "page": 1,
+          "state": "present",
+          "text": "116"
+        }
+      },
+      {
+        "flag": {
+          "page": 2,
+          "state": "present",
+          "text": ""
+        },
+        "panel": "lipid panel  (continued)",
+        "reference_range": {
+          "page": 2,
+          "state": "present",
+          "text": "50 - 100"
+        },
+        "test_key": "hdl_cholesterol",
+        "test_name": {
+          "page": 2,
+          "state": "present",
+          "text": "HDL Cholesterol"
+        },
+        "unit": {
+          "page": 2,
+          "state": "present",
+          "text": "mg/dL"
+        },
+        "value": {
+          "page": 2,
+          "state": "present",
+          "text": "66"
+        }
+      },
+      {
+        "flag": {
+          "page": 2,
+          "state": "present",
+          "text": ""
+        },
+        "panel": "lipid panel  (continued)",
+        "reference_range": {
+          "page": 2,
+          "state": "present",
+          "text": "40 - 100"
+        },
+        "test_key": "ldl_cholesterol",
+        "test_name": {
+          "page": 2,
+          "state": "present",
+          "text": "LDL Cholesterol (calc)"
+        },
+        "unit": {
+          "page": 2,
+          "state": "present",
+          "text": "mg/dL"
+        },
+        "value": {
+          "page": 2,
+          "state": "present",
+          "text": "96"
+        }
+      },
+      {
+        "flag": {
+          "page": 2,
+          "state": "present",
+          "text": ""
+        },
+        "panel": "lipid panel  (continued)",
+        "reference_range": {
+          "page": 2,
+          "state": "present",
+          "text": "1.5 - 5.0"
+        },
+        "test_key": "total_chol_hdl_ratio",
+        "test_name": {
+          "page": 2,
+          "state": "present",
+          "text": "Total Chol / HDL Ratio"
+        },
+        "unit": {
+          "page": 2,
+          "state": "present",
+          "text": "ratio"
+        },
+        "value": {
+          "page": 2,
+          "state": "present",
+          "text": "4.6"
+        }
+      },
+      {
+        "flag": {
+          "page": 2,
+          "state": "present",
+          "text": ""
+        },
+        "panel": "hemoglobin a1c",
+        "reference_range": {
+          "page": 2,
+          "state": "present",
+          "text": "4.0 - 5.6"
+        },
+        "test_key": "hemoglobin_a1c",
+        "test_name": {
+          "page": 2,
+          "state": "present",
+          "text": "Hemoglobin A1c"
+        },
+        "unit": {
+          "page": 2,
+          "state": "present",
+          "text": "%"
+        },
+        "value": {
+          "page": 2,
+          "state": "present",
+          "text": "5.0"
+        }
+      },
+      {
+        "flag": {
+          "page": 2,
+          "state": "present",
+          "text": ""
+        },
+        "panel": "hemoglobin a1c",
+        "reference_range": {
+          "page": 2,
+          "state": "present",
+          "text": "68 - 114"
+        },
+        "test_key": "est_average_glucose",
+        "test_name": {
+          "page": 2,
+          "state": "present",
+          "text": "Est. Average Glucose"
+        },
+        "unit": {
+          "page": 2,
+          "state": "present",
+          "text": "mg/dL"
+        },
+        "value": {
+          "page": 2,
+          "state": "present",
+          "text": "73"
+        }
+      },
+      {
+        "flag": {
+          "page": 2,
+          "state": "present",
+          "text": ""
+        },
+        "panel": "thyroid panel",
+        "reference_range": {
+          "page": 2,
+          "state": "present",
+          "text": "0.450 - 4.500"
+        },
+        "test_key": "tsh",
+        "test_name": {
+          "page": 2,
+          "state": "present",
+          "text": "TSH"
+        },
+        "unit": {
+          "page": 2,
+          "state": "present",
+          "text": "uIU/mL"
+        },
+        "value": {
+          "page": 2,
+          "state": "present",
+          "text": "1.963"
+        }
+      },
+      {
+        "flag": {
+          "page": 2,
+          "state": "present",
+          "text": ""
+        },
+        "panel": "thyroid panel",
+        "reference_range": {
+          "page": 2,
+          "state": "present",
+          "text": "0.82 - 1.77"
+        },
+        "test_key": "free_t4",
+        "test_name": {
+          "page": 2,
+          "state": "present",
+          "text": "Free T4"
+        },
+        "unit": {
+          "page": 2,
+          "state": "present",
+          "text": "ng/dL"
+        },
+        "value": {
+          "page": 2,
+          "state": "present",
+          "text": "1.56"
+        }
+      },
+      {
+        "flag": {
+          "page": 2,
+          "state": "present",
+          "text": ""
+        },
+        "panel": "thyroid panel",
+        "reference_range": {
+          "page": 2,
+          "state": "present",
+          "text": "71 - 180"
+        },
+        "test_key": "t3_total",
+        "test_name": {
+          "page": 2,
+          "state": "present",
+          "text": "T3, Total"
+        },
+        "unit": {
+          "page": 2,
+          "state": "present",
+          "text": "ng/dL"
+        },
+        "value": {
+          "page": 2,
+          "state": "present",
+          "text": "128"
+        }
+      },
+      {
+        "flag": {
+          "page": 2,
+          "state": "present",
+          "text": ""
+        },
+        "panel": "iron and vitamin studies",
+        "reference_range": {
+          "page": 2,
+          "state": "present",
+          "text": "50 - 180"
+        },
+        "test_key": "iron_total",
+        "test_name": {
+          "page": 2,
+          "state": "present",
+          "text": "Iron, Total"
+        },
+        "unit": {
+          "page": 2,
+          "state": "present",
+          "text": "ug/dL"
+        },
+        "value": {
+          "page": 2,
+          "state": "present",
+          "text": "125"
+        }
+      },
+      {
+        "flag": {
+          "page": 2,
+          "state": "present",
+          "text": ""
+        },
+        "panel": "iron and vitamin studies",
+        "reference_range": {
+          "page": 2,
+          "state": "present",
+          "text": "250 - 450"
+        },
+        "test_key": "iron_binding_capacity",
+        "test_name": {
+          "page": 2,
+          "state": "present",
+          "text": "Iron Binding Capacity"
+        },
+        "unit": {
+          "page": 2,
+          "state": "present",
+          "text": "ug/dL"
+        },
+        "value": {
+          "page": 2,
+          "state": "present",
+          "text": "330"
+        }
+      },
+      {
+        "flag": {
+          "page": 2,
+          "state": "present",
+          "text": ""
+        },
+        "panel": "iron and vitamin studies",
+        "reference_range": {
+          "page": 2,
+          "state": "present",
+          "text": "15 - 55"
+        },
+        "test_key": "iron_saturation",
+        "test_name": {
+          "page": 2,
+          "state": "present",
+          "text": "Iron Saturation"
+        },
+        "unit": {
+          "page": 2,
+          "state": "present",
+          "text": "%"
+        },
+        "value": {
+          "page": 2,
+          "state": "present",
+          "text": "37"
+        }
+      },
+      {
+        "flag": {
+          "page": 2,
+          "state": "present",
+          "text": "L"
+        },
+        "panel": "iron and vitamin studies",
+        "reference_range": {
+          "page": 2,
+          "state": "present",
+          "text": "15 - 150"
+        },
+        "test_key": "ferritin",
+        "test_name": {
+          "page": 2,
+          "state": "present",
+          "text": "Ferritin"
+        },
+        "unit": {
+          "page": 2,
+          "state": "present",
+          "text": "ng/mL"
+        },
+        "value": {
+          "page": 2,
+          "state": "present",
+          "text": "6"
+        }
+      },
+      {
+        "flag": {
+          "page": 2,
+          "state": "present",
+          "text": ""
+        },
+        "panel": "iron and vitamin studies",
+        "reference_range": {
+          "page": 2,
+          "state": "present",
+          "text": "30.0 - 100.0"
+        },
+        "test_key": "vitamin_d_25_hydroxy",
+        "test_name": {
+          "page": 2,
+          "state": "present",
+          "text": "Vitamin D, 25-Hydroxy"
+        },
+        "unit": {
+          "page": 2,
+          "state": "present",
+          "text": "ng/mL"
+        },
+        "value": {
+          "page": 2,
+          "state": "present",
+          "text": "58.5"
+        }
+      },
+      {
+        "flag": {
+          "page": 2,
+          "state": "present",
+          "text": ""
+        },
+        "panel": "iron and vitamin studies",
+        "reference_range": {
+          "page": 2,
+          "state": "present",
+          "text": "232 - 1245"
+        },
+        "test_key": "vitamin_b12",
+        "test_name": {
+          "page": 2,
+          "state": "present",
+          "text": "Vitamin B-12"
+        },
+        "unit": {
+          "page": 2,
+          "state": "present",
+          "text": "pg/mL"
+        },
+        "value": {
+          "page": 2,
+          "state": "present",
+          "text": "838"
+        }
+      },
+      {
+        "flag": {
+          "page": 2,
+          "state": "present",
+          "text": ""
+        },
+        "panel": "iron and vitamin studies",
+        "reference_range": {
+          "page": 2,
+          "state": "present",
+          "text": "3.0 - 20.0"
+        },
+        "test_key": "folate_serum",
+        "test_name": {
+          "page": 2,
+          "state": "present",
+          "text": "Folate, Serum"
+        },
+        "unit": {
+          "page": 2,
+          "state": "present",
+          "text": "ng/mL"
+        },
+        "value": {
+          "page": 2,
+          "state": "present",
+          "text": "14.6"
+        }
+      }
+    ]
+  },
+  "recorded_at": "2026-09-22T22:14:01+00:00",
+  "requested_model": "claude-opus-5",
+  "sample": "lab-multipage-003",
+  "served_models": [
+    "claude-opus-5"
+  ],
+  "usage": {
+    "cache_creation_input_tokens": 0,
+    "cache_read_input_tokens": 0,
+    "calls": 1,
+    "cost_usd": 0.227645,
+    "input_tokens": 11429,
+    "latency_ms": 54378,
+    "output_tokens": 6820
+  }
+}

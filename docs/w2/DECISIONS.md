@@ -1055,3 +1055,108 @@ the module route and the fixture-mode file both satisfy the same two-method
 interface. The 403 and 404 cases are distinguished and say different
 things, because "you may not see this" and "this is gone" are different
 facts about a patient's record.
+
+---
+
+## D29 — The intake-extractor worker: declared classes, row anchors, and what becomes `missing`
+
+**Status:** DECIDED
+**Date:** 2026-09-22
+**Work order:** 12 (intake-extractor worker), branch `feat/w2-extractor`.
+
+**Numbering:** the next free number **against `main`** at rebase time is
+D29 (`main` ends at D28, after the retrieval, write-back and UI merges).
+This entry was first written as D25 on this branch, before those merges;
+it was renumbered when the branch was rebased onto `main`, and no other
+entry refers to it by its old number.
+
+**Decision.** The worker lives in `agent/app/workers/intake_extractor/`, runs
+as `app/graph/intake_extractor.py` (every node inside Week 1's `_untraced`
+guard, the graph reachable only through `UntracedGraph`), and settles these
+points the contracts and D3/D13/D20/D24 left to the implementation:
+
+1. **Every schema field declares its value class**
+   (`fields.FIELD_DECLARATIONS`); `locate` is never called with an inferred
+   one. Identifiers — MRN, CLIA number, accession number — are declared
+   `numeric`, i.e. exact tiers only: a near match on an identifier is a
+   different patient, lab or specimen. Lab result values are `numeric` even
+   when qualitative. A test walks both Pydantic schemas and fails on any
+   `ExtractedField` without a declaration.
+2. **Row-strategy fields are searched only on their anchor's row.** A
+   result's value, unit, range and flag, a medication's dose and frequency,
+   an allergy's reaction and a family-history relation are located right of
+   the row's label. When the label itself is ambiguous (printed twice), the
+   anchor is the one occurrence whose row carries *every* other transcribed
+   value of that row, by exact and numeric tiers only; zero or several such
+   occurrences stay ambiguous. This narrows the question, as `locate_in_row`
+   does; it never tie-breaks. If the label cannot be placed, the row's
+   values are unlocated — never searched page-wide.
+3. **A blank printed field is `missing`.** Chiefly the lab flag column: a
+   blank flag carries no flag, so the field is `missing` and the cross-check
+   reads it as `not_reported` (D20). Only the transcription's own `absent`
+   and `illegible` states and a blank `present` produce `missing` /
+   `illegible`; a locate miss never does (D24 → D13).
+4. **A value that cannot be parsed into its schema type is `illegible`,**
+   with no value, and is listed in `ExtractionReport.parse_failures`. The
+   contracts are typed (`ExtractedField[datetime]`), so an unparseable date
+   cannot be held as `unlocated`. Slashed dates are read month-first only; a
+   day-first-only date fails to parse rather than being re-read.
+5. **The page is the model's claim and is tested:** a value is located only
+   on the page the transcription names (W2-C6).
+6. **Checkboxes** are located by the tick mark immediately left of the
+   printed label. An unticked box draws nothing, so `False` is `unlocated`,
+   never asserted.
+7. **Confidence** is `reader_confidence × tier_weight × match_score`
+   (`confidence.py`: exact 1.0, numeric 0.95, number-only 0.90, fuzzy 0.80);
+   `unlocated` is 0.0, `missing`/`illegible` None. The model reports no
+   confidence and none is asked for.
+8. **Three failure reasons were added** to the closed
+   `ExtractionFailureReason`: `vision_call_failed` (an API error, refusal or
+   truncation — distinct from output that arrived and did not parse),
+   `no_fields_located` (a run that places nothing is a failure, not an empty
+   success), and `internal_error` (an unexpected exception, logged by type
+   only; the caller still never sees an exception).
+9. **Discrepancies** (D2) compare only located intake values against the
+   chart's *current* records — Week 1's `brief_records` rule (active
+   medications; allergies not explicitly ended). A written drug name
+   matches when every word of it is a word of the chart product name, so a
+   `derived` short name is never a discrepancy; a dose is `changed` only when
+   it is none of the strengths in the product name. An unlocated intake row
+   turns any omission it might explain into `unresolved`, not `omitted`; an
+   illegible row does so for its whole category. Allergies have no
+   `changed`: the Week 1 `AllergyIntolerance` model carries no reaction.
+10. **A document/chart identity mismatch** (name or date of birth, located
+    values only) is a hard flag on `ExtractionReport.identity`, not a
+    `Discrepancy`, and the discrepancy check does not run when it fires.
+    `app/fhir/client.py:get_patient_identity` was added for it — a narrow
+    Patient read returning given/family name and birth date only.
+11. **Document bytes are runtime context, not graph input or state.** A
+    tracer attached directly to the compiled graph posts the root run's
+    input before any node can refuse; the input is therefore
+    `{"node_seconds": {}}`, as for the Pre-Visit Brief.
+12. **Cost is computed in the worker** from a one-entry price table for the
+    requested model (`vision.PRICES_PER_MTOK`), logged as `cost_usd` on the
+    `llm_usage_event`; an unpriced served model logs `null`.
+    `scripts/compute_metrics.py` deliberately has no built-in prices; this
+    is a narrower, per-call estimate the work order asks the worker to log,
+    and it does not change how Metric 6 is computed.
+13. **LOINC codes are assigned from a committed table** (`loinc.py`), by
+    exact match on the normalised printed test name — case, punctuation and
+    spacing folded, nothing else — with the unit as tiebreak and as veto: a
+    unit the model read that matches no entry for the name leaves the row
+    uncoded, even when the name is unique. No fuzzy matching, no
+    terminology service. Only a located name is coded. eGFR is refused on
+    purpose: its code depends on an equation the report does not print. An
+    uncoded row is skipped by the write-back planner as `no_loinc_code`. The
+    planner now reports a reference range that is not a located fact as
+    `reference_range_not_located`, separately from a range that is on the
+    page but cannot decide the flag (`flag_indeterminate`).
+
+**Rationale.** Each is the conservative reading of an invariant: a rule that
+can only turn a would-be fact into a disclosed unsupported field, never the
+reverse. Measured over the six factory samples with the vision step stubbed
+from ground truth: 84.5% of transcribed values located (99%+ on text-layer
+pages, all on the right ink; 33.6% on the heavy scan, the recall cost D24
+recorded), discrepancy precision and recall 2/2, zero false discrepancies on
+the 25 `derived` fields, and zero fuzzy locates on numeric, unit, date or
+flag fields (`agent/tests/intake_extractor_measurement.py`).

@@ -86,6 +86,17 @@ class ExtractionFailureReason(StrEnum):
     MODEL_OUTPUT_INVALID = "model_output_invalid"
     PAGE_LIMIT_EXCEEDED = "page_limit_exceeded"
     TIMED_OUT = "timed_out"
+    #: The vision call itself failed — an API error, a refusal, a truncated
+    #: output. Distinct from MODEL_OUTPUT_INVALID, where a response arrived
+    #: and did not parse (D29).
+    VISION_CALL_FAILED = "vision_call_failed"
+    #: The model read fields but the locate step placed none of them on a
+    #: page. Nothing in such an extraction could be presented as fact
+    #: (invariant 4), so it is a failure rather than an empty success (D29).
+    NO_FIELDS_LOCATED = "no_fields_located"
+    #: An unexpected error inside the worker. Logged by exception type only;
+    #: the caller still gets a typed failure, never an exception (D29).
+    INTERNAL_ERROR = "internal_error"
 
 
 class IntakeExtractorOutput(W2Contract):
