@@ -1,6 +1,8 @@
-# cd agent && python -m tests.intake_extractor_measurement
-# run 2026-09-22 on main@f59b29c (docs/w2-submission), vision = ground-truth stub, no model call, no network; Tesseract OCR real
-# log lines (agent_event JSON) filtered out; table and totals verbatim
+# Offline evidence behind KEY_METRICS.md, W2_ARCHITECTURE.md and DEMO_SCRIPT.md.
+# Run on main@f8b16c7. No model call, no network; Tesseract OCR real (tesseract 5.5.3).
+# Log lines (agent_event JSON) filtered out; everything else verbatim.
+
+# 1. cd agent && python -m tests.intake_extractor_measurement   (vision = ground-truth stub)
 
 | sample | status | located rate | right ink (IoU>=0.5, text layer) | mean conf | x-check agree / comparable | discrepancies found / expected / TP | derived false disc. | fuzzy on exact-only |
 |---|---|---|---|---|---|---|---|---|
@@ -17,5 +19,17 @@
 - discrepancy precision: 100.0% (2/2); recall: 100.0% (2/2)
 - false-discrepancy rate on derived fields: 0.0% (0/25)
 - fuzzy tier on numeric/unit/date/flag fields: 0
-# tesseract 5.5.3 (local macOS install)
-# re-run on main@fc3143b (after feat/w2-observability merged): table and totals identical
+
+# 2. cd agent && python ../docs/w2/evidence/demo_checks.py   (heavy scan with its recorded real transcription; routing of the demo questions)
+
+## classify() on the demo questions
+recommendation ['retrieve:recommendation_wording', 'read:labs'] ['prediabetes', 'type 2 diabetes', 'blood glucose', 'screening']
+record_lookup ['answer:record_lookup', 'read:labs'] []
+
+## lab-scanned-heavy-abnormal-002, recorded vision (agent/evals/w2/staging/transcriptions/)
+results.comprehensive_metabolic_panel.potassium.name unlocated
+results.comprehensive_metabolic_panel.potassium.unit unlocated
+results.comprehensive_metabolic_panel.potassium.value unlocated
+results.comprehensive_metabolic_panel.potassium.reference_range unlocated
+results.comprehensive_metabolic_panel.potassium.flag unlocated
+located 36 of 126 fields

@@ -9,21 +9,23 @@ A Clinical Co-Pilot AI agent built into a fork of [OpenEMR](https://open-emr.org
 | | Week 1: baseline | Week 2: multimodal |
 |---|---|---|
 | What it does | Pre-Visit Brief and multi-turn follow-up, read from the chart over FHIR; every claim deterministically verified | lab PDFs and intake forms extracted to a strict schema with page-located values; a supervisor over an intake-extractor and an evidence-retriever; hybrid RAG over guideline evidence; an eval gate |
-| Deployed at `64.177.42.210`? | **Yes**, the whole Week 1 surface | **Partly.** Retrieval, OCR and the write-back endpoint are deployed. The Week 2 ask path (`POST /w2/ask`) is on `main` but **not** on the host |
+| Deployed at `64.177.42.210`? | **Yes**, the whole Week 1 surface | **Partly.** Retrieval, OCR and the write-back endpoint are deployed. The Week 2 ask path (`POST /w2/ask`) is on `main` but **not** on the host **[PENDING `chore/w2-deploy-rehearsal`]** |
 | Start reading | [Week 1 baseline](#week-1-baseline) below | [Week 2: start here](#week-2-start-here), next |
 
 ---
 
 ## Week 2: start here
 
-Everything in this section refers to `main@f8b16c7` unless a branch is
-named. The one branch you need is **`feat/w2-eval-gate`**, which holds the
-eval gate and is on `origin`. At the time of writing it had not merged into
-`main`.
+**Snapshot: `main@f8b16c7`**, which is on `origin`. Everything in this
+section is on that commit unless it is marked PENDING, which names the
+unmerged branch the claim rests on: **[PENDING `chore/w2-deploy-rehearsal`]**, **[PENDING `feat/w2-php-wiring`]** or **[PENDING `feat/w2-eval-gate`]**. The first two are not
+on `origin`. All three are due to merge before submission, when every
+citation is repinned to the one resulting `main` commit and the markers come
+out.
 
 ### What Week 2 adds, and where it runs
 
-| Piece | Code | On `main` | On the live host |
+| Piece | Code | On `main` | On the live host **[PENDING `chore/w2-deploy-rehearsal`]** |
 |---|---|---|---|
 | Document extraction: text layer / OCR → one vision call → deterministic locate → flag cross-check → discrepancies | `agent/app/graph/intake_extractor.py`, `agent/app/workers/intake_extractor/`, `agent/app/extraction/` | yes | library only: the deployed `/documents` is a stub that hashes and discards |
 | Supervisor + workers, `POST /w2/ask` | `agent/app/graph/supervisor.py`, `agent/app/supervisor/`, `agent/app/api/ask.py` | yes | **no** |
@@ -31,7 +33,7 @@ eval gate and is on `origin`. At the time of writing it had not merged into
 | Week 2 verifier, citation contract | `agent/app/verification/w2_checker.py`, `agent/app/models/w2/` | yes | no (it serves `/w2/ask`) |
 | Source-grounded answer view: PDF.js with bbox overlay | `interface/modules/custom_modules/oe-module-clinical-copilot/public/assets/w2/` | yes, **fixture mode only**: the chart card is not registered | no |
 | Lab write-back endpoint + idempotency ledger | the same module, `src/WriteBack/` | yes | yes, rehearsed |
-| Eval gate: 95 cases, CI job | `agent/evals/w2/gate/`, `.gitlab-ci.yml` | **no**, `feat/w2-eval-gate` | n/a: runs on recorded fixtures |
+| Eval gate: 96 cases, CI job **[PENDING `feat/w2-eval-gate`]** | `agent/evals/w2/gate/`, `.gitlab-ci.yml` | **no**, `feat/w2-eval-gate` | n/a: runs on recorded fixtures |
 
 Where the facts in this table come from, and what is not wired yet:
 [`W2_ARCHITECTURE.md`](W2_ARCHITECTURE.md) §8 and §11.
@@ -61,7 +63,7 @@ python -m tests.intake_extractor_measurement # the extractor over the six commit
 
 Do **not** run `pytest evals`: it runs the Week 1 suite live, against real
 FHIR and Anthropic. The second command's output, as committed, is
-[`docs/w2/evidence/extractor-measurement-f59b29c.txt`](docs/w2/evidence/extractor-measurement-f59b29c.txt).
+[`docs/w2/evidence/extractor-measurement.txt`](docs/w2/evidence/extractor-measurement.txt).
 
 **2. The answer view with its PDF overlay** (fixture mode; a Node runtime is
 the only extra requirement):
@@ -139,7 +141,8 @@ wrote this README.** Route contracts are in
 
 ### Run the eval gate
 
-The gate is on `feat/w2-eval-gate`, at `647dd9a` when this was written:
+**[PENDING `feat/w2-eval-gate`]**: this whole subsection rests on `feat/w2-eval-gate`, which is on
+`origin` but not merged into `main`:
 
 ```bash
 git fetch origin && git worktree add ../w2-eval-gate origin/feat/w2-eval-gate
@@ -161,7 +164,7 @@ python -m evals.w2.gate.planted_regressions --out ../docs/w2/EVAL_GATE_EVIDENCE.
 meta-check cases go unscored. The gate README on that branch
 (`agent/evals/w2/README.md`) covers the five rules, the cases and the judge.
 The committed evidence is `docs/w2/EVAL_GATE_EVIDENCE.md` on that branch:
-the control run passes, and 12 of 12 planted regressions block.
+the control run passes, and 13 of 13 planted regressions block.
 
 In CI the gate is the `w2-eval-gate` job in `.gitlab-ci.yml` on that branch.
 It needs a masked, **unprotected** `ANTHROPIC_API_KEY` variable, a runner
@@ -176,7 +179,7 @@ says why. No committed evidence shows it has run on a GitLab runner.
 | [KEY_METRICS.md](KEY_METRICS.md) | the Week 2 metrics, with honest denominators; the Week 1 six are in [docs/KEY_METRICS.md](docs/KEY_METRICS.md) |
 | [docs/w2/COST_AND_LATENCY.md](docs/w2/COST_AND_LATENCY.md) | actual dev spend, per-encounter cost, projections at 100 to 100K encounters a day, p50/p95 and bottlenecks |
 | [docs/w2/DEMO_SCRIPT.md](docs/w2/DEMO_SCRIPT.md) | the recorded walkthrough |
-| [docs/w2/DECISIONS.md](docs/w2/DECISIONS.md) | every Week 2 decision, D1–D40 and D49 on `main` (D41 and D42–D48 are on their branches) |
+| [docs/w2/DECISIONS.md](docs/w2/DECISIONS.md) | every Week 2 decision, D1–D40 and D49 on `main` (D41 **[PENDING `chore/w2-deploy-rehearsal`]** and D42–D48 **[PENDING `feat/w2-eval-gate`]** are on their branches) |
 | [docs/w2/EVAL_DESIGN.md](docs/w2/EVAL_DESIGN.md), [docs/w2/GATE.md](docs/w2/GATE.md) | why the gate is shaped as it is, and how gate files are protected |
 | [docs/w2/retrieval-bakeoff.md](docs/w2/retrieval-bakeoff.md) | the corpus, its licensing, and the retrieval measurements |
 | [docs/w2/spikes/writeback.md](docs/w2/spikes/writeback.md), [docs/w2/deploy-writeback.md](docs/w2/deploy-writeback.md) | how OpenEMR can be written to, and how the endpoint deploys |
@@ -185,7 +188,7 @@ says why. No committed evidence shows it has run on a GitLab runner.
 
 `docs/w2/OBSERVABILITY.md`, `ALERTS.md` and `LOAD_TEST.md` (tracing,
 dashboard, alerts, load tests and the real-route `/w2/ask` measurements)
-are on `main`. `docs/w2/DEPLOY.md`, the host rehearsal and its
+are on `main`. `docs/w2/DEPLOY.md` **[PENDING `chore/w2-deploy-rehearsal`]**, the host rehearsal and its
 measurements, is on `chore/w2-deploy-rehearsal`, which **is not on
 `origin`**. Until it is pushed or merged, the numbers the documents above
 cite from it cannot be checked from a clone.

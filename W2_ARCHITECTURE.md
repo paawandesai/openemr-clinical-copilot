@@ -7,22 +7,21 @@ architecture is unchanged and is not repeated here:
 [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) (authorization, tool scope,
 conversation state, the deterministic verifier).
 
-**Snapshot.** Written against these commits on 2026-09-22. Four branches were
-still moving while it was written, so a citation names the commit it was read
-at. A path with no branch prefix is on `main`.
+**Snapshot: `main@f8b16c7`.** Every path and number below is on that commit
+unless it is marked PENDING. That commit is on `origin`.
 
-| Ref | Commit | On `origin`? | What it holds that this document cites |
+**PENDING** marks a claim that rests on a branch not yet merged into `main`,
+and names the branch:
+
+| Marker | Branch | On `origin`? | What rests on it |
 |---|---|---|---|
-| `main` | `f8b16c7` | yes | D1–D40, D49; extractor, retriever, supervisor, verifier, write-back module; since the merge of `feat/w2-observability` (`fc3143b`, at its `d1cbfc9`): D36–D39, `docs/w2/{OBSERVABILITY,ALERTS,LOAD_TEST}.md`, `docs/w2/evidence/`, the only real-route `/w2/ask` measurements |
-| `feat/w2-eval-gate` | `647dd9a` | yes | the eval gate, D42–D48, `docs/w2/EVAL_GATE_EVIDENCE.md` |
-| `chore/w2-deploy-rehearsal` | `d2f22aa` (rebased from `0c0f360`; `DEPLOY.md` unchanged) | **no, local only** | D41, `docs/w2/DEPLOY.md`, the upload guard |
-| `feat/w2-php-wiring` | `405b5ac` | **no, local only** | the upload guard ported onto `main`'s real `/documents` route |
+| **[PENDING `chore/w2-deploy-rehearsal`]** | `chore/w2-deploy-rehearsal` | **no** | `docs/w2/DEPLOY.md`, the live-host rehearsal and every live-host measurement; D41; the upload guard for the stub route |
+| **[PENDING `feat/w2-php-wiring`]** | `feat/w2-php-wiring` | **no** | the upload guard on `main`'s real `/documents` route |
+| **[PENDING `feat/w2-eval-gate`]** | `feat/w2-eval-gate` | yes, unmerged | the eval gate, its cases and evidence (`docs/w2/EVAL_GATE_EVIDENCE.md`); D42–D48 |
 
-The D-number reservation on `main` fixes the merge order: observability
-(D36–D39, merged), graph (D40, merged), deploy rehearsal (D41), eval gate
-(D42–D48) (`docs/w2/DECISIONS.md`, header). **`chore/w2-deploy-rehearsal`
-and `feat/w2-php-wiring` are not on `origin`**, so until they are pushed or
-merged, the evidence they hold cannot be seen by anyone reading `origin`.
+All three are due to merge before submission. At that point every citation
+is repinned to the one resulting `main` commit and the markers come out.
+Until then a PENDING claim cannot be checked from `main`.
 
 ---
 
@@ -59,9 +58,9 @@ beside chart facts without the two blurring. Nine decisions carry the weight.
    endpoint writes the lab chain in one transaction behind a ledger keyed
    UNIQUE on document hash, test code and collection date. Results land
    unreviewed.
-9. **The measured code cannot move its own gate** (D8, D42–D48). Gated paths
-   are hook-protected. 70 deterministic checks must pass at 100%, a regressed
-   critical case blocks alone, and all 12 planted regressions block (§6).
+9. **The measured code cannot move its own gate** (D8, D42–D48) **[PENDING `feat/w2-eval-gate`]**. Gated paths
+   are hook-protected. 72 deterministic checks must pass at 100%, a regressed
+   critical case blocks alone, and all 13 planted regressions **[PENDING `feat/w2-eval-gate`]** block (§6).
 
 **Tradeoffs:**
 
@@ -70,7 +69,7 @@ beside chart facts without the two blurring. Nine decisions carry the weight.
 - **Reranking for latency.** Under load most retrievals go unreranked rather
   than queue (D39).
 - **Local models for privacy.** Idle memory is 760–900 MiB against Week 1's
-  50 MiB (`DEPLOY.md` §8), and in return D5 is structural.
+  50 MiB (`DEPLOY.md` §8 **[PENDING `chore/w2-deploy-rehearsal`]**), and in return D5 is structural.
 - **One worker.** Correct for the demo, wrong for production (D40 item 10).
 
 **Not true yet:**
@@ -79,10 +78,10 @@ beside chart facts without the two blurring. Nine decisions carry the weight.
   one drafting call over every extracted result, writing 11.5k tokens: past
   the 90 s budget, and about half the $0.82 encounter cost (`LOAD_TEST.md`
   §6).
-- The live host does not run the Week 2 ask path (`a78ba51` predates
-  `feat/w2-graph`, `DEPLOY.md` §0).
+- The live host **[PENDING `chore/w2-deploy-rehearsal`]** does not run the Week 2 ask path (`a78ba51` predates
+  `feat/w2-graph`, `DEPLOY.md` §0 **[PENDING `chore/w2-deploy-rehearsal`]**).
 - The documents card is not registered in the module.
-- The eval gate has not merged.
+- The eval gate has not merged **[PENDING `feat/w2-eval-gate`]**.
 
 §11 lists every known limitation.
 
@@ -173,7 +172,7 @@ vision** is three live model calls, run sequentially
 (`docs/w2/evidence/load/extraction-live-vision.json`,
 `LOAD_TEST.md` §4b). **Replay** is all six committed samples with the vision
 step replaced by ground truth, so it measures everything after the model
-(`docs/w2/evidence/extractor-measurement-f59b29c.txt`, produced by
+(`docs/w2/evidence/extractor-measurement.txt`, produced by
 `python -m tests.intake_extractor_measurement` in this session).
 
 | Sample | Page kind | Located rate, real vision | Located rate, replay |
@@ -198,7 +197,7 @@ numerator and the denominator. Also measured, in replay:
 Per document, the vision call takes 15.3–32.9 s, 93–99% of the extraction
 time, and costs $0.0955–$0.2276 (`LOAD_TEST.md` §4b; the `cost_usd` field
 of the six recordings in `agent/evals/w2/staging/transcriptions/`).
-OCR on the deployment host is p50 5.7 s per page (`DEPLOY.md` §8).
+OCR on the deployment host **[PENDING `chore/w2-deploy-rehearsal`]** is p50 5.7 s per page (`DEPLOY.md` §8).
 
 ---
 
@@ -283,9 +282,9 @@ exception is HTTP 500 `internal_error` with fixed wording (D40 item 3).
   me Jane Doe's recent labs" is classified as an ordinary record lookup, for
   the open chart only.
 
-Gate case W2-H2 asserts both halves and asserts the limitation, so it will
-fail if the router starts refusing on names (commit message of
-`feat/w2-eval-gate@7783fba`).
+Gate case W2-H2 **[PENDING `feat/w2-eval-gate`]** asserts both halves and asserts the limitation, so it will
+fail if the router starts refusing on names (commit message,
+"activate the supervisor batch").
 
 ### 2.4 Critical values (H6)
 
@@ -320,8 +319,8 @@ Potassium, for example, is critical below 2.5 and above 6.0 mmol/L.
 | Chunking | section-aware; the heading path becomes `page_or_section`, and the body becomes the quotable text | `retrieval-bakeoff.md` §3 |
 | Sparse + dense | BM25 plus `BAAI/bge-small-en-v1.5` (fastembed/ONNX, 384-d, local), each searched to depth 30, fused with RRF at **equal** weights. Dense 2× scored better but was fitted on the same 30 queries it was measured on | D25 |
 | Rerank | local cross-encoder `Xenova/ms-marco-MiniLM-L-6-v2` over the top 20, on every retrieval; 4 chunks passed to the answer step | D25 |
-| Budget | over budget, the fused order stands, `reranked=false`, and the circuit opens. **2.5 s on `main`**; 4.0 s on `chore/w2-deploy-rehearsal` (D41, measured on the host) | `agent/app/retrieval/retriever.py:67`; D41 |
-| Admission | at most 2 concurrent reranks; the rest take the fallback at once (`rerank_busy`). On `main` since `fc3143b`; **not on the live host** | D39; `retriever.py:77` |
+| Budget | over budget, the fused order stands, `reranked=false`, and the circuit opens. **2.5 s on `main`**; 4.0 s on `chore/w2-deploy-rehearsal` (D41 **[PENDING `chore/w2-deploy-rehearsal`]**, measured on the host) | `agent/app/retrieval/retriever.py:67`; D41 |
+| Admission | at most 2 concurrent reranks; the rest take the fallback at once (`rerank_busy`). On `main`; **not on the live host** **[PENDING `chore/w2-deploy-rehearsal`]** | D39; `retriever.py:77` |
 | Cohere | adapter present, never run (no key) | D25 item 6 |
 
 **The concept-only query rule.** `routing.CONCEPT_LEXICON` maps wording to
@@ -416,10 +415,10 @@ Documents and lab values are written through a custom module endpoint.
 | Idempotency key | `<document sha3-512>:<TEST CODE>:<YYYY-MM-DD>`, UNIQUE in `module_clinical_copilot_writeback_ledger`; per result, not per request | D1, D15, D31 |
 | Provenance | `procedure_result.comments` carries `w2x-` plus 128 bits of `sha3-256(key)`. It surfaces as `Observation.note[0].text`, and the ledger maps it to the document, page and bbox | D1, D15 |
 | Review state | `review_status = 'received'`: the result lands in *Pending Review*, not *Patient Results*, until a clinician signs it | D29 |
-| Intake guard | the write-back request type refuses any document that is not a `lab_pdf`, so an intake form has no path into the chart | `agent/app/models/w2/writeback.py`; planted regression `auto-merge-intake` |
+| Intake guard | the write-back request type refuses any document that is not a `lab_pdf`, so an intake form has no path into the chart | `agent/app/models/w2/writeback.py`; planted regression **[PENDING `feat/w2-eval-gate`]** `auto-merge-intake` |
 | Preview | `GET <module>/public/document.php`: session ACL `patients/docs`, the open patient only, PDF only. 404 is identical for missing, another patient's and deleted documents | D28, D30, D49 |
 
-**Verified on the deployment host** (`DEPLOY.md` §7.3):
+**Verified on the deployment host** (`DEPLOY.md` §7.3) **[PENDING `chore/w2-deploy-rehearsal`]**:
 
 | Check | Result |
 |---|---|
@@ -434,25 +433,44 @@ Two identical requests fired together leave exactly one chain (D31, local
 stack).
 
 **Not built:** no agent route or graph calls the write-back client, and the
-chart-embed broker never requests the write scope (`DEPLOY.md` §0, §10).
+chart-embed broker never requests the write scope (`DEPLOY.md` §0, §10 **[PENDING `chore/w2-deploy-rehearsal`]**).
 Write-back is a verified endpoint plus a library, not a user-facing feature.
 
 ---
 
-## 6. The eval gate (`feat/w2-eval-gate@647dd9a`, not merged)
+## 6. The eval gate
+
+**[PENDING `feat/w2-eval-gate`]**: **every row and number in this section** rests on
+`feat/w2-eval-gate`, read at its `origin` tip.
 
 | | |
 |---|---|
 | Command | `cd agent && python -m evals.w2.gate`; exit code 0 PASS, 1 BLOCKED, 2 ERROR, 3 INCOMPLETE (D45) |
-| Cases | 95 specs: 76 active, 17 pending, 2 delegated to a PHP CI job (`EVAL_GATE_EVIDENCE.md`, control run) |
-| Tiers | deterministic 70/70, judge 8/8. The judge is `claude-haiku-4-5-20251001`, best-of-3 with a 2-of-3 majority, a cache keyed on the prompt **text**, and marked **UNCALIBRATED** (D43, D48) |
-| Rules, in order | per-category minimum n (over active plus pending) → deterministic at 100% → critical-case override → judge threshold plus a 95% Wilson floor → >5% regression or below threshold (D42; branch `agent/evals/w2/README.md`) |
-| Fixtures | six recorded live `claude-opus-5` transcriptions, replayed offline and refused if the PDF, prompt or schema changed (branch README) |
-| CI | `.gitlab-ci.yml` jobs `w2-eval-gate` and `w2-writeback-php`. The gate job does **not** pass `--allow-incomplete`, so a pipeline with no key fails (D45). Both were "verified locally with the same images and the same commands" (commit `0435611`). No committed evidence shows either has run on a GitLab runner |
-| Proof | 12 planted regressions, each applied to a copy of the tree. The control run passes; all 12 block, each caught by at least the case the design names (`EVAL_GATE_EVIDENCE.md`, "Harness verdict: HELD") |
-| Protection | `.claude/hooks/gate-guard.sh` (before a tool call) and `gate-effect-check.sh` (after it); `scripts/gate-diff.sh` before a merge (`docs/w2/GATE.md`). These are a guard against mistakes, not a security boundary (GATE.md, "Known limit") |
+| Cases | 96 specs: 78 active, 16 pending, 2 delegated to a PHP CI job (`docs/w2/EVAL_GATE_EVIDENCE.md`, control run) |
+| Tiers | deterministic 72/72, judge 8/8. The judge is `claude-haiku-4-5-20251001`, best-of-3 with a 2-of-3 majority, a cache keyed on the prompt **text**, and marked **UNCALIBRATED** (D43, D48) |
+| Rules, in order | per-category minimum n (over active plus pending) → deterministic at 100% → critical-case override → judge threshold plus a 95% Wilson floor → >5% regression or below threshold (D42; `agent/evals/w2/README.md`) |
+| Fixtures | six recorded live `claude-opus-5` transcriptions, replayed offline and refused if the PDF, prompt or schema changed (`agent/evals/w2/README.md`) |
+| CI | `.gitlab-ci.yml` jobs `w2-eval-gate` and `w2-writeback-php`. The gate job does **not** pass `--allow-incomplete`, so a pipeline with no key fails (D45). Both were "verified locally with the same images and the same commands" (commit message, "a PHP CI job enforces the write-back cases"). No committed evidence shows either has run on a GitLab runner |
+| Proof | 13 planted regressions, each applied to a copy of the tree. The control run passes; all 13 block, each caught by at least the case the design names (`EVAL_GATE_EVIDENCE.md`, "Harness verdict: HELD") |
+| Protection | `.claude/hooks/gate-guard.sh` (before a tool call) and `gate-effect-check.sh` (after it); `scripts/gate-diff.sh` before a merge (`docs/w2/GATE.md`, on `main`). These are a guard against mistakes, not a security boundary (GATE.md, "Known limit") |
 
-Pending at `647dd9a`, meaning specified but not scored:
+**Prompt injection inside an uploaded PDF (W2-I1, W2-I2) is covered for
+containment only.**
+
+- `lab-clean-001` is re-rendered with a hidden instruction on two channels:
+  white-on-white text in the page's text layer, and the PDF's metadata.
+- The gate asserts the payload reaches no log entry, trace field,
+  extraction output or disclosure.
+- It does **not** assert that a model shown the payload declines it. The
+  gate reads the document through a ground-truth stand-in for the vision
+  model, so no model reads the injection. That half is W2-I5, which is
+  pending.
+- The 13th planted regression, `page-text-in-a-log-line`, is caught by I1
+  and I2.
+
+Source: the commit that activated them, "activate W2-I1 and W2-I2".
+
+Pending, meaning specified but not scored:
 
 | Category | Pending cases |
 |---|---|
@@ -461,7 +479,7 @@ Pending at `647dd9a`, meaning specified but not scored:
 | F | F4 |
 | G | G8–G10 |
 | H | H1, H7–H9 |
-| I | **all four prompt-injection cases** |
+| I | I3, I4, I5 (I5 is the refusal half of the injection cases) |
 
 The evidence file's closing section, "Coverage-map rows not testable yet",
 still says the supervisor does not exist, although G1, G2, G5–G7 and H2–H6
@@ -493,7 +511,7 @@ a run through `getattr` or from outside `app/`.
   line.
 - Failure events carry the exception's class name only (`supervisor.py`).
 
-**Added by `feat/w2-observability`, merged at `fc3143b`** (D36–D38,
+**Added by `feat/w2-observability`, now on `main`** (D36–D38,
 `OBSERVABILITY.md`):
 
 - Three operational event types that cannot hold text: `counts` is `int |
@@ -519,7 +537,7 @@ a run through `getattr` or from outside `app/`.
 Nothing is scheduled and nothing pages anyone (`ALERTS.md`, "What is not
 built").
 
-**Verified on the real routes** (`OBSERVABILITY.md` §2, at `d1cbfc9`). One
+**Verified on the real routes** (`OBSERVABILITY.md` §2). One
 API-collection encounter, `07c0fd35-…`, is one Langfuse trace: 2 min 52 s,
 87,245 tokens, $0.82. It carried:
 
@@ -537,35 +555,35 @@ API-collection encounter, `07c0fd35-…`, is one Langfuse trace: 2 min 52 s,
 - Extraction inherits the upload's id only when that id is a UUID;
   otherwise the two traces are linked by a logged event, not merged.
 - The hosted Langfuse has no BAA, so production metrics come from stdout
-  (Week 1, `agent/docs/observability.md` §1). The live host runs with
-  Langfuse `disabled` (`DEPLOY.md` §7.2).
+  (Week 1, `agent/docs/observability.md` §1). The live host **[PENDING `chore/w2-deploy-rehearsal`]** runs with
+  Langfuse `disabled` (`DEPLOY.md` §7.2 **[PENDING `chore/w2-deploy-rehearsal`]**).
 
 ---
 
 ## 8. Deployment state
 
-| Surface | `main` | Live host `64.177.42.210` (`a78ba51`, per `DEPLOY.md`) |
+| Surface | `main` | Live host `64.177.42.210` (`a78ba51` **[PENDING `chore/w2-deploy-rehearsal`]**, per `DEPLOY.md`) |
 |---|---|---|
 | Week 1 brief + conversation in the chart | yes | yes, v2 OAuth client (`2ps8qgz4…`) |
 | Retrieval (baked models, warmed at start, offline) | yes | yes, preload 2.63 s |
 | OCR (Tesseract in the image) | yes | yes |
-| `POST /documents` | the real extractor, **but it reads the body before checking the token**, with no scope check, rate limit or concurrency cap (`DEPLOY.md` §2.2) | the **stub** (hash and discard), behind the upload guard |
+| `POST /documents` | the real extractor, **but it reads the body before checking the token**, with no scope check, rate limit or concurrency cap (`DEPLOY.md` §2.2 **[PENDING `chore/w2-deploy-rehearsal`]**) | the **stub** (hash and discard), behind the upload guard |
 | `POST /w2/ask` (supervisor) | yes | **no**: forwarded by Caddy, but the deployed image predates it |
 | Source-documents card and module upload routes | **no** (not registered in `Bootstrap.php`) | no |
 | Lab write-back endpoint and ledger | yes | yes, rehearsed (§5) |
 | Eval gate | no (branch) | n/a (runs on fixtures, D6) |
 
 The upload guard exists on `chore/w2-deploy-rehearsal` for the stub and on
-`feat/w2-php-wiring@405b5ac` for the real route: token, scopes and OpenEMR's
+`feat/w2-php-wiring` **[PENDING `feat/w2-php-wiring`]** for the real route: token, scopes and OpenEMR's
 acceptance are checked, then rate limits, then declared size, then an
 extraction slot, and only then is the body read. **Deploying `main`'s
 `/documents` as it stands would drop that guard**: the body is read before
 OpenEMR is asked about the token, and there is no scope check, rate limit or
 cap on concurrent extractions. The graph deploy precondition is in
-`DEPLOY.md` §2.2.
+`DEPLOY.md` §2.2 **[PENDING `chore/w2-deploy-rehearsal`]**.
 
 The agent image grew from 360 MB to 1.18 GB, and idle memory from 50 MiB to
-760–900 MiB (`DEPLOY.md` §8).
+760–900 MiB (`DEPLOY.md` §8 **[PENDING `chore/w2-deploy-rehearsal`]**).
 
 ---
 
@@ -575,9 +593,9 @@ The agent image grew from 360 MB to 1.18 GB, and idle memory from 50 MiB to
 |---|---|---|---|
 | **The whole-report answer** | one `/w2/ask` about an uploaded report: 91.9 s and 130.5 s, one call at 34,948 in / 11,523 out, $0.46 (`LOAD_TEST.md` §6) | the 45 s `answer_p95_latency` alert covers `/w2/ask` (`ALERTS.md` §1) | past the 90 s budget with no load at all; the fix (bound the output, or answer only from the rows the question names) is not built |
 | **One process, in-memory stores** (conversations, documents, extraction jobs, the rerank circuit) | a second worker or replica makes uploads invisible (`404`), re-bills extraction, and loses follow-up context; a restart forgets every upload | one uvicorn worker; a startup warning when more are configured (D40 item 10, `agent/docs/deployment.md` §7) | a second *replica* is invisible to the check; no persistence |
-| **Reranker under load** | 50 concurrent retrievals: p95 335,224 ms, 0% reranked, 5.3 GiB peak RSS on a cold run (`LOAD_TEST.md` §5) | D39 admission bound: p95 259 ms, but only 1% reranked in the burst and 6.2% at 50 paced users (§5b) | on `main`, not on the live host; memory still up to 3.1 GiB against a 7.24 GiB host that OpenEMR already takes 4.9 GiB of (D39) |
-| **The rerank circuit never closes** | one slow rerank turns reranking off until restart; 35 of the next 60 turns ran unreranked (D41) | none | `rerank_over_budget` conflates "slow" with "skipped" (D41) |
-| **OCR contends with retrieval** | OCR in the same container raises rerank p95 from 2.08 s to 3.39 s (`DEPLOY.md` §8) | 4 s budget (D41, branch) | extraction still runs in the serving process (`LOAD_TEST.md`, "Where the new bottleneck is") |
+| **Reranker under load** | 50 concurrent retrievals: p95 335,224 ms, 0% reranked, 5.3 GiB peak RSS on a cold run (`LOAD_TEST.md` §5) | D39 admission bound: p95 259 ms, but only 1% reranked in the burst and 6.2% at 50 paced users (§5b) | on `main`, not on the live host **[PENDING `chore/w2-deploy-rehearsal`]**; memory still up to 3.1 GiB against a 7.24 GiB host that OpenEMR already takes 4.9 GiB of (D39) |
+| **The rerank circuit never closes** | one slow rerank turns reranking off until restart; 35 of the next 60 turns ran unreranked (D41 **[PENDING `chore/w2-deploy-rehearsal`]**) | none | `rerank_over_budget` conflates "slow" with "skipped" (D41) |
+| **OCR contends with retrieval** | OCR in the same container raises rerank p95 from 2.08 s to 3.39 s (`DEPLOY.md` §8 **[PENDING `chore/w2-deploy-rehearsal`]**) | 4 s budget (D41, branch) | extraction still runs in the serving process (`LOAD_TEST.md`, "Where the new bottleneck is") |
 | **OpenEMR's PHP tier** | saturated at 10 users locally (420% CPU) and failing 58% at 50 (`LOAD_TEST.md` §1) | none agent-side | Week 1 finding, unchanged |
 | **Upload surface** | `main`'s `/documents` reads the body first | guard on two branches (§8) | not merged |
 | **Recall versus honesty on scans** | a heavy scan presents a third of its values | unsupported values disclosed, possible criticals named without a number | a clinician must open the PDF for the rest |
@@ -593,14 +611,14 @@ The agent image grew from 360 MB to 1.18 GB, and idle memory from 50 MiB to
 | Extraction | D3, D7, D10, D11, D13, D16, D20 (supersedes D12), D24, D35 |
 | Contracts | D9, D14, D17, D18, D21, D22 |
 | Routing and the ask path | D4, D40 |
-| Retrieval | D25 (supersedes D5, D23), D26, D39, D41\* |
+| Retrieval | D25 (supersedes D5, D23), D26, D39, D41 **[PENDING `chore/w2-deploy-rehearsal`]** |
 | UI | D27, D28, D30, D32, D33, D34, D49 (the preview URL; supersedes D28 and D30 on that point) |
 | Write-back | D1 (superseding), D2, D15, D29, D31 |
 | Observability | D36, D37, D38 |
-| Evals | D6, D8, D42\*–D48\* |
+| Evals | D6, D8, D42–D48 **[PENDING `feat/w2-eval-gate`]** |
 
-\* On an unmerged branch at the snapshot. This document makes no new decision
-and takes no D-number.
+D41 and D42–D48 are on unmerged branches (marked PENDING above). This document
+makes no new decision and takes no D-number.
 
 ---
 
@@ -616,9 +634,9 @@ and takes no D-number.
 2. **The judge cannot enforce D20 at the prose level.** "The laboratory
    reported the potassium as normal", over a blank flag column, was graded
    **pass** in 12 of 15 votes under the committed `factually_consistent`
-   prompt (D46). Blank-is-not-normal is held deterministically instead: by
-   code-rendered sentences (§4) and by gate case W2-D2. The judge is
-   **uncalibrated** against human labels (D43, D48).
+   prompt (D46 **[PENDING `feat/w2-eval-gate`]**). Blank-is-not-normal is held deterministically instead: by
+   code-rendered sentences (§4) and by gate case W2-D2 **[PENDING `feat/w2-eval-gate`]**. The judge is
+   **uncalibrated** against human labels (D43 **[PENDING `feat/w2-eval-gate`]**, D48).
 3. **The heavy-scan located rate is low by design: 34% (36/107)** with real
    vision, and 33.6% (36/107) in replay (§1.4). D24 chose exact-only matching
    for numbers, units, dates and flags over recall. On that scan the flag
@@ -642,10 +660,13 @@ and takes no D-number.
    samples in replay it is 100% (**1/1**). Every other flag was blank or not
    located (§1.4 evidence file). It is not evidence that the extractor reads
    flags in general (D20, "Consequence for the eval gate").
-8. **Prompt injection inside an uploaded PDF is untested.** W2-I1 to W2-I4 are
-   all pending (§6). The structural defences are that the model writes no
-   prose, its citation ids are narrowed by schema, and it has no write
-   channel. No case measures them.
+8. **Prompt injection inside an uploaded PDF is contained, not tested for
+   refusal** **[PENDING `feat/w2-eval-gate`]**. W2-I1 and W2-I2 assert that a payload in the text layer or
+   the metadata reaches no log, trace, extraction output or disclosure. Their
+   extraction bypasses the vision model, so nothing tests whether a model that
+   reads the payload declines it. That is W2-I5 **[PENDING `feat/w2-eval-gate`]**, which is pending, along with
+   I3 and I4 (§6). The structural defences are that the model writes no prose,
+   its citation ids are narrowed by schema, and it has no write channel.
 9. **No committed live run shows one answer citing a document and a
    guideline together.** The real-route API collection asks two separate
    questions, one about the document and one about guidance, and asserts on

@@ -2,12 +2,18 @@
 
 A shot list for recording the Week 2 demo. Each step gives what to run or
 click, what to say, and what the viewer should see. It is built only from
-what exists and works at `main@f8b16c7` and `feat/w2-eval-gate@647dd9a`.
+what exists and works at the snapshot below.
+
+**Snapshot: `main@f8b16c7`**, which is on `origin`. A claim marked PENDING
+rests on a branch not yet merged into `main`: **[PENDING `chore/w2-deploy-rehearsal`]**, **[PENDING `feat/w2-php-wiring`]** or
+**[PENDING `feat/w2-eval-gate`]**. The first two are not on `origin`. All three are due to merge before
+submission, when every citation is repinned to the one resulting `main`
+commit and the markers come out.
 Where a step has never been rehearsed end to end, the step says so.
 
 ## Read this before recording: what the demo cannot show
 
-- **There is no single live UI for Week 2 yet.** The live host
+- **There is no single live UI for Week 2 yet.** The live host **[PENDING `chore/w2-deploy-rehearsal`]**
   (`64.177.42.210`) does not run the Week 2 ask path. And the documents card
   is not registered in the OpenEMR module on any branch (`W2_ARCHITECTURE.md`
   §8). So the demo uses three surfaces, and says so on camera:
@@ -16,7 +22,7 @@ Where a step has never been rehearsed end to end, the step says so.
      real drafting call.
   2. **The fixture-mode browser page** for the chip → bounding-box overlay.
      Its answers are built from the committed samples, not from the live run.
-  3. **The eval gate** in the `feat/w2-eval-gate` worktree.
+  3. **The eval gate** in the `feat/w2-eval-gate` **[PENDING `feat/w2-eval-gate`]** worktree.
 - **Do not claim** the upload happened in the OpenEMR chart, or that the
   overlay is drawing the live answer. Say "same contract, fixture data" for
   the overlay.
@@ -38,10 +44,10 @@ In `agent/.env`:
 `EvalConfig.from_env`.
 
 No password-grant client is published. To create one, follow
-`chore/w2-deploy-rehearsal@d2f22aa:docs/w2/DEPLOY.md` §5.3 or
+`docs/w2/DEPLOY.md` §5.3 **[PENDING `chore/w2-deploy-rehearsal`]** or
 `docs/w2/LOCAL_ENV.md` §4. The sample patient,
-`a2c373ec-57bf-41cb-8767-94410dcf663d`, exists on the live host (pid 38,
-`DEPLOY.md` §7) and on a local restore of it (`LOCAL_ENV.md` §1).
+`a2c373ec-57bf-41cb-8767-94410dcf663d`, exists on the live host **[PENDING `chore/w2-deploy-rehearsal`]** (pid 38,
+`DEPLOY.md` §7 **[PENDING `chore/w2-deploy-rehearsal`]**) and on a local restore of it (`LOCAL_ENV.md` §1).
 
 ### 2. Tesseract
 
@@ -103,7 +109,7 @@ cd ../w2-eval-gate/agent && python -m pip install -r requirements.txt -r require
 python -m evals.w2.gate          # once, to warm the judge cache: 24 calls, ~$0.03
 ```
 
-The judge cost is measured in the gate README ("What a run costs"). With
+The judge cost is measured in the gate README **[PENDING `feat/w2-eval-gate`]** ("What a run costs"). With
 `ANTHROPIC_API_KEY` set and the cache warm, the recorded runs make 0 judge
 calls.
 
@@ -121,7 +127,6 @@ Choose one before recording:
   | `langfuse-dashboard.png` | a fresh instance filled by the **traffic generator**, not real use |
   | `dashboard-export.png` | the stdout dashboard over an earlier load demo |
 
-  They came from `feat/w2-observability`, merged into `main` at `fc3143b`.
 
 ---
 
@@ -227,8 +232,8 @@ and exact unit. Not the printed flag, not the model. They lead every answer
 that has them in hand. The lab-result cap can never drop one either; that's
 gate case G7."
 
-Sources: D40 item 9; gate cases W2-H6 and W2-G7 (`feat/w2-eval-gate`,
-commits `ae411fb` and `7783fba`). Add on camera: "these thresholds are a
+Sources: D40 item 9; gate cases W2-H6 **[PENDING `feat/w2-eval-gate`]** and W2-G7 (`feat/w2-eval-gate`,
+the commits that activated H6 and the supervisor batch). Add on camera: "these thresholds are a
 demo list, not reviewed for any site."
 
 ### 2:30–3:10 — The heavy scan refuses to state what it cannot verify
@@ -249,11 +254,11 @@ demo list, not reviewed for any site."
   - the rendered answer does not state the document's potassium, which is
     3.1 on this page.
 - The chart may also hold potassium results; pid 38 has 170 lab results
-  (`DEPLOY.md` §8). If it does, the answer may state the chart's value
+  (`DEPLOY.md` §8 **[PENDING `chore/w2-deploy-rehearsal`]**). If it does, the answer may state the chart's value
   under a `[chart]` citation. That is correct: it is a different source,
   verified separately. If it happens, point it out.
 
-This was checked offline on `main@f59b29c` with the recorded transcription:
+This was checked offline with the recorded transcription (`docs/w2/evidence/extractor-measurement.txt`, part 2):
 every potassium field on this scan (name, value, unit, range and flag) comes
 back `unlocated`, and 36 of 126 fields are located. The answer text itself
 has not been produced before, which is why the run is pre-recorded in step 3.
@@ -265,7 +270,7 @@ are never near-matched: 3.1 and 8.1 are one character apart. On this scan
 that costs us two thirds of the values. That's the price of never showing a
 number with a box behind it that isn't on the page."
 
-Sources: D24; `docs/w2/evidence/extractor-measurement-f59b29c.txt`, 33.6%
+Sources: D24; `docs/w2/evidence/extractor-measurement.txt`, 33.6%
 (36/107).
 
 ### 3:10–4:10 — The eval gate blocks a planted regression
@@ -277,7 +282,7 @@ python -m evals.w2.gate; echo "exit=$?"
 ```
 
 **Viewer should see:** the category table, then
-`VERDICT: PASS | specs 95 | active 76 | pending 17 | det 70/70 | judge 8/8`
+`VERDICT: PASS | specs 96 | active 78 | pending 16 | det 72/72 | judge 8/8`
 and `exit=0`.
 
 **Say:** "Ninety-five cases. Seventy deterministic checks at a hundred
@@ -303,7 +308,7 @@ Expected text: `EVAL_GATE_EVIDENCE.md`, regression 1.
 
 **Say:** "One line. The critical-case rule blocks it on its own, because on a
 seven-case category one case is fourteen points, and a five-percent band is
-below the resolution of a single case. That's twelve out of twelve planted
+below the resolution of a single case. That's thirteen out of thirteen planted
 regressions caught. Our judge is uncalibrated, and the gate prints that
 every run."
 
@@ -351,14 +356,15 @@ dashboard runs locally; production metrics come from stdout, because no BAA
 covers a hosted tracing service."
 
 Sources: D36; D38; Week 1 `agent/docs/observability.md` §1. The screenshot is
-the **local** Langfuse. The live host runs with Langfuse disabled.
+the **local** Langfuse. The live host **[PENDING `chore/w2-deploy-rehearsal`]** runs with Langfuse disabled.
 
 ### 4:40–5:00 — Close, honestly
 
 **Say:** "What's not done: a question about a whole report is too slow, at
 92 to 131 seconds. The documents card isn't wired into the OpenEMR chart
 yet. The live server runs last week's ask path. And the four
-prompt-injection-in-PDF cases are specified but not running. Each of those
+prompt-injection cases only prove containment so far: whether a model
+that reads an injected PDF refuses it is specified but not yet tested. Each of those
 is written down in the architecture doc's limitations section. Everything we
 showed is a number you can trace to a file."
 
@@ -370,12 +376,12 @@ showed is a number you can trace to a file."
 |---|---|---|
 | Ask path, in process | `agent/scripts/w2_e2e_ask.py` | `main` |
 | Samples | `agent/evals/w2/factory/output/samples/{lab-clean-001,lab-scanned-heavy-abnormal-002}/` | `main` |
-| Critical sample | `agent/evals/w2/staging/samples/lab-critical-potassium-007/` | `main`; moved to gated `agent/evals/w2/fixtures/scenarios/` on `feat/w2-eval-gate` |
+| Critical sample | `agent/evals/w2/staging/samples/lab-critical-potassium-007/` | `main`; moved to gated `agent/evals/w2/fixtures/scenarios/` on `feat/w2-eval-gate` **[PENDING `feat/w2-eval-gate`]** |
 | Recorded vision | `agent/evals/w2/staging/transcriptions/` | `main` |
 | Fixture UI | `interface/modules/custom_modules/oe-module-clinical-copilot/dev/` (`serve.mjs`, `fixture.html`, `README.md`) | `main` |
 | Fixture builder | `agent/scripts/build_ui_fixtures.py` | `main` |
-| Eval gate | `agent/evals/w2/gate/`, `.gitlab-ci.yml` | `feat/w2-eval-gate` (on `origin`) |
-| Planted-regression evidence | `docs/w2/EVAL_GATE_EVIDENCE.md` | `feat/w2-eval-gate` |
+| Eval gate | `agent/evals/w2/gate/`, `.gitlab-ci.yml` | `feat/w2-eval-gate` **[PENDING `feat/w2-eval-gate`]** (on `origin`) |
+| Planted-regression evidence | `docs/w2/EVAL_GATE_EVIDENCE.md` **[PENDING `feat/w2-eval-gate`]** | `feat/w2-eval-gate` |
 | Langfuse screenshots | `docs/w2/evidence/screenshots/*.png` | `main` |
 | Dashboard and provisioning | `agent/scripts/w2_dashboard.py`, `agent/scripts/provision_langfuse_dashboard.py` | `main` |
-| Extractor measurement | `docs/w2/evidence/extractor-measurement-f59b29c.txt` | this branch |
+| Offline evidence (measurement, heavy-scan replay, routing check) | `docs/w2/evidence/extractor-measurement.txt`, `docs/w2/evidence/demo_checks.py` | this branch |
