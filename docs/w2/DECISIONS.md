@@ -27,6 +27,13 @@ the later side's colliding entries as above. Two merges have silently
 deleted entries by picking a side: `d65dac4` dropped five, and `cf182df`
 dropped the intake-extractor entry, restored as D35.
 
+**Numbers may be reserved ahead of merge** when several branches are in
+flight, provided the merge order is fixed and each branch is told its
+numbers. This avoids the repeated renumbering that dropped entries twice.
+A reserved number is not free, even while `main` skips it. Current
+reservation (2026-09-22): `feat/w2-observability` D36-D39, `feat/w2-graph`
+D40 (merged), `chore/w2-deploy-rehearsal` D41, `feat/w2-eval-gate` D42-D48.
+
 ---
 
 ## D1 — Write-back path for documents and lab values
