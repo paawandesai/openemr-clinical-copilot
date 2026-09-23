@@ -237,7 +237,7 @@ The browser shows "The upload was not accepted." plus the
 **raw PDF as the body** rather than multipart:
 
 ```
-POST <agent>/documents?kind=lab_pdf
+POST <agent>/documents?kind=lab_pdf&patient_id=<FHIR Patient id of the open chart>
 Authorization: Bearer <the clinician's token>
 Content-Type: application/pdf
 
@@ -246,9 +246,14 @@ Content-Type: application/pdf
 
 It answers `{"document_id", "kind", "status", "byte_length",
 "correlation_id"}` — note **`status`**, which the module renames to
-`extraction_status`. Its failures are `401` (no token), `400` (empty),
-`413` (too large), `415` (not a PDF / wrong content type), `422` (bad
-`kind`). Raw body rather than multipart keeps `python-multipart` out of the
+`extraction_status`. Its failures are `401` (no token, not an OpenEMR
+token, or rejected by OpenEMR), `403` `insufficient_scope` (the token lacks
+`user/Patient.read`, `user/MedicationRequest.read` or
+`user/AllergyIntolerance.read`), `404` (unknown patient), `429`
+`rate_limited` and `503` `extraction_capacity` (both with `Retry-After`),
+`400` (empty), `413` (too large), `415` (not a PDF / wrong content type),
+`422` (bad `kind`, missing `patient_id`). All but the last four are decided
+before the body is read (`agent/app/api/upload_guard.py`). Raw body rather than multipart keeps `python-multipart` out of the
 agent's runtime dependencies, and the only client is a server.
 
 ~~It is a **stub** today~~ — **changed by work order 13 (D40 item 8,
@@ -336,9 +341,10 @@ synchronous wait and never a partial extraction presented as complete").
 | `pid` ≠ session patient | 409 | `patient_context_changed` |
 | agent unreachable | 502 | `agent_unavailable` |
 
-**The agent hop:** `GET <agent>/documents/{document_id}/extraction` with
-the bearer token. Answers the same fields with `status` in place of
-`extraction_status`; `401` without a token, `404` for an unknown document.
+**The agent hop:** `GET <agent>/documents/{document_id}/extraction?patient_id=<id>`
+with the bearer token, checked exactly as the upload is (401 / 403 / 404).
+Answers the same fields with `status` in place of `extraction_status`;
+`404` for an unknown document or one uploaded under another patient.
 
 **Changed by work order 13 (D40 item 8):** it also requires
 `?patient_id=<FHIR Patient uuid>`, makes the Patient read first, and answers
