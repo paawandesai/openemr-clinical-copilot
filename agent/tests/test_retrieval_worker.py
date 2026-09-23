@@ -10,6 +10,7 @@ cross-encoder ranks well — the bake-off measures that.
 
 from __future__ import annotations
 
+import inspect
 import threading
 import time
 import uuid
@@ -29,7 +30,11 @@ from app.models.w2.workers import (
 )
 from app.retrieval.build import load_index
 from app.retrieval.corpus_meta import load_registry
-from app.retrieval.retriever import DATED_VERSION_SUFFIX, GuidelineRetriever
+from app.retrieval.retriever import (
+    DATED_VERSION_SUFFIX,
+    RERANK_BUDGET_SECONDS,
+    GuidelineRetriever,
+)
 from app.retrieval.worker import (
     RETRIEVAL_EVENT,
     ExcerptNotInChunkError,
@@ -241,6 +246,17 @@ def test_the_log_line_says_a_turned_away_rerank_was_busy():
     assert output.reranked is False
     assert (data["rerank_busy"], data["rerank_over_budget"]) == (True, False)
     assert not retriever.rerank_circuit_open
+
+
+def test_the_default_rerank_budget_is_the_one_d41_set():
+    """
+    D41 raised D25's 2.5 s to 4 s after measuring the cross-encoder on the
+    deployment host. A default that drifted from the decision would change
+    how often a clinician's turn loses its reranking, silently.
+    """
+    assert RERANK_BUDGET_SECONDS == 4.0
+    default = inspect.signature(GuidelineRetriever).parameters["rerank_budget_seconds"].default
+    assert default == RERANK_BUDGET_SECONDS
 
 
 # --------------------------------------------------------------------------

@@ -12,6 +12,9 @@ D31. Endpoint reference, including the request shape and every refusal:
 > only, by instruction. The steps below are the local procedure with the
 > deployment's paths substituted, and the "verify" step at the end exists
 > because that substitution is the part that has not been tested.
+>
+> **Update 2026-09-22:** rehearsed on Vultr. It works with the paths above;
+> the tested procedure, with rollback and cleanup, is [`DEPLOY.md`](DEPLOY.md).
 
 ---
 

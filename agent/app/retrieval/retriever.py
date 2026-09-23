@@ -26,13 +26,16 @@ retriever, hosted or not (D5, settled by D25).
 
 from __future__ import annotations
 
+import os
 import threading
 import time
+from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Self
 
+from app.middleware.logging import log_event
 from app.models.w2.workers import EvidenceChunk, GuidelineSource, RetrievalMethod
 from app.retrieval.bm25 import Bm25Index, ScoredChunk
 from app.retrieval.build import CorpusIndex, load_index
@@ -59,12 +62,14 @@ DEFAULT_FUSION_DEPTH = 30
 #: fitted on, and 30 queries is not enough to adopt a weight from.
 EQUAL_FUSION_WEIGHTS = (1.0, 1.0)
 
-#: D25's latency budget for the rerank stage. A rerank that takes longer
-#: than this does not get to decide the order: the result is discarded, the
-#: fused order stands, and the output says `reranked=false`. The clinician
-#: gets slightly worse ranking instead of a slow answer, and the output
-#: does not claim a reranking that was thrown away.
-RERANK_BUDGET_SECONDS = 2.5
+#: The latency budget for the rerank stage: D25 set 2.5 s, D41 raised it to
+#: 4 s after measuring the cross-encoder on the deployment host. A rerank
+#: that takes longer than this does not get to decide the order: the result
+#: is discarded, the fused order stands, and the output says
+#: `reranked=false`. The clinician gets slightly worse ranking instead of a
+#: slow answer, and the output does not claim a reranking that was thrown
+#: away.
+RERANK_BUDGET_SECONDS = 4.0
 
 #: How many cross-encoder reranks may run at once, per retriever. A rerank
 #: that finds every slot taken does not wait: it takes the budget fallback
@@ -75,6 +80,32 @@ RERANK_BUDGET_SECONDS = 2.5
 #: Bounding admission is what makes the budget a bound. Value and
 #: measurements: DECISIONS.md, the rerank-admission entry.
 MAX_CONCURRENT_RERANKS = 2
+
+#: How long an open rerank circuit stays open, and how many turns it may
+#: skip, before the reranker is tried again — whichever comes first (D41).
+#: Without these the circuit latched for the life of the process: on the
+#: deployment host, one 4.09 s rerank under OCR contention left the next 35
+#: of 60 turns unreranked, and a restart was the only way back. The retry
+#: is a single rerank: if it is slow too, the circuit opens again.
+#: Overridable with AGENT_RERANK_CIRCUIT_RESET_SECONDS / _TURNS.
+RERANK_CIRCUIT_RESET_SECONDS = 60.0
+RERANK_CIRCUIT_RESET_TURNS = 10
+
+#: Emitted once when the circuit opens and once when it closes, so an
+#: operator can see reranking switch off and on rather than infer it from
+#: a run of `reranked=false`. Numbers only (CLAUDE.md invariant 1).
+RERANK_CIRCUIT_OPENED_EVENT = "rerank_circuit_opened_event"
+RERANK_CIRCUIT_CLOSED_EVENT = "rerank_circuit_closed_event"
+
+
+def _env_number(name: str, default: float) -> float:
+    raw = os.environ.get(name, "").strip()
+    try:
+        value = float(raw) if raw else default
+    except ValueError:
+        return default
+    return value if value > 0 else default
+
 
 #: Suffix appended to `GuidelineSource.version` for a source older than the
 #: registry's threshold. The contract has no `dated` field and forbids
@@ -100,8 +131,13 @@ class RerankOutcome:
     applied: bool
     elapsed_ms: float
     candidates: int
+    #: A rerank that ran and took longer than the budget. Only that: a turn
+    #: skipped because the circuit was open is `skipped_circuit_open`, so a
+    #: count of `over_budget` is a count of slow reranks (D41).
     over_budget: bool = False
     unavailable: bool = False
+    #: Not attempted, because an earlier slow rerank opened the circuit.
+    skipped_circuit_open: bool = False
     #: Every rerank slot was taken, so this one was not attempted. The
     #: fused order stands, as for over-budget, but the circuit stays shut:
     #: a busy reranker is not evidence of a slow one.
@@ -140,6 +176,9 @@ class GuidelineRetriever:
         cache_dir: Path | None = CACHE_DIR,
         rerank_budget_seconds: float = RERANK_BUDGET_SECONDS,
         rerank_slots: int = MAX_CONCURRENT_RERANKS,
+        circuit_reset_seconds: float | None = None,
+        circuit_reset_turns: int | None = None,
+        clock: Callable[[], float] = time.monotonic,
     ) -> None:
         self.index = index
         self.registry = registry
@@ -154,11 +193,26 @@ class GuidelineRetriever:
         self._rerank_pool = ThreadPoolExecutor(
             max_workers=rerank_slots, thread_name_prefix="rerank"
         )
-        #: Opened when a rerank blows the budget. Until it is reset, rerank
-        #: is skipped rather than run-and-discarded: paying 2.5 s to throw
-        #: the answer away on every subsequent turn is strictly worse than
-        #: not reranking at all.
-        self.rerank_circuit_open = False
+        #: Opened when a rerank blows the budget. While open, rerank is
+        #: skipped rather than run-and-discarded: paying the budget to throw
+        #: the answer away on every turn is strictly worse than not
+        #: reranking. It closes itself after `circuit_reset_seconds` or
+        #: `circuit_reset_turns` skipped turns (D41). Reranks run on two pool
+        #: threads, so the state is guarded.
+        self.circuit_reset_seconds = (
+            circuit_reset_seconds
+            if circuit_reset_seconds is not None
+            else _env_number("AGENT_RERANK_CIRCUIT_RESET_SECONDS", RERANK_CIRCUIT_RESET_SECONDS)
+        )
+        self.circuit_reset_turns = (
+            circuit_reset_turns
+            if circuit_reset_turns is not None
+            else int(_env_number("AGENT_RERANK_CIRCUIT_RESET_TURNS", RERANK_CIRCUIT_RESET_TURNS))
+        )
+        self._clock = clock
+        self._circuit_lock = threading.Lock()
+        self._circuit_opened_at: float | None = None
+        self._circuit_skipped = 0
         self._chunks: dict[str, GuidelineChunk] = {c.chunk_id: c for c in index.chunks}
         self._sources: dict[str, SourceRecord] = {s.guideline_id: s for s in registry.sources}
         self.lexical = Bm25Index(index.chunks)
@@ -187,9 +241,61 @@ class GuidelineRetriever:
             cache_dir=cache_dir,
         )
 
+    @property
+    def rerank_circuit_open(self) -> bool:
+        return self._circuit_opened_at is not None
+
     def reset_rerank_circuit(self) -> None:
-        """Let the reranker be tried again after it blew the budget."""
-        self.rerank_circuit_open = False
+        """Let the reranker be tried again now, rather than when it times out."""
+        with self._circuit_lock:
+            closed = self._close_circuit_locked("manual")
+        if closed is not None:
+            log_event(RERANK_CIRCUIT_CLOSED_EVENT, event_data=closed)
+
+    def _close_circuit_locked(self, reason: str) -> dict[str, object] | None:
+        """Close the circuit; return the event data, or None if it was shut."""
+        if self._circuit_opened_at is None:
+            return None
+        data: dict[str, object] = {
+            "reason": reason,
+            "open_seconds": round(self._clock() - self._circuit_opened_at, 3),
+            "skipped_turns": self._circuit_skipped,
+        }
+        self._circuit_opened_at = None
+        self._circuit_skipped = 0
+        return data
+
+    def _circuit_skips_this_turn(self) -> bool:
+        """True to skip this rerank; closes a circuit whose time is up."""
+        with self._circuit_lock:
+            if self._circuit_opened_at is None:
+                return False
+            if self._clock() - self._circuit_opened_at >= self.circuit_reset_seconds:
+                closed = self._close_circuit_locked("timeout")
+            elif self._circuit_skipped >= self.circuit_reset_turns:
+                closed = self._close_circuit_locked("turns")
+            else:
+                self._circuit_skipped += 1
+                return True
+        log_event(RERANK_CIRCUIT_CLOSED_EVENT, event_data=closed)
+        return False
+
+    def _open_circuit(self, elapsed_seconds: float) -> None:
+        with self._circuit_lock:
+            if self._circuit_opened_at is not None:
+                # Two slow reranks in flight together: the first opened it.
+                return
+            self._circuit_opened_at = self._clock()
+            self._circuit_skipped = 0
+        log_event(
+            RERANK_CIRCUIT_OPENED_EVENT,
+            event_data={
+                "elapsed_ms": round(elapsed_seconds * 1000.0, 1),
+                "budget_ms": round(self.rerank_budget_seconds * 1000.0, 1),
+                "reset_seconds": self.circuit_reset_seconds,
+                "reset_turns": self.circuit_reset_turns,
+            },
+        )
 
     # -- internals -------------------------------------------------------
     def _source_for(self, chunk: GuidelineChunk) -> GuidelineSource:
@@ -234,8 +340,8 @@ class GuidelineRetriever:
     ) -> tuple[list[EvidenceChunk], RerankOutcome]:
         if self.reranker is None:
             return results, RerankOutcome(False, 0.0, len(results), unavailable=True)
-        if self.rerank_circuit_open:
-            return results, RerankOutcome(False, 0.0, len(results), over_budget=True)
+        if self._circuit_skips_this_turn():
+            return results, RerankOutcome(False, 0.0, len(results), skipped_circuit_open=True)
 
         # Admission, not a queue: waiting for a slot would spend the budget
         # before the rerank even started.
@@ -253,7 +359,7 @@ class GuidelineRetriever:
         if elapsed > self.rerank_budget_seconds:
             # D25: over budget means the fused order stands and the output
             # says so. The result is discarded rather than used late.
-            self.rerank_circuit_open = True
+            self._open_circuit(elapsed)
             return results, RerankOutcome(False, elapsed * 1000.0, len(results), over_budget=True)
 
         reranked = [

@@ -11,14 +11,35 @@ FROM python:3.12-slim@sha256:78387bc3881b8273120a12ebe6c1ab22b018ccc2c9adf565ae1
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     HOME=/tmp \
-    AGENT_MODEL_CACHE_DIR=/opt/models
+    AGENT_MODEL_CACHE_DIR=/opt/models \
+    OMP_THREAD_LIMIT=1
+
+# OMP_THREAD_LIMIT=1: Debian's Tesseract is built with OpenMP and starts one
+# thread per core per process. Two OCR jobs at once on the 4-vCPU host then
+# fight each other: ~162 s per page, against 5.6 s with the limit (measured
+# on the host, docs/w2/DEPLOY.md §8). ONNX Runtime uses its own thread pool,
+# not OpenMP, so reranking is unaffected.
 
 WORKDIR /app
+
+# OCR for image-only pages (app/extraction/words.py, D3 stage 1). pytesseract
+# is only a wrapper: the binary and its English language data come from the
+# OS, and pip installs neither. Without them a scanned page raises
+# OcrUnavailableError at request time, so the build checks for them below.
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends tesseract-ocr tesseract-ocr-eng \
+ && rm -rf /var/lib/apt/lists/*
 
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 COPY app ./app
+
+# Fail the build, not the first scanned upload, if the OCR stack or the PDF
+# and image libraries are missing: `eng` must be a listed language, and the
+# extraction module must see the binary through pytesseract.
+RUN tesseract --list-langs 2>/dev/null | grep -qx eng \
+ && python -c "import pymupdf, PIL; from app.extraction.words import tesseract_available; assert tesseract_available(), 'tesseract not usable from app.extraction.words'"
 
 # --- guideline retrieval: weights and vectors are baked in, not fetched ---
 #

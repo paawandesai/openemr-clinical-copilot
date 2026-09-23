@@ -348,3 +348,24 @@ host still runs §5's files: there, answers carry no patient bar.
   Norvasc and Lisinopril. The brief opens with "Pre-Visit Brief for Phil
   Belford". Switch to Tonja658 Grant908: both bars name her.
 
+
+## 7. Week 2 parts deployed (2026-09-22)
+
+The full procedure, rollback and measurements are
+[`docs/w2/DEPLOY.md`](../../../../../docs/w2/DEPLOY.md). What changed on this
+host, for this module:
+
+- **Module files** now hold `chore/w2-deploy-rehearsal@35f76ae` (module tree
+  identical to `main@d65dac4`), which includes §6. Backup of the previous
+  directory: `/root/w2-rehearsal-20260922/module-pre-w2.tgz`.
+- **Ledger table** `module_clinical_copilot_writeback_ledger` installed through
+  `InstallModuleSQL(17)`; `modules.sql_version` `0.1.0`. Empty.
+- **API client replaced.** The module now uses "Clinical Co-Pilot (chart
+  embed) v2" (`client_id` prefix `2ps8qgz4`), registered with the six read
+  scopes of §1 plus `api:oemr user/lab-writeback.c`, `is_enabled` 1,
+  `skip_ehr_launch_authorization_flow` 1. The §1 client `AMPCwe6N…` is still
+  registered and enabled, and nothing points at it: rollback is writing the two
+  `clinical_copilot_oauth_client_*` globals back from
+  `/root/w2-rehearsal-20260922/globals-pre-w2.tsv`. Delete it after the demo.
+- Verified after the change: brief, medication, lab and visit questions for
+  pid 38 through the card, all 200 and verified.
