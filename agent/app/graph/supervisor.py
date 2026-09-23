@@ -87,6 +87,7 @@ from app.models.claims import Claim, VerificationResult
 from app.models.conversation import ConversationGap
 from app.models.fhir_resources import FhirResourceType, Observation
 from app.models.metrics_events import UseCase
+from app.models.telemetry_events import Pipeline
 from app.models.w2.answer import FinalAnswer, GuidelineClaim, PatientFactClaim
 from app.models.w2.answer_view import AnswerView, ReportedFlagView, ViewerDocument
 from app.models.w2.ask import (
@@ -1071,7 +1072,13 @@ def _build_graph() -> Any:
         (Node.ANSWER, _answer),
         (Node.REFUSE, _refuse),
     ):
-        graph.add_node(node.value, _untraced(_timed(node.value, run)), input_schema=SupervisorState)
+        # Named pipeline: every node run is also a step_event, so the ask
+        # path is on the same by-step view and trace as upload and brief.
+        graph.add_node(
+            node.value,
+            _untraced(_timed(node.value, run, Pipeline.SUPERVISOR)),
+            input_schema=SupervisorState,
+        )
     graph.add_edge(START, Node.SUPERVISOR.value)
     graph.add_conditional_edges(
         Node.SUPERVISOR.value,

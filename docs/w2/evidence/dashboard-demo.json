@@ -1,0 +1,385 @@
+{
+  "dashboard": {
+    "window": {
+      "first_event": "2026-09-22T23:56:57.976247+00:00",
+      "last_event": "2026-09-23T00:24:29.995302+00:00",
+      "span_seconds": 1652.019055,
+      "events": 5104,
+      "correlation_ids": 346
+    },
+    "requests": {
+      "count": 295,
+      "errors": 68,
+      "p50_ms": 2885.376,
+      "p95_ms": 9923.8576,
+      "p99_ms": 10707.0885,
+      "max_ms": 15884.807,
+      "error_rate": 0.2305084745762712,
+      "status_classes": {
+        "2xx": 224,
+        "4xx": 3,
+        "5xx": 68
+      },
+      "probe_requests": 3,
+      "throughput_rps": 0.17856936886239488,
+      "answer_routes": {
+        "count": 286,
+        "errors": 68,
+        "p50_ms": 3134.2825000000003,
+        "p95_ms": 9930.2215,
+        "p99_ms": 10724.645249999996,
+        "max_ms": 15884.807
+      },
+      "by_route": {
+        "GET /documents/{document_id}/extraction": {
+          "count": 6,
+          "errors": 0,
+          "p50_ms": 0.757,
+          "p95_ms": 1.76925,
+          "p99_ms": 1.83705,
+          "max_ms": 1.854
+        },
+        "POST /documents": {
+          "count": 2,
+          "errors": 0,
+          "p50_ms": 2.663,
+          "p95_ms": 4.8194,
+          "p99_ms": 5.01108,
+          "max_ms": 5.059
+        },
+        "POST /pre-visit-brief": {
+          "count": 284,
+          "errors": 68,
+          "p50_ms": 3134.2825000000003,
+          "p95_ms": 9865.645299999987,
+          "p99_ms": 10645.72925,
+          "max_ms": 11719.692
+        },
+        "POST /pre-visit-brief/conversation": {
+          "count": 2,
+          "errors": 0,
+          "p50_ms": 8010.874,
+          "p95_ms": 15097.4137,
+          "p99_ms": 15727.32834,
+          "max_ms": 15884.807
+        },
+        "POST /pre-visit-brief/conversation/end": {
+          "count": 1,
+          "errors": 0,
+          "p50_ms": 156.292,
+          "p95_ms": 156.292,
+          "p99_ms": 156.292,
+          "max_ms": 156.292
+        }
+      }
+    },
+    "steps": {
+      "conversation.draft": {
+        "count": 1,
+        "errors": 0,
+        "p50_ms": 15126.618,
+        "p95_ms": 15126.618,
+        "p99_ms": 15126.618,
+        "max_ms": 15126.618,
+        "outcomes": {
+          "ok": 1
+        }
+      },
+      "conversation.render": {
+        "count": 1,
+        "errors": 0,
+        "p50_ms": 0.225,
+        "p95_ms": 0.225,
+        "p99_ms": 0.225,
+        "max_ms": 0.225,
+        "outcomes": {
+          "ok": 1
+        }
+      },
+      "conversation.retrieve": {
+        "count": 1,
+        "errors": 0,
+        "p50_ms": 753.534,
+        "p95_ms": 753.534,
+        "p99_ms": 753.534,
+        "max_ms": 753.534,
+        "outcomes": {
+          "ok": 1
+        }
+      },
+      "conversation.routing": {
+        "count": 1,
+        "errors": 0,
+        "p50_ms": 0.053,
+        "p95_ms": 0.053,
+        "p99_ms": 0.053,
+        "max_ms": 0.053,
+        "outcomes": {
+          "ok": 1
+        }
+      },
+      "conversation.verify": {
+        "count": 1,
+        "errors": 0,
+        "p50_ms": 2.685,
+        "p95_ms": 2.685,
+        "p99_ms": 2.685,
+        "max_ms": 2.685,
+        "outcomes": {
+          "ok": 1
+        }
+      },
+      "documents.extraction_status": {
+        "count": 5,
+        "errors": 0,
+        "p50_ms": 0.287,
+        "p95_ms": 0.4516,
+        "p99_ms": 0.45352000000000003,
+        "max_ms": 0.454,
+        "outcomes": {
+          "pending": 4,
+          "ok": 1
+        }
+      },
+      "documents.upload": {
+        "count": 1,
+        "errors": 0,
+        "p50_ms": 0.485,
+        "p95_ms": 0.485,
+        "p99_ms": 0.485,
+        "max_ms": 0.485,
+        "outcomes": {
+          "ok": 1
+        }
+      },
+      "evidence_retriever.retrieval": {
+        "count": 34,
+        "errors": 0,
+        "p50_ms": 65.278,
+        "p95_ms": 4562.81505,
+        "p99_ms": 4693.37612,
+        "max_ms": 4703.288,
+        "outcomes": {
+          "ok": 34
+        }
+      },
+      "intake_extractor.locate": {
+        "count": 12,
+        "errors": 0,
+        "p50_ms": 11.004000000000001,
+        "p95_ms": 27.075599999999998,
+        "p99_ms": 28.636720000000004,
+        "max_ms": 29.027,
+        "outcomes": {
+          "ok": 12
+        }
+      },
+      "intake_extractor.read_document": {
+        "count": 12,
+        "errors": 0,
+        "p50_ms": 49.309,
+        "p95_ms": 3939.6066999999994,
+        "p99_ms": 4451.77814,
+        "max_ms": 4579.821,
+        "outcomes": {
+          "ok": 12
+        }
+      },
+      "intake_extractor.verify": {
+        "count": 12,
+        "errors": 0,
+        "p50_ms": 0.43100000000000005,
+        "p95_ms": 0.8751999999999995,
+        "p99_ms": 1.1110400000000002,
+        "max_ms": 1.17,
+        "outcomes": {
+          "ok": 12
+        }
+      },
+      "intake_extractor.vision": {
+        "count": 12,
+        "errors": 0,
+        "p50_ms": 0.26449999999999996,
+        "p95_ms": 0.8078,
+        "p99_ms": 0.86236,
+        "max_ms": 0.876,
+        "outcomes": {
+          "ok": 12
+        }
+      },
+      "pre_visit_brief.draft": {
+        "count": 216,
+        "errors": 0,
+        "p50_ms": 0.451,
+        "p95_ms": 0.85625,
+        "p99_ms": 1.6229999999999996,
+        "max_ms": 3.117,
+        "outcomes": {
+          "ok": 216
+        }
+      },
+      "pre_visit_brief.render": {
+        "count": 216,
+        "errors": 0,
+        "p50_ms": 0.277,
+        "p95_ms": 0.52275,
+        "p99_ms": 0.8872999999999995,
+        "max_ms": 2.939,
+        "outcomes": {
+          "ok": 216
+        }
+      },
+      "pre_visit_brief.retrieve": {
+        "count": 284,
+        "errors": 68,
+        "p50_ms": 3121.7955,
+        "p95_ms": 9842.85134999999,
+        "p99_ms": 10623.274840000002,
+        "max_ms": 11704.43,
+        "outcomes": {
+          "ok": 216,
+          "error": 68
+        }
+      },
+      "pre_visit_brief.verify": {
+        "count": 216,
+        "errors": 0,
+        "p50_ms": 1.1755,
+        "p95_ms": 2.229,
+        "p99_ms": 3.1730999999999976,
+        "max_ms": 3.346,
+        "outcomes": {
+          "ok": 216
+        }
+      }
+    },
+    "tools": {
+      "fhir_read": {
+        "calls": 1085,
+        "dependency_failures": 90,
+        "failure_rate": 0.08294930875576037,
+        "other_errors": 1,
+        "retries": 0,
+        "calls_with_retries": 0,
+        "latency_p50_ms": 1539.916,
+        "latency_p95_ms": 6587.839
+      },
+      "guideline_retriever": {
+        "calls": 34,
+        "dependency_failures": 0,
+        "failure_rate": 0.0,
+        "other_errors": 0,
+        "retries": 0,
+        "calls_with_retries": 0,
+        "latency_p50_ms": 60.0105,
+        "latency_p95_ms": 4561.88285
+      },
+      "llm": {
+        "calls": 1,
+        "dependency_failures": 0,
+        "failure_rate": 0.0,
+        "other_errors": 0,
+        "retries": 0,
+        "calls_with_retries": 0,
+        "latency_p50_ms": 15125.369,
+        "latency_p95_ms": 15125.369
+      }
+    },
+    "verification": {
+      "claims": 1119,
+      "passed": 1119,
+      "failed": 0,
+      "pass_rate": 1.0,
+      "failed_claims_checked_in_render": 0,
+      "disclosure_rate": null
+    },
+    "extraction": {
+      "completed": 24,
+      "failed": 0,
+      "field_outcomes": {
+        "located": 2116,
+        "unlocated": 332,
+        "missing": 518,
+        "illegible": 2
+      },
+      "located_rate": 0.8643790849673203,
+      "text_layer_located_rate": 0.9821802935010482,
+      "text_layer_fields_read": 1908,
+      "min_located_rate": 0.3364485981308411,
+      "mean_confidence": 0.8332666666666667
+    },
+    "retrieval": {
+      "retrievals": 34,
+      "mean_hits": 5.0,
+      "zero_hit": 0,
+      "reranked": 4,
+      "reranked_rate": 0.11764705882352941,
+      "rerank_requested": 34
+    },
+    "cost": {
+      "priced": true,
+      "encounters_with_llm_calls": 1,
+      "llm_calls": 1,
+      "tokens_per_encounter_mean": 11287.0,
+      "tokens_per_encounter_p95": 11287.0,
+      "cost_per_encounter_mean_usd": 0.087435,
+      "cost_total_usd": 0.087435,
+      "unpriced_calls": 0
+    }
+  },
+  "alerts": [
+    {
+      "name": "answer_p95_latency",
+      "severity": "page",
+      "state": "ok",
+      "value": 9930.2215,
+      "threshold": 45000,
+      "sample": 286,
+      "min_sample": 10,
+      "description": "p95 of answer-route latency (brief, follow-up, conversation turn) in ms"
+    },
+    {
+      "name": "request_error_rate",
+      "severity": "page",
+      "state": "firing",
+      "value": 0.2305084745762712,
+      "threshold": 0.05,
+      "sample": 295,
+      "min_sample": 20,
+      "description": "share of non-probe requests answered 5xx"
+    },
+    {
+      "name": "tool_failure_rate",
+      "severity": "page",
+      "state": "firing",
+      "value": {
+        "tool": "fhir_read",
+        "rate": 0.08294930875576037
+      },
+      "threshold": 0.05,
+      "sample": 1085,
+      "min_sample": 20,
+      "description": "worst per-tool dependency-failure rate (no response, 5xx or 429)"
+    },
+    {
+      "name": "text_layer_located_rate_collapse",
+      "severity": "ticket",
+      "state": "ok",
+      "value": 0.9821802935010482,
+      "threshold": 0.85,
+      "sample": 1908,
+      "min_sample": 50,
+      "description": "located / (located + unlocated) over fields read from text-layer PDFs"
+    },
+    {
+      "name": "verification_failure_spike",
+      "severity": "ticket",
+      "state": "ok",
+      "value": 0.0,
+      "threshold": 0.1,
+      "sample": 1119,
+      "min_sample": 20,
+      "description": "share of drafted claims failing deterministic verification"
+    }
+  ]
+}

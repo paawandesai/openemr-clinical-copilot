@@ -38,6 +38,7 @@ from app.fhir.exceptions import (
     PatientNotFoundError,
 )
 from app.middleware.correlation import get_correlation_id
+from app.middleware.telemetry import tool_call
 from app.models.fhir_resources import (
     AllergyIntolerance,
     Condition,
@@ -47,6 +48,7 @@ from app.models.fhir_resources import (
     Observation,
 )
 from app.models.metrics_events import RetrievalEvent, UseCase
+from app.models.telemetry_events import Tool
 
 # Confirmed live: https://<droplet>/apis/default/fhir/<ResourceType>?patient=<id>
 DEFAULT_BASE_URL = "https://64.177.42.210:9300/apis/default/fhir"
@@ -91,11 +93,13 @@ async def _get_bundle(token: str, resource_type: str, params: dict[str, Any]) ->
     environment variable, or any client-held state.
     """
     headers = {"Authorization": f"Bearer {token}"}
-    async with httpx.AsyncClient(verify=_VERIFY_TLS, timeout=_TIMEOUT_SECONDS) as http:
-        response = await http.get(
-            f"{FHIR_BASE_URL}/{resource_type}", headers=headers, params=params
-        )
-    _raise_for_status(response)
+    with tool_call(Tool.FHIR_READ, resource_type) as call:
+        async with httpx.AsyncClient(verify=_VERIFY_TLS, timeout=_TIMEOUT_SECONDS) as http:
+            response = await http.get(
+                f"{FHIR_BASE_URL}/{resource_type}", headers=headers, params=params
+            )
+        call.status_code = response.status_code
+        _raise_for_status(response)
     return response.json()
 
 
@@ -457,15 +461,17 @@ async def ensure_patient_exists(token: str, patient_id: str) -> None:
     resource (§3; app/models/fhir_resources.py).
     """
     headers = {"Authorization": f"Bearer {token}"}
-    async with httpx.AsyncClient(verify=_VERIFY_TLS, timeout=_TIMEOUT_SECONDS) as http:
-        response = await http.get(
-            f"{FHIR_BASE_URL}/Patient/{quote(patient_id, safe='')}", headers=headers
-        )
-    if response.status_code in (400, 404):
-        raise PatientNotFoundError(
-            f"FHIR Patient read returned {response.status_code} for the requested id"
-        )
-    _raise_for_status(response)
+    with tool_call(Tool.FHIR_READ, "Patient") as call:
+        async with httpx.AsyncClient(verify=_VERIFY_TLS, timeout=_TIMEOUT_SECONDS) as http:
+            response = await http.get(
+                f"{FHIR_BASE_URL}/Patient/{quote(patient_id, safe='')}", headers=headers
+            )
+        call.status_code = response.status_code
+        if response.status_code in (400, 404):
+            raise PatientNotFoundError(
+                f"FHIR Patient read returned {response.status_code} for the requested id"
+            )
+        _raise_for_status(response)
 
 
 async def get_patient_identity(token: str, patient_id: str) -> dict[str, Any]:

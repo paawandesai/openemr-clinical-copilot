@@ -61,6 +61,7 @@ from pydantic import BaseModel
 
 from app.middleware.correlation import get_correlation_id
 from app.middleware.logging import log_event
+from app.middleware.telemetry import anthropic_http_client, tool_call
 from app.models.claims import Claim
 from app.models.fhir_resources import (
     AllergyIntolerance,
@@ -69,6 +70,7 @@ from app.models.fhir_resources import (
     MedicationRequest,
 )
 from app.models.metrics_events import UseCase
+from app.models.telemetry_events import Tool
 from app.reasoning import provider_health
 
 MODEL = "claude-opus-5"
@@ -254,7 +256,9 @@ _OUTPUT_SCHEMA: dict[str, Any] = {
 def _client() -> anthropic.AsyncAnthropic:
     # Built on first use rather than at import, so importing this module
     # doesn't require Anthropic credentials to be configured.
-    return anthropic.AsyncAnthropic()
+    # The http client counts the SDK's own silent retries into the open
+    # tool call (app/middleware/telemetry.py); it reads one header, never a body.
+    return anthropic.AsyncAnthropic(http_client=anthropic_http_client())
 
 
 def _serialize_retrieved(retrieved: dict[FhirResourceType, list[Any]]) -> str:
@@ -412,21 +416,27 @@ async def draft_pre_visit_brief(
 
     started = time.perf_counter()
     try:
-        async with _client().beta.messages.stream(
-            model=MODEL,
-            max_tokens=_MAX_TOKENS,
-            system=SYSTEM_PROMPT,
-            messages=[{"role": "user", "content": user_content}],
-            thinking={"type": "adaptive"},
-            output_config={
-                "effort": EFFORT,
-                "format": {"type": "json_schema", "schema": _OUTPUT_SCHEMA},
-            },
-            betas=[_FALLBACK_BETA],
-            fallbacks="default",
-        ) as stream:
-            message = await stream.get_final_message()
-            request_id = stream.request_id
+        with tool_call(
+            Tool.LLM,
+            MODEL,
+            use_case=UseCase.PRE_VISIT_BRIEF,
+            patient_session_key=patient_session_key,
+        ):
+            async with _client().beta.messages.stream(
+                model=MODEL,
+                max_tokens=_MAX_TOKENS,
+                system=SYSTEM_PROMPT,
+                messages=[{"role": "user", "content": user_content}],
+                thinking={"type": "adaptive"},
+                output_config={
+                    "effort": EFFORT,
+                    "format": {"type": "json_schema", "schema": _OUTPUT_SCHEMA},
+                },
+                betas=[_FALLBACK_BETA],
+                fallbacks="default",
+            ) as stream:
+                message = await stream.get_final_message()
+                request_id = stream.request_id
     except anthropic.APIError as exc:
         # Logged so a failed call still counts toward Metrics 4 and 6, and
         # recorded so /ready can see a provider outage a tokenless probe

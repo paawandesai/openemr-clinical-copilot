@@ -1,0 +1,56 @@
+{
+  "samples": [
+    "lab-clean-001",
+    "intake-clean-004",
+    "lab-scanned-heavy-abnormal-002"
+  ],
+  "cpu_count": 15,
+  "live": {
+    "mode": "live_vision_sequential",
+    "runs": [
+      {
+        "sample": "lab-clean-001",
+        "status": "complete",
+        "seconds": 29.51,
+        "vision_ms": 29466,
+        "input_tokens": 6663,
+        "output_tokens": 3704,
+        "cost_usd": 0.125915,
+        "field_outcomes": {
+          "located": 102,
+          "unlocated": 2,
+          "missing": 22
+        }
+      },
+      {
+        "sample": "intake-clean-004",
+        "status": "complete",
+        "seconds": 15.32,
+        "vision_ms": 15295,
+        "input_tokens": 11531,
+        "output_tokens": 1515,
+        "cost_usd": 0.09553,
+        "field_outcomes": {
+          "located": 45,
+          "missing": 8,
+          "unlocated": 4
+        }
+      },
+      {
+        "sample": "lab-scanned-heavy-abnormal-002",
+        "status": "complete",
+        "seconds": 32.89,
+        "vision_ms": 30641,
+        "input_tokens": 6663,
+        "output_tokens": 3716,
+        "cost_usd": 0.126215,
+        "field_outcomes": {
+          "located": 36,
+          "unlocated": 71,
+          "missing": 19
+        }
+      }
+    ],
+    "mean_seconds": 25.9
+  }
+}

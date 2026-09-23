@@ -43,6 +43,7 @@ from app.models.fhir_resources import (
 from app.models.fhir_resources import (
     FhirResourceType as R,
 )
+from app.models.telemetry_events import TELEMETRY_EVENT_TYPES
 from app.reasoning import draft_conversation_turn as drafting
 from app.reasoning import draft_follow_up
 from app.reasoning.draft_claims import ClaimDraftingError
@@ -298,7 +299,11 @@ def test_verified_answer_contract_attribution_and_events(world: FakeWorld) -> No
         R.ALLERGY_INTOLERANCE,
     }
 
-    events = [log for log in logs if log.get("event") == "agent_event"]
+    events = [
+        log
+        for log in logs
+        if log.get("event") == "agent_event" and log.get("event_type") not in TELEMETRY_EVENT_TYPES
+    ]
     assert [e["event_type"] for e in events] == [
         "conversation_turn_routed",
         "claim_verified_event",
@@ -688,7 +693,11 @@ def test_refusals_are_decided_by_rule_before_retrieval_or_drafting(
     # The Patient read (token proof) is the only FHIR call; the model is not called.
     assert world.reads == [("Patient", PATIENT_A)] and world.drafts == []
     assert body.timing.draft_seconds < 0.05
-    types = [e["event_type"] for e in logs if e.get("event") == "agent_event"]
+    types = [
+        e["event_type"]
+        for e in logs
+        if e.get("event") == "agent_event" and e.get("event_type") not in TELEMETRY_EVENT_TYPES
+    ]
     assert types == ["conversation_turn_routed", "conversation_turn_completed", "latency_event"]
 
 
@@ -1006,9 +1015,11 @@ def test_a_switch_to_an_unknown_patient_still_ends_the_conversation(world: FakeW
         response = _post("And this one?", "c0000000-0000-4000-8000-00000000000c")
 
     assert response.status_code == 404 and response.json()["error"] == "patient_not_found"
-    assert [e["event_type"] for e in logs if e.get("event") == "agent_event"] == [
-        "conversation_invalidated"
-    ]
+    assert [
+        e["event_type"]
+        for e in logs
+        if e.get("event") == "agent_event" and e.get("event_type") not in TELEMETRY_EVENT_TYPES
+    ] == ["conversation_invalidated"]
     assert len(graph.STORE) == 0
 
 

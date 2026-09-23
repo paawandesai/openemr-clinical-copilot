@@ -38,6 +38,7 @@ from app.models.fhir_resources import (
     FhirResourceType as R,
 )
 from app.models.follow_up import AnswerStatus, RecordGap
+from app.models.telemetry_events import TELEMETRY_EVENT_TYPES
 from app.reasoning import draft_follow_up as drafting
 from app.reasoning.draft_claims import ClaimDraftingError
 from app.reasoning.draft_follow_up import Coverage, FollowUpDraft
@@ -205,7 +206,11 @@ def test_answer_contract_attribution_and_events() -> None:
     assert pipeline.drafted_from == pipeline.retrieved
     assert TOKEN not in response.text
 
-    events = [log for log in logs if log.get("event") == "agent_event"]
+    events = [
+        log
+        for log in logs
+        if log.get("event") == "agent_event" and log.get("event_type") not in TELEMETRY_EVENT_TYPES
+    ]
     assert [e["event_type"] for e in events] == ["claim_verified_event"] * 3 + ["latency_event"]
     assert {e["use_case"] for e in events} == {"follow_up_drilling"}
     assert {e["patient_session_key"] for e in events} == {KEY}
@@ -592,7 +597,11 @@ def test_draft_parses_claims_coverage_and_gaps_and_logs_no_question() -> None:
     assert call["model"] == "claude-opus-5"
     assert call["output_config"]["format"]["schema"] is drafting._OUTPUT_SCHEMA
     assert "<physician_question>\n" + QUESTION in call["messages"][0]["content"]
-    events = [log for log in logs if log.get("event") == "agent_event"]
+    events = [
+        log
+        for log in logs
+        if log.get("event") == "agent_event" and log.get("event_type") not in TELEMETRY_EVENT_TYPES
+    ]
     assert [e["event_type"] for e in events] == ["llm_usage_event", "claims_drafted"]
     assert {e["use_case"] for e in events} == {"follow_up_drilling"}
     assert QUESTION not in json.dumps(logs, default=str)

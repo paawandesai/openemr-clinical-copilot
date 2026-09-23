@@ -1,0 +1,45 @@
+{
+  "queries": 30,
+  "cpu_count": 15,
+  "levels": [
+    {
+      "concurrency": 10,
+      "retrievals": 100,
+      "wall_seconds": 12.485,
+      "throughput_per_second": 8.01,
+      "latency_ms": {
+        "p50": 12.2,
+        "p95": 587.5,
+        "p99": 745.6
+      },
+      "reranked": 35,
+      "reranked_rate": 0.35,
+      "busy": 65,
+      "circuit_open_after": false,
+      "zero_hit": 0,
+      "mean_cores_busy": 5.79,
+      "peak_rss_mib": 3072.8
+    },
+    {
+      "concurrency": 50,
+      "retrievals": 500,
+      "wall_seconds": 11.647,
+      "throughput_per_second": 42.93,
+      "latency_ms": {
+        "p50": 17.8,
+        "p95": 426.2,
+        "p99": 686.0
+      },
+      "reranked": 31,
+      "reranked_rate": 0.062,
+      "busy": 469,
+      "circuit_open_after": false,
+      "zero_hit": 0,
+      "mean_cores_busy": 6.56,
+      "peak_rss_mib": 3085.1
+    }
+  ],
+  "preload_seconds": 0.77,
+  "rerank_slots": 2,
+  "think_seconds": 1.0
+}

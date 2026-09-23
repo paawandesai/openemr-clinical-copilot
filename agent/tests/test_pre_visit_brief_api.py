@@ -31,6 +31,7 @@ from app.main import app
 from app.models.api import ErrorResponse, PreVisitBriefResponse
 from app.models.claims import Claim
 from app.models.fhir_resources import Condition, FhirResourceType, MedicationRequest
+from app.models.telemetry_events import TELEMETRY_EVENT_TYPES
 from app.reasoning.draft_claims import ClaimDraftingError, PreVisitBriefDraft, SectionCount
 
 PATIENT_ID = "a2c0e096-23d5-4cf9-ad5b-4895597363a7"
@@ -160,7 +161,12 @@ class SuccessTest(unittest.TestCase):
         self.assertEqual(self.tokens_seen, [TOKEN] * 4)
         self.assertNotIn(TOKEN, response.text)
         # Every pipeline event is attributed to this request's key and correlation id.
-        events = [log for log in logs if log.get("event") == "agent_event"]
+        events = [
+            log
+            for log in logs
+            if log.get("event") == "agent_event"
+            and log.get("event_type") not in TELEMETRY_EVENT_TYPES
+        ]
         self.assertTrue(events)
         self.assertEqual({e["patient_session_key"] for e in events}, {body.patient_session_key})
         self.assertEqual(

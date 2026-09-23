@@ -1,0 +1,826 @@
+{
+  "info": {
+    "name": "Clinical Co-pilot: Week 2 core flow",
+    "_postman_id": "8c1d6f7e-2b1a-4c55-9a0e-4e2a9b6c1d01",
+    "description": "One clinician encounter end to end: token, health, readiness, upload a lab PDF, poll the real extraction, ask (Pre-Visit Brief, a conversation turn, and two Week 2 asks through the supervisor), write the lab results back to OpenEMR (twice, to show idempotency), and preview the written document the way the chart card does.\n\nEvery agent request sends the same X-Correlation-ID ({{encounter_id}}), so the whole encounter is one trace in Langfuse and one correlation id in the agent's stdout log.\n\nRun order matters: later requests read ids that earlier ones saved. Run the whole collection (Runner, or newman), or run a folder from the top. How to run, and what each variable means: agent/api-collection/README.md. No token is stored in this file.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "// One encounter id per run, unless the environment pins one. A UUID4:",
+          "// the write-back contract requires its correlation_id to be one.",
+          "if (!pm.environment.get('encounter_id') && !pm.collectionVariables.get('encounter_id')) {",
+          "  pm.collectionVariables.set('encounter_id', require('uuid').v4());",
+          "}",
+          "if (!pm.collectionVariables.get('session_id')) {",
+          "  pm.collectionVariables.set('session_id', 'coll-' + require('uuid').v4());",
+          "}"
+        ]
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "encounter_id",
+      "value": ""
+    },
+    {
+      "key": "session_id",
+      "value": ""
+    },
+    {
+      "key": "access_token",
+      "value": ""
+    },
+    {
+      "key": "agent_document_id",
+      "value": ""
+    },
+    {
+      "key": "openemr_document_id",
+      "value": ""
+    },
+    {
+      "key": "extraction_polls",
+      "value": "0"
+    }
+  ],
+  "item": [
+    {
+      "name": "0. Setup",
+      "item": [
+        {
+          "name": "Get clinician access token (password grant)",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": "{{openemr_base_url}}/oauth2/default/token",
+            "description": "Mints the clinician's own OpenEMR token. The agent has no identity of its own (ARCHITECTURE.md \u00a72): every agent request below forwards this token.",
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": [
+                {
+                  "key": "grant_type",
+                  "value": "password"
+                },
+                {
+                  "key": "client_id",
+                  "value": "{{client_id}}"
+                },
+                {
+                  "key": "client_secret",
+                  "value": "{{client_secret}}"
+                },
+                {
+                  "key": "username",
+                  "value": "{{openemr_username}}"
+                },
+                {
+                  "key": "password",
+                  "value": "{{openemr_password}}"
+                },
+                {
+                  "key": "user_role",
+                  "value": "users"
+                },
+                {
+                  "key": "scope",
+                  "value": "{{token_scope}}"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "pm.test(\"a bearer token came back\", () => pm.expect(body.access_token).to.be.a(\"string\"));",
+                  "pm.test(\"it can write lab results\", () => pm.expect(body.scope).to.include(\"user/lab-writeback.c\"));",
+                  "// Kept in a collection variable for this run only; never written to the environment file.",
+                  "pm.collectionVariables.set('access_token', body.access_token);"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "1. Health",
+      "item": [
+        {
+          "name": "Liveness: GET /health",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{agent_base_url}}/health",
+            "description": "Always 200 while the process is up. Checks no dependency."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"alive\", () => pm.expect(pm.response.json().status).to.eql(\"alive\"));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Readiness: GET /ready",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{agent_base_url}}/ready",
+            "description": "200 only when OpenEMR's FHIR API and the LLM provider are verified healthy; 503 naming the failed dependency otherwise. The observability backend is reported, not required."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const body = pm.response.json();",
+                  "pm.test(\"200 exactly when ready, 503 otherwise\", () => pm.expect(pm.response.code).to.eql(body.status === \"ready\" ? 200 : 503));",
+                  "pm.test(\"checks OpenEMR, the LLM provider and the observability backend\", () => {",
+                  "  pm.expect(Object.keys(body.checks)).to.include.members([\"fhir\", \"llm_provider\", \"observability_backend\"]);",
+                  "});",
+                  "pm.test(\"ready\", () => pm.expect(body.status).to.eql(\"ready\"));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "2. Encounter",
+      "item": [
+        {
+          "name": "Upload a lab PDF: POST /documents",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              },
+              {
+                "key": "X-Correlation-ID",
+                "value": "{{encounter_id}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/pdf"
+              }
+            ],
+            "url": {
+              "raw": "{{agent_base_url}}/documents?kind=lab_pdf&patient_id={{patient_uuid}}",
+              "host": [
+                "{{agent_base_url}}"
+              ],
+              "path": [
+                "documents"
+              ],
+              "query": [
+                {
+                  "key": "kind",
+                  "value": "lab_pdf"
+                },
+                {
+                  "key": "patient_id",
+                  "value": "{{patient_uuid}}"
+                }
+              ]
+            },
+            "description": "The request body is the PDF itself; patient_id binds it to a chart. Extraction starts at upload, not at question time (D7): the intake-extractor runs in the background (text layer, one vision call, the deterministic locate step). The first upload of a document costs one model call.",
+            "body": {
+              "mode": "file",
+              "file": {
+                "src": "fixtures/lab-clean-001.pdf"
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "pm.test(\"extraction has started (D7): a status, not a wait\", () => pm.expect([\"pending\", \"in_progress\", \"complete\"]).to.include(body.status));",
+                  "pm.test(\"the document id is derived from the bytes\", () => pm.expect(body.document_id).to.match(/^[0-9a-f]{128}$/));",
+                  "pm.test(\"the encounter id comes back on the response\", () => {",
+                  "  pm.expect(pm.response.headers.get(\"X-Correlation-ID\")).to.eql(pm.environment.get(\"encounter_id\") || pm.collectionVariables.get(\"encounter_id\"));",
+                  "});",
+                  "pm.collectionVariables.set('agent_document_id', body.document_id);",
+                  "pm.collectionVariables.set('extraction_polls', '0');"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Extraction status: GET /documents/{id}/extraction (polls)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              },
+              {
+                "key": "X-Correlation-ID",
+                "value": "{{encounter_id}}"
+              }
+            ],
+            "url": "{{agent_base_url}}/documents/{{agent_document_id}}/extraction?patient_id={{patient_uuid}}",
+            "description": "Returns pending, in_progress, complete or failed. The runner re-sends this request once a second until it is final (at most 90 times): the real extraction is one vision call, 15-30 s for a new document. The same bytes uploaded again are the same document and are not re-extracted."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "pm.test(\"the encounter id comes back on the response\", () => {",
+                  "  pm.expect(pm.response.headers.get(\"X-Correlation-ID\")).to.eql(pm.environment.get(\"encounter_id\") || pm.collectionVariables.get(\"encounter_id\"));",
+                  "});",
+                  "const polls = Number(pm.collectionVariables.get('extraction_polls')) + 1;",
+                  "pm.collectionVariables.set('extraction_polls', String(polls));",
+                  "if (body.status !== 'complete' && body.status !== 'failed' && polls < 90) {",
+                  "  // Poll again in one second. The ask path never waits like this (D7);",
+                  "  // only a client that wants the finished extraction does.",
+                  "  setTimeout(() => {}, 1000);",
+                  "  pm.execution.setNextRequest(pm.info.requestName);",
+                  "} else {",
+                  "  pm.test(\"extraction reached a final state\", () => pm.expect(body.status).to.eql(\"complete\"));",
+                  "  pm.test(\"a completed run has an extraction id\", () => pm.expect(body.extraction_id).to.match(/^w2x-/));",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Ask: Pre-Visit Brief: POST /pre-visit-brief",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              },
+              {
+                "key": "X-Correlation-ID",
+                "value": "{{encounter_id}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{agent_base_url}}/pre-visit-brief",
+            "description": "Reads the chart over FHIR under the clinician's token, drafts claims, verifies each one deterministically, and renders. A claim that fails verification is shown as UNVERIFIED.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"patient_id\": \"{{patient_uuid}}\",\n  \"session_id\": \"{{session_id}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "pm.test(\"the encounter id comes back on the response\", () => {",
+                  "  pm.expect(pm.response.headers.get(\"X-Correlation-ID\")).to.eql(pm.environment.get(\"encounter_id\") || pm.collectionVariables.get(\"encounter_id\"));",
+                  "});",
+                  "pm.test(\"every claim went through the verifier\", () => pm.expect(body.verification.claims).to.eql(body.claims.length));",
+                  "pm.test(\"per-step timing is reported\", () => pm.expect(body.timing).to.have.keys(\"retrieve_seconds\", \"draft_seconds\", \"verify_seconds\", \"render_seconds\", \"total_seconds\"));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Ask: a question: POST /pre-visit-brief/conversation",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              },
+              {
+                "key": "X-Correlation-ID",
+                "value": "{{encounter_id}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{agent_base_url}}/pre-visit-brief/conversation",
+            "description": "One conversation turn. Routing is deterministic (D4): the routing rule ids are logged and each routing decision is a step_event.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"patient_id\": \"{{patient_uuid}}\",\n  \"session_id\": \"{{session_id}}\",\n  \"question\": \"{{question}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "pm.test(\"the encounter id comes back on the response\", () => {",
+                  "  pm.expect(pm.response.headers.get(\"X-Correlation-ID\")).to.eql(pm.environment.get(\"encounter_id\") || pm.collectionVariables.get(\"encounter_id\"));",
+                  "});",
+                  "pm.test(\"the turn was routed and answered or refused by rule\", () => pm.expect([\"answered\", \"partially_answered\", \"not_answerable\", \"refused_out_of_scope\", \"refused_unverifiable\"]).to.include(body.turn_status));",
+                  "pm.test(\"every claim went through the verifier\", () => pm.expect(body.verification.claims).to.eql(body.claims.length));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Ask about the uploaded document: POST /w2/ask",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              },
+              {
+                "key": "X-Correlation-ID",
+                "value": "{{encounter_id}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{agent_base_url}}/w2/ask",
+            "description": "The Week 2 ask path (D40): the supervisor routes by rule and logs each decision with its reason; the document's extracted values are cited with page and box; anything the locate step could not place is reported unsupported, never as fact.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"patient_id\": \"{{patient_uuid}}\",\n  \"session_id\": \"{{session_id}}\",\n  \"question\": \"{{document_question}}\",\n  \"document_ids\": [\n    \"{{agent_document_id}}\"\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const body = pm.response.json();",
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"the encounter id comes back on the response\", () => pm.expect(body.correlation_id).to.eql(pm.collectionVariables.get(\"encounter_id\")));",
+                  "pm.test(\"a routing decision was made and recorded with its reason (D4)\", () => { pm.expect(body.routing.length).to.be.above(0); body.routing.forEach(r => pm.expect(r.reason_code).to.be.a(\"string\")); });",
+                  "pm.test(\"a final status\", () => pm.expect([\"answered\", \"partially_answered\", \"not_in_record\", \"refused\"]).to.include(body.status));",
+                  "pm.test(\"an answer is drawn only from what it can cite\", () => { if (body.answer_view) { pm.expect(body.answer_view.answer).to.have.property(\"patient_facts\"); } });",
+                  "pm.test(\"the supervisor routed through the extracted document\", () => pm.expect(JSON.stringify(body.routing)).to.match(/document|intake|extract/i));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Ask a guideline question: POST /w2/ask",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              },
+              {
+                "key": "X-Correlation-ID",
+                "value": "{{encounter_id}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{agent_base_url}}/w2/ask",
+            "description": "A question that needs guideline evidence: the supervisor sends concepts (never patient identifiers, D5) to the evidence retriever, and guideline citations stay a separate source type from chart facts (invariant 3).",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"patient_id\": \"{{patient_uuid}}\",\n  \"session_id\": \"{{session_id}}\",\n  \"question\": \"{{guideline_question}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const body = pm.response.json();",
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"the encounter id comes back on the response\", () => pm.expect(body.correlation_id).to.eql(pm.collectionVariables.get(\"encounter_id\")));",
+                  "pm.test(\"a routing decision was made and recorded with its reason (D4)\", () => { pm.expect(body.routing.length).to.be.above(0); body.routing.forEach(r => pm.expect(r.reason_code).to.be.a(\"string\")); });",
+                  "pm.test(\"a final status\", () => pm.expect([\"answered\", \"partially_answered\", \"not_in_record\", \"refused\"]).to.include(body.status));",
+                  "pm.test(\"an answer is drawn only from what it can cite\", () => { if (body.answer_view) { pm.expect(body.answer_view.answer).to.have.property(\"patient_facts\"); } });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Write back lab results: POST /apis/default/api/clinical-copilot/lab-writeback",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{openemr_base_url}}/apis/default/api/clinical-copilot/lab-writeback",
+            "description": "The OpenEMR module's endpoint (D1), called with the same clinician token the agent forwards. The body is built by the agent's own plan_write_back() (api-collection/build_fixtures.py), so every idempotency key is the contract's derivation. The first run on a fresh database creates rows; every later run answers duplicate_ignored with the same ids.",
+            "body": {
+              "mode": "file",
+              "file": {
+                "src": "fixtures/lab-writeback.json"
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "pm.test(\"OpenEMR returned real ids\", () => { pm.expect(body.document_id).to.be.a(\"number\"); pm.expect(body.procedure_order_id).to.be.a(\"number\"); });",
+                  "pm.test(\"each result was created or recognised as a duplicate\", () => body.results.forEach(r => pm.expect([\"created\", \"duplicate_ignored\"]).to.include(r.outcome)));",
+                  "pm.collectionVariables.set('openemr_document_id', String(body.document_id));",
+                  "pm.collectionVariables.set('first_writeback', JSON.stringify(body.results.map(r => r.procedure_result_id)));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Write back again: same body, same ids (idempotency)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{openemr_base_url}}/apis/default/api/clinical-copilot/lab-writeback",
+            "description": "Invariant 6: every write carries an idempotency key. The ledger's UNIQUE key refuses the duplicate and returns the original ids.",
+            "body": {
+              "mode": "file",
+              "file": {
+                "src": "fixtures/lab-writeback.json"
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "pm.test(\"nothing new was written\", () => body.results.forEach(r => pm.expect(r.outcome).to.eql(\"duplicate_ignored\")));",
+                  "pm.test(\"the same rows answered\", () => pm.expect(JSON.stringify(body.results.map(r => r.procedure_result_id))).to.eql(pm.collectionVariables.get(\"first_writeback\")));",
+                  "pm.test(\"the same document answered\", () => pm.expect(String(body.document_id)).to.eql(pm.collectionVariables.get(\"openemr_document_id\")));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Preview: sign in to OpenEMR (session cookie)",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": "{{openemr_base_url}}/interface/main/main_screen.php?auth=login&site=default",
+            "description": "The preview route is an OpenEMR module page, not an API: it checks the clinician's own session and ACL, so it needs a signed-in session (a cookie), not the bearer token. The runner keeps the cookie for the next two requests.",
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": [
+                {
+                  "key": "authUser",
+                  "value": "{{openemr_username}}"
+                },
+                {
+                  "key": "clearPass",
+                  "value": "{{openemr_password}}"
+                },
+                {
+                  "key": "languageChoice",
+                  "value": "1"
+                },
+                {
+                  "key": "new_login_session_management",
+                  "value": "1"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"signed in (not bounced back to the login page)\", () => pm.expect(pm.response.text()).to.not.include(\"clearPass\"));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Preview: open the patient's chart",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{openemr_base_url}}/interface/patient_file/summary/demographics.php?set_pid={{patient_pid}}",
+            "description": "The route only answers for the patient whose chart is open in the session."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Preview the written document: GET <module>/document.php",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{openemr_base_url}}/interface/modules/custom_modules/oe-module-clinical-copilot/public/document.php?document_id={{openemr_document_id}}",
+            "description": "D28: the viewer fetches document bytes here, server-side under the clinician's session and the patients/docs ACL. 403 without the ACL, 404 for a document that is not this chart's."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"it is the PDF\", () => { pm.expect(pm.response.headers.get(\"Content-Type\")).to.include(\"application/pdf\"); pm.expect(pm.response.text().startsWith(\"%PDF-\")).to.be.true; });"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "3. Refusals",
+      "item": [
+        {
+          "name": "Upload without a token is 401",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-Correlation-ID",
+                "value": "{{encounter_id}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/pdf"
+              }
+            ],
+            "url": {
+              "raw": "{{agent_base_url}}/documents?kind=lab_pdf&patient_id={{patient_uuid}}",
+              "host": [
+                "{{agent_base_url}}"
+              ],
+              "path": [
+                "documents"
+              ],
+              "query": [
+                {
+                  "key": "kind",
+                  "value": "lab_pdf"
+                },
+                {
+                  "key": "patient_id",
+                  "value": "{{patient_uuid}}"
+                }
+              ]
+            },
+            "description": "",
+            "body": {
+              "mode": "file",
+              "file": {
+                "src": "fixtures/lab-clean-001.pdf"
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 401\", () => pm.response.to.have.status(401));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Status of an unknown document is 404",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              },
+              {
+                "key": "X-Correlation-ID",
+                "value": "{{encounter_id}}"
+              }
+            ],
+            "url": "{{agent_base_url}}/documents/0000/extraction?patient_id={{patient_uuid}}",
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 404\", () => pm.response.to.have.status(404));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "A question about an unknown patient is 404",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              },
+              {
+                "key": "X-Correlation-ID",
+                "value": "{{encounter_id}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{agent_base_url}}/pre-visit-brief/conversation",
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"patient_id\": \"00000000-0000-0000-0000-000000000000\",\n  \"session_id\": \"{{session_id}}\",\n  \"question\": \"What medications is she on?\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 404\", () => pm.response.to.have.status(404));",
+                  "pm.test(\"patient_not_found\", () => pm.expect(pm.response.json().error).to.eql(\"patient_not_found\"));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Preview of a document that is not this chart's is 404",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{openemr_base_url}}/interface/modules/custom_modules/oe-module-clinical-copilot/public/document.php?document_id=1",
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 404\", () => pm.response.to.have.status(404));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "End the conversation",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              },
+              {
+                "key": "X-Correlation-ID",
+                "value": "{{encounter_id}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{agent_base_url}}/pre-visit-brief/conversation/end",
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"patient_id\": \"{{patient_uuid}}\",\n  \"session_id\": \"{{session_id}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

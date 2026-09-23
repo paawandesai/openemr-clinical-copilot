@@ -1560,6 +1560,202 @@ flag fields (`agent/tests/intake_extractor_measurement.py`).
 
 ---
 
+## D36 — One encounter is one caller-supplied correlation id, held to an identifier's alphabet
+
+**Status:** DECIDED
+**Date:** 2026-09-22
+**Work order:** 14 (observability). **Numbering:** written as D35 and
+moved to D36 on rebase: `main` restored the intake-extractor entry as D35.
+D36–D38 are this branch's.
+
+**Decision:** An encounter is traced as one correlation id. The caller sends
+the same `X-Correlation-ID` on every request of the encounter: upload,
+status polls, brief, conversation turns and write-back. The agent uses it
+unchanged, and Langfuse therefore shows one trace (its trace id is a
+deterministic function of the correlation id). With no header, every
+request still gets its own UUID, as in Week 1.
+
+An inbound id is accepted only if it matches
+`^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$`. Anything else is **replaced** with a
+fresh UUID4 and is never logged (`app/middleware/correlation.py`,
+`accepted_correlation_id`). Background work started by a request (the
+extractor's `ExtractionJobs.submit`) inherits the request's id rather than
+minting its own.
+
+**Rationale:** The alternative, a separate `encounter_id` alongside a
+per-request correlation id, would give every event two join keys, and every
+consumer (Langfuse's trace id, `compute_metrics.py`, the Week 2 dashboard)
+would have to pick one. Week 1 already built the whole pipeline on the
+correlation id, and Langfuse already derives the trace from it. Reusing the
+id across requests is the only change needed.
+
+Accepting a caller's value makes the header a string written into every log
+line and every exported event. Before this, it was accepted verbatim, so a
+client could put a patient's name in it. An identifier's alphabet cannot
+carry a sentence or a name with spaces, and a UUID, a `corr-…` test id and
+k6's `k6-3-14-…` all fit it (`tests/test_w2_telemetry.py`).
+
+**Consequence:** the chart card (`AgentClient.php`) does not send the
+header yet, so from the UI each request is still its own trace. That is
+listed as an open chain break in `docs/w2/OBSERVABILITY.md` §2, not fixed
+here.
+
+---
+
+## D37 — The observability backend is checked by `/ready` but does not gate it
+
+**Status:** DECIDED
+**Date:** 2026-09-22
+**Work order:** 14.
+
+**Decision:** `/ready` reports `observability_backend` from a genuine,
+background Langfuse auth check that is never older than 60 s: `healthy`,
+`unhealthy` with a fixed reason, or `disabled` when export is not configured.
+It stays **`required: false`**. A down Langfuse makes the check `unhealthy`
+and leaves `/ready` at 200. OpenEMR and the LLM provider stay required: 503
+when either is down. Each case was verified by breaking the dependency
+(`docs/w2/evidence/ready-failure-modes.txt`).
+
+**Rationale:** Readiness decides whether the instance takes clinical
+traffic. Pulling a clinician-serving instance out of rotation because
+traces cannot be exported trades patient-facing availability for telemetry.
+And nothing is lost while Langfuse is down: every event is written to stdout
+**before** export is attempted, and stdout is the metrics record of source
+(`agent/docs/observability.md` §1, `scripts/compute_metrics.py`,
+`scripts/w2_dashboard.py`). Export already cannot fail a request
+(`langfuse_export.export_event` never raises). This keeps `/ready` saying
+the same thing.
+
+**Consequence:** a Langfuse outage is visible on `/ready`'s body and not on
+its status code. Anything that alerts on readiness must read the body to
+see it.
+
+---
+
+## D38 — Operational events are their own schemas, and a 4xx is not a dependency failure
+
+**Status:** DECIDED
+**Date:** 2026-09-22
+**Work order:** 14.
+
+**Decision:** Steps, tool calls and HTTP requests are three new event types
+(`step_event`, `tool_call_event`, `http_request_event`) in
+`app/models/telemetry_events.py`, apart from Week 1's KEY_METRICS schemas in
+`metrics_events.py`. They are plain `BaseModel`s with `extra="forbid"`.
+They have no free-text field: `counts` is `int | float | bool`, and errors
+carry the exception's class name, never its message.
+
+A tool call is a **dependency failure** when it got no response, a 5xx or a
+429. A 4xx is the caller's (unknown patient, rejected token, a write the
+ledger refused) and is counted apart. The tool-failure alert, the Langfuse
+`tool_call_failed` score and the dashboard all use this one rule, and a
+test pins that the exporter and the dashboard agree.
+
+The Anthropic SDK's silent retries are counted from the
+`x-stainless-retry-count` header it stamps on every attempt. The count is
+read by an httpx request hook, the only place the count is visible on a
+streamed call.
+
+**Rationale:**
+
+- **Separate module.** Week 1's six metrics and their consumers
+  (`compute_metrics.py`, the exporter) are pinned by tests, and mixing
+  operational shapes into that module would put every change to one next to
+  the other.
+- **No free text.** This is what makes invariant 1 structural for the new
+  events rather than a matter of care: nothing in them *can* hold a value.
+- **The 4xx rule.** A 4xx dependency-failure definition would page on-call
+  for a mistyped patient id. Week 1's load test also showed OpenEMR
+  answering a valid token with 401 under saturation (RESULTS.md), which this
+  rule counts as `other_errors`, not as OpenEMR failing. That is deliberate:
+  saturation shows up in the same run as 500s, and those it does count.
+- **Retries.** A call that took three attempts looks like one slow call from
+  the call site, and the retry count is the difference between "Anthropic is
+  slow" and "Anthropic is failing and we are retrying through it".
+
+**Not decided here:** where alerts are delivered. The rules and their
+evaluator exist (`docs/w2/ALERTS.md`); no pager is wired.
+
+---
+
+## D39 — Reranks are admitted, not queued: two at a time, on two fixed threads
+
+**Status:** DECIDED
+**Date:** 2026-09-22
+**Work order:** 14 (observability), follow-up. **Numbering:** next free
+against `main` after this branch's D36–D38.
+**Evidence:** `docs/w2/LOAD_TEST.md` §5;
+`docs/w2/evidence/load/retrieval-bench-rerank*.json`.
+
+**Decision:**
+
+- At most **`MAX_CONCURRENT_RERANKS = 2`** cross-encoder reranks run at
+  once per retriever (`app/retrieval/retriever.py`).
+- A rerank that finds both slots taken **is not queued**. It takes D25's
+  existing fallback at once: fused order, `reranked=false`, logged as
+  `rerank_busy`.
+- A busy fallback does **not** open the circuit breaker. A busy reranker is
+  not evidence of a slow one.
+- Admitted reranks run on a dedicated two-thread pool, so the model is only
+  ever called from those two threads.
+
+D25's budget, fallback and circuit breaker are unchanged. This only adds
+admission in front of them.
+
+**Rationale:**
+
+- **Why admission was needed.** D25's 2.5 s budget is checked when a rerank
+  *finishes*, and the circuit breaker cannot cancel a rerank already
+  running. So unbounded admission let every concurrent request start one,
+  and they competed for the CPU until all finished. Measured before the
+  bound: at 10 concurrent retrievals, p95 **4.26 s**, and the circuit opened.
+  At 50, p95 **335 s**, 0% reranked, and 5.3 GiB peak RSS on the cold run.
+  That is a denial of service the service inflicts on itself.
+- **Why not queue.** Waiting for a slot spends the budget before the rerank
+  starts. The honest answer for a turned-away request is the one D25
+  already gives an over-budget one.
+- **Why a fixed thread pool.** 100 identical reranks grew RSS by 38 MiB
+  from one thread, and by **2.6 GiB** from 50 rotating threads, with never
+  more than two inside the model at a time.
+
+**Measured with the bound** (local, M5 Pro, 30 dev queries, real
+cross-encoder):
+
+| Load | Before: p95 / reranked | After: p95 / reranked | Circuit opened |
+|---|---|---|---|
+| burst, 10 concurrent | 4,260 ms / 5% | **143 ms / 5%** | before: yes · after: no |
+| burst, 50 concurrent | **335,224 ms** / 0% | **259 ms / 1%** | before: yes · after: no |
+| paced (1 s think, like k6 users), 10 users | not measured | **588 ms / 35%** | no |
+| paced, 50 users | not measured | **426 ms / 6.2%** | no |
+
+**What the bound costs, stated plainly: under load most requests are not
+reranked.** Two slots at about 250 ms each is roughly 8 reranks a second.
+At 10 paced users a third of retrievals are reranked; at 50 users, one in
+sixteen. That is what the reranker can actually deliver on this host, and
+the reranked-true rate on the dashboard is where it shows. Before the
+bound, the same load produced *no* reranking and minutes of latency. More
+slots would not raise the rate: they would compete for the same cores. A
+higher rate needs a faster reranker or more CPU.
+
+**Not fixed here: memory.** Peak RSS with the reranker is still **3.1 GiB**
+under paced load, against 0.26 GiB without it. The growth follows input
+*shape* variety, not threads. On one thread, 100 reranks over the 30
+varied queries grew RSS from 967 MiB to about 2.7 GiB and then plateaued.
+Two ways to bound it were measured and not adopted:
+
+- **Disabling ONNX's memory arena** (`enable_cpu_mem_arena=False`) made it
+  worse: 4.1 GiB, and slower.
+- **Padding every input to a fixed length** flattens it. At 512 tokens it
+  grew only +0.6 GiB, at p50 421 ms instead of 281 ms. At 256 tokens it
+  grew +0.16 GiB, at p50 179 ms. But 256 truncates query plus chunk, which
+  changes rankings. D25 rests on measured recall, so that needs the bakeoff
+  re-run before adoption.
+
+On the 7.24 GiB Vultr host, alongside OpenEMR's 4.9 GiB peak, this is the
+open risk.
+
+---
+
 ## D40 — The Week 2 ask path: one supervisor, a closed routing table, and a verifier that builds citations from sources
 
 **Status:** DECIDED. Item 8 changes a pinned contract; it was approved by

@@ -17,6 +17,7 @@ from structlog.testing import capture_logs
 
 from app.extraction import OcrUnavailableError
 from app.graph.intake_extractor import INTAKE_EXTRACTOR_GRAPH, IntakeExtractorContext
+from app.models.telemetry_events import TELEMETRY_EVENT_TYPES
 from app.models.w2.documents import DocumentKind, ExtractionStatus
 from app.models.w2.extraction import FieldStatus
 from app.models.w2.workers import ExtractionFailureReason
@@ -304,7 +305,10 @@ def test_every_event_carries_one_correlation_id_and_the_summary_fields() -> None
     with capture_logs() as logs:
         report = extract(LAB, chart_reader=reader(LAB), correlation_id=correlation_id)
     assert report.output.correlation_id == correlation_id
-    events = [log for log in logs if log.get("event") == "agent_event"]
+    every = [log for log in logs if log.get("event") == "agent_event"]
+    # The node step_events share the id; the sequence below is the worker's own.
+    assert all(e["event_data"]["correlation_id"] == correlation_id for e in every)
+    events = [e for e in every if e["event_type"] not in TELEMETRY_EVENT_TYPES]
     assert [e["event_type"] for e in events] == [
         "intake_extraction_step",
         "intake_extraction_step",

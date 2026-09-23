@@ -10,8 +10,10 @@ cross-encoder ranks well — the bake-off measures that.
 
 from __future__ import annotations
 
+import threading
 import time
 import uuid
+from concurrent.futures import ThreadPoolExecutor
 
 import pytest
 from pydantic import ValidationError
@@ -169,6 +171,76 @@ def test_a_rerank_over_budget_opens_the_circuit_so_the_next_turn_is_not_slow_too
     retriever.reset_rerank_circuit()
     run_evidence_retriever(request(rerank=True), retriever)
     assert slow.calls == 2
+
+
+class ConcurrencyProbe(StubReranker):
+    """A reranker that records how many calls were inside it at once."""
+
+    def __init__(self, delay_seconds: float) -> None:
+        super().__init__(delay_seconds)
+        self._lock = threading.Lock()
+        self.inside = 0
+        self.peak = 0
+
+    def score(self, query: str, passages: list[str]) -> list[float]:
+        with self._lock:
+            self.inside += 1
+            self.peak = max(self.peak, self.inside)
+        try:
+            return super().score(query, passages)
+        finally:
+            with self._lock:
+                self.inside -= 1
+
+
+def test_no_more_than_the_slot_count_rerank_at_once_and_the_rest_do_not_wait():
+    """
+    The admission bound (docs/w2/LOAD_TEST.md §5): with every slot taken a
+    rerank is not queued. It returns the fused order at once, marked busy,
+    and the circuit stays shut because nothing was slow.
+    """
+    probe = ConcurrencyProbe(delay_seconds=0.3)
+    retriever = GuidelineRetriever(
+        load_index(),
+        load_registry(),
+        embedder=FakeEmbedder(),
+        reranker=probe,
+        cache_dir=None,
+        rerank_budget_seconds=5.0,
+        rerank_slots=2,
+    )
+
+    def one(_: int) -> tuple[bool, float]:
+        started = time.perf_counter()
+        output = run_evidence_retriever(request(rerank=True), retriever)
+        return output.reranked, time.perf_counter() - started
+
+    with ThreadPoolExecutor(max_workers=10) as pool:
+        results = list(pool.map(one, range(10)))
+
+    assert probe.peak <= 2
+    reranked = [r for r in results if r[0]]
+    turned_away = [r for r in results if not r[0]]
+    assert reranked and turned_away
+    # Turned away means not waited: well under one rerank's 0.3 s.
+    assert max(seconds for _, seconds in turned_away) < 0.25
+    assert not retriever.rerank_circuit_open
+
+
+def test_the_log_line_says_a_turned_away_rerank_was_busy():
+    retriever = build_retriever(StubReranker())
+    assert retriever._rerank_slots.acquire(blocking=False)
+    assert retriever._rerank_slots.acquire(blocking=False)  # default: two slots
+    try:
+        with capture_logs() as logs:
+            output = run_evidence_retriever(request(rerank=True), retriever)
+    finally:
+        retriever._rerank_slots.release()
+        retriever._rerank_slots.release()
+    data = [log for log in logs if log.get("event_type") == RETRIEVAL_EVENT][0]["event_data"]
+    assert output.reranked is False
+    assert (data["rerank_busy"], data["rerank_over_budget"]) == (True, False)
+    assert not retriever.rerank_circuit_open
 
 
 # --------------------------------------------------------------------------

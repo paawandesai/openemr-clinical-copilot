@@ -163,3 +163,98 @@ before the migration does not exist on the Vultr host.
 Tokens expire after one hour. An expired token, a revoked one and one missing
 a scope all come back as `401 fhir_token_rejected` — OpenEMR does not
 distinguish them (F-08), so request a fresh token with the four scopes above.
+
+---
+
+## Week 2 core flow — `w2-core-flow.postman_collection.json`
+
+One clinician encounter, end to end, against the **local** stack
+(`docs/w2/LOCAL_ENV.md`). Every agent request carries the same
+`X-Correlation-ID` (`{{encounter_id}}`, a UUID minted per run), so the
+whole encounter is one correlation id in the agent's log and one trace in
+Langfuse (`docs/w2/OBSERVABILITY.md` §2).
+
+| Folder | Requests | What the tests check |
+|---|---|---|
+| 0. Setup | `POST {openemr}/oauth2/default/token` (password grant) | a token with `user/lab-writeback.c`; kept in a collection variable for this run only |
+| 1. Health | `GET /health`, `GET /ready` | `/health` 200; `/ready` names `fhir`, `llm_provider`, `observability_backend`, and is 200 exactly when ready |
+| 2. Encounter | upload → extraction status (polled until final) → Pre-Visit Brief → one conversation turn → `/w2/ask` about the uploaded document → `/w2/ask` guideline question → write-back → same write-back again → OpenEMR sign-in → open chart → document preview | upload returns a status, not a wait (D7); a completed extraction has an extraction id; the correlation id comes back on every agent response; every claim went through the verifier; each `/w2/ask` records a routing decision with its reason (D4) and a final status; write-back returns real ids, and the repeat returns `duplicate_ignored` with the **same** ids (invariant 6); the preview is the PDF |
+| 3. Refusals | upload without a token; unknown document; unknown patient; another chart's document; end the conversation | 401, 404, 404 `patient_not_found`, 404, 200 |
+
+Files:
+
+- `w2-core-flow.postman_collection.json` — the requests and tests.
+- `local.postman_environment.json` — local URLs, the demo patient and the
+  token scope. `client_id`, `client_secret`, `openemr_username` and
+  `openemr_password` ship **empty**.
+- `fixtures/lab-clean-001.pdf` — the doc-factory's clean lab sample
+  (synthetic). `fixtures/lab-writeback.json` — a `LabWriteBackRequest` for
+  it, built by `build_fixtures.py` through the agent's own
+  `plan_write_back()`, so every idempotency key is the contract's
+  derivation. Regenerate with `cd agent && .venv/bin/python
+  api-collection/build_fixtures.py` (byte-identical output).
+- `run.sh` — runs it with newman.
+
+### What each variable is
+
+| Variable | Local value | Meaning |
+|---|---|---|
+| `agent_base_url` | `http://127.0.0.1:8100` | The agent. Started from this checkout by `agent/load-test/w2/start_local_agent.sh`. The committed container behind `https://127.0.0.1:8443` also works if it runs this branch. |
+| `openemr_base_url` | `https://localhost:9300` | Local OpenEMR (token endpoint, write-back endpoint, preview page). |
+| `client_id`, `client_secret` | *(empty)* | An OpenEMR API client with the **password grant** and the scopes in `token_scope`. |
+| `openemr_username`, `openemr_password` | *(empty)* | A clinician login; `run.sh` defaults to the public demo account `physician` / `physician`. |
+| `patient_uuid` | `a2c373ec-57bf-41cb-8767-94410dcf663d` | The patient the lab fixture belongs to (doc-factory sample `lab-clean-001`). Same UUID on the Vultr host and locally (`docs/w2/LOCAL_ENV.md`). |
+| `patient_pid` | `38` | That patient's **local** pid, for opening the chart before the preview. pids differ per instance: `SELECT pid FROM patient_data WHERE uuid = UNHEX(REPLACE('<uuid>','-',''))`. |
+| `question` | `What medications is the patient on?` | The conversation turn's question. |
+| `document_question`, `guideline_question` | see the file | The two `/w2/ask` questions: one the supervisor answers from the uploaded document, one it sends to the evidence retriever. |
+
+### One-time setup (local)
+
+Register a client through OpenEMR's own registration endpoint, then enable
+it and allow the password grant (an admin does the second half in *Admin →
+System → API Clients*; locally it is one SQL statement):
+
+```bash
+curl -sk -X POST https://localhost:9300/oauth2/default/registration \
+  -H 'Content-Type: application/json' -d '{
+    "application_type": "private", "client_name": "w2-api-collection-local",
+    "redirect_uris": ["https://localhost:9300/interface/modules/custom_modules/oe-module-clinical-copilot/public/oauth-callback.php"],
+    "token_endpoint_auth_method": "client_secret_post",
+    "contacts": ["local-dev@example.invalid"],
+    "scope": "openid api:oemr api:fhir user/Patient.read user/Condition.read user/MedicationRequest.read user/AllergyIntolerance.read user/Observation.read user/Encounter.read user/lab-writeback.c"
+  }' > reg.json    # the secret is shown once; keep reg.json out of the repo
+
+docker exec development-easy-mysql-1 mariadb -uroot -proot -e "
+  UPDATE openemr.oauth_clients
+     SET is_enabled = 1, grant_types = 'authorization_code,password,refresh_token'
+   WHERE client_name = 'w2-api-collection-local';"
+```
+
+### Run
+
+```bash
+FHIR_CLIENT_ID=<client_id> FHIR_CLIENT_SECRET=<client_secret> agent/api-collection/run.sh
+# one folder:  ... run.sh --folder "1. Health"
+```
+
+In the Postman app: import both JSON files, fill the four empty values in
+the environment, and run the collection with the Runner (order matters —
+later requests read ids earlier ones saved). Point the file bodies at
+`fixtures/` if Postman asks.
+
+**Last local run:** 2026-09-22, against the real routes (after
+`feat/w2-graph`). 44 requests, status polls included; 102 assertions;
+0 failures. Output: `docs/w2/evidence/api-collection-run.txt`.
+
+**What one run costs and takes.** It makes real model calls, about $0.82 per
+run:
+- the extraction's vision call, on the first upload of the PDF per agent
+  process (identical bytes are the same document and are not re-extracted);
+- the brief, the conversation turn and both asks.
+
+It takes about 3 minutes. The `/w2/ask` about the document alone takes
+90–130 s (`docs/w2/LOAD_TEST.md` §6), and the extraction 15–30 s.
+
+**What is not an agent call.** The write-back is the OpenEMR module's
+endpoint, called directly with the clinician's token. That is the same call
+`app/writeback/client.py` makes, but no agent route posts a write-back yet.

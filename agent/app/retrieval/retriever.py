@@ -26,7 +26,9 @@ retriever, hosted or not (D5, settled by D25).
 
 from __future__ import annotations
 
+import threading
 import time
+from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Self
@@ -64,6 +66,16 @@ EQUAL_FUSION_WEIGHTS = (1.0, 1.0)
 #: does not claim a reranking that was thrown away.
 RERANK_BUDGET_SECONDS = 2.5
 
+#: How many cross-encoder reranks may run at once, per retriever. A rerank
+#: that finds every slot taken does not wait: it takes the budget fallback
+#: at once (fused order, `reranked=false`, `busy=true`). Measured without a
+#: bound (docs/w2/LOAD_TEST.md §5): 50 concurrent reranks thrashed ONNX's
+#: threads for minutes (p95 335 s), because the budget is only checked once
+#: a rerank *finishes* and the circuit cannot cancel one already running.
+#: Bounding admission is what makes the budget a bound. Value and
+#: measurements: DECISIONS.md, the rerank-admission entry.
+MAX_CONCURRENT_RERANKS = 2
+
 #: Suffix appended to `GuidelineSource.version` for a source older than the
 #: registry's threshold. The contract has no `dated` field and forbids
 #: extras, and `version` is the field the UI shows, so the flag rides
@@ -90,6 +102,10 @@ class RerankOutcome:
     candidates: int
     over_budget: bool = False
     unavailable: bool = False
+    #: Every rerank slot was taken, so this one was not attempted. The
+    #: fused order stands, as for over-budget, but the circuit stays shut:
+    #: a busy reranker is not evidence of a slow one.
+    busy: bool = False
 
 
 @dataclass
@@ -123,11 +139,21 @@ class GuidelineRetriever:
         reranker: Reranker | None = None,
         cache_dir: Path | None = CACHE_DIR,
         rerank_budget_seconds: float = RERANK_BUDGET_SECONDS,
+        rerank_slots: int = MAX_CONCURRENT_RERANKS,
     ) -> None:
         self.index = index
         self.registry = registry
         self.reranker = reranker
         self.rerank_budget_seconds = rerank_budget_seconds
+        self._rerank_slots = threading.BoundedSemaphore(rerank_slots)
+        #: The only threads that ever call the cross-encoder. ONNX Runtime
+        #: keeps memory per calling thread: 100 reranks from one thread grew
+        #: RSS by 38 MiB, the same 100 spread over 50 request threads (never
+        #: more than two at once) by 2.6 GiB. A fixed pool caps that at the
+        #: slot count, whatever thread the request arrived on.
+        self._rerank_pool = ThreadPoolExecutor(
+            max_workers=rerank_slots, thread_name_prefix="rerank"
+        )
         #: Opened when a rerank blows the budget. Until it is reset, rerank
         #: is skipped rather than run-and-discarded: paying 2.5 s to throw
         #: the answer away on every subsequent turn is strictly worse than
@@ -211,9 +237,18 @@ class GuidelineRetriever:
         if self.rerank_circuit_open:
             return results, RerankOutcome(False, 0.0, len(results), over_budget=True)
 
-        started = time.perf_counter()
-        scores = self.reranker.score(query, [r.text for r in results])
-        elapsed = time.perf_counter() - started
+        # Admission, not a queue: waiting for a slot would spend the budget
+        # before the rerank even started.
+        if not self._rerank_slots.acquire(blocking=False):
+            return results, RerankOutcome(False, 0.0, len(results), busy=True)
+        try:
+            started = time.perf_counter()
+            scores = self._rerank_pool.submit(
+                self.reranker.score, query, [r.text for r in results]
+            ).result()
+            elapsed = time.perf_counter() - started
+        finally:
+            self._rerank_slots.release()
 
         if elapsed > self.rerank_budget_seconds:
             # D25: over budget means the fused order stands and the output

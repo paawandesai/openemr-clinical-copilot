@@ -60,10 +60,12 @@ from app.graph.pre_visit_brief import NAME_NOT_AVAILABLE
 from app.middleware.correlation import correlation_scope, get_correlation_id
 from app.middleware.langfuse_export import LATENCY_EVENT
 from app.middleware.logging import log_event
+from app.middleware.telemetry import record_steps
 from app.models.claims import VerificationResult
 from app.models.fhir_resources import FhirResourceType
 from app.models.follow_up import AnswerStatus, RecordGap
 from app.models.metrics_events import LatencyEvent, UseCase
+from app.models.telemetry_events import Pipeline
 from app.reasoning.draft_claims import SectionCount, brief_records
 from app.reasoning.draft_follow_up import Coverage, draft_follow_up
 from app.verification.checker import FailureReason, verify_claims
@@ -399,6 +401,12 @@ async def run_follow_up(
             patient_session_key=patient_session_key,
         )
         step_seconds["render"] = time.perf_counter() - started
+        record_steps(
+            Pipeline.FOLLOW_UP,
+            step_seconds,
+            use_case=_USE_CASE,
+            patient_session_key=patient_session_key,
+        )
 
     return FollowUpResult(
         text=text,

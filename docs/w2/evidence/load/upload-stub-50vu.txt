@@ -1,0 +1,40 @@
+
+
+  █ THRESHOLDS 
+
+    http_req_failed
+    ✓ 'rate<=1' rate=0.00%
+
+
+  █ TOTAL RESULTS 
+
+    checks_total.......: 4500    73.827556/s
+    checks_succeeded...: 100.00% 4500 out of 4500
+    checks_failed......: 0.00%   0 out of 4500
+
+    ✓ upload 200
+    ✓ status 200
+    ✓ extraction complete
+
+    CUSTOM
+    status_polls...................: 3000   49.21837/s
+    upload_to_complete_seconds.....: avg=4.054179 min=4.01  med=4.049  p(50)=4.049  p(90)=4.095   p(95)=4.10185 p(99)=4.106   max=4.107 
+
+    HTTP
+    http_req_duration..............: avg=9.78ms   min=273µs med=7.27ms p(50)=7.27ms p(90)=14.02ms p(95)=37.39ms p(99)=61.75ms max=63.3ms
+      { expected_response:true }...: avg=9.78ms   min=273µs med=7.27ms p(50)=7.27ms p(90)=14.02ms p(95)=37.39ms p(99)=61.75ms max=63.3ms
+    http_req_failed................: 0.00%  0 out of 3750
+    http_reqs......................: 3750   61.522963/s
+
+    EXECUTION
+    iteration_duration.............: avg=4.05s    min=4s    med=4.04s  p(50)=4.04s  p(90)=4.09s   p(95)=4.1s    p(99)=4.1s    max=4.1s  
+    iterations.....................: 750    12.304593/s
+    vus............................: 50     min=50        max=50
+    vus_max........................: 50     min=50        max=50
+
+    NETWORK
+    data_received..................: 1.6 MB 27 kB/s
+    data_sent......................: 29 MB  476 kB/s
+
+
+
