@@ -21,7 +21,7 @@ accession number is not a quantity, but a near match on one is the same
 kind of error as a near match on a potassium: one character is a different
 patient, a different laboratory or a different specimen. `numeric` is the
 declared class that means "exact tiers only"; the choice is recorded in
-D29.
+D35.
 
 **Lab result values are declared `numeric` even when qualitative.** A
 `Not Detected` that OCR reads as `Not Detectd` is not safe to forgive

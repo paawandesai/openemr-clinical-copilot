@@ -14,7 +14,7 @@ A locate miss never becomes `missing` or `illegible` — those describe the
 document, and only the transcription's own `absent` / `illegible` states
 produce them (D24's relationship to D13).
 
-Three further rules, each recorded in D29:
+Three further rules, each recorded in D35:
 
 * **A blank printed field is `missing`.** A lab flag column the model reads
   as present-but-blank carries no flag for that row: the field is `missing`

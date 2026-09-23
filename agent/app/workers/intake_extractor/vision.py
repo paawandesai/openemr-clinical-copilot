@@ -81,7 +81,7 @@ CALL_TIMEOUT_SECONDS = 600.0
 #: for the model this worker requests. Used for the per-document cost the
 #: work order asks the worker to log. A served model not in this table (a
 #: refusal fallback) is logged with `cost_usd: null` rather than guessed —
-#: see D29 for why this constant exists despite compute_metrics.py's rule
+#: see D35 for why this constant exists despite compute_metrics.py's rule
 #: against built-in prices.
 PRICES_PER_MTOK: dict[str, dict[str, float]] = {
     "claude-opus-5": {"input": 5.0, "output": 25.0, "cache_write": 6.25, "cache_read": 0.5},

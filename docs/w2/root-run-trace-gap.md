@@ -3,7 +3,7 @@
 **Status:** fixed in the intake-extractor graph; guarded for every graph by
 `agent/tests/test_graph_inputs_carry_nothing.py`. Belongs in
 `W2_ARCHITECTURE.md` (tracing section) when that document exists.
-**Found:** 2026-09-22, work order 12 (`feat/w2-extractor`). Recorded in D29,
+**Found:** 2026-09-22, work order 12 (`feat/w2-extractor`). Recorded in D35,
 item 11.
 
 ## What happened
