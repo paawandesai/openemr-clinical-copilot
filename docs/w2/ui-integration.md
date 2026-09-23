@@ -1,6 +1,25 @@
 # Wiring the source-grounded answer view into the chart embed
 
-**Status: not applied.** Work order 11 built the view, the PDF overlay, the
+**Status: applied by work order 17 (`feat/w2-php-wiring`).** The card is
+registered (`Bootstrap::buildSourcesCard()`), and the routes are
+`public/document.php`, `upload.php`, `upload-status.php` and `ask.php`. What
+was built, and every place it differs from the handover below:
+
+| | as built |
+|---|---|
+| **Correlation** | `Bootstrap` mints one UUID4 per render of the chart (`data-correlation-id`). The card sends it as `correlation_id` on every upload, status poll and question, and each route forwards it to the agent as `X-Correlation-ID` (`AgentClient`, `CorrelationId`), so the agent logs one chart open as one encounter. A value that is not a lowercase UUID is `400 invalid_request`. |
+| **§2.1 preview** | Built to **D30**, which is DECIDED and later than this handover: no `pid`, no CSRF token, and no `409` — the document must belong to the session's open chart, and anything else is `404`. Its error values are `DocumentFailure`'s (`not_found`, `forbidden`, `no_open_chart` 403, `not_previewable` 415, `unreadable` 500, `invalid_request`), not `document_not_found`, and the envelope carries no `correlation_id`. The viewer reads only the HTTP status (403 vs 404 vs other), so none of this changes what it shows. **Added:** `document_id` may also be the 128-hex SHA3-512 digest a citation carries (the agent's document id); it is resolved against `documents.hash` on the open chart only, so the browser needs no id mapping. |
+| **§2.2 upload** | As specified, plus `correlation_id`. The ACL is `patients`/`docs` at **write or addonly** (it attaches a file to the chart). Order: the five checks, the form, then a refusal of a file this module already filed on another chart, then the agent, then — only once the agent accepted — the chart copy via `\Document::createDocument()` in *Lab Report* or *Medical Record*, idempotent on the digest under a named DB lock. New failures: `409 document_attached_elsewhere` (D40 item 8), `429 rate_limited`, `503 extraction_capacity`, `500 document_not_stored`. |
+| **§2.3 status** | As specified, plus `correlation_id`. Checked by `ChartRequest` with the method `GET` — the same five checks in the same order, fields read from the query. Not written to the audit log (a poll repeats every few seconds and reads a status, not the record). The three extractor failure reasons now have labels. |
+| **§2.4 ask** | `POST <module>/public/ask.php`: `pid`, `csrf_token_form`, `correlation_id`, `conversation` (nonce), `question` (≤ 500), `document_ids[]` (≤ 4, ids from §2.2). Needs `patients`/`med` **and** `patients`/`docs`. The agent's session id is derived as in `conversation.php`. Response: `{"status": "ok", patient, answer_status, reason_code, message, answer_view, unverified, critical_values, discrepancies, limitations, gaps, conversation, total_ms, correlation_id}`. `status` is renamed `answer_status` (the envelope owns `status`). `patient_session_key` is checked — patient and session must be the ones sent — and dropped; `routing`/`handoffs` are not forwarded. |
+| **Card** | A question box (`public/assets/w2/ask.mjs`) under the upload control. Documents whose extraction completed on this page (the last 4) are included in each question. The answer is headed by the open patient's name from the server (F-62), then the outcome, then the answer view (whose prose is the agent's `message`) or, with no answer view, the message. |
+
+The rest of this file is the original handover, kept as written except where
+§2.2–2.4 describe the agent hop.
+
+---
+
+**Handover (work order 11), as written.** Work order 11 built the view, the PDF overlay, the
 upload control and the fixture mode. Mid-session the write-back work order
 (09) took ownership of **all PHP in
 `interface/modules/custom_modules/oe-module-clinical-copilot`, including
@@ -248,6 +267,21 @@ and `409` (these exact bytes are already attached to a *different* chart —
 never rebound). The module holds `pid`; it must send the uuid for it. The
 response shape is unchanged.
 
+**Guarded before the body is read (work order 17, carrying
+`chore/w2-deploy-rehearsal`'s `app/api/upload_guard.py` onto this route)**,
+in this order: `401` `missing_bearer_token` / `malformed_bearer_token` (not
+an OpenEMR token) / `fhir_token_rejected`; `403 insufficient_scope` (the
+token lacks `user/Patient.read`, `user/MedicationRequest.read` or
+`user/AllergyIntolerance.read`); `404 patient_not_found`; `429 rate_limited`
+(per OAuth client, user and patient, `Retry-After`); `415` for the declared
+type and `413` for a declared `Content-Length` over the cap, both unread;
+`503 extraction_capacity` (no free extraction slot, `Retry-After`; a slot is
+held until the background extraction ends). Then the body: `400` empty,
+`413`, `415` not a readable PDF, and `409` for the same bytes on a different
+chart. The module maps `409` → `document_attached_elsewhere`, `429` →
+`rate_limited`, `503` → `extraction_capacity`, `400/413/415/422` →
+`upload_rejected`, `401`/`403` → `agent_rejected_token`.
+
 ---
 
 ### 2.3 `GET <module>/upload/status` — how far the extraction got
@@ -312,11 +346,16 @@ the bearer token. Answers the same fields with `status` in place of
 chart. `extraction_id` is now the real run's id once `complete`.
 `failure_reason` can also be `vision_call_failed`, `no_fields_located` or
 `internal_error` (added by the extractor, D35, in
-`app/models/w2/workers.py`); the browser has no label for those three yet.
+`app/models/w2/workers.py`); the browser labels all three since work
+order 17.
 
-### 2.4 The ask path — `POST <agent>/w2/ask` (agent side only)
+**Guarded as the upload is (work order 17):** 401 / 403 / 404 / 502 as in
+§2.2, but a poll is not counted against the upload rate limits.
 
-Added by work order 13; no module route calls it yet. Same authorization as
+### 2.4 The ask path — `POST <agent>/w2/ask`
+
+Added by work order 13; `public/ask.php` calls it since work order 17 (see
+the table at the top). Same authorization as
 `POST /pre-visit-brief/conversation` (bearer token, Patient read first, the
 conversation keyed by the token's `sub` and shared with that route). Body:
 

@@ -53,11 +53,20 @@ final readonly class SourceDocumentReader
      */
     public function read(DocumentReadRequest $request): SourceDocumentBytes
     {
-        $row = QueryUtils::querySingleRow(
-            'SELECT `id`, `name`, `mimetype` FROM `documents`'
-            . ' WHERE `id` = ? AND `foreign_id` = ? AND `deleted` = 0',
-            [$request->documentId, $request->pid]
-        );
+        // By id, or by the digest a Week 2 citation carries: either way only
+        // on the open chart. A digest stored twice on one chart (OpenEMR
+        // does not deduplicate) is the same bytes, so the oldest row serves.
+        $row = $request->sha3512 === null
+            ? QueryUtils::querySingleRow(
+                'SELECT `id`, `name`, `mimetype` FROM `documents`'
+                . ' WHERE `id` = ? AND `foreign_id` = ? AND `deleted` = 0',
+                [$request->documentId, $request->pid]
+            )
+            : QueryUtils::querySingleRow(
+                'SELECT `id`, `name`, `mimetype` FROM `documents`'
+                . ' WHERE `hash` = ? AND `foreign_id` = ? AND `deleted` = 0 ORDER BY `id` ASC LIMIT 1',
+                [$request->sha3512, $request->pid]
+            );
         if (!is_array($row) || !isset($row['id'])) {
             // One answer for "no such id", "another patient's document" and
             // "deleted": see DocumentFailure.
@@ -67,7 +76,8 @@ final readonly class SourceDocumentReader
             throw new DocumentUnavailable(DocumentFailure::NotPreviewable);
         }
 
-        $document = new Document($request->documentId);
+        $documentId = Row::int($row, 'id');
+        $document = new Document($documentId);
         if ($document->is_deleted() || $document->has_expired()) {
             throw new DocumentUnavailable(DocumentFailure::NotFound);
         }
@@ -77,19 +87,20 @@ final readonly class SourceDocumentReader
         } catch (Throwable $exception) {
             // Decryption failures name key material and file paths.
             $this->logger->error('Clinical Co-Pilot could not read a source document', [
-                'document_id' => $request->documentId,
+                'document_id' => $documentId,
                 'exception' => $exception,
             ]);
             throw new DocumentUnavailable(DocumentFailure::Unreadable);
         }
         if (!is_string($bytes) || $bytes === '') {
             $this->logger->error('Clinical Co-Pilot read an empty source document', [
-                'document_id' => $request->documentId,
+                'document_id' => $documentId,
             ]);
             throw new DocumentUnavailable(DocumentFailure::Unreadable);
         }
 
         return new SourceDocumentBytes(
+            $documentId,
             $bytes,
             self::PREVIEWABLE_MIME_TYPE,
             self::safeFilename(Row::string($row, 'name')),

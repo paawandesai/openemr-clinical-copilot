@@ -5,15 +5,15 @@
  # guideline evidence in separate sections, citation chips, and a PDF page
  # with the cited regions drawn on it.
  #
- # This template is markup only. It declares the three slots the JavaScript
+ # This template is markup only. It declares the four slots the JavaScript
  # mounts into and hands it the endpoints and the translated strings; all of
  # the behaviour is in public/assets/w2/.
  #
- # WIRING THIS UP IS NOT DONE HERE. The card is registered in
- # src/Bootstrap.php and the three routes it names are PHP, both of which
- # belong to the write-back work order. See docs/w2/ui-integration.md for
- # the exact template variables this file expects and the route contracts
- # the JavaScript depends on.
+ # Registered by Bootstrap::buildSourcesCard(), which supplies every variable
+ # used here. The routes it names are public/document.php, upload.php,
+ # upload-status.php and ask.php; their contracts are in
+ # docs/w2/ui-integration.md §2. correlationId is minted per render of the
+ # chart and sent back on every request, so the agent sees one encounter.
  #
  # TwigContainer environments do not autoescape: every value is escaped here.
  #
@@ -33,9 +33,14 @@
          data-document-endpoint="{{ documentEndpoint|attr }}"
          data-upload-endpoint="{{ uploadEndpoint|attr }}"
          data-status-endpoint="{{ statusEndpoint|attr }}"
+         data-ask-endpoint="{{ askEndpoint|attr }}"
+         data-correlation-id="{{ correlationId|attr }}"
+         data-question-max-length="{{ questionMaxLength|attr }}"
+         data-max-documents="{{ maxDocuments|attr }}"
          data-worker-src="{{ pdfWorkerUrl|attr }}">
 
         <div class="ccw2-upload-slot"></div>
+        <div class="ccw2-ask-slot"></div>
 
         <div class="ccw2-layout">
             {# The answer, with its claims separated by where they came from. #}
@@ -142,7 +147,26 @@
             failureNoTextLayerAndOcrFailed: {{ "no text layer, and OCR could not read it"|xlj }},
             failureModelOutputInvalid: {{ "the extractor returned something the schema rejects"|xlj }},
             failurePageLimitExceeded: {{ "too many pages"|xlj }},
-            failureTimedOut: {{ "extraction timed out"|xlj }}
+            failureTimedOut: {{ "extraction timed out"|xlj }},
+            failureVisionCallFailed: {{ "the extraction model could not be reached"|xlj }},
+            failureNoFieldsLocated: {{ "nothing read from the file could be found on its pages"|xlj }},
+            failureInternalError: {{ "the extractor failed unexpectedly"|xlj }},
+
+            askHeading: {{ "Ask about this chart"|xlj }},
+            askNote: {{ "Answers cite the chart, the uploaded documents that finished extracting, and guideline passages, each in its own section."|xlj }},
+            askPlaceholder: {{ "e.g. Is anything on the uploaded lab report flagged, and what does guidance say about it?"|xlj }},
+            askSend: {{ "Ask"|xlj }},
+            asking: {{ "Asking..."|xlj }},
+            askDocuments: {{ "Documents included: %count%"|xlj }},
+            askNoDocuments: {{ "No uploaded documents included; the question is about the chart and guidance."|xlj }},
+            answerFor: {{ "Answer for"|xlj }},
+            born: {{ "DOB"|xlj }},
+            statusAnswered: {{ "Answered"|xlj }},
+            statusPartiallyAnswered: {{ "Partly answered"|xlj }},
+            statusNotInRecord: {{ "Not in the sources read"|xlj }},
+            statusRefused: {{ "Not answered"|xlj }},
+            askFailed: {{ "The question could not be answered."|xlj }},
+            contextChanged: {{ "A different patient is now open in this session. Reload this chart to ask about the patient shown."|xlj }}
         });
     </script>
 {% endblock %}

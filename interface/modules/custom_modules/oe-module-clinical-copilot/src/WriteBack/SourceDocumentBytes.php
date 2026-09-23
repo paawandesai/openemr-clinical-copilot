@@ -22,6 +22,7 @@ namespace OpenEMR\Modules\ClinicalCopilot\WriteBack;
 final readonly class SourceDocumentBytes
 {
     public function __construct(
+        public int $documentId,
         public string $bytes,
         public string $mimeType,
         public string $filename,
