@@ -148,6 +148,12 @@ w2-writeback-php:
         - composer.lock
     paths:
       - vendor/
+    # Default is on_success, and this job spent six pipelines failing at
+    # `composer install` — so vendor/ was never produced, never cached, and
+    # every run paid the full install again only to fail again. Saving on
+    # failure too means a run that gets past the install and breaks in phpunit
+    # still leaves a warm vendor/ for the next one.
+    when: always
   before_script:
     # --ignore-platform-reqs: OpenEMR's root composer.json requires extensions
     # (gd, soap, mysqli, ...) that this module's tests never touch — its
@@ -155,7 +161,18 @@ w2-writeback-php:
     # globals.php. Installing them into the image to satisfy a resolver check
     # would add minutes for classes that are never loaded.
     # --no-scripts: the post-install scripts are OpenEMR's asset pipeline.
+    #
+    # unzip and git: php:8.3-cli ships NEITHER, and has no zip extension and no
+    # 7z either. Composer therefore cannot unpack a single dist archive, and
+    # cannot fall back to --prefer-source because there is no git. All 248
+    # packages fail and the job dies before phpunit is reached. It passed when
+    # run by hand only because that used the composer:2 image, which has unzip.
+    # Verified in the CI image: `docker run --rm php:8.3-cli` reports unzip,
+    # 7z, git and the zip extension all MISSING; with these two packages
+    # installed the same lock file resolves and all 248 unpack.
     - php -v
+    - apt-get update -qq
+    - apt-get install -y -qq --no-install-recommends unzip git
     - curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer
     - composer install --no-interaction --no-progress --ignore-platform-reqs --no-scripts
   script:
