@@ -625,6 +625,30 @@ pre-change counts.
 
 ## 8. Measured on the host
 
+### 8.00 Redeploy with D50, `main@ea198c8` — the whole-report question
+
+Deployed 2026-09-23 17:12 UTC: the agent image from local `main@ea198c8`
+(eval gate + D50 answer scope on top of `21f1053`; module, Caddyfile and
+compose unchanged). The guard was re-verified on the new image before the
+swap, with the same results as §2.2. The question most likely to be asked
+on camera — **"What were the results on the uploaded lab report?"** —
+through the chart card, 3 runs per report, fresh extraction first:
+
+| report | extraction | answer | citations | answer step | end to end (wall) | per question |
+|---|---|---|---|---|---|---|
+| lab-clean-001, 1 page, 22 rows | 32.2 s, $0.126 | `partially_answered` | 49 document, 0 unverified | 5.3-6.8 s | **6.9-8.4 s** | ~$0.084 |
+| lab-multipage-003, 2 pages | 60.8 s, $0.228 | `partially_answered` | 97 document, 0 unverified | 10.5-11.3 s | **12.0-13.1 s** | ~$0.089 |
+
+- **Before D50 this question took 89-189 s** (D50's own measurement).
+  After, the answer step is 5-11 s on this host, inside D50's 7-13 s.
+- `partially_answered` with 2 limitations is D50 item 7 working as
+  designed: a whole-report question names no test, so in-range rows are
+  counted rather than itemised. No guideline retrieval runs for it.
+- Drafting: 14,585 in / 368-461 out (1 page) and 12,095 in / ~1,145 out
+  (2 pages) tokens, `claude-opus-5`.
+- Both uploaded documents were deleted afterwards; the host is back to
+  its pre-deploy counts.
+
 ### 8.0 Post-deploy, `main@21f1053` — the numbers to cite
 
 Deployed 2026-09-23 16:40 UTC: agent image and module from `main@21f1053`
