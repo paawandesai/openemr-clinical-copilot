@@ -276,7 +276,10 @@ class ExtractionJobs:
         existing = self._status.get(document_id)
         if existing is not None and not force_reextract:
             return existing
-        correlation_id = _new_correlation_id()
+        # The uploading request's id when there is one, so the background
+        # extraction stays on the encounter's trace (docs/w2/OBSERVABILITY.md
+        # §2). A fresh id only when submitted outside any request.
+        correlation_id = get_correlation_id() or _new_correlation_id()
         pending = IntakeExtractorOutput(
             status=ExtractionStatus.PENDING,
             document_id=document_id,

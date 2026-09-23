@@ -1,0 +1,241 @@
+# Week 2 load and stress tests (local stack)
+
+Run 2026-09-22 against the **local** stack. Not Vultr: Week 1 measured that
+host, and its numbers are in `agent/load-test/RESULTS.md`. Raw k6 summaries,
+resource samples and bench output are in `docs/w2/evidence/load/`; how to
+re-run is in `agent/load-test/w2/README.md`.
+
+## Summary
+
+- **The ask path still saturates in OpenEMR, and Week 2 does not change
+  that.** A question still does its FHIR reads through OpenEMR's PHP tier. At
+  10 users OpenEMR already used 420% CPU and nothing failed. At 50 users,
+  58% of requests failed, all of them `fhir_unavailable`, while the agent sat
+  at ≤20% of one core. That is Week 1's finding, reproduced locally.
+- **Week 2's new costs land in the agent process, not OpenEMR.** Nothing
+  from them enters the 10-user OpenEMR ceiling directly, but on a shared
+  4-vCPU host they compete with it for CPU and memory:
+  - **The vision call** dominates each document: 15–31 s and $0.10–0.13 per
+    document. It is Anthropic-bound, not local-CPU-bound.
+  - **OCR** is the local CPU cost of extraction: about 1.1 CPU-seconds per
+    document; 8.25 cores busy at 50 concurrent extractions.
+  - **The cross-encoder reranker** is the worst behaved under concurrency.
+    At 10 concurrent retrievals its circuit breaker opened and only 5% were
+    reranked. At 50 concurrent, in-flight reranks, which are never
+    cancelled, thrashed the CPU: **p95 335 s**.
+  - **Embedding** is not a bottleneck: p95 77 ms at 50 concurrent.
+
+## Setup
+
+| | |
+|---|---|
+| Machine | Apple M5 Pro, 15 cores, 24 GiB. The load generator (k6) ran on the same machine. |
+| OpenEMR + MariaDB | `docker/development-easy`, in a Docker VM with **6 CPUs, 11.65 GiB** |
+| Agent | This branch, on the host (`start_local_agent.sh`), one uvicorn worker; `LANGFUSE` **off** for every baseline below (Langfuse's six containers share the Docker VM with OpenEMR and would contaminate it; `agent/docs/observability.md` §1) |
+| LLM | Stubbed (`AGENT_STUB_LLM_DRAFTING=true`) for the brief runs; **real** for the conversation run and the vision sample (the stub does not cover them; see "What it cost") |
+| Patient | Phil Belford, `a2c36e54-af42-4c38-b86e-ade616ed5494`: a 5-record chart, the Week 1 patient, so the numbers compare |
+| Load shape | k6, one VU = one clinician, a request then `sleep(1)`; 60 s per level; every iteration a new session |
+| Resources | `sample_resources.sh`: `docker stats` for OpenEMR/MariaDB, `ps` for the agent, about every 3–4 s |
+
+## 1. Ask path — Pre-Visit Brief, LLM stubbed
+
+`k6-ask.js ROUTE=brief`. Everything but the model call is real: FHIR reads
+under the clinician's token, verification, render, logging.
+
+| Users | Requests | Error rate | p50 | p95 | p99 | Throughput |
+|---|---|---|---|---|---|---|
+| 10 | 280 | **0.00%** | 1.14 s | 1.52 s | 1.72 s | 4.53 req/s |
+| 50 | 200 | **58.0%** (116) | 16.08 s | 28.05 s | 31.55 s | 2.70 req/s |
+
+By step (server-side timing): FHIR `retrieve` p95 is **1.52 s at 10 users
+and 29.7 s at 50**. Draft and verify stay under 1 ms (stub) at both levels.
+
+| Container | At rest | 10 users (peak CPU / mem) | 50 users (peak CPU / mem) |
+|---|---|---|---|
+| agent (host process) | 0% / 28–69 MiB | 20.0% / 135 MiB | 14.4% / 149 MiB |
+| OpenEMR (Apache/PHP) | 0.2% / 554 MiB | **419.9%** / 1,009 MiB | **508.7% / 4,888 MiB** |
+| MariaDB | 0% / 357 MiB | 60.0% / 378 MiB | 48.5% / 442 MiB |
+
+The failures:
+
+- All 116 were `502 fhir_unavailable`. OpenEMR answered 157 of 2,225 FHIR
+  reads with 500 (7.1%), and the agent's `tool_call_event`s record exactly
+  that.
+- OpenEMR's resident memory went from 0.55 to 4.9 GiB at 50 users: PHP
+  workers spawned faster than they retired. That is Week 1's finding,
+  unchanged.
+- Throughput *fell* from 4.5 to 2.7 req/s as users went from 10 to 50. That
+  is the signature of a saturated backend.
+
+## 2. Ask path — conversation turn, real LLM, 10 users
+
+`k6-ask.js` (the conversation route). This run used **real model calls**:
+the load-test stub covers the brief only, as `draft_follow_up.py` says. It
+is still the most honest ask-path number in this document, because it
+includes Anthropic.
+
+| Users | Requests | Error rate | p50 | p95 | p99 | Throughput |
+|---|---|---|---|---|---|---|
+| 10 | 100 | **0.00%** | 5.25 s | 6.41 s | 6.72 s | 1.54 req/s |
+
+By step: `retrieve` p95 1.41 s, `draft` (LLM) p95 **5.56 s**, `verify`
+0.4 ms. The model is 85% of the wait.
+
+- Resources: agent 9.7% / 136 MiB peak; OpenEMR 384% / 643 MiB peak;
+  MariaDB 48%.
+- Cost: 100 turns × **$0.0299** (4,250 tokens each) ≈ **$3.00**.
+
+It was **not** run at 50 users: that would be about 250 real model calls,
+and it would measure Anthropic's rate limits, not this system (the Week 1
+convention).
+
+## 3. Extraction path — upload surface (HTTP)
+
+`k6-upload.js`: `POST /documents`, then poll status once a second until
+complete. Every upload is distinct bytes. **On `main` the route is still the
+stub**: it hashes the body and runs no extractor. So this measures the
+upload surface: body read, SHA3-512, the D7 status machine.
+
+| Users | Requests | Error rate | p50 | p95 | p99 | Throughput | upload → complete |
+|---|---|---|---|---|---|---|---|
+| 10 | 750 | 0.00% | 2.9 ms | 7.3 ms | 115 ms | 12.4 req/s | 4.03 s (the stub's timer) |
+| 50 | 3,750 | 0.00% | 7.3 ms | 37.4 ms | 61.8 ms | 61.5 req/s | 4.05 s |
+
+The agent peaked at 2.8% CPU / 155 MiB, and OpenEMR at 21.7% (the only
+OpenEMR traffic was token checks). The surface is not a bottleneck. What
+matters is the work behind it:
+
+## 4. Extraction path — the extractor, in process
+
+`extraction_bench.py` drives the real intake-extractor worker
+(`attach_and_extract`) over the six doc-factory samples: 2 clean labs,
+1 multipage lab, 1 heavy-scan lab, 1 clean and 1 light-scan intake form.
+Two modes.
+
+### 4a. Vision replayed; every other stage real
+
+The vision call is replaced by the sample's perfect transcription (the
+extractor's own test stub). Everything else runs for real: PyMuPDF text
+layer, Tesseract OCR, locate, checks, discrepancies.
+
+| Concurrent | Extractions | Failed | p50 | p95 | p99 | Throughput | Cores busy | Peak RSS |
+|---|---|---|---|---|---|---|---|---|
+| 1 | 2 | 0 | 1.17 s | 2.21 s | 2.30 s | 0.85 /s | 0.95 | 251 MiB |
+| 10 | 20 | 0 | 0.28 s | 4.07 s | 4.24 s | 4.62 /s | 4.9 | 655 MiB |
+| 50 | 100 | 0 | 4.81 s | 10.20 s | 10.99 s | 7.51 /s | **8.25** | **1,233 MiB** |
+
+By step at 50 concurrent: `read_document` (text layer / OCR) p95 is
+**10.2 s**; `locate` p95 39 ms; `verify` 8 ms. OCR is the entire local cost.
+It runs in `asyncio.to_thread`, so the event loop stays free, but the cores
+do not.
+
+On the Vultr host's 4 vCPUs, which OpenEMR alone already pinned at 10 users,
+the same load would be CPU-bound at roughly half this throughput, competing
+directly with OpenEMR. That is an inference from these numbers, not a
+measurement on that host.
+
+### 4b. Real vision calls, sequential (N = 3)
+
+| Sample | Total | Vision step | Tokens in / out | Cost | Located / read |
+|---|---|---|---|---|---|
+| lab-clean-001 | 29.5 s | 29.5 s | 6,663 / 3,704 | $0.126 | 102 / 104 (98%) |
+| intake-clean-004 | 15.3 s | 15.3 s | 11,531 / 1,515 | $0.096 | 45 / 49 (92%) |
+| lab-scanned-heavy-abnormal-002 | 32.9 s | 30.6 s | 6,663 / 3,716 | $0.126 | 36 / 107 (34%) |
+
+The vision call is **93–99% of a document's extraction time** and all of its
+cost. It is why D7 makes extraction an upload-time path. It was not run
+concurrently: 10 or 50 concurrent calls would measure Anthropic's rate
+limits and cost $1–6. Concurrent vision throughput is **unmeasured**.
+
+## 5. Guideline retrieval (hybrid RAG), in process
+
+`retrieval_bench.py`: `run_evidence_retriever` over the 30 concept-only dev
+queries, from a thread pool, with the committed corpus (693 chunks), local
+bge-small embeddings and the local cross-encoder reranker. No HTTP route
+calls the retriever yet (no supervisor), so this is the only way to load it.
+
+**Without rerank** (BM25 + dense + RRF):
+
+| Concurrent | Retrievals | p50 | p95 | p99 | Throughput | Cores busy |
+|---|---|---|---|---|---|---|
+| 1 | 4 | 3.1 ms | 3.9 ms | 4.0 ms | 295 /s | 6.7 |
+| 10 | 40 | 9.9 ms | 14.0 ms | 15.3 ms | 891 /s | 10.8 |
+| 50 | 200 | 52.5 ms | 76.7 ms | 85.1 ms | 892 /s | 10.3 |
+
+RSS about 250 MiB. **Embedding and fusion are not a bottleneck.**
+
+**With rerank requested** (the default path; D25's 2.5 s rerank budget and
+its circuit breaker):
+
+| Concurrent | Retrievals | p50 | p95 | p99 | Reranked | Circuit open after |
+|---|---|---|---|---|---|---|
+| 1 | 4 | 239 ms | 264 ms | 266 ms | **100%** | no |
+| 10 | 40 | 13.8 ms | 4,260 ms | 4,332 ms | **5%** (2/40) | yes |
+| 50 | 200 | 9.2 ms | **335,224 ms** | 343,579 ms | **0%** | yes |
+
+What this shows:
+
+- **Rerank does not survive concurrency.** With 10 simultaneous reranks,
+  each blew the 2.5 s budget. The first to finish opened the circuit, and
+  every retrieval after it skipped reranking. That is by design (D25), and it
+  is why `reranked` true-rate is on the dashboard: it is the one number that
+  shows the reranker silently turned itself off.
+- **The circuit does not cancel reranks already running.** At 50, fifty
+  cross-encoder calls started before the circuit could open, and competed
+  for the CPU until they finished, about 5.6 minutes later. Only 2 cores were
+  busy through it: ONNX threads oversubscribed and thrashed. p50 stays low
+  because most requests arrived after the circuit opened and skipped rerank.
+- **Memory.**
+  - Steady state with the reranker loaded is about **1.1 GiB RSS** (0.24 GiB
+    without it); one rerank takes about 230 ms.
+  - The first, cold run peaked at **5.3 GiB RSS** with a 39 s load. The
+    cause was not isolated: a warm re-run loaded in 0.4 s.
+  - On the 7.24 GiB Vultr host, where OpenEMR peaks at 4.9 GiB (Week 1),
+    that peak would not fit.
+
+**Recommendation (not implemented; a retrieval work order's call):**
+
+- Bound reranks with a semaphore of 1–2.
+- Treat a queued rerank as over budget, rather than starting it.
+- Preload the reranker at deploy, as `AGENT_PRELOAD_RETRIEVAL` already does.
+
+## Where the new bottleneck is
+
+| Path | Bottleneck | Evidence |
+|---|---|---|
+| Ask (question → answer) | **OpenEMR's PHP tier**, unchanged from Week 1: saturated at 10 users locally (420% CPU), failing at 50 (58%) | §1 |
+| Ask, wall-clock | The LLM draft: 85% of a real turn | §2 |
+| Extraction, wall-clock and cost | **The vision call**: 15–31 s, $0.10–0.13 per document | §4b |
+| Extraction, local CPU | **OCR**: 8.25 cores at 50 concurrent, p95 10 s | §4a |
+| Guideline retrieval | **The cross-encoder reranker**: circuit opens at 10 concurrent, p95 335 s at 50, 1.1–5.3 GiB | §5 |
+| Embedding | Not a bottleneck: p95 77 ms at 50 | §5 |
+
+**Does Week 2 change the ~10-user ceiling?**
+
+- Not for questions: it is still OpenEMR.
+- It adds a second, independent ceiling inside the agent process. Week 1
+  could say "the agent is ≤20% of one core". With OCR and the reranker, that
+  is no longer true. On a single 4-vCPU host shared with OpenEMR, upload and
+  retrieval bursts will take CPU the PHP tier needs.
+- Extraction should not run in the request-serving process, or on the
+  OpenEMR host, once it is wired to the upload route.
+
+## What it cost
+
+Three sets of real model calls, **about $3.72** in total. The unplanned
+$3.00 was a mistake: I assumed the stub covered the conversation route, and
+the module docstring says it does not.
+
+| Run | Calls | Cost |
+|---|---|---|
+| §2, real-LLM conversation run | 100 turns | $2.99 |
+| §4b, vision sample | 3 | $0.35 |
+| API collection runs | 3 runs, 5 calls (the brief was stubbed in one run) | $0.38 ($0.150 + $0.087 + $0.145, from the logs) |
+
+## Not measured
+
+- Concurrent vision throughput and Anthropic rate limits.
+- 50 concurrent real conversation turns.
+- Any of this on Vultr.
+- The upload route with the real extractor behind it (not wired on `main`).
+- The cause of the reranker's 5.3 GiB cold peak.

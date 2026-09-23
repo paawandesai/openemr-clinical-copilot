@@ -6,7 +6,8 @@
 # The client must be an OpenEMR API client with the password grant and the
 # scopes in local.postman_environment.json's token_scope (README.md, "One-time
 # setup"). Nothing secret is read from, or written to, a committed file: the
-# id and secret come from the environment and go to newman as --env-var.
+# id and secret (and the OpenEMR login, default physician/physician, the
+# public demo account) come from the environment and go to newman as --env-var.
 # Extra arguments pass through to newman (e.g. --folder "1. Health").
 set -euo pipefail
 : "${FHIR_CLIENT_ID:?set FHIR_CLIENT_ID (see README.md)}"
@@ -16,6 +17,8 @@ exec npx --yes newman@6 run "$HERE/w2-core-flow.postman_collection.json" \
   --environment "$HERE/local.postman_environment.json" \
   --env-var "client_id=$FHIR_CLIENT_ID" \
   --env-var "client_secret=$FHIR_CLIENT_SECRET" \
+  --env-var "openemr_username=${OPENEMR_USERNAME:-physician}" \
+  --env-var "openemr_password=${OPENEMR_PASSWORD:-physician}" \
   --working-dir "$HERE" \
   --insecure \
   "$@"

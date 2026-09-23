@@ -126,10 +126,6 @@ class TestSteps:
         assert d["steps"]["conversation.routing"]["outcomes"] == {"refused": 1}
         assert d["steps"]["pre_visit_brief.retrieve"]["errors"] == 1
 
-    def test_the_extractors_own_step_lines_are_in_the_by_step_view(self) -> None:
-        d = build([line("intake_extraction_step", {"step": "vision", "latency_ms": 29466})])
-        assert d["steps"]["intake_extractor.vision"]["p95_ms"] == 29466
-
 
 class TestTools:
     def test_retries_and_dependency_failures(self) -> None:

@@ -261,16 +261,6 @@ def build(events: list[Event], prices: dict[str, dict[str, float]] | None = None
             by_step[key].add(float(data.get("latency_ms", 0.0)), outcome == "error")
             step_outcomes[key][outcome] += 1
 
-        elif event.event_type == "intake_extraction_step":
-            # The intake-extractor (feat/w2-extractor) logs its steps in its
-            # own shape rather than as step_event. Read here so extraction is
-            # in the by-step view today; once the extractor wraps its nodes
-            # with `_timed(..., pipeline=Pipeline.INTAKE_EXTRACTOR)` this
-            # branch can go (docs/w2/OBSERVABILITY.md, "Chain breaks").
-            key = f"intake_extractor.{data.get('step')}"
-            by_step[key].add(float(data.get("latency_ms", 0.0)), False)
-            step_outcomes[key]["ok"] += 1
-
         elif event.event_type == "tool_call_event":
             key = str(data.get("tool"))
             tool = tools[key]

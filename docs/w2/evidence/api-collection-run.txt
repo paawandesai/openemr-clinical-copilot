@@ -1,0 +1,148 @@
+(node:91974) [DEP0176] DeprecationWarning: fs.F_OK is deprecated, use fs.constants.F_OK instead
+(Use `node --trace-deprecation ...` to show where the warning was created)
+newman
+
+Clinical Co-pilot: Week 2 core flow
+
+❏ 0. Setup
+↳ Get clinician access token (password grant)
+  POST https://localhost:9300/oauth2/default/token [200 OK, 2.53kB, 423ms]
+  ✓  HTTP 200
+  ✓  a bearer token came back
+  ✓  it can write lab results
+
+❏ 1. Health
+↳ Liveness: GET /health
+  GET http://127.0.0.1:8100/health [200 OK, 199B, 6ms]
+  ✓  HTTP 200
+  ✓  alive
+
+↳ Readiness: GET /ready
+  GET http://127.0.0.1:8100/ready [200 OK, 411B, 2ms]
+  ✓  200 exactly when ready, 503 otherwise
+  ✓  checks OpenEMR, the LLM provider and the observability backend
+  ✓  ready
+
+❏ 2. Encounter
+↳ Upload a lab PDF: POST /documents
+  POST http://127.0.0.1:8100/documents?kind=lab_pdf [200 OK, 440B, 8ms]
+  ✓  HTTP 200
+  ✓  extraction has started (D7): a status, not a wait
+  ✓  the document id is derived from the bytes
+  ✓  the encounter id comes back on the response
+
+↳ Extraction status: GET /documents/{id}/extraction (polls)
+  GET http://127.0.0.1:8100/documents/5414f88e0e4e92e0a0de5c6b523c99796664006ec2eb4ffeca569184df80c3537976744fa60941ee947ff67f6413f18a642e5deaba02445418d5af5223ea1ab5/extraction [200 OK, 463B, 1ms]
+  ✓  HTTP 200
+  ✓  the encounter id comes back on the response
+
+Attempting to set next request to Extraction status: GET /documents/{id}/extraction (polls)
+
+↳ Extraction status: GET /documents/{id}/extraction (polls)
+  GET http://127.0.0.1:8100/documents/5414f88e0e4e92e0a0de5c6b523c99796664006ec2eb4ffeca569184df80c3537976744fa60941ee947ff67f6413f18a642e5deaba02445418d5af5223ea1ab5/extraction [200 OK, 467B, 2ms]
+  ✓  HTTP 200
+  ✓  the encounter id comes back on the response
+
+Attempting to set next request to Extraction status: GET /documents/{id}/extraction (polls)
+
+↳ Extraction status: GET /documents/{id}/extraction (polls)
+  GET http://127.0.0.1:8100/documents/5414f88e0e4e92e0a0de5c6b523c99796664006ec2eb4ffeca569184df80c3537976744fa60941ee947ff67f6413f18a642e5deaba02445418d5af5223ea1ab5/extraction [200 OK, 467B, 1ms]
+  ✓  HTTP 200
+  ✓  the encounter id comes back on the response
+
+Attempting to set next request to Extraction status: GET /documents/{id}/extraction (polls)
+
+↳ Extraction status: GET /documents/{id}/extraction (polls)
+  GET http://127.0.0.1:8100/documents/5414f88e0e4e92e0a0de5c6b523c99796664006ec2eb4ffeca569184df80c3537976744fa60941ee947ff67f6413f18a642e5deaba02445418d5af5223ea1ab5/extraction [200 OK, 467B, 2ms]
+  ✓  HTTP 200
+  ✓  the encounter id comes back on the response
+
+Attempting to set next request to Extraction status: GET /documents/{id}/extraction (polls)
+
+↳ Extraction status: GET /documents/{id}/extraction (polls)
+  GET http://127.0.0.1:8100/documents/5414f88e0e4e92e0a0de5c6b523c99796664006ec2eb4ffeca569184df80c3537976744fa60941ee947ff67f6413f18a642e5deaba02445418d5af5223ea1ab5/extraction [200 OK, 464B, 4ms]
+  ✓  HTTP 200
+  ✓  the encounter id comes back on the response
+  ✓  extraction reached a final state
+
+↳ Ask: Pre-Visit Brief: POST /pre-visit-brief
+  POST http://127.0.0.1:8100/pre-visit-brief [200 OK, 6.34kB, 18.8s]
+  ✓  HTTP 200
+  ✓  the encounter id comes back on the response
+  ✓  every claim went through the verifier
+  ✓  per-step timing is reported
+
+↳ Ask: a question: POST /pre-visit-brief/conversation
+  POST http://127.0.0.1:8100/pre-visit-brief/conversation [200 OK, 8.06kB, 14.1s]
+  ✓  HTTP 200
+  ✓  the encounter id comes back on the response
+  ✓  the turn was routed and answered or refused by rule
+  ✓  every claim went through the verifier
+
+↳ Write back lab results: POST /apis/default/api/clinical-copilot/lab-writeback
+  POST https://localhost:9300/apis/default/api/clinical-copilot/lab-writeback [200 OK, 2kB, 331ms]
+  ✓  HTTP 200
+  ✓  OpenEMR returned real ids
+  ✓  each result was created or recognised as a duplicate
+
+↳ Write back again: same body, same ids (idempotency)
+  POST https://localhost:9300/apis/default/api/clinical-copilot/lab-writeback [200 OK, 1.84kB, 166ms]
+  ✓  HTTP 200
+  ✓  nothing new was written
+  ✓  the same rows answered
+  ✓  the same document answered
+
+↳ Preview: sign in to OpenEMR (session cookie)
+  POST https://localhost:9300/interface/main/main_screen.php?auth=login&site=default [200 OK, 55.84kB, 801ms]
+  ✓  signed in (not bounced back to the login page)
+
+↳ Preview: open the patient's chart
+  GET https://localhost:9300/interface/patient_file/summary/demographics.php?set_pid=38 [200 OK, 173.42kB, 792ms]
+  ✓  HTTP 200
+
+↳ Preview the written document: GET <module>/document.php
+  GET https://localhost:9300/interface/modules/custom_modules/oe-module-clinical-copilot/public/document.php?document_id=2482 [200 OK, 32.55kB, 112ms]
+  ✓  HTTP 200
+  ✓  it is the PDF
+
+❏ 3. Refusals
+↳ Upload without a token is 401
+  POST http://127.0.0.1:8100/documents?kind=lab_pdf [401 Unauthorized, 394B, 3ms]
+  ✓  HTTP 401
+
+↳ Status of an unknown document is 404
+  GET http://127.0.0.1:8100/documents/0000/extraction [404 Not Found, 329B, 2ms]
+  ✓  HTTP 404
+
+↳ A question about an unknown patient is 404
+  POST http://127.0.0.1:8100/pre-visit-brief/conversation [404 Not Found, 331B, 221ms]
+  ✓  HTTP 404
+  ✓  patient_not_found
+
+↳ Preview of a document that is not this chart's is 404
+  GET https://localhost:9300/interface/modules/custom_modules/oe-module-clinical-copilot/public/document.php?document_id=1 [404 Not Found, 419B, 109ms]
+  ✓  HTTP 404
+
+↳ End the conversation
+  POST http://127.0.0.1:8100/pre-visit-brief/conversation/end [200 OK, 310B, 181ms]
+  ✓  HTTP 200
+
+┌─────────────────────────┬────────────────────┬───────────────────┐
+│                         │           executed │            failed │
+├─────────────────────────┼────────────────────┼───────────────────┤
+│              iterations │                  1 │                 0 │
+├─────────────────────────┼────────────────────┼───────────────────┤
+│                requests │                 21 │                 0 │
+├─────────────────────────┼────────────────────┼───────────────────┤
+│            test-scripts │                 21 │                 0 │
+├─────────────────────────┼────────────────────┼───────────────────┤
+│      prerequest-scripts │                 21 │                 0 │
+├─────────────────────────┼────────────────────┼───────────────────┤
+│              assertions │                 48 │                 0 │
+├─────────────────────────┴────────────────────┴───────────────────┤
+│ total run duration: 40.4s                                        │
+├──────────────────────────────────────────────────────────────────┤
+│ total data received: 281.96kB (approx)                           │
+├──────────────────────────────────────────────────────────────────┤
+│ average response time: 1722ms [min: 1ms, max: 18.8s, s.d.: 4.8s] │
+└──────────────────────────────────────────────────────────────────┘

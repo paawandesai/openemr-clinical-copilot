@@ -49,6 +49,7 @@ from pydantic import ValidationError
 
 from app.extraction import DocumentWords, OcrUnavailableError, TextSource, extract_words
 from app.graph.pre_visit_brief import UntracedGraph, _timed, _untraced
+from app.models.telemetry_events import Pipeline
 from app.models.w2.documents import DocumentChecksums, DocumentKind, SourceDocument
 from app.models.w2.intake_form import IntakeFormExtraction
 from app.models.w2.lab_pdf import LabPdfExtraction
@@ -254,7 +255,13 @@ def _build_graph() -> Any:
         ("locate", _locate),
         ("verify", _verify),
     ):
-        graph.add_node(name, _untraced(_timed(name, node)), input_schema=IntakeExtractorState)
+        # Named pipeline, so each node also emits a step_event and extraction
+        # sits on the same by-step view as every other path.
+        graph.add_node(
+            name,
+            _untraced(_timed(name, node, Pipeline.INTAKE_EXTRACTOR)),
+            input_schema=IntakeExtractorState,
+        )
     graph.add_edge(START, "read_document")
     graph.add_conditional_edges("read_document", _route, {"next": "vision", "end": END})
     graph.add_conditional_edges("vision", _route, {"next": "locate", "end": END})

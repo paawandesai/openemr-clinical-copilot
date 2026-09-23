@@ -2,10 +2,10 @@
   "dashboard": {
     "window": {
       "first_event": "2026-09-22T23:56:57.976247+00:00",
-      "last_event": "2026-09-22T23:59:22.572672+00:00",
-      "span_seconds": 144.596425,
-      "events": 4996,
-      "correlation_ids": 334
+      "last_event": "2026-09-23T00:24:29.995302+00:00",
+      "span_seconds": 1652.019055,
+      "events": 5104,
+      "correlation_ids": 346
     },
     "requests": {
       "count": 295,
@@ -21,7 +21,7 @@
         "5xx": 68
       },
       "probe_requests": 3,
-      "throughput_rps": 2.0401610897364852,
+      "throughput_rps": 0.17856936886239488,
       "answer_routes": {
         "count": 286,
         "errors": 68,
@@ -166,10 +166,10 @@
       "intake_extractor.locate": {
         "count": 12,
         "errors": 0,
-        "p50_ms": 10.0,
-        "p95_ms": 19.45,
-        "p99_ms": 19.89,
-        "max_ms": 20.0,
+        "p50_ms": 11.004000000000001,
+        "p95_ms": 27.075599999999998,
+        "p99_ms": 28.636720000000004,
+        "max_ms": 29.027,
         "outcomes": {
           "ok": 12
         }
@@ -177,10 +177,10 @@
       "intake_extractor.read_document": {
         "count": 12,
         "errors": 0,
-        "p50_ms": 39.5,
-        "p95_ms": 3208.1999999999994,
-        "p99_ms": 3681.6400000000003,
-        "max_ms": 3800.0,
+        "p50_ms": 49.309,
+        "p95_ms": 3939.6066999999994,
+        "p99_ms": 4451.77814,
+        "max_ms": 4579.821,
         "outcomes": {
           "ok": 12
         }
@@ -188,10 +188,10 @@
       "intake_extractor.verify": {
         "count": 12,
         "errors": 0,
-        "p50_ms": 0.0,
-        "p95_ms": 1.8999999999999986,
-        "p99_ms": 2.780000000000001,
-        "max_ms": 3.0,
+        "p50_ms": 0.43100000000000005,
+        "p95_ms": 0.8751999999999995,
+        "p99_ms": 1.1110400000000002,
+        "max_ms": 1.17,
         "outcomes": {
           "ok": 12
         }
@@ -199,10 +199,10 @@
       "intake_extractor.vision": {
         "count": 12,
         "errors": 0,
-        "p50_ms": 0.0,
-        "p95_ms": 0.0,
-        "p99_ms": 0.0,
-        "max_ms": 0.0,
+        "p50_ms": 0.26449999999999996,
+        "p95_ms": 0.8078,
+        "p99_ms": 0.86236,
+        "max_ms": 0.876,
         "outcomes": {
           "ok": 12
         }
@@ -294,17 +294,17 @@
       "disclosure_rate": null
     },
     "extraction": {
-      "completed": 12,
+      "completed": 24,
       "failed": 0,
       "field_outcomes": {
-        "located": 1058,
-        "unlocated": 166,
-        "missing": 259,
-        "illegible": 1
+        "located": 2116,
+        "unlocated": 332,
+        "missing": 518,
+        "illegible": 2
       },
       "located_rate": 0.8643790849673203,
       "text_layer_located_rate": 0.9821802935010482,
-      "text_layer_fields_read": 954,
+      "text_layer_fields_read": 1908,
       "min_located_rate": 0.3364485981308411,
       "mean_confidence": 0.8332666666666667
     },
@@ -367,7 +367,7 @@
       "state": "ok",
       "value": 0.9821802935010482,
       "threshold": 0.85,
-      "sample": 954,
+      "sample": 1908,
       "min_sample": 50,
       "description": "located / (located + unlocated) over fields read from text-layer PDFs"
     },

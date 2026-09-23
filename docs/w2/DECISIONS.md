@@ -1551,6 +1551,122 @@ recorded), discrepancy precision and recall 2/2, zero false discrepancies on
 the 25 `derived` fields, and zero fuzzy locates on numeric, unit, date or
 flag fields (`agent/tests/intake_extractor_measurement.py`).
 
+## D36 — One encounter is one caller-supplied correlation id, held to an identifier's alphabet
+
+**Status:** DECIDED
+**Date:** 2026-09-22
+**Work order:** 14 (observability). **Numbering:** written as D35 and
+moved to D36 on rebase: `main` restored the intake-extractor entry as D35.
+D36–D38 are this branch's.
+
+**Decision:** An encounter is traced as one correlation id. The caller sends
+the same `X-Correlation-ID` on every request of the encounter: upload,
+status polls, brief, conversation turns and write-back. The agent uses it
+unchanged, and Langfuse therefore shows one trace (its trace id is a
+deterministic function of the correlation id). With no header, every
+request still gets its own UUID, as in Week 1.
+
+An inbound id is accepted only if it matches
+`^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$`. Anything else is **replaced** with a
+fresh UUID4 and is never logged (`app/middleware/correlation.py`,
+`accepted_correlation_id`). Background work started by a request (the
+extractor's `ExtractionJobs.submit`) inherits the request's id rather than
+minting its own.
+
+**Rationale:** The alternative, a separate `encounter_id` alongside a
+per-request correlation id, would give every event two join keys, and every
+consumer (Langfuse's trace id, `compute_metrics.py`, the Week 2 dashboard)
+would have to pick one. Week 1 already built the whole pipeline on the
+correlation id, and Langfuse already derives the trace from it. Reusing the
+id across requests is the only change needed.
+
+Accepting a caller's value makes the header a string written into every log
+line and every exported event. Before this, it was accepted verbatim, so a
+client could put a patient's name in it. An identifier's alphabet cannot
+carry a sentence or a name with spaces, and a UUID, a `corr-…` test id and
+k6's `k6-3-14-…` all fit it (`tests/test_w2_telemetry.py`).
+
+**Consequence:** the chart card (`AgentClient.php`) does not send the
+header yet, so from the UI each request is still its own trace. That is
+listed as an open chain break in `docs/w2/OBSERVABILITY.md` §2, not fixed
+here.
+
+---
+
+## D37 — The observability backend is checked by `/ready` but does not gate it
+
+**Status:** DECIDED
+**Date:** 2026-09-22
+**Work order:** 14.
+
+**Decision:** `/ready` reports `observability_backend` from a genuine,
+background Langfuse auth check that is never older than 60 s: `healthy`,
+`unhealthy` with a fixed reason, or `disabled` when export is not configured.
+It stays **`required: false`**. A down Langfuse makes the check `unhealthy`
+and leaves `/ready` at 200. OpenEMR and the LLM provider stay required: 503
+when either is down. Each case was verified by breaking the dependency
+(`docs/w2/evidence/ready-failure-modes.txt`).
+
+**Rationale:** Readiness decides whether the instance takes clinical
+traffic. Pulling a clinician-serving instance out of rotation because
+traces cannot be exported trades patient-facing availability for telemetry.
+And nothing is lost while Langfuse is down: every event is written to stdout
+**before** export is attempted, and stdout is the metrics record of source
+(`agent/docs/observability.md` §1, `scripts/compute_metrics.py`,
+`scripts/w2_dashboard.py`). Export already cannot fail a request
+(`langfuse_export.export_event` never raises). This keeps `/ready` saying
+the same thing.
+
+**Consequence:** a Langfuse outage is visible on `/ready`'s body and not on
+its status code. Anything that alerts on readiness must read the body to
+see it.
+
+---
+
+## D38 — Operational events are their own schemas, and a 4xx is not a dependency failure
+
+**Status:** DECIDED
+**Date:** 2026-09-22
+**Work order:** 14.
+
+**Decision:** Steps, tool calls and HTTP requests are three new event types
+(`step_event`, `tool_call_event`, `http_request_event`) in
+`app/models/telemetry_events.py`, apart from Week 1's KEY_METRICS schemas in
+`metrics_events.py`. They are plain `BaseModel`s with `extra="forbid"`.
+They have no free-text field: `counts` is `int | float | bool`, and errors
+carry the exception's class name, never its message.
+
+A tool call is a **dependency failure** when it got no response, a 5xx or a
+429. A 4xx is the caller's (unknown patient, rejected token, a write the
+ledger refused) and is counted apart. The tool-failure alert, the Langfuse
+`tool_call_failed` score and the dashboard all use this one rule, and a
+test pins that the exporter and the dashboard agree.
+
+The Anthropic SDK's silent retries are counted from the
+`x-stainless-retry-count` header it stamps on every attempt. The count is
+read by an httpx request hook, the only place the count is visible on a
+streamed call.
+
+**Rationale:**
+
+- **Separate module.** Week 1's six metrics and their consumers
+  (`compute_metrics.py`, the exporter) are pinned by tests, and mixing
+  operational shapes into that module would put every change to one next to
+  the other.
+- **No free text.** This is what makes invariant 1 structural for the new
+  events rather than a matter of care: nothing in them *can* hold a value.
+- **The 4xx rule.** A 4xx dependency-failure definition would page on-call
+  for a mistyped patient id. Week 1's load test also showed OpenEMR
+  answering a valid token with 401 under saturation (RESULTS.md), which this
+  rule counts as `other_errors`, not as OpenEMR failing. That is deliberate:
+  saturation shows up in the same run as 500s, and those it does count.
+- **Retries.** A call that took three attempts looks like one slow call from
+  the call site, and the retry count is the difference between "Anthropic is
+  slow" and "Anthropic is failing and we are retrying through it".
+
+**Not decided here:** where alerts are delivered. The rules and their
+evaluator exist (`docs/w2/ALERTS.md`); no pager is wired.
+
 ---
 
 ## D40 — The Week 2 ask path: one supervisor, a closed routing table, and a verifier that builds citations from sources
