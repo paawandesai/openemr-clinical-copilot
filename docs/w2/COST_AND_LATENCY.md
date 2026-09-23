@@ -20,28 +20,34 @@ limits.
   arithmetic shown.
 - **Assumed**: an input with no data behind it.
 
-**Snapshot: `main@0318c35`**, which is on `origin`. It is an interim pin:
-the last step before submission repins every citation to one final `main`
-commit, after the event-tags (D52), DECISIONS-guard and eval-gate follow-up
-merges.
+**Snapshot: `main@056cba9`**, which is on `origin`. Every path, number and
+decision below is on that commit. It includes these merges:
 
-- **Merged into `main`, so no longer marked:**
-  - `feat/w2-php-wiring` (`2ae4d98`);
-  - `chore/w2-deploy-rehearsal` (`21f1053`, and its post-deploy §8.0 at
-    `bc5236f`);
-  - `feat/w2-eval-gate` (`0b4ae04`);
-  - `feat/w2-answer-scope` (`ea198c8`, D50);
-  - the DECISIONS restore (`caa92f8`);
-  - `EVAL_GATE.md`, the gate's page for reviewers (`0318c35`).
-- **[PENDING `chore/w2-deploy-rehearsal`]** marks a figure from `docs/w2/DEPLOY.md` §8.00, the D50 redeploy.
-  That section is on `chore/w2-deploy-rehearsal` (`88be2a2`, on `origin`)
-  and not yet in `main`.
-- **The host runs `main@ea198c8`** since 2026-09-23 17:12 UTC **[PENDING `chore/w2-deploy-rehearsal`]**. Figures
-  from `DEPLOY.md` §8.0 were measured on the earlier deploy, `21f1053`,
-  **before D50**. D50 changes only how a document answer is scoped, so they
-  still describe extraction, retrieval and memory. They do not describe the
-  answer step. Figures from before any Week 2 deploy are labelled
-  "rehearsal host, before the Week 2 deploy".
+| Merge | At | What it brought |
+|---|---|---|
+| `feat/w2-php-wiring` | `2ae4d98` | the Documents & Sources card, its routes, the upload guard |
+| `chore/w2-deploy-rehearsal` | `21f1053` | D41 |
+| its first post-deploy figures | `bc5236f` | `DEPLOY.md` §8.0 |
+| its D50-redeploy figures | `5ad81c5` | `DEPLOY.md` §8.00 |
+| `feat/w2-eval-gate` | `0b4ae04` | the eval gate, D42–D48 |
+| `feat/w2-answer-scope` | `ea198c8` | D50 |
+| the DECISIONS restore | `caa92f8` | the dropped decision entries |
+| `EVAL_GATE.md` | `0318c35` | the gate's page for reviewers |
+| the decisions guard | `c1c5e21` | D51 |
+| the event-tags fix | `056cba9` | D52 |
+
+**The host runs `main@ea198c8`** since 2026-09-23 17:12 UTC (`DEPLOY.md`
+§8.00). It lacks only the event-tags telemetry fix (D52) and the
+documentation and test commits after it. Neither changes an answer.
+
+**Three kinds of host figure:**
+
+- **`DEPLOY.md` §8.00:** the D50 redeploy, on `ea198c8`.
+- **`DEPLOY.md` §8.0:** the earlier deploy, on `21f1053`, **before D50**.
+  D50 changes only how a document answer is scoped, so these still describe
+  extraction, retrieval and memory. They do not describe the answer step.
+- **Before any Week 2 deploy:** labelled "rehearsal host, before the Week 2
+  deploy".
 
 Short names used below:
 
@@ -55,8 +61,8 @@ Short names used below:
 
 ## Summary
 
-- **Located Week 2 dev spend: about $9.46** (itemised in §1; the last row
-  uses rounded per-question costs). The true
+- **Located Week 2 dev spend: about $10.66** (itemised in §1; row 9 uses
+  rounded per-question costs). The true
   total is higher by an unrecorded amount: no Anthropic Console reading was
   taken for Week 2, and several sets of live calls left no cost in the
   repository. Week 1's total was $0.36 (`docs/COST_ANALYSIS.md` §2.2).
@@ -67,7 +73,7 @@ Short names used below:
   - **the whole-report question** ("What were the results on the uploaded
     lab report?") answers in **6.9–8.4 s** on 22 rows and 12.0–13.1 s on 44
     rows, for about **$0.084–0.089**, with 0 unverified (on `ea198c8`, after
-    D50, `DEPLOY.md` §8.00 **[PENDING `chore/w2-deploy-rehearsal`]**);
+    D50, `DEPLOY.md` §8.00);
   - the document + guideline question cost about $0.178 and took 15.3–21.2 s
     **before D50** (on `21f1053`). It has not been re-measured since.
 - **One measured Week 2 encounter costs $0.82**, in each of two local runs
@@ -94,7 +100,7 @@ Short names used below:
     1 s per citation: 91 citations took 88.2–91.8 s.
   - D50 has **code** count the in-range rows and cite them itself. On the
     host the scoped whole-report answer shows 49 document citations from
-    368–461 output tokens, in a 5.3–6.8 s answer step (`DEPLOY.md` §8.00 **[PENDING `chore/w2-deploy-rehearsal`]**). The fit
+    368–461 output tokens, in a 5.3–6.8 s answer step (`DEPLOY.md` §8.00). The fit
     predicts 6.8–7.5 s. Citations shown are no longer a proxy for latency;
     output tokens are.
   - Every run used one model, `claude-opus-5`, so this says nothing about
@@ -128,18 +134,14 @@ rounded up.
 | 6 | Eval-gate judge, one cold run: 24 calls, 15,825 in / 2,593 out on `claude-haiku-4-5` at $1/$5 per MTok | **$0.0288** | Measured (15,825 × $1 + 2,593 × $5 = $0.02879) | gate README, "What a run costs" |
 | 7 | Deploy rehearsal on Vultr: brief + 4 turns × 3 patients | **$1.204075** ($0.180445 + $0.37474 + $0.64889) | Tokens measured from `llm_usage_event`; cost = tokens × $5/$25 per MTok | `DEPLOY.md` §8, "Cost per encounter" |
 | 8 | Post-deploy run on the host: 5 documents extracted (live vision) and the document + guideline question 3 times | **$1.21341** (vision $0.126 + $0.227 + $0.126 + $0.104 + $0.096 = $0.679; questions 31,109 in × $5 plus 873, 873 and 965 out × $25 per MTok = $0.53441) | Vision: the agent's own `cost_usd`; questions: tokens measured, cost = tokens × list price | `DEPLOY.md` §8.0 |
-| 9 | D50 redeploy run on the host: 2 documents extracted, the whole-report question 3 times on each | **≈ $0.873** (vision $0.126 + $0.228; questions ≈ 3 × $0.084 + 3 × $0.089) | Vision: `cost_usd`; questions: §8.00's rounded per-question cost | `DEPLOY.md` §8.00 **[PENDING `chore/w2-deploy-rehearsal`]** |
-| | **Total located** | **≈ $9.458 ≈ $9.46** (rows 1–8 sum to $8.585135; row 9 is approximate) | Sum of the rows | this table |
+| 9 | D50 redeploy run on the host: 2 documents extracted, the whole-report question 3 times on each | **≈ $0.873** (vision $0.126 + $0.228; questions ≈ 3 × $0.084 + 3 × $0.089) | Vision: `cost_usd`; questions: §8.00's rounded per-question cost | `DEPLOY.md` §8.00 |
+| 10 | Week 1 I-suite re-run after the event-tags fix: 17 model calls, 157,403 in / 16,730 out, no cache | **$1.205265** (157,403 × $5 + 16,730 × $25 per MTok) | Tokens measured; cost = tokens × list price | D52, "Result" (`docs/w2/DECISIONS.md`) |
+| | **Total located** | **≈ $10.663 ≈ $10.66** (rows 1–8 and 10 sum to $9.7904; row 9 is approximate) | Sum of the rows | this table |
 
-**Reported but not located.**
-
-- **"An I-suite run ~$1.21"** was reported by a session, but that figure is
-  not in any committed file, commit message or branch. The Week 2 I-suite
-  (prompt injection in an uploaded PDF) makes no model call where it runs:
-  W2-I1 to W2-I3 are active on a ground-truth vision stand-in, and I4 and
-  I5 are pending (`docs/w2/EVAL_GATE_EVIDENCE.md`).
-  The nearest committed figure is row 7, $1.204, which may be what was
-  remembered. **It is not added a second time.**
+**The "~$1.21 I-suite run" is located:** it is row 10. It was the **Week
+1** I-suite (the conversation evals), re-run after the D52 event-tags fix
+(D52, "Result"), not the Week 2 prompt-injection category. That category
+makes no model call where it runs.
 
 **Gaps: spend that happened and was not recorded.**
 
@@ -149,6 +151,7 @@ rounded up.
 | Planted-regression harness runs | each run re-grades the judge tier on the patched copies | the committed evidence run shows 0 calls (warm cache); earlier cold runs are not recorded |
 | `agent/scripts/w2_e2e_ask.py` live runs | one drafting call per run, plus vision with `--live-vision` | no output committed on any branch |
 | Week 1 live eval re-runs on Vultr, 2026-09-20 and 21 (43 cases) | real model calls | no dollar figure committed |
+| The first Week 1 I-suite run on the event-tags fix (`53b524e`, over `21f1053`) | real model calls | D52 records only the second run's cost |
 | The Week 1 embed check after the deploy (brief 24/24, medication and lab turns) | real model calls | no cost recorded (`DEPLOY.md` §8.0) |
 
 **Zero by design:**
@@ -252,7 +255,7 @@ What neither unit cost captures:
 | One lab upload | about $0.13 | measured after the deploy (`cost_usd`) |
 | One intake form | $0.05–0.10 | measured after the deploy (`cost_usd`) |
 | One document + guideline question | about $0.18 | measured tokens × list price, on `21f1053`, **before D50** |
-| One whole-report question | about $0.084–0.089 | measured on `ea198c8`, after D50 (`DEPLOY.md` §8.00 **[PENDING `chore/w2-deploy-rehearsal`]**) |
+| One whole-report question | about $0.084–0.089 | measured on `ea198c8`, after D50 (`DEPLOY.md` §8.00) |
 | **Encounter** | **≈ $0.54–1.06** | estimated sum |
 
 The measured local encounter, $0.82 (§2.1), lies inside that range. Its
@@ -307,7 +310,7 @@ How each column is derived:
   live extractions, `extraction-live-vision.json`) ÷ 60.
 - **Concurrent document questions** = encounters/min × 8.4 s ÷ 60. 8.4 s is
   the slowest end-to-end whole-report answer on the host after D50
-  (`DEPLOY.md` §8.00 **[PENDING `chore/w2-deploy-rehearsal`]**). This assumes one whole-report question per encounter. Before
+  (`DEPLOY.md` §8.00). This assumes one whole-report question per encounter. Before
   D50 the step was 89.0 s p50, which is 10.6× the column.
 - **OCR cores** = 1.67 pages per document (10 pages across the six samples)
   × 5.7 s per page (host p50, `DEPLOY.md` §8). It is an upper bound: a
@@ -328,7 +331,7 @@ The host figures are from `DEPLOY.md` §8.
 ### 3.2 What each level needs
 
 **Done before any scale: the whole-report question** (D50, deployed on
-`ea198c8`, `DEPLOY.md` §8.00 **[PENDING `chore/w2-deploy-rehearsal`]**).
+`ea198c8`, `DEPLOY.md` §8.00).
 
 - Before D50 it broke the 90 s budget for one clinician with no load, at
   88–92 s, and was about 56% of the measured encounter's cost ($0.4628 of
@@ -443,7 +446,7 @@ tier.**
 | Conversation turn, real LLM, 10 users | local | 100 | 5.25 s | 6.41 s | draft p95 5.56 s | `LOAD_TEST.md` §2 |
 | Pre-Visit Brief, real LLM | **rehearsal host, before the Week 2 deploy** | 3 patients | 19.7 s | — | max 22.8 s | `DEPLOY.md` §8 |
 | Follow-up turn, real LLM | **rehearsal host, before the Week 2 deploy** | 3 patients × 4 | 9.2 s | — | max 18.2 s | `DEPLOY.md` §8 |
-| **Whole-report question, end to end, after D50** | **host, `ea198c8`** | 3 per report | — | — | 22 rows: **6.9–8.4 s** (answer step 5.3–6.8 s), 49 document citations; 44 rows: **12.0–13.1 s** (10.5–11.3 s), 97; 0 unverified | `DEPLOY.md` §8.00 **[PENDING `chore/w2-deploy-rehearsal`]** |
+| **Whole-report question, end to end, after D50** | **host, `ea198c8`** | 3 per report | — | — | 22 rows: **6.9–8.4 s** (answer step 5.3–6.8 s), 49 document citations; 44 rows: **12.0–13.1 s** (10.5–11.3 s), 97; 0 unverified | `DEPLOY.md` §8.00 |
 | Document + guideline question, end to end, before D50 | host, `21f1053` | 3 | — | — | 15.3, 20.9, 21.2 s; drafting call 12.7–18.5 s; retrieval incl. rerank 1.55–1.68 s | `DEPLOY.md` §8.0 |
 | **Vision extraction per document** | **host, after the deploy** | 5 | — | — | 15.7–54.5 s; OCR +4.9–6.1 s per scanned page; locate + verify ~1 s | `DEPLOY.md` §8.0 |
 | **Upload → extraction complete, as the card sees it** | **host, after the deploy** | 3 | — | — | 20.8 s (clean intake), 35.3 s (scanned intake), 42.2 s (scanned lab) | `DEPLOY.md` §8.0 |
@@ -497,7 +500,7 @@ is output… input size barely matters", `docs/w2/DECISIONS.md` D50).
   model nothing.
 - On the host, the scoped whole-report answer on 22 rows shows **49
   document citations** from **368–461 output tokens**, in a **5.3–6.8 s**
-  answer step (`DEPLOY.md` §8.00 **[PENDING `chore/w2-deploy-rehearsal`]**).
+  answer step (`DEPLOY.md` §8.00).
 - The token fit predicts 6.8–7.5 s for that output. The citation fit
   predicts 53 s, eight to ten times too slow.
 - The bench's 3 citations for the same question and report (`LOAD_TEST.md`
@@ -563,7 +566,7 @@ Source: `docs/w2/evidence/php-wiring-e2e-run.md`, on `main`.
 The host was deployed from `main@21f1053` on 2026-09-23 and measured through
 the real chart card, one document at a time (`DEPLOY.md` §8.0). It was then
 redeployed from `main@ea198c8`, adding D50 and the gate, and the whole-report
-question was measured (`DEPLOY.md` §8.00 **[PENDING `chore/w2-deploy-rehearsal`]**).
+question was measured (`DEPLOY.md` §8.00).
 
 | Measurement | Before the Week 2 deploy (rehearsal host) | After the deploy |
 |---|---|---|
@@ -571,7 +574,7 @@ question was measured (`DEPLOY.md` §8.00 **[PENDING `chore/w2-deploy-rehearsal`
 | Vision extraction, latency per page | not measured on the host. OCR alone: p50 5.7 s per page; 5.6 s with two workers under `OMP_THREAD_LIMIT=1`, against ~162 s without it (`DEPLOY.md` §8) | **lab 27.8–39.8 s; intake 8.3–15.0 s.** Vision is 15.7–54.5 s per document, OCR adds 4.9–6.1 s per scanned page |
 | Peak memory under OCR + reranking | 3.7 GiB at demo load (2 rerank threads + 1 OCR worker); OOM-killed at a 5 GiB test cap under a heavier mix. Measured on the host, in a throwaway container from the merged image's code, before the deploy (`DEPLOY.md` §8) | **1.32 GiB** over the whole run, one document at a time, 0 OOM kills. The 3.7 GiB figure stays the bound under concurrent reranking |
 | One answer citing a document and a guideline | the host did not run `/w2/ask` | on `21f1053`, **before D50**: 3 of 3, 7 document + 2 guideline citations, 0 unverified, 15.3–21.2 s end to end, about $0.178 each. Not re-measured on `ea198c8` |
-| The whole-report question | the host did not run `/w2/ask` | on `ea198c8`, after D50: 22 rows 6.9–8.4 s, 44 rows 12.0–13.1 s, 0 unverified, about $0.084–0.089 (`DEPLOY.md` §8.00 **[PENDING `chore/w2-deploy-rehearsal`]**) |
+| The whole-report question | the host did not run `/w2/ask` | on `ea198c8`, after D50: 22 rows 6.9–8.4 s, 44 rows 12.0–13.1 s, 0 unverified, about $0.084–0.089 (`DEPLOY.md` §8.00) |
 
 ### 4.1d The document-question fix: D50, merged and deployed
 
@@ -583,7 +586,7 @@ by rule:
 - the rest is counted in one cited statement written by code;
 - the output is bounded at 10,000 tokens.
 
-It is deployed on the host (`DEPLOY.md` §8.00 **[PENDING `chore/w2-deploy-rehearsal`]**).
+It is deployed on the host (`DEPLOY.md` §8.00).
 
 The question is "What were the results on the uploaded lab report?", 3 runs
 per report, from `LOAD_TEST.md` §7:
@@ -597,7 +600,7 @@ per report, from `LOAD_TEST.md` §7:
 That is 13× faster on 22 rows and 16× faster on 44. The worst case, where
 the cap of 8 binds on the 44-row report, lands at the 45 s alert.
 
-**On the host, through the chart card** (`DEPLOY.md` §8.00 **[PENDING `chore/w2-deploy-rehearsal`]**):
+**On the host, through the chart card** (`DEPLOY.md` §8.00):
 
 | Report | Extraction | Answer | Answer step | End to end | Per question |
 |---|---|---|---|---|---|
@@ -616,7 +619,7 @@ No whole encounter has been measured on the D50 code.
 
 | Path | Bottleneck | Evidence |
 |---|---|---|
-| **Any `/w2/ask`, wall clock** | **What the model writes**: about 4.1 s + 7.45 s per 1,000 output tokens (§4.1a). Before D50 a whole-report answer wrote ~11.5k tokens in 88–92 s. After D50 it writes 368–461, and takes 6.9–8.4 s end to end on the host | `LOAD_TEST.md` §7; `DEPLOY.md` §8.00 **[PENDING `chore/w2-deploy-rehearsal`]** |
+| **Any `/w2/ask`, wall clock** | **What the model writes**: about 4.1 s + 7.45 s per 1,000 output tokens (§4.1a). Before D50 a whole-report answer wrote ~11.5k tokens in 88–92 s. After D50 it writes 368–461, and takes 6.9–8.4 s end to end on the host | `LOAD_TEST.md` §7; `DEPLOY.md` §8.00 |
 | Question → answer, capacity | **OpenEMR's PHP tier**, unchanged from Week 1: 420% CPU at 10 users, 58% failures at 50, and throughput *falling* from 4.53 to 2.70 req/s | `LOAD_TEST.md` §1 |
 | Other questions, wall clock | **The LLM draft**: 85% of a real turn | `LOAD_TEST.md` §2 |
 | Document → extraction, wall clock and cost | **The vision call**: 15–33 s and $0.10–0.23 per document, off the question path (D7) | `LOAD_TEST.md` §4b; §1 row 1 |
@@ -676,10 +679,10 @@ Under that load, that property holds for 1 retrieval in 16.
 | Two real-route Week 2 encounters: cost ($0.82 each) and per-request latency; the deployed flow one document at a time: vision cost and latency per page, the combined answer, memory (`DEPLOY.md` §8.0) | `/w2/ask` under any concurrent load |
 | Vision cost per document: six samples plus three more live runs | Concurrent vision throughput and Anthropic rate limits (`LOAD_TEST.md`, "Not measured") |
 | Brief + 4-turn session cost on three live-host charts | Any Week 2 route on the host **under load**: both deploys were measured one question at a time |
-| Whole-report question on the host after D50, one question at a time (`DEPLOY.md` §8.00 **[PENDING `chore/w2-deploy-rehearsal`]**) | A whole encounter on the D50 code; the document + guideline question after D50 |
+| Whole-report question on the host after D50, one question at a time (`DEPLOY.md` §8.00) | A whole encounter on the D50 code; the document + guideline question after D50 |
 | Rerank, OCR and retrieval latency on the live host (rehearsal host, before the Week 2 deploy) | The per-call token split inside the $0.82 encounter, other than the document question |
 | Judge cost per cold CI run | Judge calls spent selecting fixtures and on cold harness runs |
-| Nine rows of dev spend (§1) | A Week 2 Anthropic Console total; the "$1.21 I-suite run" |
+| Ten rows of dev spend (§1) | A Week 2 Anthropic Console total |
 | | A cheaper vision or answer model; prompt caching on the extraction prompt |
 
 The two measurements that would move this document most, in order:

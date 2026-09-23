@@ -9,46 +9,52 @@ A Clinical Co-Pilot AI agent built into a fork of [OpenEMR](https://open-emr.org
 | | Week 1: baseline | Week 2: multimodal |
 |---|---|---|
 | What it does | Pre-Visit Brief and multi-turn follow-up, read from the chart over FHIR; every claim deterministically verified | lab PDFs and intake forms extracted to a strict schema with page-located values; a supervisor over an intake-extractor and an evidence-retriever; hybrid RAG over guideline evidence; an eval gate |
-| Deployed at `64.177.42.210`? | **Yes**, the whole Week 1 surface | **Yes.** The host runs `main@ea198c8` **[PENDING `chore/w2-deploy-rehearsal`]**: upload, extraction, the scoped ask path and the Documents & Sources card, measured one question at a time (`docs/w2/DEPLOY.md` §8.0 on `21f1053`; §8.00 after D50) |
+| Deployed at `64.177.42.210`? | **Yes**, the whole Week 1 surface | **Yes.** The host runs `main@ea198c8`: upload, extraction, the scoped ask path and the Documents & Sources card, measured one question at a time (`docs/w2/DEPLOY.md` §8.0 on `21f1053`; §8.00 after D50) |
 | Start reading | [Week 1 baseline](#week-1-baseline) below | [Week 2: start here](#week-2-start-here), next |
 
 ---
 
 ## Week 2: start here
 
-Everything in this section is on the snapshot below unless it is marked.
+Everything in this section is on the snapshot below.
 
-**Snapshot: `main@0318c35`**, which is on `origin`. It is an interim pin:
-the last step before submission repins every citation to one final `main`
-commit, after the event-tags (D52), DECISIONS-guard and eval-gate follow-up
-merges.
+**Snapshot: `main@056cba9`**, which is on `origin`. Every path, number and
+decision below is on that commit. It includes these merges:
 
-- **Merged into `main`, so no longer marked:**
-  - `feat/w2-php-wiring` (`2ae4d98`);
-  - `chore/w2-deploy-rehearsal` (`21f1053`, and its post-deploy §8.0 at
-    `bc5236f`);
-  - `feat/w2-eval-gate` (`0b4ae04`);
-  - `feat/w2-answer-scope` (`ea198c8`, D50);
-  - the DECISIONS restore (`caa92f8`);
-  - `EVAL_GATE.md`, the gate's page for reviewers (`0318c35`).
-- **[PENDING `chore/w2-deploy-rehearsal`]** marks a figure from `docs/w2/DEPLOY.md` §8.00, the D50 redeploy.
-  That section is on `chore/w2-deploy-rehearsal` (`88be2a2`, on `origin`)
-  and not yet in `main`.
-- **The host runs `main@ea198c8`** since 2026-09-23 17:12 UTC **[PENDING `chore/w2-deploy-rehearsal`]**. Figures
-  from `DEPLOY.md` §8.0 were measured on the earlier deploy, `21f1053`,
-  **before D50**. D50 changes only how a document answer is scoped, so they
-  still describe extraction, retrieval and memory. They do not describe the
-  answer step. Figures from before any Week 2 deploy are labelled
-  "rehearsal host, before the Week 2 deploy".
+| Merge | At | What it brought |
+|---|---|---|
+| `feat/w2-php-wiring` | `2ae4d98` | the Documents & Sources card, its routes, the upload guard |
+| `chore/w2-deploy-rehearsal` | `21f1053` | D41 |
+| its first post-deploy figures | `bc5236f` | `DEPLOY.md` §8.0 |
+| its D50-redeploy figures | `5ad81c5` | `DEPLOY.md` §8.00 |
+| `feat/w2-eval-gate` | `0b4ae04` | the eval gate, D42–D48 |
+| `feat/w2-answer-scope` | `ea198c8` | D50 |
+| the DECISIONS restore | `caa92f8` | the dropped decision entries |
+| `EVAL_GATE.md` | `0318c35` | the gate's page for reviewers |
+| the decisions guard | `c1c5e21` | D51 |
+| the event-tags fix | `056cba9` | D52 |
+
+**The host runs `main@ea198c8`** since 2026-09-23 17:12 UTC (`DEPLOY.md`
+§8.00). It lacks only the event-tags telemetry fix (D52) and the
+documentation and test commits after it. Neither changes an answer.
+
+**Three kinds of host figure:**
+
+- **`DEPLOY.md` §8.00:** the D50 redeploy, on `ea198c8`.
+- **`DEPLOY.md` §8.0:** the earlier deploy, on `21f1053`, **before D50**.
+  D50 changes only how a document answer is scoped, so these still describe
+  extraction, retrieval and memory. They do not describe the answer step.
+- **Before any Week 2 deploy:** labelled "rehearsal host, before the Week 2
+  deploy".
 
 ### What Week 2 adds, and where it runs
 
-| Piece | Code | On `main` | On the host (`main@ea198c8` **[PENDING `chore/w2-deploy-rehearsal`]**; figures from `docs/w2/DEPLOY.md` §8.0 on `21f1053` unless marked) |
+| Piece | Code | On `main` | On the host (`main@ea198c8`; figures from `docs/w2/DEPLOY.md` §8.0 on `21f1053` unless marked) |
 |---|---|---|---|
 | Document extraction: text layer / OCR → one vision call → deterministic locate → flag cross-check → discrepancies | `agent/app/graph/intake_extractor.py`, `agent/app/workers/intake_extractor/`, `agent/app/extraction/` | yes | yes: one vision call per document, 15.7–54.5 s |
-| Supervisor + workers, `POST /w2/ask` | `agent/app/graph/supervisor.py`, `agent/app/supervisor/`, `agent/app/api/ask.py` | yes | yes. After D50, the whole-report question answers in 6.9–8.4 s on 22 rows **[PENDING `chore/w2-deploy-rehearsal`]**. Before D50, the document + guideline question answered 3 of 3 in 15.3–21.2 s |
+| Supervisor + workers, `POST /w2/ask` | `agent/app/graph/supervisor.py`, `agent/app/supervisor/`, `agent/app/api/ask.py` | yes | yes. After D50, the whole-report question answers in 6.9–8.4 s on 22 rows. Before D50, the document + guideline question answered 3 of 3 in 15.3–21.2 s |
 | Guideline retrieval: 28 documents, BM25 + local embeddings + local rerank | `agent/app/retrieval/` | yes | yes: every rerank ran after the deploy, 1.55–1.68 s |
-| Week 2 verifier, citation contract | `agent/app/verification/w2_checker.py`, `agent/app/models/w2/` | yes | yes: 0 unverified in 3 answers before D50, and in 6 after **[PENDING `chore/w2-deploy-rehearsal`]** |
+| Week 2 verifier, citation contract | `agent/app/verification/w2_checker.py`, `agent/app/models/w2/` | yes | yes: 0 unverified in 3 answers before D50, and in 6 after |
 | Source-grounded answer view: PDF.js with bbox overlay | `interface/modules/custom_modules/oe-module-clinical-copilot/public/assets/w2/` | yes, in the chart: the Documents & Sources card, its upload, status and ask routes (since `2ae4d98`) | yes |
 | Lab write-back endpoint + idempotency ledger | the same module, `src/WriteBack/` | yes | yes, rehearsed |
 | Eval gate: 96 cases, CI job | `agent/evals/w2/gate/`, `.gitlab-ci.yml` | yes (`0b4ae04`) | n/a: runs on recorded fixtures |
@@ -119,7 +125,7 @@ The default question (one analyte plus one guideline topic) answered in
 17.2–19.5 s from the chart, before D50
 (`docs/w2/evidence/php-wiring-e2e-run.md`). A whole-report question ("What
 were the results on the uploaded lab report?") took 88.2–91.8 s before D50.
-On the host after D50 it takes **6.9–8.4 s** (`docs/w2/DEPLOY.md` §8.00 **[PENDING `chore/w2-deploy-rehearsal`]**). Answer latency tracks
+On the host after D50 it takes **6.9–8.4 s** (`docs/w2/DEPLOY.md` §8.00). Answer latency tracks
 what the model writes, about 4.1 s + 7.45 s per 1,000 output tokens
 (`docs/w2/COST_AND_LATENCY.md` §4.1a).
 
@@ -186,7 +192,7 @@ purpose.
 | [KEY_METRICS.md](KEY_METRICS.md) | the Week 2 metrics, with honest denominators; the Week 1 six are in [docs/KEY_METRICS.md](docs/KEY_METRICS.md) |
 | [docs/w2/COST_AND_LATENCY.md](docs/w2/COST_AND_LATENCY.md) | actual dev spend, per-encounter cost, projections at 100 to 100K encounters a day, p50/p95 and bottlenecks |
 | [docs/w2/DEMO_SCRIPT.md](docs/w2/DEMO_SCRIPT.md) | the recorded walkthrough |
-| [docs/w2/DECISIONS.md](docs/w2/DECISIONS.md) | every Week 2 decision, D1–D40 and D49 on `main` (D41 and D42–D48 are on their branches) |
+| [docs/w2/DECISIONS.md](docs/w2/DECISIONS.md) | every Week 2 decision, D1–D53; a numbering test (`agent/tests/test_decisions_log.py`) fails on a duplicate or a gap |
 | [EVAL_GATE.md](EVAL_GATE.md) | the eval gate: find, run and read it; the blocked merge request |
 | [docs/w2/EVAL_DESIGN.md](docs/w2/EVAL_DESIGN.md), [docs/w2/GATE.md](docs/w2/GATE.md) | why the gate is shaped as it is, and how gate files are protected |
 | [docs/w2/retrieval-bakeoff.md](docs/w2/retrieval-bakeoff.md) | the corpus, its licensing, and the retrieval measurements |

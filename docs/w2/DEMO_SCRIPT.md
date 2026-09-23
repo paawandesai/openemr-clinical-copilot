@@ -5,35 +5,41 @@ run, what to say, and what the viewer should see. It is built only from what
 exists at the snapshot below. Where a step has not been measured on the
 deployed host, the step says so.
 
-**Snapshot: `main@0318c35`**, which is on `origin`. It is an interim pin:
-the last step before submission repins every citation to one final `main`
-commit, after the event-tags (D52), DECISIONS-guard and eval-gate follow-up
-merges.
+**Snapshot: `main@056cba9`**, which is on `origin`. Every path, number and
+decision below is on that commit. It includes these merges:
 
-- **Merged into `main`, so no longer marked:**
-  - `feat/w2-php-wiring` (`2ae4d98`);
-  - `chore/w2-deploy-rehearsal` (`21f1053`, and its post-deploy §8.0 at
-    `bc5236f`);
-  - `feat/w2-eval-gate` (`0b4ae04`);
-  - `feat/w2-answer-scope` (`ea198c8`, D50);
-  - the DECISIONS restore (`caa92f8`);
-  - `EVAL_GATE.md`, the gate's page for reviewers (`0318c35`).
-- **[PENDING `chore/w2-deploy-rehearsal`]** marks a figure from `docs/w2/DEPLOY.md` §8.00, the D50 redeploy.
-  That section is on `chore/w2-deploy-rehearsal` (`88be2a2`, on `origin`)
-  and not yet in `main`.
-- **The host runs `main@ea198c8`** since 2026-09-23 17:12 UTC **[PENDING `chore/w2-deploy-rehearsal`]**. Figures
-  from `DEPLOY.md` §8.0 were measured on the earlier deploy, `21f1053`,
-  **before D50**. D50 changes only how a document answer is scoped, so they
-  still describe extraction, retrieval and memory. They do not describe the
-  answer step. Figures from before any Week 2 deploy are labelled
-  "rehearsal host, before the Week 2 deploy".
+| Merge | At | What it brought |
+|---|---|---|
+| `feat/w2-php-wiring` | `2ae4d98` | the Documents & Sources card, its routes, the upload guard |
+| `chore/w2-deploy-rehearsal` | `21f1053` | D41 |
+| its first post-deploy figures | `bc5236f` | `DEPLOY.md` §8.0 |
+| its D50-redeploy figures | `5ad81c5` | `DEPLOY.md` §8.00 |
+| `feat/w2-eval-gate` | `0b4ae04` | the eval gate, D42–D48 |
+| `feat/w2-answer-scope` | `ea198c8` | D50 |
+| the DECISIONS restore | `caa92f8` | the dropped decision entries |
+| `EVAL_GATE.md` | `0318c35` | the gate's page for reviewers |
+| the decisions guard | `c1c5e21` | D51 |
+| the event-tags fix | `056cba9` | D52 |
+
+**The host runs `main@ea198c8`** since 2026-09-23 17:12 UTC (`DEPLOY.md`
+§8.00). It lacks only the event-tags telemetry fix (D52) and the
+documentation and test commits after it. Neither changes an answer.
+
+**Three kinds of host figure:**
+
+- **`DEPLOY.md` §8.00:** the D50 redeploy, on `ea198c8`.
+- **`DEPLOY.md` §8.0:** the earlier deploy, on `21f1053`, **before D50**.
+  D50 changes only how a document answer is scoped, so these still describe
+  extraction, retrieval and memory. They do not describe the answer step.
+- **Before any Week 2 deploy:** labelled "rehearsal host, before the Week 2
+  deploy".
 
 ## What the demo shows, and where
 
 | Scene | Where it runs | Measured on the deployed host? |
 |---|---|---|
-| Upload a lab report, watch it extract, ask a document + guideline question | **the real chart on the host**, Documents & Sources card | **before D50 only**: 3 of 3 answered, 7 document + 2 guideline citations, 0 unverified, 15.3–21.2 s (`DEPLOY.md` §8.0, `21f1053`). Not re-measured on `ea198c8` **[PENDING `chore/w2-deploy-rehearsal`]**. Rehearse it |
-| Ask about the whole report: a scoped answer | the same chart | **yes, after D50**: 6.9–8.4 s, `partially_answered`, 49 document citations, 0 unverified (`DEPLOY.md` §8.00 **[PENDING `chore/w2-deploy-rehearsal`]**) |
+| Upload a lab report, watch it extract, ask a document + guideline question | **the real chart on the host**, Documents & Sources card | **before D50 only**: 3 of 3 answered, 7 document + 2 guideline citations, 0 unverified, 15.3–21.2 s (`DEPLOY.md` §8.0, `21f1053`). Not re-measured on `ea198c8`. Rehearse it |
+| Ask about the whole report: a scoped answer | the same chart | **yes, after D50**: 6.9–8.4 s, `partially_answered`, 49 document citations, 0 unverified (`DEPLOY.md` §8.00) |
 | Click a document chip, see the box on the page | the same chart | the preview by a citation's digest is verified on the host (§8.0). The chip → box draw is verified on the **local** stack (`docs/w2/evidence/php-wiring-e2e-run.md`, run C) |
 | A critical potassium leads the answer | the same chart | **no**: gate case W2-H6 and D40 item 9 say it should. Rehearse it |
 | A heavy scan refuses to state a value it cannot place | the chart, on the scan's own patient | **no**: the scan's extraction was measured on the host (§8.0), the question was not. Rehearse it |
@@ -179,7 +185,7 @@ code can't put back on the page."
 | Step | What appears | Source |
 |---|---|---|
 | Upload | the status moves from pending to complete, in about half a minute | the vision step took 29.4 s for this document on the host (§8.0); upload to complete took 34–35 s locally |
-| Answer | arrives in about **15–21 s**, measured before D50 | 15.3, 20.9, 21.2 s on `21f1053` (§8.0). Not re-measured since D50 **[PENDING `chore/w2-deploy-rehearsal`]** |
+| Answer | arrives in about **15–21 s**, measured before D50 | 15.3, 20.9, 21.2 s on `21f1053` (§8.0). Not re-measured since D50 |
 | Answer header | a patient bar naming her | the local run C (`docs/w2/evidence/php-wiring-e2e-run.md`) |
 | Sections | chart, document, guideline, unsupported and flags, each in its own section | same |
 | Chips | **2 guideline** chips, **no UNVERIFIED line**, and the glucose row's document chips | before D50: 7 document + 2 guideline, 3 of 3 (§8.0). After D50, expect **more** document chips. Code adds one cited statement counting the in-range rows it did not itemise (D50 item 3). The status should stay `answered`, because the question names a test (D50 item 7). Unmeasured: confirm it in the rehearsal |
@@ -226,7 +232,7 @@ digest, on the open chart only.
 **Do:** on the same chart, ask **"What were the results on the uploaded lab
 report?"**
 
-**Viewer should see** (`DEPLOY.md` §8.00 **[PENDING `chore/w2-deploy-rehearsal`]**):
+**Viewer should see** (`DEPLOY.md` §8.00):
 
 - an answer in about **7–8 s** (6.9–8.4 s end to end);
 - status `partially_answered`, with 0 unverified;
@@ -240,7 +246,7 @@ Anything critical, abnormal or named is itemised. The rest is counted, in one
 statement that cites each row and never calls them normal. It takes seven
 seconds, and the answer tells you what it left out and how to ask for it."
 
-Sources: D50; `LOAD_TEST.md` §7 (89.0 s before, in process); `DEPLOY.md` §8.00 **[PENDING `chore/w2-deploy-rehearsal`]**.
+Sources: D50; `LOAD_TEST.md` §7 (89.0 s before, in process); `DEPLOY.md` §8.00.
 
 ### 2:10–2:40 — A critical potassium leads the answer (rehearse first)
 
@@ -399,8 +405,8 @@ we showed traces to a file."
 
 | Asset | Where | Branch |
 |---|---|---|
-| The deployed chart | `https://64.177.42.210:9300`, `physician`; card "Clinical Co-Pilot: Documents & Sources" | host runs `main@ea198c8` **[PENDING `chore/w2-deploy-rehearsal`]** |
-| Post-deploy measurements | `docs/w2/DEPLOY.md` §8.0 (`21f1053`); §8.00 (`ea198c8`, D50) | §8.0 on `main`; §8.00 on `chore/w2-deploy-rehearsal` **[PENDING `chore/w2-deploy-rehearsal`]** |
+| The deployed chart | `https://64.177.42.210:9300`, `physician`; card "Clinical Co-Pilot: Documents & Sources" | host runs `main@ea198c8` |
+| Post-deploy measurements | `docs/w2/DEPLOY.md` §8.0 (`21f1053`); §8.00 (`ea198c8`, D50) | `main` |
 | Local chart run, including the chip → box | `docs/w2/evidence/php-wiring-e2e-run.md` | `main` |
 | Samples | `agent/evals/w2/factory/output/samples/{lab-clean-001,lab-scanned-heavy-abnormal-002}/` | `main` |
 | Critical sample | `agent/evals/w2/staging/samples/lab-critical-potassium-007/` | `main`, with the gate's copy in `agent/evals/w2/fixtures/scenarios/` |

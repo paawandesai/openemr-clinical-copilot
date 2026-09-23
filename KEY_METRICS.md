@@ -19,28 +19,34 @@ says when there is no value.
 denominator. A metric whose denominator is small says so. A metric with no
 live measurement says "not measured", not a target.
 
-**Snapshot: `main@0318c35`**, which is on `origin`. It is an interim pin:
-the last step before submission repins every citation to one final `main`
-commit, after the event-tags (D52), DECISIONS-guard and eval-gate follow-up
-merges.
+**Snapshot: `main@056cba9`**, which is on `origin`. Every path, number and
+decision below is on that commit. It includes these merges:
 
-- **Merged into `main`, so no longer marked:**
-  - `feat/w2-php-wiring` (`2ae4d98`);
-  - `chore/w2-deploy-rehearsal` (`21f1053`, and its post-deploy §8.0 at
-    `bc5236f`);
-  - `feat/w2-eval-gate` (`0b4ae04`);
-  - `feat/w2-answer-scope` (`ea198c8`, D50);
-  - the DECISIONS restore (`caa92f8`);
-  - `EVAL_GATE.md`, the gate's page for reviewers (`0318c35`).
-- **[PENDING `chore/w2-deploy-rehearsal`]** marks a figure from `docs/w2/DEPLOY.md` §8.00, the D50 redeploy.
-  That section is on `chore/w2-deploy-rehearsal` (`88be2a2`, on `origin`)
-  and not yet in `main`.
-- **The host runs `main@ea198c8`** since 2026-09-23 17:12 UTC **[PENDING `chore/w2-deploy-rehearsal`]**. Figures
-  from `DEPLOY.md` §8.0 were measured on the earlier deploy, `21f1053`,
-  **before D50**. D50 changes only how a document answer is scoped, so they
-  still describe extraction, retrieval and memory. They do not describe the
-  answer step. Figures from before any Week 2 deploy are labelled
-  "rehearsal host, before the Week 2 deploy".
+| Merge | At | What it brought |
+|---|---|---|
+| `feat/w2-php-wiring` | `2ae4d98` | the Documents & Sources card, its routes, the upload guard |
+| `chore/w2-deploy-rehearsal` | `21f1053` | D41 |
+| its first post-deploy figures | `bc5236f` | `DEPLOY.md` §8.0 |
+| its D50-redeploy figures | `5ad81c5` | `DEPLOY.md` §8.00 |
+| `feat/w2-eval-gate` | `0b4ae04` | the eval gate, D42–D48 |
+| `feat/w2-answer-scope` | `ea198c8` | D50 |
+| the DECISIONS restore | `caa92f8` | the dropped decision entries |
+| `EVAL_GATE.md` | `0318c35` | the gate's page for reviewers |
+| the decisions guard | `c1c5e21` | D51 |
+| the event-tags fix | `056cba9` | D52 |
+
+**The host runs `main@ea198c8`** since 2026-09-23 17:12 UTC (`DEPLOY.md`
+§8.00). It lacks only the event-tags telemetry fix (D52) and the
+documentation and test commits after it. Neither changes an answer.
+
+**Three kinds of host figure:**
+
+- **`DEPLOY.md` §8.00:** the D50 redeploy, on `ea198c8`.
+- **`DEPLOY.md` §8.0:** the earlier deploy, on `21f1053`, **before D50**.
+  D50 changes only how a document answer is scoped, so these still describe
+  extraction, retrieval and memory. They do not describe the answer step.
+- **Before any Week 2 deploy:** labelled "rehearsal host, before the Week 2
+  deploy".
 
 | # | Metric | Current value | Target | Strength of evidence |
 |---|---|---|---|---|
@@ -48,11 +54,11 @@ merges.
 | W2-2 | Unlocated values stated as fact | 0, enforced by the type system | 0, absolute | gate critical case plus planted regression |
 | W2-3 | Flag cross-check agreement, comparable flags only | 100% (**1/1**) | none set; the denominator is the finding | very weak: n = 1 |
 | W2-4 | Intake discrepancy accuracy; never merged | precision 2/2, recall 2/2, false positives 0/25; merges 0 | 0 merges, absolute | weak: n = 2 |
-| W2-5 | Verified and disclosed on the ask path | no rate; 6 live combined answers before D50 (3 on the host, 3 local), 0 unverified; after D50 the host's whole-report answers had 0 unverified in 6 runs **[PENDING `chore/w2-deploy-rehearsal`]**; 2 real-route runs pass their citation assertions; gate det 73/73 | 100% disclosed, absolute | tests plus 2 live runs; no runtime disclosure signal |
+| W2-5 | Verified and disclosed on the ask path | no rate; 6 live combined answers before D50 (3 on the host, 3 local), 0 unverified; after D50 the host's whole-report answers had 0 unverified in 6 runs; 2 real-route runs pass their citation assertions; gate det 73/73 | 100% disclosed, absolute | tests plus 2 live runs; no runtime disclosure signal |
 | W2-6 | Critical values surfaced | **not measured live**; gate H6 and G7 pass | 100%, absolute | one fixture |
 | W2-7 | Guideline retrieval: recall and the share actually reranked | recall@4 0.666, zero-recall queries 0/30; reranked 35% at 10 paced users, 6.2% at 50 | reranked rate is watched, not targeted | 30 dev queries; laptop measurements only |
 | W2-8 | Eval gate: regressions caught | 14/14 planted regressions blocked; 79/96 cases active | every planted regression blocks | harness-proved; judge uncalibrated |
-| W2-9 | Cost and latency per encounter | $0.82 measured before D50 (n = 2), about $0.44 estimated after; latency tracks what the model writes, ~4.1 s + 7.45 s per 1k output tokens; whole-report question **6.9–8.4 s** on the host after D50 **[PENDING `chore/w2-deploy-rehearsal`]** (88–92 s before) | ≤ 90 s per answer (Week 1 budget) | **passes on the host**, one question at a time; 44-row "show me all" at 43.4 s |
+| W2-9 | Cost and latency per encounter | $0.82 measured before D50 (n = 2), about $0.44 estimated after; latency tracks what the model writes, ~4.1 s + 7.45 s per 1k output tokens; whole-report question **6.9–8.4 s** on the host after D50 (88–92 s before) | ≤ 90 s per answer (Week 1 budget) | **passes on the host**, one question at a time; 44-row "show me all" at 43.4 s |
 
 ---
 
@@ -225,7 +231,7 @@ UNVERIFIED and never dropped (D40 item 7).
     citations, 0 unverified**.
   - On `ea198c8`, after D50, the whole-report question answered 3 of 3 on
     each of two reports, with **0 unverified**: 49 and 97 document citations
-    (`DEPLOY.md` §8.00 **[PENDING `chore/w2-deploy-rehearsal`]**). Most of those are the cited count statement code builds (D50
+    (`DEPLOY.md` §8.00). Most of those are the cited count statement code builds (D50
     item 3).
 - **From the real chart** (`docs/w2/evidence/php-wiring-e2e-run.md`, local stack), three timed answers to one
   question cited a document and a guideline together:
@@ -366,7 +372,7 @@ three rules at once. How to run the gate, read a verdict and set up CI:
     budget, and about $0.46 of the $0.82.
   - **After D50,** on the host, the same question answers in **6.9–8.4 s**
     end to end on 22 rows and 12.0–13.1 s on 44, from 368–461 output tokens
-    on 22 rows, for about $0.084 (`DEPLOY.md` §8.00 **[PENDING `chore/w2-deploy-rehearsal`]**).
+    on 22 rows, for about $0.084 (`DEPLOY.md` §8.00).
   - **Before D50, from the chart,** one analyte plus one guideline topic made
     **8–12 citations in 17.2–19.5 s**, client wall clock (`docs/w2/evidence/php-wiring-e2e-run.md`).
   - Every run used one model, so this says nothing about other models.
@@ -377,7 +383,7 @@ three rules at once. How to run the gate, read a verdict and set up CI:
 - A Week 1 conversation turn is p95 6.41 s locally at 10 users.
 
 **This metric passes on the host after D50, one question at a time**
-(`DEPLOY.md` §8.00 **[PENDING `chore/w2-deploy-rehearsal`]**).
+(`DEPLOY.md` §8.00).
 
 - Before D50 it failed for whole-report questions, because the answer cited
   every extracted result.

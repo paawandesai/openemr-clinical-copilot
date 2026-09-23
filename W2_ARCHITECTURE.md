@@ -7,28 +7,34 @@ architecture is unchanged and is not repeated here:
 [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) (authorization, tool scope,
 conversation state, the deterministic verifier).
 
-**Snapshot: `main@0318c35`**, which is on `origin`. It is an interim pin:
-the last step before submission repins every citation to one final `main`
-commit, after the event-tags (D52), DECISIONS-guard and eval-gate follow-up
-merges.
+**Snapshot: `main@056cba9`**, which is on `origin`. Every path, number and
+decision below is on that commit. It includes these merges:
 
-- **Merged into `main`, so no longer marked:**
-  - `feat/w2-php-wiring` (`2ae4d98`);
-  - `chore/w2-deploy-rehearsal` (`21f1053`, and its post-deploy §8.0 at
-    `bc5236f`);
-  - `feat/w2-eval-gate` (`0b4ae04`);
-  - `feat/w2-answer-scope` (`ea198c8`, D50);
-  - the DECISIONS restore (`caa92f8`);
-  - `EVAL_GATE.md`, the gate's page for reviewers (`0318c35`).
-- **[PENDING `chore/w2-deploy-rehearsal`]** marks a figure from `docs/w2/DEPLOY.md` §8.00, the D50 redeploy.
-  That section is on `chore/w2-deploy-rehearsal` (`88be2a2`, on `origin`)
-  and not yet in `main`.
-- **The host runs `main@ea198c8`** since 2026-09-23 17:12 UTC **[PENDING `chore/w2-deploy-rehearsal`]**. Figures
-  from `DEPLOY.md` §8.0 were measured on the earlier deploy, `21f1053`,
-  **before D50**. D50 changes only how a document answer is scoped, so they
-  still describe extraction, retrieval and memory. They do not describe the
-  answer step. Figures from before any Week 2 deploy are labelled
-  "rehearsal host, before the Week 2 deploy".
+| Merge | At | What it brought |
+|---|---|---|
+| `feat/w2-php-wiring` | `2ae4d98` | the Documents & Sources card, its routes, the upload guard |
+| `chore/w2-deploy-rehearsal` | `21f1053` | D41 |
+| its first post-deploy figures | `bc5236f` | `DEPLOY.md` §8.0 |
+| its D50-redeploy figures | `5ad81c5` | `DEPLOY.md` §8.00 |
+| `feat/w2-eval-gate` | `0b4ae04` | the eval gate, D42–D48 |
+| `feat/w2-answer-scope` | `ea198c8` | D50 |
+| the DECISIONS restore | `caa92f8` | the dropped decision entries |
+| `EVAL_GATE.md` | `0318c35` | the gate's page for reviewers |
+| the decisions guard | `c1c5e21` | D51 |
+| the event-tags fix | `056cba9` | D52 |
+
+**The host runs `main@ea198c8`** since 2026-09-23 17:12 UTC (`DEPLOY.md`
+§8.00). It lacks only the event-tags telemetry fix (D52) and the
+documentation and test commits after it. Neither changes an answer.
+
+**Three kinds of host figure:**
+
+- **`DEPLOY.md` §8.00:** the D50 redeploy, on `ea198c8`.
+- **`DEPLOY.md` §8.0:** the earlier deploy, on `21f1053`, **before D50**.
+  D50 changes only how a document answer is scoped, so these still describe
+  extraction, retrieval and memory. They do not describe the answer step.
+- **Before any Week 2 deploy:** labelled "rehearsal host, before the Week 2
+  deploy".
 
 ---
 
@@ -82,7 +88,7 @@ beside chart facts without the two blurring. Nine decisions carry the weight.
 **Not true yet:**
 
 - **The deployed flow has been measured one question at a time, never
-  under load** (`DEPLOY.md` §8.0, `DEPLOY.md` §8.00 **[PENDING `chore/w2-deploy-rehearsal`]**).
+  under load** (`DEPLOY.md` §8.0, `DEPLOY.md` §8.00).
 - **The document + guideline question has not been re-measured since D50.**
   Its host figures (7 document + 2 guideline citations, 15.3–21.2 s) are
   from `21f1053`, before D50.
@@ -98,7 +104,7 @@ beside chart facts without the two blurring. Nine decisions carry the weight.
   statement of its own.
 - **On the host,** the same question now answers in **6.9–8.4 s** end to
   end, with 49 document citations and 0 unverified, from 368–461 output
-  tokens (`DEPLOY.md` §8.00 **[PENDING `chore/w2-deploy-rehearsal`]**).
+  tokens (`DEPLOY.md` §8.00).
 
 §11 lists every known limitation.
 
@@ -606,13 +612,13 @@ API-collection encounter, `07c0fd35-…`, is one Langfuse trace: 2 min 52 s,
 ## 8. Deployment state
 
 The host `64.177.42.210` runs **`main@ea198c8`**, deployed 2026-09-23 17:12
-UTC **[PENDING `chore/w2-deploy-rehearsal`]**. That is the eval gate and D50 on top of `21f1053`, with the module,
+UTC. That is the eval gate and D50 on top of `21f1053`, with the module,
 Caddyfile and compose file unchanged.
 
 - It was first deployed at `21f1053` (16:40 UTC) and measured through the
   real chart card, one document at a time (`DEPLOY.md` §8.0).
 - The D50 redeploy re-verified the guard and measured the whole-report
-  question (`DEPLOY.md` §8.00 **[PENDING `chore/w2-deploy-rehearsal`]**).
+  question (`DEPLOY.md` §8.00).
 - Rows below are from §8.0 unless marked. They describe `21f1053`, and D50
   changes only the answer step.
 
@@ -622,7 +628,7 @@ Caddyfile and compose file unchanged.
 | Documents & Sources card and its routes | yes (`Bootstrap.php`; `public/{upload,upload-status,ask,document}.php`) | yes; the post-deploy run was driven through it |
 | `POST /documents` | the real extractor, behind the upload guard (token, scopes and OpenEMR's acceptance, then rate limits, declared size and an extraction slot, all before the body is read) | yes; the guard was verified on the new image **before** the proxy served it: 401 with no bearer or a made-up one, 403 without the scopes, 200 with them, 409 for the same bytes on a second chart, and 422 for an unknown patient, refused on its id format before OpenEMR is asked (`DEPLOY.md` §2.2, §8.0) |
 | Extraction | vision + locate + checks | one vision call per document, 15.7–54.5 s; OCR +4.9–6.1 s per scanned page; locate and verify ~1 s; 0 parse failures over five documents |
-| `POST /w2/ask` (supervisor) | yes | yes. On `21f1053`, before D50, the document + guideline question answered 3 of 3 with 7 document + 2 guideline citations, 0 unverified, 15.3–21.2 s end to end. On `ea198c8`, the whole-report question answered 3 of 3 per report as `partially_answered` (D50 item 7), 0 unverified: 22 rows 6.9–8.4 s with 49 document citations, 44 rows 12.0–13.1 s with 97 (`DEPLOY.md` §8.00 **[PENDING `chore/w2-deploy-rehearsal`]**) |
+| `POST /w2/ask` (supervisor) | yes | yes. On `21f1053`, before D50, the document + guideline question answered 3 of 3 with 7 document + 2 guideline citations, 0 unverified, 15.3–21.2 s end to end. On `ea198c8`, the whole-report question answered 3 of 3 per report as `partially_answered` (D50 item 7), 0 unverified: 22 rows 6.9–8.4 s with 49 document citations, 44 rows 12.0–13.1 s with 97 (`DEPLOY.md` §8.00) |
 | Retrieval, D39 admission, D41 budget and circuit | yes | yes; retrieval including rerank 1.55–1.68 s, and every rerank ran, none over budget, busy or skipped |
 | Preview by a citation's digest | yes | 200 `application/pdf` with that chart open, bytes identical to the upload; 404 with another chart open |
 | Memory | agent capped at 4.5 GiB | peak **1.32 GiB** over the run, 0 OOM kills; 3.7 GiB is the stress bound with concurrent reranking (`DEPLOY.md` §8) |
@@ -651,7 +657,7 @@ The agent image grew from 360 MB to 1.18 GB, and idle memory from 50 MiB to
 
 | Risk | Where it bites | Mitigation today | What is still exposed |
 |---|---|---|---|
-| **The whole-report answer** (fixed on `main` and on the host) | before D50: answer step 88.2–91.8 s, 91 citations, ~11.5k tokens out, about $0.45 (`LOAD_TEST.md` §7); whole request 91.9 s and 130.5 s (`LOAD_TEST.md` §6) | D50: code scopes and counts; the answer step is 6.9 s p50 in process (`LOAD_TEST.md` §7), and on the host 6.9–8.4 s end to end, ~$0.084 (`DEPLOY.md` §8.00 **[PENDING `chore/w2-deploy-rehearsal`]**) | the 44-row "Show me all the results" case lands at 43.4 s, at the 45 s alert (`LOAD_TEST.md` §7) |
+| **The whole-report answer** (fixed on `main` and on the host) | before D50: answer step 88.2–91.8 s, 91 citations, ~11.5k tokens out, about $0.45 (`LOAD_TEST.md` §7); whole request 91.9 s and 130.5 s (`LOAD_TEST.md` §6) | D50: code scopes and counts; the answer step is 6.9 s p50 in process (`LOAD_TEST.md` §7), and on the host 6.9–8.4 s end to end, ~$0.084 (`DEPLOY.md` §8.00) | the 44-row "Show me all the results" case lands at 43.4 s, at the 45 s alert (`LOAD_TEST.md` §7) |
 | **One process, in-memory stores** (conversations, documents, extraction jobs, the rerank circuit) | a second worker or replica makes uploads invisible (`404`), re-bills extraction, and loses follow-up context; a restart forgets every upload | one uvicorn worker; a startup warning when more are configured (D40 item 10, `agent/docs/deployment.md` §7) | a second *replica* is invisible to the check; no persistence |
 | **Reranker under load** | 50 concurrent retrievals: p95 335,224 ms, 0% reranked, 5.3 GiB peak RSS on a cold run (`LOAD_TEST.md` §5) | D39 admission bound: p95 259 ms, but only 1% reranked in the burst and 6.2% at 50 paced users (§5b). A 4.5 GiB memory cap on the agent, so overload restarts the agent rather than the kernel killing the database (`DEPLOY.md` §8) | deployed. After the deploy, one document at a time, the agent peaked at 1.32 GiB (`DEPLOY.md` §8.0). The stress bound, with concurrent reranking, is **3.7 GiB**, and a heavier mix was OOM-killed at a 5 GiB test cap (`DEPLOY.md` §8) |
 | **The rerank circuit latched** (fixed on `main`) | one slow rerank turned reranking off until restart; 35 of the next 60 turns ran unreranked (D41) | it closes itself after 60 s or 10 skipped turns, and skipped turns are reported apart from slow ones (D41); at demo load it opened, skipped 10 turns and closed (`DEPLOY.md` §8) | deployed; in the post-deploy questions no rerank was skipped (`DEPLOY.md` §8.0) |
@@ -674,11 +680,13 @@ The agent image grew from 360 MB to 1.18 GB, and idle memory from 50 MiB to
 | Retrieval | D25 (supersedes D5, D23), D26, D39, D41 |
 | UI | D27, D28, D30, D32, D33, D34, D49 (the preview URL; supersedes D28 and D30 on that point), D51 (the card's module routes; a citation's digest opens the preview) |
 | Write-back | D1 (superseding), D2, D15, D29, D31 |
-| Observability | D36, D37, D38 |
+| Observability | D36, D37, D38, D52 (a turn's tags reach the operational events) |
 | Evals | D6, D8, D42–D48 |
+| The decisions log itself | D53 (no merge driver for `DECISIONS.md`; a numbering test guards it) |
 
-All of these are on `main`. This document makes no new decision and takes no
-D-number.
+D1–D52 are on `main`. D53 records a decision already made in commit
+`cb99e7b`. This branch appended it at the owner's request; it was not
+decided here. This document makes no new decision.
 
 ---
 
@@ -742,7 +750,7 @@ D-number.
     narrower than it looks.**
     - Before: the answer step took 88.2–91.8 s and about $0.45, citing all 91
       values on a 22-row report (`LOAD_TEST.md` §7).
-    - After D50 on the host: 6.9–8.4 s and about $0.084 (`DEPLOY.md` §8.00 **[PENDING `chore/w2-deploy-rehearsal`]**).
+    - After D50 on the host: 6.9–8.4 s and about $0.084 (`DEPLOY.md` §8.00).
     - The answer is `partially_answered` by design: in-range rows are counted
       in one cited statement, not itemised (D50 item 7).
     - "Show me all the results" on 44 rows still takes 43.4 s p50, at the
@@ -753,5 +761,5 @@ D-number.
     field (D34).
 12. **The deployed flow is measured one question at a time only.** The card,
     its routes, the guard and the scoped ask path run on the host
-    (`main@ea198c8`, `DEPLOY.md` §8.00 **[PENDING `chore/w2-deploy-rehearsal`]**). No load test has run against them there.
+    (`main@ea198c8`, `DEPLOY.md` §8.00). No load test has run against them there.
 13. **No FHIR paging.** `_count` is the sharp edge (`docs/w2/WEEK1_DEBT.md` §4).
