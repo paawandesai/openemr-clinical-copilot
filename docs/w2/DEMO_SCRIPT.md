@@ -313,7 +313,7 @@ located.
 ### 3:15–4:10 — The eval gate blocks a planted regression
 
 Every figure in this scene is from `docs/w2/EVAL_GATE_EVIDENCE.md` on
-`main`, re-seeded after the J3 fix.
+`main`, re-seeded after W2-L1 (the prompt pin) was added.
 
 **Do:** in `agent/`:
 
@@ -322,10 +322,10 @@ python -m evals.w2.gate; echo "exit=$?"
 ```
 
 **Viewer should see:** the category table, then
-`VERDICT: PASS | specs 96 | active 79 | pending 15 | det 73/73 | judge 8/8`
+`VERDICT: PASS | specs 97 | active 80 | pending 15 | det 74/74 | judge 8/8`
 and `exit=0`.
 
-**Say:** "Ninety-six cases. Seventy-three deterministic checks at a hundred
+**Say:** "Ninety-seven cases. Seventy-four deterministic checks at a hundred
 percent, and eight judge meta-checks. Now I reintroduce a bug we actually
 had: treating a blank flag column as 'normal'."
 
@@ -341,14 +341,14 @@ python -m evals.w2.gate; echo "exit=$?"
 
 - `BLOCKED by rule (b) deterministic tier at 100%`;
 - `BLOCKED by rule (c) critical-case override`, naming **W2-D2**;
-- `VERDICT: BLOCKED | specs 96 | active 79 | pending 15 | det 72/73 | judge 8/8`;
+- `VERDICT: BLOCKED | specs 97 | active 80 | pending 15 | det 73/74 | judge 8/8`;
 - `exit=1`.
 
 That is regression 1 in the evidence file.
 
 **Say:** "One line. The critical-case rule blocks it on its own. On a
 seven-case category one case is fourteen points, and a five-percent band is
-below the resolution of a single case. That's fourteen out of fourteen
+below the resolution of a single case. That's nineteen out of nineteen
 planted regressions caught. Our judge is uncalibrated, and the gate prints
 that on every run."
 
@@ -356,7 +356,7 @@ that on every run."
 
 **Fallback, or a second shot:** open [MR !1](https://labs.gauntletai.com/paawandesai/openemr-clinical-copilot/-/merge_requests/1), the same regression left open
 with a red pipeline (`EVAL_GATE.md`). Or show `docs/w2/EVAL_GATE_EVIDENCE.md`: the
-control block, then the "Planted regressions" table, 14 rows, all BLOCKED.
+control block, then the "Planted regressions" table, 19 rows, all BLOCKED.
 
 ### 4:10–4:40 — One encounter, one trace
 

@@ -57,7 +57,7 @@ documentation and test commits after it. Neither changes an answer.
 | Week 2 verifier, citation contract | `agent/app/verification/w2_checker.py`, `agent/app/models/w2/` | yes | yes: 0 unverified in 3 answers before D50, and in 6 after |
 | Source-grounded answer view: PDF.js with bbox overlay | `interface/modules/custom_modules/oe-module-clinical-copilot/public/assets/w2/` | yes, in the chart: the Documents & Sources card, its upload, status and ask routes (since `2ae4d98`) | yes |
 | Lab write-back endpoint + idempotency ledger | the same module, `src/WriteBack/` | yes | yes, rehearsed |
-| Eval gate: 96 cases, CI job | `agent/evals/w2/gate/`, `.gitlab-ci.yml` | yes (`0b4ae04`) | n/a: runs on recorded fixtures |
+| Eval gate: 97 cases, CI job | `agent/evals/w2/gate/`, `.gitlab-ci.yml` | yes (`0b4ae04`) | n/a: runs on recorded fixtures |
 
 Where the facts in this table come from, and what is not wired yet:
 [`W2_ARCHITECTURE.md`](W2_ARCHITECTURE.md) §8 and §11.

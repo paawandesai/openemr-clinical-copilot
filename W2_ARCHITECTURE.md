@@ -72,8 +72,8 @@ beside chart facts without the two blurring. Nine decisions carry the weight.
    UNIQUE on document hash, test code and collection date. Results land
    unreviewed.
 9. **The measured code cannot move its own gate** (D8, D42–D48). Gated paths
-   are hook-protected. 72 deterministic checks must pass at 100%, a regressed
-   critical case blocks alone, and all 14 planted regressions block (§6).
+   are hook-protected. 74 deterministic checks must pass at 100%, a regressed
+   critical case blocks alone, and all 19 planted regressions block (§6).
 
 **Tradeoffs:**
 
@@ -469,17 +469,17 @@ covers the golden set and prompts, the command and exit codes, CI and its
 settings, and the five rules. This section keeps only what the architecture
 rests on.
 
-- **What it proves.** 14 planted regressions, each applied to a copy of the
-  tree: the control run passes and all 14 block, each caught by at least the
+- **What it proves.** 19 planted regressions, each applied to a copy of the
+  tree: the control run passes and all 19 block, each caught by at least the
   case the design names (`docs/w2/EVAL_GATE_EVIDENCE.md`, "Harness verdict:
   HELD").
 - **A merge it blocked.** [MR !1](https://labs.gauntletai.com/paawandesai/openemr-clinical-copilot/-/merge_requests/1) is left open with a red pipeline. It plants
   "blank flag means normal", and W2-D2 blocks it:
   `VERDICT: BLOCKED | specs 96 | active 79 | pending 15 | det 72/73 | judge 8/8`
-  (`EVAL_GATE.md`).
-- **The gate at the snapshot.** 96 specs (79 active, 15 pending, 2
-  delegated), 73/73 deterministic and 8/8 judge (evidence control run,
-  re-seeded after the J3 fix).
+  (`EVAL_GATE.md`; recorded before W2-L1, when there were 96 specs).
+- **The gate at the snapshot.** 97 specs (80 active, 15 pending, 2
+  delegated), 74/74 deterministic and 8/8 judge (evidence control run,
+  re-seeded after W2-L1, the prompt pin).
 - **The judge is UNCALIBRATED.** It is `claude-haiku-4-5-20251001`,
   best-of-3 (D43, D48). Category M detects drift, not agreement with humans.
 - **Its protection is a guard, not a boundary.** The hooks and
