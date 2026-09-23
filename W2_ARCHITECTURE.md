@@ -35,7 +35,7 @@ beside chart facts without the two blurring. Nine decisions carry the weight.
    unreviewed.
 9. **The measured code cannot move its own gate** (D8, D42–D48). Gated paths
    are hook-protected. 75 deterministic checks must pass at 100%, a regressed
-   critical case blocks alone, and all 19 planted regressions block (§6).
+   critical case blocks alone, and all 22 planted regressions block (§6).
 
 **Tradeoffs:**
 
@@ -497,8 +497,8 @@ covers the golden set and prompts, the command and exit codes, CI and its
 settings, and the five rules. This section keeps only what the architecture
 rests on.
 
-- **What it proves.** 19 planted regressions, each applied to a copy of the
-  tree: the control run passes and all 19 block, each caught by at least the
+- **What it proves.** 22 planted regressions, each applied to a copy of the
+  tree: the control run passes and all 22 block, each caught by at least the
   case the design names (`docs/w2/EVAL_GATE_EVIDENCE.md`, "Harness verdict:
   HELD").
 - **A merge it blocked.** [MR !1](https://labs.gauntletai.com/paawandesai/openemr-clinical-copilot/-/merge_requests/1) is left open with a red pipeline. It plants

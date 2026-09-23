@@ -57,7 +57,7 @@ documentation and test commits after it. Neither changes an answer.
 | W2-5 | Verified and disclosed on the ask path | no rate; 6 live combined answers before D50 (3 on the host, 3 local), 0 unverified; after D50 the host's whole-report answers had 0 unverified in 6 runs; 2 real-route runs pass their citation assertions; gate det 75/75 | 100% disclosed, absolute | tests plus 2 live runs; no runtime disclosure signal |
 | W2-6 | Critical values surfaced | **not measured live**; gate H6 and G7 pass | 100%, absolute | one fixture |
 | W2-7 | Guideline retrieval: recall and the share actually reranked | recall@4 0.666, zero-recall queries 0/30; reranked 35% at 10 paced users, 6.2% at 50 | reranked rate is watched, not targeted | 30 dev queries; laptop measurements only |
-| W2-8 | Eval gate: regressions caught | 19/19 planted regressions blocked; 81/98 cases active | every planted regression blocks | harness-proved; judge uncalibrated |
+| W2-8 | Eval gate: regressions caught | 22/22 planted regressions blocked; 81/98 cases active | every planted regression blocks | harness-proved; judge uncalibrated |
 | W2-9 | Cost and latency per encounter | $0.82 measured before D50 (n = 2), about $0.44 estimated after; latency tracks what the model writes, ~4.1 s + 7.45 s per 1k output tokens; whole-report question **6.9–8.4 s** on the host after D50 (88–92 s before) | ≤ 90 s per answer (Week 1 budget) | **passes on the host**, one question at a time; 44-row "show me all" at 43.4 s |
 
 ---
@@ -320,7 +320,7 @@ from the run's own JSON (`python -m evals.w2.gate.planted_regressions`).
 
 **Current** (`docs/w2/EVAL_GATE_EVIDENCE.md`):
 
-- The control run passes (exit 0), and **19/19 planted regressions block**
+- The control run passes (exit 0), and **22/22 planted regressions block**
   (exit 1).
 - 98 specs: **81 active, 15 pending, 2 delegated** to the PHP CI job.
   Delegated cases are scored against the job's own result: it must have run

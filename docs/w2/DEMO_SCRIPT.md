@@ -348,7 +348,7 @@ That is regression 1 in the evidence file.
 
 **Say:** "One line. The critical-case rule blocks it on its own. On a
 seven-case category one case is fourteen points, and a five-percent band is
-below the resolution of a single case. That's nineteen out of nineteen
+below the resolution of a single case. That's twenty-two out of twenty-two
 planted regressions caught. Our judge is uncalibrated, and the gate prints
 that on every run."
 
@@ -356,7 +356,7 @@ that on every run."
 
 **Fallback, or a second shot:** open [MR !1](https://labs.gauntletai.com/paawandesai/openemr-clinical-copilot/-/merge_requests/1), the same regression left open
 with a red pipeline (`EVAL_GATE.md`). Or show `docs/w2/EVAL_GATE_EVIDENCE.md`: the
-control block, then the "Planted regressions" table, 19 rows, all BLOCKED.
+control block, then the "Planted regressions" table, 22 rows, all BLOCKED.
 
 ### 4:10–4:40 — One encounter, one trace
 

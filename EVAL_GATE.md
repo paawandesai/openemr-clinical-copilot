@@ -37,7 +37,7 @@ VERDICT: BLOCKED | specs 96 | active 79 | pending 15 | det 72/73 | judge 8/8
 
 That MR is left open with a red pipeline on purpose. It must not be merged.
 
-All 19 planted regressions, each with the case that catches it, are in
+All 22 planted regressions, each with the case that catches it, are in
 [`docs/w2/EVAL_GATE_EVIDENCE.md`](docs/w2/EVAL_GATE_EVIDENCE.md) — regenerated
 by a harness that copies the tree, applies one defect at a time, and refuses
 to pass unless every one of them blocks.
