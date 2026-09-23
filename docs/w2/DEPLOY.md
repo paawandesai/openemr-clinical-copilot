@@ -546,7 +546,7 @@ Co-Pilot):
 | when this lands | add this step |
 |---|---|
 | module upload route (server-side call to the agent's `/documents`) | a Caddy `handle /documents*` block with its own `request_body max_size` (the site-wide cap is **16 KB**; uploads are up to 25 MB), **and** a real token check in the agent route first — today's stub accepts any bearer string, which is why it is not exposed |
-| source-documents card | register it in `Bootstrap`; confirm Apache serves `.mjs` as `text/javascript` (D23) |
+| source-documents card | register it in `Bootstrap`; confirm Apache serves `.mjs` as `text/javascript` (D32) |
 | vision extraction (`feat/w2-extractor`) | measure per-page cost and latency here; decide where extraction runs relative to the 900 MiB agent |
 | agent-driven write-back | a broker scope set that includes `api:oemr user/lab-writeback.c`; the v2 client already allows it |
 | W2 eval gate | nothing on the host — it runs on recorded fixtures (D6) |
@@ -576,5 +576,5 @@ Co-Pilot):
 | `install_sql` "succeeded" but no table | — | you used `bin/console openemr:zfc-module`; use §4 |
 | preview 404 for a document that exists | — | a different chart is open in that session, or the document is another patient's — by design (D28) |
 | preview 403 | — | user lacks `patients/docs` |
-| written result not in *Patient Results* | Procedures → Pending Review | by design: unreviewed until signed (D23) |
+| written result not in *Patient Results* | Procedures → Pending Review | by design: unreviewed until signed (D29) |
 | a new port appears in `ss -tlnp` | compose files | F-54: only `0.0.0.0:8443` is the agent's; 8000 is never published |

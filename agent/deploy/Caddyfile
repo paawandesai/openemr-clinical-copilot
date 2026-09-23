@@ -17,9 +17,24 @@ https://{$AGENT_PUBLIC_HOST}:8443 {
 	# exported root or skip verification; deployment.md shows both.
 	tls internal
 
-	# POST /pre-visit-brief bodies are two short strings.
-	request_body {
+	# Request-body caps, one per kind of route. The two matchers are
+	# disjoint on purpose: request_body stacks, so a site-wide 16KB cap
+	# would still bind inside a larger /documents one.
+	#
+	# Everything but uploads: POST /pre-visit-brief and the conversation
+	# routes carry a few short strings.
+	@small_body not path /documents*
+	request_body @small_body {
 		max_size 16KB
+	}
+	# Uploads (docs/w2/DEPLOY.md §2.1): 25 MiB, equal to the agent's
+	# MAX_UPLOAD_BYTES (app/api/documents.py) and the card's MAX_BYTES
+	# (upload.mjs), so no layer refuses what another accepts. That is ~80
+	# pages at the factory's scan density (150-310 KB/page) and ~25 at a
+	# 1 MB/page 300 dpi colour office scan.
+	@upload path /documents*
+	request_body @upload {
+		max_size 25MiB
 	}
 
 	header {
@@ -45,6 +60,10 @@ https://{$AGENT_PUBLIC_HOST}:8443 {
 		reverse_proxy agent:8000
 	}
 	handle /docs* {
+		reverse_proxy agent:8000
+	}
+	# Week 2 upload and extraction status (D7). Sized above.
+	handle /documents* {
 		reverse_proxy agent:8000
 	}
 	handle /openapi.json {

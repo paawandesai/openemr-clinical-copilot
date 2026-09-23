@@ -59,12 +59,14 @@ DEFAULT_FUSION_DEPTH = 30
 #: fitted on, and 30 queries is not enough to adopt a weight from.
 EQUAL_FUSION_WEIGHTS = (1.0, 1.0)
 
-#: D25's latency budget for the rerank stage. A rerank that takes longer
-#: than this does not get to decide the order: the result is discarded, the
-#: fused order stands, and the output says `reranked=false`. The clinician
-#: gets slightly worse ranking instead of a slow answer, and the output
-#: does not claim a reranking that was thrown away.
-RERANK_BUDGET_SECONDS = 2.5
+#: The latency budget for the rerank stage: D25 set 2.5 s, D35 raised it to
+#: 4 s after measuring the cross-encoder on the deployment host. A rerank
+#: that takes longer than this does not get to decide the order: the result
+#: is discarded, the fused order stands, and the output says
+#: `reranked=false`. The clinician gets slightly worse ranking instead of a
+#: slow answer, and the output does not claim a reranking that was thrown
+#: away.
+RERANK_BUDGET_SECONDS = 4.0
 
 #: How many cross-encoder reranks may run at once, per retriever. A rerank
 #: that finds every slot taken does not wait: it takes the budget fallback
@@ -155,7 +157,7 @@ class GuidelineRetriever:
             max_workers=rerank_slots, thread_name_prefix="rerank"
         )
         #: Opened when a rerank blows the budget. Until it is reset, rerank
-        #: is skipped rather than run-and-discarded: paying 2.5 s to throw
+        #: is skipped rather than run-and-discarded: paying the budget to throw
         #: the answer away on every subsequent turn is strictly worse than
         #: not reranking at all.
         self.rerank_circuit_open = False
