@@ -625,6 +625,75 @@ pre-change counts.
 
 ## 8. Measured on the host
 
+### 8.0 Post-deploy, `main@21f1053` — the numbers to cite
+
+Deployed 2026-09-23 16:40 UTC: agent image and module from `main@21f1053`
+(graph D40, observability D36-D39, php-wiring, this branch D41), the
+Caddyfile unchanged from `a78ba51`. The guard was verified against the new
+image **before** the proxy served it (§2.2 table: 401 / 401 / 403 / 200,
+status 200 / 404 / 401, 409 for the same bytes on a second chart; an unknown
+patient is now 422, refused on id format before OpenEMR is asked). Driven
+through the real chart card, **one document at a time**, physician login,
+live `claude-opus-5` at $5 / $25 per MTok (`cost_usd` is the agent's own
+figure from the same rates).
+
+**Vision extraction, per document** (from the agent's
+`intake_extraction_completed` and step events; one vision call per
+document):
+
+| sample | kind | pages | text layer | OCR (read) | vision | locate + verify | cost | per page |
+|---|---|---|---|---|---|---|---|---|
+| lab-clean-001 | lab | 1 | yes | 0.02 s | 29.4 s | 1.1 s | $0.126 | 30.6 s, $0.126 |
+| lab-multipage-003 | lab | 2 | yes | 0.03 s | 54.5 s | 1.1 s | $0.227 | 27.8 s, $0.114 |
+| lab-scanned-heavy-abnormal-002 | lab | 1 | **no** | 6.1 s | 32.6 s | 1.0 s | $0.126 | 39.8 s, $0.126 |
+| intake-scanned-light-med-005 | intake | 2 | **no** | 9.7 s | 19.1 s | 1.2 s | $0.104 | 15.0 s, $0.052 |
+| intake-clean-004 | intake | 2 | yes | 0.02 s | 15.7 s | 0.9 s | $0.096 | 8.3 s, $0.048 |
+
+- Vision dominates: 15.7-54.5 s per document; OCR adds 4.9-6.1 s per
+  scanned page; locate and verify ~1 s. 126-236 fields per lab, 57-73 per
+  intake form, 0 parse failures.
+- **A lab page costs ~$0.11-0.13; an intake page ~$0.05.** Output tokens
+  are most of it (3,704-6,811 per lab).
+- Upload to `complete`, as the card sees it (2 s polling): 20.8 s (clean
+  intake), 35.3 s (scanned intake), 42.2 s (scanned lab). The upload
+  request itself answers in 1.6-1.9 s.
+
+**Sourced question, document + guideline** — "What was her glucose on the
+uploaded lab report, and what does the USPSTF recommend about screening for
+prediabetes and type 2 diabetes?" on pid 38 with lab-clean-001, 3 runs:
+
+| run | answer | citations | unverified | retrieval (rerank) | drafting call | end to end |
+|---|---|---|---|---|---|---|
+| 1 | answered / `evidence_in_hand` | **7 document + 2 guideline** | 0 | 1.55 s (1.54 s) | 31,109 in / 873 out, 18.3 s | 20.9 s |
+| 2 | answered / `evidence_in_hand` | **7 document + 2 guideline** | 0 | 1.68 s (1.67 s) | 31,109 / 873, 18.5 s | 21.2 s |
+| 3 | answered / `evidence_in_hand` | **7 document + 2 guideline** | 0 | 1.59 s (1.57 s) | 31,109 / 965, 12.7 s | 15.3 s |
+
+A question costs **~$0.178** (31,109 × $5 + ~900 × $25 per MTok). Every
+rerank ran and none was over budget, busy or skipped. A question phrased
+as a diagnosis ("what A1c level do the guidelines use to diagnose
+diabetes?") is refused by the supervisor as `unverifiable_judgment` in
+296 ms, by design (D40 routing).
+
+**Per encounter**, adding Week 1's brief + 4 turns (§8 below, $0.18-0.65
+by chart size): one lab upload ($0.13) + one intake form ($0.05-0.10) + one
+sourced question ($0.18) ≈ **$0.54-1.06**.
+
+**Memory:** the agent's cgroup `memory.peak` over the whole run was
+**1.32 GiB** (limit 4.5 GiB, 0 OOM kills); host available never fell
+below ~4.5 GiB. The 3.7 GiB demo-load figure below is the stress bound
+with concurrent reranking; one document at a time stays well inside it.
+
+**Also verified after deploy:** `/documents` through `:8443` is 401 with no
+bearer and with a made-up one; `/w2/ask` through `:8443` is 401
+`malformed_bearer_token` for a made-up bearer; the preview opened by a
+citation's digest is 200 `application/pdf`, bytes identical to the upload,
+with the chart open, and 404 with another chart open; the Week 1 embed
+(brief 24/24, medication and lab turns) is unchanged. The five uploaded
+documents were deleted afterwards; a full row-count comparison against
+the pre-deploy dump differs only in audit logs, access tokens, login
+sessions and one `contact` row.
+
+
 All on `64.177.42.210` (4 vCPU, 7.2 GiB), 2026-09-22.
 
 **Image and process**
