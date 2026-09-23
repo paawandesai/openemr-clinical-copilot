@@ -68,17 +68,22 @@ Short names used below:
 
   Even 100 a day is over Anthropic's Build-tier cap of $1,000 a month
   (published). 10K a day is within 14% of the Scale tier's $200K cap.
-- **The worst latency in the system is Week 2's own answer step.**
-  - A `/w2/ask` about an uploaded lab report takes **91.9 s and 130.5 s**
-    (n = 2, no load). That is past the 90 s budget between patients.
-  - All of it is one drafting call, over every extracted result
-    (`LOAD_TEST.md` §6).
-  - A guideline question takes 10.5 s and 10.6 s.
+- **The scope of the question dominates answer latency** (§4.1a). On the
+  same stack:
+  - a question about a **whole** uploaded lab report takes **91.9 s and
+    130.5 s** (n = 2, no load): one drafting call over every extracted
+    result, writing 11,523 tokens (`LOAD_TEST.md` §6);
+  - a guideline question takes **10.5 s and 10.6 s** (`LOAD_TEST.md` §6);
+  - a narrower document question from the chart takes **17–19 s** **[UNSOURCED: reported by the `feat/w2-php-wiring` session; not yet in a committed artifact]**.
+
+  Only the whole-report question breaks the 90 s budget. Neither the stack
+  nor the load makes it slow. The size of the answer does: it covers every
+  extracted result and writes 11.5k tokens back.
   - The fix for the document question is on `feat/w2-answer-scope` **[PENDING `feat/w2-answer-scope`]**;
-    its before/after numbers go in §4.1c.
+    its before/after numbers go in §4.1d.
   - The first run of the real flow from a chart is reported at 35.3 s from
     upload to extraction complete, and 17–19 s from ask to answer, with 0
-    unverified citations **[UNSOURCED: reported by the `feat/w2-php-wiring` session; not yet in a committed artifact]**. Details in §4.1a.
+    unverified citations **[UNSOURCED: reported by the `feat/w2-php-wiring` session; not yet in a committed artifact]**. Details in §4.1b.
   - Extraction takes 15–33 s per document, but runs at upload (D7).
 - **The local bottleneck is the reranker.**
   - At 50 concurrent retrievals its p95 was **335 s** (335,224 ms) before
@@ -397,7 +402,42 @@ retrieving `/w2/ask`:
 The guideline question then measured 10.5 s and 10.6 s. The same method
 could not have predicted the document question, whose draft is 20× longer.
 
-### 4.1a The first end-to-end run from a chart **[UNSOURCED: reported by the `feat/w2-php-wiring` session; not yet in a committed artifact]**
+### 4.1a Question scope dominates answer latency
+
+The same `/w2/ask` path, on the same stack, answers in 10 s or in 2
+minutes, depending on what the question asks for:
+
+| Question, same stack | `/w2/ask` latency | What the answer drafts over | Source |
+|---|---|---|---|
+| About a whole uploaded lab report | **91.9 s, 130.5 s** (n = 2) | every extracted result on the report; one call, 34,948 in / 11,523 out | `LOAD_TEST.md` §6 |
+| A narrower question about an uploaded document, from the chart | **17–19 s** | not recorded: the run log should give the question and the token counts | **[UNSOURCED: reported by the `feat/w2-php-wiring` session; not yet in a committed artifact]** |
+| A guideline question | **10.5 s, 10.6 s** (n = 2) | 4 retrieved chunks | `LOAD_TEST.md` §6 |
+
+**The finding is the spread, not any one number.**
+
+- A whole-report question drafts over every extracted result and writes
+  11.5k tokens back in one call. That is what makes it slow, and what makes
+  it about $0.46 of a $0.82 encounter (§2.1).
+- A guideline question drafts over four chunks.
+- The narrower document question's token counts are not recorded yet, so
+  whether it is faster because it reads less or writes less is open.
+- A single figure for "answer latency" would mislead in either direction.
+  92–131 s makes every answer look broken; 17–19 s hides the question that
+  actually breaks the budget.
+
+**Sourcing.** The first and third rows are committed
+(`docs/w2/LOAD_TEST.md` §6), and they carry the finding on their own: two
+questions in the same encounter, on the same stack, 10.5 s against 91.9 s.
+The middle row is reported but not committed. If its run log does not land
+in `docs/w2/evidence/` before the merge, the row comes out and the finding
+stands on the other two.
+
+**What it means for the fix.** The finding is why the fix is about scope,
+not speed: bound the output, or answer only from the rows the question
+names (`LOAD_TEST.md` §6). `feat/w2-answer-scope` **[PENDING `feat/w2-answer-scope`]** is measuring
+before/after on the whole-report question (§4.1d).
+
+### 4.1b The first end-to-end run from a chart **[UNSOURCED: reported by the `feat/w2-php-wiring` session; not yet in a committed artifact]**
 
 Reported by the `feat/w2-php-wiring` session from a live run on the real
 flow, through the Documents & Sources card:
@@ -419,10 +459,11 @@ the repin, or they come out. Not yet known:
 - whether the run was local or on the host;
 - n.
 
-17–19 s against the 92–131 s document question in §4.1 suggests a
-narrower question. That is not established.
+According to the project owner, this was a narrower question than the
+whole-report one, against the same stack. The run log should record the
+question itself. §4.1a sets it beside the other two measurements.
 
-### 4.1b Post-deploy re-measurement **[PENDING `chore/w2-deploy-rehearsal`]**
+### 4.1c Post-deploy re-measurement **[PENDING `chore/w2-deploy-rehearsal`]**
 
 After `chore/w2-deploy-rehearsal` deploys, the deploy session re-measures on
 the host. These rows replace the figures labelled "rehearsal host, before the
@@ -435,7 +476,7 @@ Week 2 deploy" in §4.1:
 | Peak memory under OCR + reranking | not measured (idle 760–900 MiB) | *awaiting the deploy session* |
 | One answer citing a document and a guideline | the host did not run `/w2/ask` | *awaiting the deploy session* |
 
-### 4.1c The document-question fix **[PENDING `feat/w2-answer-scope`]**
+### 4.1d The document-question fix **[PENDING `feat/w2-answer-scope`]**
 
 `feat/w2-answer-scope` fixes the whole-report document question. Its
 before/after numbers go here:
@@ -453,7 +494,7 @@ before/after numbers go here:
 
 | Path | Bottleneck | Evidence |
 |---|---|---|
-| **Question about an uploaded document, wall clock** | **The answer step's single drafting call**: 91.9–130.5 s, writing 11.5k tokens over every extracted result. It fires the 45 s `answer_p95_latency` alert on its own | `LOAD_TEST.md` §6; `ALERTS.md` §1 |
+| **Question about a whole uploaded document, wall clock** | **The answer step's single drafting call**: 91.9–130.5 s, writing 11.5k tokens over every extracted result. Narrower questions on the same stack take 10.5–19 s (§4.1a). It fires the 45 s `answer_p95_latency` alert on its own | `LOAD_TEST.md` §6; `ALERTS.md` §1 |
 | Question → answer, capacity | **OpenEMR's PHP tier**, unchanged from Week 1: 420% CPU at 10 users, 58% failures at 50, and throughput *falling* from 4.53 to 2.70 req/s | `LOAD_TEST.md` §1 |
 | Other questions, wall clock | **The LLM draft**: 85% of a real turn | `LOAD_TEST.md` §2 |
 | Document → extraction, wall clock and cost | **The vision call**: 15–33 s and $0.10–0.23 per document, off the question path (D7) | `LOAD_TEST.md` §4b; §1 row 1 |

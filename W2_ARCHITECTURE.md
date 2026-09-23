@@ -85,10 +85,12 @@ beside chart facts without the two blurring. Nine decisions carry the weight.
 
 **Not true yet:**
 
-- A question about an uploaded lab report takes **92–131 s** (n = 2). It is
-  one drafting call over every extracted result, writing 11.5k tokens: past
-  the 90 s budget, and about half the $0.82 encounter cost (`LOAD_TEST.md`
-  §6).
+- A question about a **whole** uploaded lab report takes **92–131 s** (n =
+  2): one drafting call over every extracted result, writing 11.5k tokens.
+  That is past the 90 s budget, and about half the $0.82 encounter cost. A
+  guideline question on the same stack takes 10.5 s. **Question scope, not
+  the stack, dominates answer latency** (`LOAD_TEST.md` §6;
+  `docs/w2/COST_AND_LATENCY.md` §4.1a).
 - The live host (rehearsal host, before the Week 2 deploy) **[PENDING `chore/w2-deploy-rehearsal`]** does not run the Week 2 ask path (`a78ba51` predates
   `feat/w2-graph`, `DEPLOY.md` §0 **[PENDING `chore/w2-deploy-rehearsal`]**).
 - The documents card is not registered in the module on `main`. It is
@@ -696,7 +698,10 @@ makes no new decision and takes no D-number.
     expensive.** 91.9 s and 130.5 s (n = 2) and about $0.46 per call: one
     drafting call over every extracted result, writing 11.5k tokens
     (`LOAD_TEST.md` §6). It breaks the 90 s budget for a single user with no
-    load. It is a product fix, not a scale fix. It is being fixed on
+    load. Narrower questions on the same stack do not break it: a guideline
+    question takes 10.5–10.6 s (`LOAD_TEST.md` §6), and a narrower document
+    question from the chart is reported at 17–19 s **[UNSOURCED: reported by the `feat/w2-php-wiring` session; not yet in a committed artifact]**. Question scope
+    dominates answer latency (`docs/w2/COST_AND_LATENCY.md` §4.1a). It is a product fix, not a scale fix. It is being fixed on
     `feat/w2-answer-scope` **[PENDING `feat/w2-answer-scope`]**, and its before/after numbers are not in yet.
 11. **A wrapped field's multi-box path is unit-tested only.** No sample wraps a
     field (D34).

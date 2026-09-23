@@ -44,7 +44,7 @@ rests on a branch not yet merged into `main`: **[PENDING `feat/w2-php-wiring`]**
 | W2-6 | Critical values surfaced | **not measured live**; gate H6 and G7 pass | 100%, absolute | one fixture |
 | W2-7 | Guideline retrieval: recall and the share actually reranked | recall@4 0.666, zero-recall queries 0/30; reranked 35% at 10 paced users, 6.2% at 50 | reranked rate is watched, not targeted | 30 dev queries; laptop measurements only |
 | W2-8 | Eval gate: regressions caught **[PENDING `feat/w2-eval-gate`]** | 13/13 planted regressions blocked; 78/96 cases active | every planted regression blocks | harness-proved; judge uncalibrated |
-| W2-9 | Cost and latency per encounter | **$0.82 measured** (n = 2); a document question takes **92–131 s** | ≤ 90 s per answer (Week 1 budget) | 2 real-route encounters; **fails the budget**; fix on `feat/w2-answer-scope` **[PENDING `feat/w2-answer-scope`]** |
+| W2-9 | Cost and latency per encounter | **$0.82 measured** (n = 2); answer latency depends on question scope: **92–131 s** for a whole-report question, 10.5–10.6 s for a guideline question | ≤ 90 s per answer (Week 1 budget) | 2 real-route encounters; **fails the budget**; fix on `feat/w2-answer-scope` **[PENDING `feat/w2-answer-scope`]** |
 
 ---
 
@@ -332,21 +332,28 @@ the write-back cases") **[PENDING `feat/w2-eval-gate`]**.
   87,245 tokens (`OBSERVABILITY.md` §2; trace header in
   `docs/w2/evidence/screenshots/langfuse-encounter-trace.png` on that
   branch).
-- **The document question is 92–131 s** (91.9 s and 130.5 s). That is over
-  the 90 s budget with a single user and no load, and it alone is about $0.46
-  of the $0.82 (`LOAD_TEST.md` §6).
-- A guideline question is 10.5–10.6 s.
+- **The scope of the question dominates answer latency.** On the same
+  stack:
+  - a question about a **whole** uploaded report is **92–131 s** (91.9 s
+    and 130.5 s), over the 90 s budget with one user and no load; that one
+    call is about $0.46 of the $0.82 (`LOAD_TEST.md` §6);
+  - a guideline question is **10.5–10.6 s** (`LOAD_TEST.md` §6);
+  - a narrower document question from the chart is **17–19 s** **[UNSOURCED: reported by the `feat/w2-php-wiring` session; not yet in a committed artifact]**.
+
+  Reporting one number here would be wrong either way
+  (`docs/w2/COST_AND_LATENCY.md` §4.1a).
 - Extraction is 15–33 s per document, and it runs at upload (D7).
 - A Week 1 conversation turn is p95 6.41 s locally at 10 users.
 
-**This metric is failing today**, on a single request, and the cause is
-known: the answer step drafts over every extracted result. The fix is on
+**This metric fails today for whole-report questions**, on a single
+request, and the cause is known: the answer step drafts over every extracted
+result. The fix is on
 `feat/w2-answer-scope` **[PENDING `feat/w2-answer-scope`]**; its before/after numbers are not in yet
-(`docs/w2/COST_AND_LATENCY.md` §4.1c).
+(`docs/w2/COST_AND_LATENCY.md` §4.1d).
 
 The PHP session reports a live run from the chart: upload to extraction
-complete in 35.3 s, and an ask answered in 17–19 s **[UNSOURCED: reported by the `feat/w2-php-wiring` session; not yet in a committed artifact]**. The question behind
-that run is not recorded (`docs/w2/COST_AND_LATENCY.md` §4.1a).
+complete in 35.3 s, and a narrower question answered in 17–19 s **[UNSOURCED: reported by the `feat/w2-php-wiring` session; not yet in a committed artifact]**. The exact
+question is not yet recorded (`docs/w2/COST_AND_LATENCY.md` §4.1b).
 
 Derivations, projections and sources:
 [docs/w2/COST_AND_LATENCY.md](docs/w2/COST_AND_LATENCY.md).
