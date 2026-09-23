@@ -24,7 +24,7 @@
  * @license   https://github.com/openemr/openemr/blob/master/LICENSE GNU General Public License 3
  */
 
-import {createReadStream} from 'node:fs';
+import {createReadStream, realpathSync} from 'node:fs';
 import {stat} from 'node:fs/promises';
 import {createServer} from 'node:http';
 import {dirname, extname, join, normalize, resolve, sep} from 'node:path';
@@ -99,7 +99,31 @@ export function listen(port = 8760) {
     });
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) {
+/**
+ * Whether this file is the script node was asked to run, as opposed to an
+ * import (`browser.mjs` imports `listen`).
+ *
+ * Compared as resolved filesystem paths, not as `file://${argv[1]}` against
+ * `import.meta.url`: the URL percent-encodes a space and argv does not, so
+ * that string comparison is false in any checkout whose path has a space in
+ * it, and the server then exits 0 without printing anything. `realpathSync`
+ * also folds a relative argv or a symlinked checkout into the path node
+ * resolved `import.meta.url` to.
+ *
+ * @returns {boolean}
+ */
+function isEntryPoint() {
+    if (!process.argv[1]) {
+        return false;
+    }
+    try {
+        return fileURLToPath(import.meta.url) === realpathSync(process.argv[1]);
+    } catch {
+        return false;
+    }
+}
+
+if (isEntryPoint()) {
     const port = Number(process.argv[2] || 8760);
     const server = await listen(port);
     const {port: bound} = server.address();
