@@ -20,6 +20,8 @@ RUBRICS_FILE = RUBRICS_DIR / "rubrics.json"
 CATEGORIES_FILE = RUBRICS_DIR / "categories.json"
 JUDGE_CONFIG = W2_ROOT / "judge_config.json"
 BASELINE = W2_ROOT / "baseline.json"
+#: The pinned hash of every prompt the system or the judge sends (W2-L1).
+PROMPT_PINS = W2_ROOT / "prompt_pins.json"
 JUDGE_CACHE = W2_ROOT / ".judge_cache"
 
 #: The published wire schemas (D22), checked by W2-A6.

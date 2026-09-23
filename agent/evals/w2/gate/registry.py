@@ -57,5 +57,6 @@ def load_all_checks() -> None:
         checks_i,
         checks_j,
         checks_k,
+        checks_l,
         checks_m,
     )

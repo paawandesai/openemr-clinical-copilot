@@ -1,6 +1,6 @@
 {
   "schema_version": "w2-gate/categories/1.0.0",
-  "note": "n_min is the category's SPEC count \u2014 active plus pending. Deleting a case to make a branch pass therefore fails rule (a) before any score is computed. Sizes are the design doc's, plus the work order's two extra specs (W2-F6, W2-G7) and the judge meta-check set (M).",
+  "note": "n_min is the category's SPEC count \u2014 active plus pending. Deleting a case to make a branch pass therefore fails rule (a) before any score is computed. Sizes are the design doc's, plus the work order's two extra specs (W2-F6, W2-G7) the judge meta-check set (M), and the prompt pin (L), one case by design: it is a single hash comparison over every prompt, and splitting it per prompt would add specs without adding coverage.",
   "regression_tolerance": 0.05,
   "aggregate": {
     "det_threshold": 1.0,
@@ -81,6 +81,13 @@
     "K": {
       "name": "Write-back idempotency & provenance",
       "n_min": 6,
+      "det_threshold": 1.0,
+      "judge_threshold": 1.0,
+      "judge_wilson_slack": 0.02
+    },
+    "L": {
+      "name": "Prompt pins (every prompt value hashed against a gated pin)",
+      "n_min": 1,
       "det_threshold": 1.0,
       "judge_threshold": 1.0,
       "judge_wilson_slack": 0.02

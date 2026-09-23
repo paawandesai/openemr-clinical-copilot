@@ -5,7 +5,10 @@
   "status": "active",
   "inputs": {
     "kind": "contract",
-    "note": "MODE: the real supervisor, in process — run_ask_turn with chart, document store, retriever and drafter injected. No network, no model. Harness fakes come from tests/w2_graph_support.py, which is NOT gated; the gate asserts only on the graph's own output and each check carries a control. Sample: the factory's med_discrepancy scenario (form says amLODIPine 10 MG, chart product is 2.5 MG)."
+    "note": "MODE: the real supervisor, in process — run_ask_turn with chart, document store, retriever and drafter injected. No network, no model. Harness fakes come from tests/w2_graph_support.py, which is NOT gated; the gate asserts only on the graph's own output and each check carries a control. Sample: the factory's med_discrepancy scenario (form says amLODIPine 10 MG, chart product is 2.5 MG). Declares requires: [tesseract] — the med_discrepancy sample is a scanned page with no text layer, so the document store OCRs it. Without the binary the runner SKIPS this case with a notice instead of failing it.",
+    "requires": [
+      "tesseract"
+    ]
   },
   "expected": "A form that disagrees with the chart surfaces the disagreement, carries no resolution, claims no change to the chart, and cannot have written one — the ask path references no write-back at all.",
   "assertions": [

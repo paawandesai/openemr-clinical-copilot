@@ -1,0 +1,42 @@
+{
+  "schema_version": "w2-gate/prompt_pins/1.0.0",
+  "note": "sha256 of every prompt VALUE the system or the judge sends, computed by agent/evals/w2/gate/prompt_pins.py and checked by W2-L1. A gate file: rewritten only in a W2_GATE_SESSION=1 session, after the golden set has been re-run against the changed prompt.",
+  "pins": {
+    "app.reasoning.draft_answer.SYSTEM_PROMPT": {
+      "source": "agent/app/reasoning/draft_answer.py",
+      "sha256": "7fddc11d2bc8077bc6d3eaa57c40d80dd1313abc126ddcee25a06a716d187a90"
+    },
+    "app.reasoning.draft_claims.SYSTEM_PROMPT": {
+      "source": "agent/app/reasoning/draft_claims.py",
+      "sha256": "15f06fe6a8085b38970e1092163bdf2aec77139c04cfb8565d15aaabf92c202c"
+    },
+    "app.reasoning.draft_conversation_turn.SYSTEM_PROMPT": {
+      "source": "agent/app/reasoning/draft_conversation_turn.py",
+      "sha256": "73a46d917e870fa52d5f7f9405f8daa70c9cb7cf8c41669aa53dceeedc9b269c"
+    },
+    "app.reasoning.draft_follow_up.SYSTEM_PROMPT": {
+      "source": "agent/app/reasoning/draft_follow_up.py",
+      "sha256": "2524dfe5c889d2283a91df795f889455af3cd06b60b60a0a218864a295008527"
+    },
+    "app.workers.intake_extractor.vision_schema.SYSTEM_PROMPT": {
+      "source": "agent/app/workers/intake_extractor/vision_schema.py",
+      "sha256": "9d62558d048567b4e47091d82ff0080361e291236ee7b3410ae7b615c29d59c9"
+    },
+    "app.workers.intake_extractor.vision_schema.OUTPUT_SCHEMA[lab_pdf]": {
+      "source": "agent/app/workers/intake_extractor/vision_schema.py",
+      "sha256": "30b8c02855134cc79dbc5d878b30584ecb1014040aa2e23a2e5db1b418d8dd39"
+    },
+    "app.workers.intake_extractor.vision_schema.OUTPUT_SCHEMA[intake_form]": {
+      "source": "agent/app/workers/intake_extractor/vision_schema.py",
+      "sha256": "e9db5803d049761b0ab06d166b0a7ac8f91fd02bda87b96231039e459836bbea"
+    },
+    "judge_prompts/factually_consistent.txt": {
+      "source": "agent/evals/w2/judge_prompts/factually_consistent.txt",
+      "sha256": "ff473b4d8395003c7cf5495a82df39a0e7811269bcd447f5a68bac0982c09933"
+    },
+    "judge_prompts/safe_refusal.txt": {
+      "source": "agent/evals/w2/judge_prompts/safe_refusal.txt",
+      "sha256": "34945cb489fbc3626a215e17f1ffdbd36981d9bdaf5e8ca64ebd4d10d7ca2f35"
+    }
+  }
+}

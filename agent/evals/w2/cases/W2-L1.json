@@ -1,0 +1,19 @@
+{
+  "id": "W2-L1",
+  "category": "L",
+  "critical": true,
+  "status": "active",
+  "inputs": {
+    "kind": "contract",
+    "note": "MODE: in process, no model, no network. Imports every prompt the system or the judge sends and hashes its VALUE — the four SYSTEM_PROMPTs under agent/app/reasoning/, the extractor's vision SYSTEM_PROMPT and its structured-output schema for both document kinds, and both judge prompts as the judge loads them — against agent/evals/w2/prompt_pins.json, a gate file. Values, not source files, so an unrelated edit in the same module does not trip it. Also fails when a module under app/reasoning/ grows a SYSTEM_PROMPT, or judge_config.json a rubric, that is not pinned. Control: the digest must move on a one-character edit. This is the catch-all, NOT a replacement for the behavioural cases (B, F, H, I, M): a matching pin says the prompt is the one the golden set was last validated against, nothing about whether it is good."
+  },
+  "expected": "Every pinned prompt hashes to its pin and no prompt is sent unpinned. On any mismatch the case fails naming the prompt and its file, and says a prompt change requires a gate session to re-validate the golden set and update the pin.",
+  "assertions": [
+    {
+      "rubric": "prompt_pinned",
+      "tier": "det",
+      "check": "chk.l_every_prompt_matches_its_pin"
+    }
+  ],
+  "guards_against": "A prompt edited in an ordinary branch and merged green because no case happens to exercise what the edit breaks — the investigation found four of seven prompts could be edited harmfully and still pass, and a loosened safe_refusal judge passed two of three runs."
+}

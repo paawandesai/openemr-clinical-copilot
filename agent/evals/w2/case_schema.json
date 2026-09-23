@@ -132,7 +132,8 @@
               "idempotency",
               "provenance_roundtrip",
               "cap_disclosure",
-              "judge_meta"
+              "judge_meta",
+              "prompt_pinned"
             ]
           },
           "tier": {
