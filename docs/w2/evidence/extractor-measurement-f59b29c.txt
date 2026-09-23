@@ -1,0 +1,20 @@
+# cd agent && python -m tests.intake_extractor_measurement
+# run 2026-09-22 on main@f59b29c (docs/w2-submission), vision = ground-truth stub, no model call, no network; Tesseract OCR real
+# log lines (agent_event JSON) filtered out; table and totals verbatim
+
+| sample | status | located rate | right ink (IoU>=0.5, text layer) | mean conf | x-check agree / comparable | discrepancies found / expected / TP | derived false disc. | fuzzy on exact-only |
+|---|---|---|---|---|---|---|---|---|
+| lab-clean-001 | complete | 99.0% (103/104) | 100.0% (103/103) | 0.9904 | 0/0 (not_reported 22, not_computable 0, disagree 0) | — | 0/1 | 0 |
+| lab-scanned-heavy-abnormal-002 | complete | 33.6% (36/107) | n/a (scan) | 0.2326 | 0/0 (not_reported 6, not_computable 0, disagree 0) | — | 0/1 | 0 |
+| lab-multipage-003 | complete | 99.5% (192/193) | 100.0% (192/192) | 0.9948 | 1/1 (not_reported 43, not_computable 0, disagree 0) | — | 0/1 | 0 |
+| intake-clean-004 | complete | 91.8% (45/49) | 100.0% (45/45) | 0.9184 | — | 0 / 0 / 0 | 0/4 | 0 |
+| intake-scanned-light-med-005 | complete | 87.5% (49/56) | n/a (scan) | 0.8016 | — | 1 / 1 / 1 | 0/11 | 0 |
+| intake-missing-allergy-006 | complete | 94.4% (51/54) | 100.0% (51/51) | 0.9444 | — | 1 / 1 / 1 | 0/7 | 0 |
+
+- end-to-end located rate: 84.5% (476/563)
+- located on the right ink (text-layer pages): 100.0% (391/391)
+- cross-check agreement over comparable flags: 100.0% (1/1)
+- discrepancy precision: 100.0% (2/2); recall: 100.0% (2/2)
+- false-discrepancy rate on derived fields: 0.0% (0/25)
+- fuzzy tier on numeric/unit/date/flag fields: 0
+# tesseract 5.5.3 (local macOS install)

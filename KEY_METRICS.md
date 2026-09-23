@@ -1,6 +1,329 @@
-# KEY_METRICS.md
+# Key Metrics — Week 2
 
-The key metrics live at [docs/KEY_METRICS.md](docs/KEY_METRICS.md) — six
-success metrics, each traced to a promise in USERS.md or ARCHITECTURE.md, with
-the rationale for including it, how it is computed, and what a bad number
-means.
+Week 1's six metrics still stand, and their definitions and computation live
+in [docs/KEY_METRICS.md](docs/KEY_METRICS.md):
+
+1. verification pass rate
+2. unverified-claim disclosure rate
+3. authorization boundary integrity
+4. response latency against the 90-second budget
+5. retrieval coverage per query
+6. cost per interaction
+
+This file covers what Week 2 adds: documents, guideline evidence, and a gate
+that has to hold. It keeps the Week 1 format. Each metric says what it
+claims, how it is measured, and its current value with the source, and it
+says when there is no value.
+
+**The rule for every number here:** a rate is shown with its numerator and
+denominator. A metric whose denominator is small says so. A metric with no
+live measurement says "not measured", not a target. Sources are on `main`
+(`f59b29c`) unless a branch is named. Two of the branches cited
+(`feat/w2-observability`, `chore/w2-deploy-rehearsal`) exist **only
+locally** at the time of writing.
+
+| # | Metric | Current value | Target | Strength of evidence |
+|---|---|---|---|---|
+| W2-1 | Located rate, text-layer pages | 97.8% (391/400) in replay; 98% (102/104) and 92% (45/49) with real vision | ≥ 85% (alert) | real model, n = 2 documents |
+| W2-2 | Unlocated values stated as fact | 0, enforced by the type system | 0, absolute | gate critical case plus planted regression |
+| W2-3 | Flag cross-check agreement, comparable flags only | 100% (**1/1**) | none set; the denominator is the finding | very weak: n = 1 |
+| W2-4 | Intake discrepancy accuracy; never merged | precision 2/2, recall 2/2, false positives 0/25; merges 0 | 0 merges, absolute | weak: n = 2 |
+| W2-5 | Verified and disclosed on the ask path | **not measured live**; gate det 70/70 | 100% disclosed, absolute | tests only |
+| W2-6 | Critical values surfaced | **not measured live**; gate H6 and G7 pass | 100%, absolute | one fixture |
+| W2-7 | Guideline retrieval: recall and the share actually reranked | recall@4 0.666, zero-recall queries 0/30; reranked 35% at 10 paced users, 6.2% at 50 | reranked rate is watched, not targeted | 30 dev queries, local only |
+| W2-8 | Eval gate: regressions caught | 12/12 planted regressions blocked; 76/95 cases active | every planted regression blocks | harness-proved; judge uncalibrated |
+| W2-9 | Cost and latency per encounter | ~$0.52 (estimated); extraction 15–33 s | ≤ 90 s per answer (Week 1 budget) | components measured, composition estimated |
+
+---
+
+## W2-1. Located rate: can every value be put back on the page?
+
+**Claims.** When the co-pilot reads a value off a clean PDF, deterministic
+code finds that value on the page and can draw a box around it (D3). A value
+without a box is never shown as fact, which is W2-2. This metric says how
+often a real document yields values the clinician can actually use.
+
+**Measured.**
+
+- The rate is `located / (located + unlocated)`, over the fields the vision
+  model gave a value.
+- `missing` and `illegible` are left out of both sides, because they
+  describe the document, not the extractor (`OBSERVABILITY.md` §3;
+  `agent/tests/intake_extractor_measurement.py` docstring).
+- In production it comes from `intake_extraction_completed` events, computed
+  by `agent/scripts/w2_dashboard.py` on `feat/w2-observability`.
+- Text-layer pages and scans are **reported separately**. A pooled rate
+  would hide a regression on clean pages behind normal scan variance
+  (`ALERTS.md` §4).
+
+**Current.**
+
+| Pages | Real vision (live model) | Replay (vision = ground truth; everything after it real) |
+|---|---|---|
+| text layer | lab 98% (102/104), intake 92% (45/49) | 97.8% (391/400) across 4 samples |
+| light scan | — | 87.5% (49/56) |
+| **heavy scan** | **34% (36/107)** | **33.6% (36/107)** |
+| all six samples | — | 84.5% (476/563) |
+
+Sources:
+
+- The real-vision column is
+  `feat/w2-observability@346e318:docs/w2/evidence/load/extraction-live-vision.json`,
+  three live calls.
+- The replay column is `docs/w2/evidence/extractor-measurement-f59b29c.txt`,
+  run this session with `cd agent && python -m tests.intake_extractor_measurement`.
+- Box correctness in replay: 100% (391/391) of text-layer locates sit over
+  the right ink at IoU ≥ 0.5.
+
+**Why the heavy scan is low, and why that is accepted.** Numbers, units,
+dates and flags are matched exactly or not at all (D24). A one-character OCR
+slip therefore produces an `unsupported` field rather than a wrong number.
+The alternative is a wrong number with a box drawn behind it, which gate case
+W2-B6 describes as the one mode that is unrecoverable, because the chart has
+no reference ranges to contradict it. The low rate is the recorded
+cost of that choice.
+
+**What a bad number means.** A text-layer drop below 85% (the alert
+threshold, with a minimum of 50 fields) means the model's transcription
+changed shape or the locate step regressed. Nothing else catches that:
+requests still succeed. It is a quality regression, not a safety one,
+because unlocated values are still disclosed (`ALERTS.md` §4).
+
+## W2-2. Unlocated values presented as fact: an absolute, not a rate
+
+**Claims.** Invariant 4: an extracted value the locate step could not place is
+never rendered as fact and never counted as verified.
+
+**Measured.** By construction, then by the gate:
+
+- `PRESENTABLE_STATUSES = {LOCATED}`, and `as_presented_fact()` is the only
+  route from an extracted field to a value (D13).
+- Gate case W2-C3 is **critical**, so its failure blocks regardless of
+  aggregates.
+- The planted regression `unlocated-value-is-presentable` widens that set by
+  one member. It blocks the gate, and 6 cases move from pass to fail.
+
+Source: `feat/w2-eval-gate@647dd9a:docs/w2/EVAL_GATE_EVIDENCE.md`, regression 3.
+
+**Current.** 0 by construction. The gate passes at `647dd9a` with W2-C3
+active.
+
+**What it does not cover.** A clinician is told a value is unsupported. The
+metric does not measure whether the clinician then opens the page.
+
+## W2-3. Flag cross-check agreement, over comparable flags only
+
+**Claims.** Where the laboratory printed a flag (H, L, N, WNL…), the flag the
+co-pilot computes from the value and range agrees with it.
+
+**Measured.** `agree / comparable`. Comparable means the reported flag is one
+of `normal | high | low | abnormal` and was located on the page. A blank
+column is `not_reported`, never agreement (D20). The denominator is reported
+beside the rate every time; D20 makes that a condition of using the metric.
+
+**Current.** 100%, **1/1**. Across the six samples, 71 flags were
+`not_reported`: 22 on the clean lab, 6 on the heavy scan, 43 on the
+multipage lab (`docs/w2/evidence/extractor-measurement-f59b29c.txt`).
+
+- The one comparable flag is the multipage lab's single abnormal row
+  (ferritin, low).
+- The heavy scan has three abnormal rows (glucose high, ALT high, potassium
+  low), but none of their printed flags was located, so none was comparable.
+
+The abnormal rows are the factory's `abnormal_value` perturbations in each
+sample's `*.ground_truth.json`.
+
+**Read it as:** the check is wired and has agreed once. It is **not** evidence
+that the extractor reads flags in general. Getting a real number needs lab
+reports that print flags on many rows. The committed factory prints them
+only on abnormal rows.
+
+## W2-4. Intake discrepancies: found when real, silent when not, never merged
+
+**Claims.** An intake form that disagrees with the chart shows the
+disagreement. An intake form that says the same thing in the patient's own
+words shows nothing. Nothing from an intake form reaches the chart (D2,
+invariant 5).
+
+**Measured.**
+
+- Precision and recall are scored against the discrepancies the factory
+  declares.
+- The false-positive rate is scored over fields the factory renders
+  `derived`, where the patient writes a name differently from the chart
+  (D35 item 9).
+- Merges are held at zero structurally. The write-back request type refuses
+  any document that is not a lab PDF. The planted regression `auto-merge-intake`
+  removes that check and blocks the gate through W2-E1, which is critical.
+- W2-H3 asserts that the ask path references no write-back code at all.
+
+Sources: `EVAL_GATE_EVIDENCE.md` regression 11; commit `ae411fb` on
+`feat/w2-eval-gate`.
+
+**Current.**
+
+| Measure | Value |
+|---|---|
+| Precision | 100% (2/2) |
+| Recall | 100% (2/2) |
+| False discrepancies on `derived` fields | 0% (0/25) |
+| Merges | 0 |
+
+Source: replay, `docs/w2/evidence/extractor-measurement-f59b29c.txt`.
+
+**Read it as:** two real discrepancies, both found. That is a denominator of
+2. The 0/25 false-positive figure is the stronger half, because a
+discrepancy list that cries wolf stops being read (planted regression
+`derived-rendering-is-a-discrepancy`).
+
+## W2-5. Answer verification and disclosure on the Week 2 ask path
+
+**Claims.** This extends Week 1 Metrics 1 and 2 to documents and guidelines.
+Every document or guideline claim on `/w2/ask` passes a deterministic check
+before it renders. The checks are an exact match to located text, or a
+verbatim excerpt of at least 4 words. A claim that fails is shown as
+UNVERIFIED and never dropped (D40 item 7).
+
+**Measured.**
+
+- Per claim: Week 1's `claim_verified_event` for chart claims, and
+  `w2_claim_verified_event` for document and guideline claims
+  (`agent/app/verification/w2_checker.py`).
+- Per turn: `w2_ask_turn_completed` carries claim counts by type
+  (`agent/app/graph/supervisor.py`).
+
+**Current.** **Not measured live.** No `/w2/ask` run against the real model
+has committed output (`agent/scripts/w2_e2e_ask.py` exists; no run of it is
+recorded). What exists:
+
+- in-process tests (`agent/tests/test_w2_checker.py`,
+  `test_w2_supervisor_graph.py`);
+- gate categories A and F, at deterministic 70/70 overall;
+- on the Week 1 path it extends, 44/44 claims verified in the real-LLM
+  encounter (`feat/w2-observability@346e318:docs/w2/OBSERVABILITY.md` §2).
+
+**Gap, stated.** Week 1's Metric 2 is computed from `claim_disclosure_event`.
+That event is emitted by `audit_disclosure()`, which reads the *rendered*
+text after rendering (F-59). The brief, follow-up and conversation graphs
+call it. **The Week 2 supervisor does not**, so on `/w2/ask` disclosure is
+covered by tests, but no runtime signal is produced. Wiring
+`audit_disclosure` into the ask path's render step closes this.
+
+## W2-6. Critical values surfaced first
+
+**Claims.** A panic value in anything the turn read leads the answer,
+whatever was asked. The lab-result cap never removes one. An unlocated
+possible panic value is named without its number (H6, D40 item 9).
+
+**Measured.**
+
+- Counts per turn on `w2_ask_turn_completed`: `critical_values`,
+  `possible_critical_values` and `critical_restored_past_cap`.
+- Gate cases on `feat/w2-eval-gate@647dd9a`:
+
+| Case | Asserts | Critical? |
+|---|---|---|
+| W2-H6 | potassium 6.8 mmol/L on `lab-critical-potassium-007` surfaces as a critical value with its reading | yes |
+| W2-G7 | a critical row the cap dropped is restored | yes |
+| W2-H10 | the threshold table is checked as data: every row has a limit and names its units | yes |
+
+**Current.** All three cases pass, and they are active (`EVAL_GATE_EVIDENCE.md`
+control run; commits `7783fba`, `ae411fb`). **Not measured live.** The
+threshold table is a demo configuration, not reviewed for any site.
+
+## W2-7. Guideline retrieval: recall, and whether the reranker actually ran
+
+**Claims.** When a question needs guidance, the four chunks passed to the
+answer step contain what answers it. The reranker, chosen because it is the
+only configuration with no total misses (D25), is actually running.
+
+**Measured.**
+
+- Quality comes from the bake-off: 30 concept-only dev queries and 110
+  relevance judgments (`docs/w2/retrieval-bakeoff.md` §4).
+- Operation is the `reranked` true-rate from `evidence_retrieval_event`, on
+  the dashboard (`OBSERVABILITY.md` §3). It is the one number that shows the
+  reranker has silently turned itself off (`LOAD_TEST.md` §5).
+
+**Current.**
+
+| Measure | Value |
+|---|---|
+| recall@4 | 0.666 |
+| MRR | 0.889 |
+| Queries at zero recall | 0/30 |
+| Reranked, burst of 50 concurrent (local, with the D39 bound) | 1% |
+| Reranked, 10 paced users | 35% |
+| Reranked, 50 paced users | 6.2% |
+
+The reranked rates are from `LOAD_TEST.md` §5b. On the live host, one slow
+rerank opened the circuit and 35 of the next 60 turns ran unreranked (D41).
+
+**Read it as:** "0/30 at zero recall" holds only when the reranker runs.
+Under load it mostly does not.
+
+## W2-8. The eval gate: does it catch a regression, and what does it not score?
+
+**Claims.** A change that breaks a Week 2 invariant cannot merge green.
+
+**Measured.** The planted-regression harness applies 12 literal regressions
+to copies of the tree, runs the gate on each, and reads the catching case
+from the run's own JSON (`python -m evals.w2.gate.planted_regressions`).
+
+**Current** (`feat/w2-eval-gate@647dd9a:docs/w2/EVAL_GATE_EVIDENCE.md`):
+
+- The control run passes (exit 0), and **12/12 planted regressions block**
+  (exit 1).
+- 95 specs: **76 active, 17 pending, 2 delegated** to a PHP CI job.
+- Deterministic tier 70/70, judge tier 8/8.
+- PHI-in-logs (category J) is 7/7, including a positive control that proves
+  the scanner detects a planted canary.
+
+**What it does not score yet:**
+
+| Not scored | Why it matters |
+|---|---|
+| The four prompt-injection-in-PDF cases (W2-I1 to W2-I4) | all pending |
+| W2-H1 | dosing refusal prose, which needs the judge on real output |
+| W2-C7 to W2-C9 | box tolerance on scans, and the D24 policy asserted from the gate |
+| The judge's agreement with human labels | the judge is **UNCALIBRATED** (D43, D48): its eight meta-check fixtures detect a judge that has drifted, not whether it was right to begin with |
+
+**No committed evidence shows the CI job has run on a GitLab runner.** It was
+verified locally with the same images (commit `0435611`).
+
+## W2-9. Cost and latency per encounter
+
+**Claims.** A day of encounters is affordable and fits between patients.
+
+**Measured.**
+
+- Cost comes from `llm_usage_event` tokens × published price, and per turn
+  from `w2_ask_turn_completed.llm_cost_usd`.
+- Latency comes from `http_request_event` and `step_event`
+  (`OBSERVABILITY.md`), and per turn from `w2_ask_turn_completed.total_ms`.
+
+**Current.** One encounter (a brief, 4 turns and 1 document) is an estimated
+**$0.29–$0.89, about $0.52 in the middle**. Extraction takes **15–33 s** per
+document with real vision, 93–99% of it the vision call. It runs at upload,
+so no clinician waits on it (D7). An answer turn is p95 6.41 s locally at 10
+users (a Week 1 conversation turn). `/w2/ask` end-to-end latency is **not
+measured**. Derivations and sources:
+[docs/w2/COST_AND_LATENCY.md](docs/w2/COST_AND_LATENCY.md).
+
+**Budget.** 90 s between encounters (Week 1 Metric 4). The answer-latency
+alert fires at p95 > 45 s (`ALERTS.md` §1).
+
+---
+
+## Metrics considered and left out
+
+- **Mean extraction confidence.** Confidence is
+  `reader_confidence × tier_weight × match_score` (D35 item 7). It moves with
+  the located rate, which is the number with a meaning; shown beside W2-1,
+  it would add no information.
+- **Judge pass rate on system output.** The judge is uncalibrated. A rate
+  from an instrument with unknown agreement is not defensible to anyone
+  (D43).
+- **A pooled located rate across all pages as a headline.** 84.5% sounds
+  like a grade and hides a 34% scan behind 98% clean pages. W2-1 shows the
+  two separately instead.

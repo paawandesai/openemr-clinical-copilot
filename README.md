@@ -6,6 +6,185 @@ A Clinical Co-Pilot AI agent built into a fork of [OpenEMR](https://open-emr.org
 
 **Repository (submission):** https://labs.gauntletai.com/paawandesai/openemr-clinical-copilot
 
+| | Week 1: baseline | Week 2: multimodal |
+|---|---|---|
+| What it does | Pre-Visit Brief and multi-turn follow-up, read from the chart over FHIR; every claim deterministically verified | lab PDFs and intake forms extracted to a strict schema with page-located values; a supervisor over an intake-extractor and an evidence-retriever; hybrid RAG over guideline evidence; an eval gate |
+| Deployed at `64.177.42.210`? | **Yes**, the whole Week 1 surface | **Partly.** Retrieval, OCR and the write-back endpoint are deployed. The Week 2 ask path (`POST /w2/ask`) is on `main` but **not** on the host |
+| Start reading | [Week 1 baseline](#week-1-baseline) below | [Week 2: start here](#week-2-start-here), next |
+
+---
+
+## Week 2: start here
+
+Everything in this section refers to `main@f59b29c` unless a branch is
+named. The one branch you need is **`feat/w2-eval-gate`**, which holds the
+eval gate and is on `origin`. At the time of writing it had not merged into
+`main`.
+
+### What Week 2 adds, and where it runs
+
+| Piece | Code | On `main` | On the live host |
+|---|---|---|---|
+| Document extraction: text layer / OCR → one vision call → deterministic locate → flag cross-check → discrepancies | `agent/app/graph/intake_extractor.py`, `agent/app/workers/intake_extractor/`, `agent/app/extraction/` | yes | library only: the deployed `/documents` is a stub that hashes and discards |
+| Supervisor + workers, `POST /w2/ask` | `agent/app/graph/supervisor.py`, `agent/app/supervisor/`, `agent/app/api/ask.py` | yes | **no** |
+| Guideline retrieval: 28 documents, BM25 + local embeddings + local rerank | `agent/app/retrieval/` | yes | yes, preloaded, nothing reads it |
+| Week 2 verifier, citation contract | `agent/app/verification/w2_checker.py`, `agent/app/models/w2/` | yes | no (it serves `/w2/ask`) |
+| Source-grounded answer view: PDF.js with bbox overlay | `interface/modules/custom_modules/oe-module-clinical-copilot/public/assets/w2/` | yes, **fixture mode only**: the chart card is not registered | no |
+| Lab write-back endpoint + idempotency ledger | the same module, `src/WriteBack/` | yes | yes, rehearsed |
+| Eval gate: 95 cases, CI job | `agent/evals/w2/gate/`, `.gitlab-ci.yml` | **no**, `feat/w2-eval-gate` | n/a: runs on recorded fixtures |
+
+Where the facts in this table come from, and what is not wired yet:
+[`W2_ARCHITECTURE.md`](W2_ARCHITECTURE.md) §8 and §11.
+
+### Run the core Week 2 flow
+
+Every command runs from the repository root unless it starts with `cd`.
+Python 3.12 (the agent image is `python:3.12-slim`) and Tesseract are
+required.
+
+```bash
+git clone https://labs.gauntletai.com/paawandesai/openemr-clinical-copilot.git
+cd openemr-clinical-copilot
+brew install tesseract                      # or: apt-get install tesseract-ocr
+cd agent && python3.12 -m venv .venv && . .venv/bin/activate
+python -m pip install -r requirements.txt -r requirements-dev.txt
+```
+
+**1. Offline, no credentials, no network.** These cover extraction, locate,
+the flag cross-check, discrepancies, routing and verification.
+
+```bash
+cd agent
+python -m pytest tests                       # unit tests; a bare `pytest` also works (testpaths)
+python -m tests.intake_extractor_measurement # the extractor over the six committed samples, vision stubbed
+```
+
+Do **not** run `pytest evals`: it runs the Week 1 suite live, against real
+FHIR and Anthropic. The second command's output, as committed, is
+[`docs/w2/evidence/extractor-measurement-f59b29c.txt`](docs/w2/evidence/extractor-measurement-f59b29c.txt).
+
+**2. The answer view with its PDF overlay** (fixture mode; a Node runtime is
+the only extra requirement):
+
+```bash
+cd agent && python scripts/build_ui_fixtures.py && cd ..
+node interface/modules/custom_modules/oe-module-clinical-copilot/dev/serve.mjs
+# open http://127.0.0.1:8760/dev/fixture.html?scenario=lab-multipage-003 and click a document chip
+```
+
+**3. Live: upload → extraction → an answer citing a document and a
+guideline.** This costs one Anthropic drafting call; the vision call is
+replayed from a recording. It needs `agent/.env` with:
+
+| Variable | Value |
+|---|---|
+| `ANTHROPIC_API_KEY` | an Anthropic API key |
+| `FHIR_CLIENT_ID`, `FHIR_CLIENT_SECRET` | an OpenEMR OAuth client **enabled for the password grant** |
+| `FHIR_BASE_URL` | defaults to `https://64.177.42.210:9300/apis/default/fhir` |
+| `FHIR_TEST_USERNAME`, `FHIR_TEST_PASSWORD` | default `physician` / `physician` |
+
+No password-grant client is published. How to register one:
+[agent/api-collection/README.md](agent/api-collection/README.md) (the
+`UPDATE oauth_clients … grant_types` step) or
+[docs/w2/LOCAL_ENV.md](docs/w2/LOCAL_ENV.md) §4.
+
+```bash
+cd agent
+python scripts/w2_e2e_ask.py                                        # lab-clean-001; exits 0 only with ≥1 document AND ≥1 guideline citation
+python scripts/w2_e2e_ask.py --sample lab-critical-potassium-007 \
+  --live-vision --expect-critical                                    # + one live vision call: a critical potassium leads the answer
+```
+
+What each printed section means, and what to expect:
+[`docs/w2/DEMO_SCRIPT.md`](docs/w2/DEMO_SCRIPT.md). **No output from this
+script has been committed yet**, so treat the expectations there as a
+specification to check against, not as a record.
+
+**4. The same over HTTP** (a local agent on `main`). The agent never mints
+tokens. Get a clinician token as in
+[agent/api-collection/README.md](agent/api-collection/README.md), "Getting a
+token", adding the scopes `user/Observation.read` and `user/Encounter.read`.
+Then:
+
+```bash
+cd agent
+ANTHROPIC_API_KEY=… FHIR_BASE_URL=https://64.177.42.210:9300/apis/default/fhir FHIR_VERIFY_TLS=false \
+  uvicorn app.main:app --host 127.0.0.1 --port 8000 --workers 1      # in its own terminal; one worker, because state is in memory (D40 item 10)
+P=a2c373ec-57bf-41cb-8767-94410dcf663d                               # lab-clean-001's patient; pid 38 on the live host
+curl -s -X POST "http://127.0.0.1:8000/documents?kind=lab_pdf&patient_id=$P" \
+  -H "Authorization: Bearer $ACCESS_TOKEN" -H "Content-Type: application/pdf" \
+  --data-binary @evals/w2/factory/output/samples/lab-clean-001/lab-clean-001.pdf     # -> {"document_id": …, "status": "pending"}
+DOC=<document_id from that response>                                 # poll until "status": "complete"
+curl -s "http://127.0.0.1:8000/documents/$DOC/extraction?patient_id=$P" -H "Authorization: Bearer $ACCESS_TOKEN"
+curl -s -X POST http://127.0.0.1:8000/w2/ask -H "Authorization: Bearer $ACCESS_TOKEN" -H "Content-Type: application/json" \
+  -d "{\"patient_id\":\"$P\",\"session_id\":\"demo-0001\",\"document_ids\":[\"$DOC\"],\"question\":\"What was her glucose on the uploaded lab report, and what does the USPSTF recommend about screening for prediabetes?\"}"
+```
+
+Route contracts are in [`docs/w2/ui-integration.md`](docs/w2/ui-integration.md)
+§2.2–§2.4 and `agent/app/models/w2/ask.py`. **These HTTP commands were not run
+in the session that wrote this README.** Step 3 does the same through the
+repository's own script, in process.
+
+### Run the eval gate
+
+The gate is on `feat/w2-eval-gate`, at `647dd9a` when this was written:
+
+```bash
+git fetch origin && git worktree add ../w2-eval-gate origin/feat/w2-eval-gate
+cd ../w2-eval-gate/agent
+python -m pip install -r requirements.txt -r requirements-dev.txt    # plus Tesseract, as above
+python -m evals.w2.gate --det-only                                   # deterministic tier; no key, no model call
+ANTHROPIC_API_KEY=… python -m evals.w2.gate                          # both tiers; a cold judge run is 24 calls, $0.0288
+python -m evals.w2.gate.planted_regressions --out ../docs/w2/EVAL_GATE_EVIDENCE.md   # needs the key
+```
+
+| Exit code | Meaning |
+|---|---|
+| 0 | PASS |
+| 1 | BLOCKED |
+| 2 | ERROR |
+| 3 | INCOMPLETE: a critical case went unscored |
+
+`--det-only` alone therefore exits 3, because the judge's critical
+meta-check cases go unscored. The gate README on that branch
+(`agent/evals/w2/README.md`) covers the five rules, the cases and the judge.
+The committed evidence is `docs/w2/EVAL_GATE_EVIDENCE.md` on that branch:
+the control run passes, and 12 of 12 planted regressions block.
+
+In CI the gate is the `w2-eval-gate` job in `.gitlab-ci.yml` on that branch.
+It needs a masked, **unprotected** `ANTHROPIC_API_KEY` variable, a runner
+tagged `w2-eval`, and "Pipelines must succeed" enabled; the file's header
+says why. No committed evidence shows it has run on a GitLab runner.
+
+### Week 2 documents
+
+| Document | What it covers |
+|---|---|
+| [W2_ARCHITECTURE.md](W2_ARCHITECTURE.md) | key decisions and tradeoffs, ingestion, worker graph and routing table, RAG, citation contract, eval gate, write-back, observability, risks, known limitations |
+| [KEY_METRICS.md](KEY_METRICS.md) | the Week 2 metrics, with honest denominators; the Week 1 six are in [docs/KEY_METRICS.md](docs/KEY_METRICS.md) |
+| [docs/w2/COST_AND_LATENCY.md](docs/w2/COST_AND_LATENCY.md) | actual dev spend, per-encounter cost, projections at 100 to 100K encounters a day, p50/p95 and bottlenecks |
+| [docs/w2/DEMO_SCRIPT.md](docs/w2/DEMO_SCRIPT.md) | the recorded walkthrough |
+| [docs/w2/DECISIONS.md](docs/w2/DECISIONS.md) | every Week 2 decision, D1–D40 on `main` (D36–D39 and D41–D48 are on their branches) |
+| [docs/w2/EVAL_DESIGN.md](docs/w2/EVAL_DESIGN.md), [docs/w2/GATE.md](docs/w2/GATE.md) | why the gate is shaped as it is, and how gate files are protected |
+| [docs/w2/retrieval-bakeoff.md](docs/w2/retrieval-bakeoff.md) | the corpus, its licensing, and the retrieval measurements |
+| [docs/w2/spikes/writeback.md](docs/w2/spikes/writeback.md), [docs/w2/deploy-writeback.md](docs/w2/deploy-writeback.md) | how OpenEMR can be written to, and how the endpoint deploys |
+| [docs/w2/ui-integration.md](docs/w2/ui-integration.md) | the answer view, and the PHP still to wire |
+| [docs/w2/WEEK1_DEBT.md](docs/w2/WEEK1_DEBT.md), [docs/w2/LOCAL_ENV.md](docs/w2/LOCAL_ENV.md), [docs/w2/root-run-trace-gap.md](docs/w2/root-run-trace-gap.md) | Week 1 debt triage, a local stack that matches the host, and the trace-containment finding |
+
+Several Week 2 documents are on branches that had not merged when this was
+written. `docs/w2/DEPLOY.md` (the host rehearsal and measurements) is on
+`chore/w2-deploy-rehearsal`. `docs/w2/OBSERVABILITY.md`, `ALERTS.md` and
+`LOAD_TEST.md` are on `feat/w2-observability`. **Neither branch is on
+`origin`**, so until they are pushed or merged, the numbers the documents
+above cite from them cannot be checked from a clone.
+
+---
+
+## Week 1 baseline
+
+Everything from here down describes the Week 1 build and the OpenEMR
+platform setup. It is unchanged by Week 2, apart from this heading.
+
 ## Deployed application
 
 | What | URL |
