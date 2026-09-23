@@ -183,8 +183,16 @@ What happens with each configuration state:
   15 s; a result older than 60 s is never reported as healthy. Details are
   `Langfuse unreachable` (connection failure), `Langfuse rejected the
   configured API keys` (401/403), `Langfuse reachability check failed`,
-  `Langfuse export not configured`, or `Langfuse reachability not yet
-  confirmed` — no URLs, paths or exception text (F-37).
+  `Langfuse export partially configured`, or `Langfuse reachability not yet
+  confirmed` — no URLs, paths or exception text (F-37). With no `LANGFUSE_*`
+  set, `/ready` does not call it: the check reports `healthy` with
+  `backend: "stdout"`, because the JSON event log is then the production
+  record (D55; before D55 this read `disabled`). With export configured it
+  carries `backend: "langfuse"`.
+- Exported spans carry the OpenTelemetry resource `service.name =
+  clinical-copilot-agent` (`langfuse_export.service_resource()`;
+  `OTEL_SERVICE_NAME` overrides it). Before, the private `TracerProvider` had
+  no resource, and the SDK labelled every span `unknown_service`.
 - **Verified live (2026-09-16):**
   - Langfuse up → `"observability_backend": {"status": "healthy"}`.
   - Containers stopped → the first probe served the 33 s-old cached result

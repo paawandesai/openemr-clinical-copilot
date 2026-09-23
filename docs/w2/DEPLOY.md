@@ -549,8 +549,12 @@ the ones that fail if the client's scopes are wrong.
 
 ```bash
 curl -sk https://<host>:8443/health
-curl -sk https://<host>:8443/ready    # fhir healthy, llm_provider healthy, observability_backend "disabled" (not required)
+curl -sk https://<host>:8443/ready    # fhir healthy, llm_provider healthy, observability_backend healthy, backend "stdout" (not required)
 ```
+
+Before D55 an agent without `LANGFUSE_*` reported `observability_backend`
+as `"disabled"`. The host at `ea198c8` predates D55 and still does, until
+it is redeployed.
 
 `/documents` goes through the proxy since `9922314` (§2.1):
 `POST https://<host>:8443/documents?kind=lab_pdf` with the PDF as the body →
@@ -833,7 +837,7 @@ the code tree (`--env-file`, interpolated by `docker-compose.agent.yml`):
 | `AGENT_RERANK_CIRCUIT_RESET_SECONDS` / `_TURNS` | no | 60 / 10 | how long an open rerank circuit stays open, or how many turns it skips (D41) |
 
 **Set in the image or the compose file, not the env file:** `OMP_THREAD_LIMIT=1` (Dockerfile), and the agent's `mem_limit` / `memswap_limit` of 4608m (compose).
-| `LANGFUSE_BASE_URL`, `LANGFUSE_PUBLIC_KEY`, `LANGFUSE_SECRET_KEY` | no | unset | unset → `/ready` reports `observability_backend: disabled` |
+| `LANGFUSE_BASE_URL`, `LANGFUSE_PUBLIC_KEY`, `LANGFUSE_SECRET_KEY` | no | unset | unset → `/ready` reports `observability_backend` `healthy` with `backend: "stdout"`: the JSON event log is the production record (D55; `"disabled"` before it) |
 | `COHERE_API_KEY` | no | unset | only for the unmeasured Cohere rerank adapter; the deployed path does not use it |
 
 **Baked into the image** (`agent/Dockerfile`; do not set them in the env file):

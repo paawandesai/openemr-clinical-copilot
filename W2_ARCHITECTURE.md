@@ -572,7 +572,10 @@ a run through `getattr` or from outside `app/`.
   caller's.
 - A stdout dashboard, a 16-widget local Langfuse dashboard, and five alert
   rules (`ALERTS.md`).
-- `/ready` reports the Langfuse check but does not gate on it (D37).
+- `/ready` reports the observability backend but does not gate on it
+  (D37). It names the backend: `stdout` when Langfuse export is not
+  configured, which is the production path, or `langfuse` with its auth
+  check (D55; before D55 the stdout case read `disabled`).
 
 **Alerts:**
 
@@ -619,8 +622,9 @@ its JSON event log.
 - Extraction inherits the upload's id only when that id is a UUID;
   otherwise the two traces are linked by a logged event, not merged.
 - The hosted Langfuse has no BAA, so production metrics come from stdout
-  (Week 1, `agent/docs/observability.md` §1). The live host (rehearsal host, before the Week 2 deploy) runs with
-  Langfuse `disabled` (`DEPLOY.md` §7.2).
+  (Week 1, `agent/docs/observability.md` §1). The live host runs with
+  Langfuse export off, so its `/ready` reports `disabled` at `ea198c8`; after
+  a redeploy of D55 it reports `backend: "stdout"` (`DEPLOY.md` §7.2).
 
 ---
 
@@ -695,7 +699,7 @@ The agent image grew from 360 MB to 1.18 GB, and idle memory from 50 MiB to
 | Retrieval | D25 (supersedes D5, D23), D26, D39, D41 |
 | UI | D27, D28, D30, D32, D33, D34, D49 (the preview URL; supersedes D28 and D30 on that point), D51 (the card's module routes; a citation's digest opens the preview) |
 | Write-back | D1 (superseding), D2, D15, D29, D31 |
-| Observability | D36, D37, D38, D52 (a turn's tags reach the operational events) |
+| Observability | D36, D37, D38, D52 (a turn's tags reach the operational events), D55 (`/ready` names stdout as the backend; spans name the service) |
 | Evals | D6, D8, D42–D48 |
 | The decisions log itself | D53 (no merge driver for `DECISIONS.md`; a numbering test guards it) |
 

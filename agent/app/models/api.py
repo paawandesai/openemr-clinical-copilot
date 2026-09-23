@@ -16,7 +16,7 @@ from __future__ import annotations
 from enum import Enum
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, SerializeAsAny, field_validator
 
 from app.models.conversation import (
     ConversationGap,
@@ -332,11 +332,22 @@ class ErrorResponse(_Contract):
 
 
 class DependencyCheck(_Contract):
-    status: Literal["healthy", "unhealthy", "disabled"]
+    status: Literal["healthy", "unhealthy"]
     required: bool = Field(description="Whether this check decides readiness.")
     detail: str | None = None
 
 
+class ObservabilityCheck(DependencyCheck):
+    backend: Literal["stdout", "langfuse"] = Field(
+        description=(
+            "Where telemetry goes. `stdout` is the JSON event log, the production "
+            "path when Langfuse export is not configured (D55)."
+        ),
+    )
+
+
 class ReadyResponse(_Contract):
     status: Literal["ready", "not_ready"]
-    checks: dict[str, DependencyCheck]
+    # SerializeAsAny: `observability_backend` is an ObservabilityCheck, and its
+    # `backend` must survive serialisation through the base type.
+    checks: dict[str, SerializeAsAny[DependencyCheck]]

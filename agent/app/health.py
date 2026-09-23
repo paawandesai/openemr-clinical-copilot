@@ -26,13 +26,18 @@ Required checks (decide readiness):
                   outage is not hidden for the cache TTL.
 
 Reported, not required:
-  observability_backend  Self-hosted Langfuse export
-                (agent/docs/observability.md). "disabled" when not
-                configured, which is the intended state for this submission
-                (ARCHITECTURE.md §1: metrics come from stdout via
-                scripts/compute_metrics.py). Export failures never affect a
-                brief (app/middleware/langfuse_export.py), so they do not
-                make the service unready either.
+  observability_backend  Where telemetry goes, named in `backend`.
+                "stdout" when Langfuse export is not configured: the JSON
+                event log is then the production record, which is the
+                intended state for this submission (ARCHITECTURE.md §1:
+                metrics come from stdout via scripts/compute_metrics.py), so
+                it is reported as a working backend, not as "disabled" (D55,
+                amending D37's wording). "langfuse" when export is
+                configured, with the self-hosted Langfuse auth check's
+                result (agent/docs/observability.md); every event still goes
+                to stdout first. Export failures never affect a brief
+                (app/middleware/langfuse_export.py), so they do not make the
+                service unready either.
 
 Each required probe's result is cached for _CACHE_TTL_SECONDS, so polling
 /ready — it is publicly reachable — cannot turn into load on OpenEMR or
@@ -65,7 +70,7 @@ from app.fhir import client as fhir_client
 from app.fhir.exceptions import FhirClientError
 from app.middleware import langfuse_export
 from app.middleware.langfuse_export import ObservabilityExportUnavailable, check_export_health
-from app.models.api import DependencyCheck, ReadyResponse
+from app.models.api import DependencyCheck, ObservabilityCheck, ReadyResponse
 from app.reasoning import provider_health
 from app.reasoning.draft_claims import MODEL
 
@@ -77,8 +82,9 @@ _PROBE_TIMEOUT_SECONDS = 5.0
 
 @dataclass(frozen=True)
 class _Outcome:
-    status: Literal["healthy", "unhealthy", "disabled"]
+    status: Literal["healthy", "unhealthy"]
     detail: str | None = None
+    backend: Literal["stdout", "langfuse"] | None = None
 
 
 _HEALTHY = _Outcome("healthy")
@@ -142,15 +148,24 @@ async def _probe_llm_provider() -> _Outcome:
     return _HEALTHY
 
 
+#: Nothing is probed for stdout: the event log is written by this process
+#: before any export is attempted, so if /ready can answer, it is working.
+_STDOUT = _Outcome(
+    "healthy",
+    "Events are written as JSON lines to stdout; Langfuse export is not configured",
+    backend="stdout",
+)
+
+
 def _observability_outcome() -> _Outcome:
     """Non-blocking: check_export_health reads a background-refreshed result."""
     if not langfuse_export.export_configured():
-        return _Outcome("disabled", "Langfuse export not configured")
+        return _STDOUT
     try:
         check_export_health()
     except ObservabilityExportUnavailable as exc:  # messages are F-37-safe
-        return _Outcome("unhealthy", str(exc))
-    return _HEALTHY
+        return _Outcome("unhealthy", str(exc), backend="langfuse")
+    return _Outcome("healthy", backend="langfuse")
 
 
 _FHIR = _CachedProbe(_probe_fhir)
@@ -181,6 +196,7 @@ async def ready() -> JSONResponse:
     if provider_health.looks_down():
         llm_provider = _Outcome("unhealthy", "Recent model calls are failing")
     observability = _observability_outcome()
+    assert observability.backend is not None  # every branch of _observability_outcome names one
 
     is_ready = fhir.status == "healthy" and llm_provider.status == "healthy"
     body = ReadyResponse(
@@ -190,8 +206,11 @@ async def ready() -> JSONResponse:
             "llm_provider": DependencyCheck(
                 status=llm_provider.status, required=True, detail=llm_provider.detail
             ),
-            "observability_backend": DependencyCheck(
-                status=observability.status, required=False, detail=observability.detail
+            "observability_backend": ObservabilityCheck(
+                status=observability.status,
+                required=False,
+                detail=observability.detail,
+                backend=observability.backend,
             ),
         },
     )
