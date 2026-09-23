@@ -1,0 +1,78 @@
+{
+  "sample": "lab-critical-potassium-007",
+  "question": "What were the results on the uploaded lab report?",
+  "runs": [
+    {
+      "status": "partially_answered",
+      "rows_on_report": 22,
+      "answer_step_ms": 12480.724,
+      "llm_call_ms": 11161.675,
+      "total_ms": 12879,
+      "input_tokens": 15515,
+      "output_tokens": 1005,
+      "stop_reason": "end_turn",
+      "cost_usd": 0.1027,
+      "claims": {
+        "chart": {
+          "drafted": 0,
+          "verified": 0
+        },
+        "document": {
+          "drafted": 8,
+          "verified": 8
+        },
+        "guideline": {
+          "drafted": 0,
+          "verified": 0
+        }
+      },
+      "scope": {
+        "itemised_critical": 1,
+        "itemised_abnormal": 0,
+        "itemised_not_compared": 0,
+        "itemised_named": 0,
+        "itemised_in_range": 0,
+        "summarised": 21,
+        "capped": 0,
+        "capped_abnormal": 0
+      },
+      "patient_fact_lines": 3,
+      "critical_values": [
+        [
+          "Potassium",
+          "high",
+          true
+        ]
+      ],
+      "unverified": 0,
+      "unsupported_disclosed": 22
+    }
+  ],
+  "summary": {
+    "answer_step_ms": {
+      "p50": 12480.724,
+      "worst": 12480.724
+    },
+    "llm_call_ms": {
+      "p50": 11161.675,
+      "worst": 11161.675
+    },
+    "total_ms": {
+      "p50": 12879,
+      "worst": 12879
+    },
+    "input_tokens": {
+      "p50": 15515,
+      "worst": 15515
+    },
+    "output_tokens": {
+      "p50": 1005,
+      "worst": 1005
+    },
+    "cost_usd": {
+      "p50": 0.1027,
+      "worst": 0.1027
+    }
+  },
+  "total_cost_usd": 0.1027
+}

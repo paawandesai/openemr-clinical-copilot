@@ -116,7 +116,7 @@ from app.models.w2.workers import (
     RoutingDecision,
     RoutingReasonCode,
 )
-from app.reasoning.draft_answer import AnswerDraft, draft_answer
+from app.reasoning.draft_answer import AnswerDraft, AnswerTruncatedError, draft_answer
 from app.reasoning.draft_claims import ClaimDraftingError
 from app.reasoning.draft_follow_up import Coverage
 from app.retrieval.retriever import GuidelineRetriever, parse_source_version
@@ -131,6 +131,15 @@ from app.supervisor.routing import (
     SupervisorView,
     classify,
     decide,
+)
+from app.supervisor.scope import (
+    OUTPUT_LIMIT_WORDING,
+    SCOPE_RULE,
+    AnswerScope,
+    ScopedRow,
+    capped_statement,
+    scope_answer,
+    summary_statement,
 )
 from app.verification.checker import verify_claims
 from app.verification.w2_checker import (
@@ -194,6 +203,9 @@ class TurnOutcome:
     critical_values: list[CriticalValue] = field(default_factory=list)
     #: Critical lab results the cap had dropped and keep_critical put back.
     critical_restored: int = 0
+    #: AnswerScope.counts() — how many lab rows were itemised, counted, capped.
+    scope: dict[str, int] = field(default_factory=dict)
+    output_limited: bool = False
 
 
 def _add_counts(left: dict[str, float], right: dict[str, float]) -> dict[str, float]:
@@ -473,16 +485,36 @@ async def _answer(state: SupervisorState, runtime: Runtime[SupervisorContext]) -
         facts[document_id] = document_facts(report.output.payload)
     retrieval = state.get("retrieval")
     chunks = list(retrieval.chunks) if retrieval is not None else []
+    # D50: which lab rows the drafter is offered, by rule. The verifier and
+    # the critical scan below still see every located fact.
+    scope = scope_answer(ctx.question, reports, facts)
 
+    output_limited = False
     try:
         draft = await ctx.drafter(
             chart,
-            facts,
+            scope.offered,
             chunks,
             ctx.question,
             ctx.snapshot.context,
             patient_session_key=ctx.patient_session_key,
+            withheld_rows=len(scope.summarised) + len(scope.capped),
         )
+    except AnswerTruncatedError as error:
+        # The output bound bound. Nothing drafted is used; what code states
+        # on its own — critical values, the scope's statements, unsupported
+        # fields — still renders, and the answer says why it is short.
+        log_event(
+            "w2_draft_output_limit",
+            event_data={
+                "correlation_id": ctx.correlation_id,
+                "output_tokens": error.usage.output_tokens,
+            },
+            use_case=_USE_CASE,
+            patient_session_key=ctx.patient_session_key,
+        )
+        draft = AnswerDraft([], [], [], Coverage.NONE, [], usage=error.usage)
+        output_limited = True
     except (ClaimDraftingError, anthropic.APIError) as error:
         log_event(
             "w2_drafting_failed",
@@ -520,8 +552,12 @@ async def _answer(state: SupervisorState, runtime: Runtime[SupervisorContext]) -
         reports=reports,
         retrieval=retrieval,
         criticals=criticals,
+        scope=scope_findings(scope, in_turn, whole_report=intent.wants_labs),
+        output_limited=output_limited,
     )
     outcome.critical_restored = restored
+    outcome.scope = scope.counts()
+    outcome.output_limited = output_limited
     return {"turn": outcome, **visited}
 
 
@@ -621,6 +657,9 @@ LIMITATION_WORDING: dict[AnswerLimitation, str] = {
     AnswerLimitation.DATED_GUIDELINE_SOURCE: (
         "At least one quoted guideline source is flagged as dated; newer guidance may differ."
     ),
+    AnswerLimitation.ANSWER_SCOPED: SCOPE_RULE,
+    AnswerLimitation.ANSWER_CAPPED: SCOPE_RULE,
+    AnswerLimitation.OUTPUT_LIMIT_REACHED: OUTPUT_LIMIT_WORDING,
 }
 
 _DOCUMENT_WHY = {
@@ -774,6 +813,66 @@ def critical_findings(
     return block
 
 
+@dataclass
+class ScopeBlock:
+    """What the scope rule left out, as cited statements (D50)."""
+
+    lines: list[str] = field(default_factory=list)
+    claims: list[PatientFactClaim] = field(default_factory=list)
+    summarised: bool = False
+    capped: bool = False
+    #: A lab question that names no test or panel ("what were the results"):
+    #: counting rows instead of listing them answers it only in part.
+    whole_report: bool = False
+
+
+def scope_findings(
+    scope: AnswerScope, in_turn: dict[str, DocumentInTurn], *, whole_report: bool
+) -> ScopeBlock:
+    """
+    One statement per document for the rows counted, one for the rows the
+    cap left out. Each cites located facts, passed through the verifier like
+    any other claim; a statement whose citations do not all pass is still
+    shown — it discloses an omission — but is not listed as a verified fact.
+    """
+    block = ScopeBlock(
+        summarised=bool(scope.summarised),
+        capped=bool(scope.capped),
+        whole_report=whole_report and scope.binds and not scope.question_names_rows,
+    )
+
+    def per_document(rows: list[ScopedRow]) -> dict[str, list[ScopedRow]]:
+        grouped: dict[str, list[ScopedRow]] = {}
+        for row in rows:
+            grouped.setdefault(row.document_id, []).append(row)
+        return grouped
+
+    for build, rows in ((summary_statement, scope.summarised), (capped_statement, scope.capped)):
+        for document_id, document_rows in per_document(rows).items():
+            built = build(document_rows)
+            if built is None:
+                continue
+            statement, citations = built
+            block.lines.append(statement)
+            facts = in_turn[document_id].facts
+            verified = [
+                verify_document_fact(
+                    DraftedDocumentFact(document_id, c.field_or_chunk_id, facts[path].quote),
+                    in_turn,
+                )
+                for c in citations
+                if (path := c.field_or_chunk_id) in facts
+            ]
+            if len(verified) == len(citations) and all(v.passed and v.citation for v in verified):
+                block.claims.append(
+                    PatientFactClaim(
+                        statement=statement,
+                        citations=[v.citation for v in verified if v.citation is not None],
+                    )
+                )
+    return block
+
+
 def render_refusal(turn: int, reason: RoutingReasonCode, failure_reasons: list[str]) -> str:
     lines = [f"Answer (turn {turn})", "", REFUSAL_WORDING[reason]]
     if failure_reasons:
@@ -852,6 +951,8 @@ def render_answer(
     reports: dict[str, ExtractionReport],
     retrieval: EvidenceRetrieverOutput | None,
     criticals: CriticalBlock | None = None,
+    scope: ScopeBlock | None = None,
+    output_limited: bool = False,
 ) -> TurnOutcome:
     """
     Every drafted claim renders: passed ones as facts or evidence, failed
@@ -939,11 +1040,24 @@ def render_answer(
         if result.passed and result.chunk is not None
     ):
         limitations.append(AnswerLimitation.DATED_GUIDELINE_SOURCE)
+    scope = scope or ScopeBlock()
+    if scope.summarised:
+        limitations.append(AnswerLimitation.ANSWER_SCOPED)
+    if scope.capped:
+        limitations.append(AnswerLimitation.ANSWER_CAPPED)
+    if output_limited:
+        limitations.append(AnswerLimitation.OUTPUT_LIMIT_REACHED)
 
     verified = sum(1 for result in results if result.passed)
     status = _answer_status(draft, verified)
-
     criticals = criticals or CriticalBlock()
+    # D50: an answer the scope or the output bound cut short says so in its
+    # status. The scope's count answers a whole-report question in part; for
+    # a question about something else it is a disclosure, not an answer.
+    stated = verified + len(scope.claims) + sum(1 for v in criticals.values if v.stated)
+    if output_limited or ((scope.capped or scope.whole_report) and stated):
+        status = AskStatus.PARTIALLY_ANSWERED
+
     lines = [f"Answer (turn {ctx.snapshot.turn})", ""]
     if criticals.values:
         lines.extend([CRITICAL_HEADING, *(f"  - {v.line}" for v in criticals.values)])
@@ -952,6 +1066,8 @@ def render_answer(
         lines.append("Nothing in the sources read for this question answers it.")
     if fact_lines:
         lines.extend(["From this patient's record and uploaded documents:", *fact_lines])
+    if scope.lines:
+        lines.extend(["", SCOPE_RULE, *(f"  - {line}" for line in scope.lines)])
     if discrepancies:
         lines.extend(
             [
@@ -980,8 +1096,13 @@ def render_answer(
     if draft.gaps and status is not AskStatus.ANSWERED:
         lines.extend(["", "Not in the sources read for this question:"])
         lines.extend(f"  - {week1._gap_sentence(gap, set(chart))}" for gap in draft.gaps)
-    # The unsupported count above already says what that limitation says.
-    worded = [x for x in limitations if x is not AnswerLimitation.UNSUPPORTED_DOCUMENT_VALUES]
+    # The unsupported count and the scope block already say what these say.
+    said = {
+        AnswerLimitation.UNSUPPORTED_DOCUMENT_VALUES,
+        AnswerLimitation.ANSWER_SCOPED,
+        AnswerLimitation.ANSWER_CAPPED,
+    }
+    worded = [x for x in limitations if x not in said]
     if worded:
         lines.append("")
         lines.extend(LIMITATION_WORDING[limitation] for limitation in worded)
@@ -1011,7 +1132,7 @@ def render_answer(
     ]
     answer = FinalAnswer(
         answer=message,
-        patient_facts=[*critical_claims, *patient_facts],
+        patient_facts=[*critical_claims, *patient_facts, *scope.claims],
         guideline_evidence=guideline_claims,
         unsupported=unsupported,
         correlation_id=ctx.correlation_id,
@@ -1283,6 +1404,8 @@ def _log_turn(
             "critical_values": sum(1 for v in outcome.critical_values if v.stated),
             "possible_critical_values": sum(1 for v in outcome.critical_values if not v.stated),
             "critical_restored_past_cap": outcome.critical_restored,
+            "answer_scope": outcome.scope,
+            "output_limited": outcome.output_limited,
             "llm_input_tokens": usage.input_tokens if usage else 0,
             "llm_output_tokens": usage.output_tokens if usage else 0,
             "llm_cost_usd": usage.cost_usd if usage else 0.0,

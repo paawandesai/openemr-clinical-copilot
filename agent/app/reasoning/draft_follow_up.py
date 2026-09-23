@@ -66,6 +66,7 @@ from app.reasoning.draft_claims import (
     EFFORT,
     MODEL,
     ClaimDraftingError,
+    DraftTruncatedError,
     _client,
     _final_text,
 )
@@ -239,16 +240,18 @@ async def stream_structured(
     user_content: str,
     schema: dict[str, Any],
     patient_session_key: str,
+    max_tokens: int = _MAX_TOKENS,
 ) -> Any:
     """
     One schema-constrained model call for Follow-Up Drilling: the single-turn
     follow-up below and a conversation turn
     (app/reasoning/draft_conversation_turn.py) make exactly this call, with
     the same model, effort and refusal fallback. Returns the final message.
+    The Week 2 answer step passes a lower `max_tokens` (D50).
 
     Logs llm_usage_event, or llm_call_failed and re-raises. Raises
-    ClaimDraftingError on a refusal or a truncated output. Neither the
-    prompt nor the output is logged.
+    ClaimDraftingError on a refusal, and its subclass DraftTruncatedError on
+    a truncated output. Neither the prompt nor the output is logged.
     """
     correlation_id = get_correlation_id() or "no-request-context"
 
@@ -259,7 +262,7 @@ async def stream_structured(
         ):
             async with _client().beta.messages.stream(
                 model=MODEL,
-                max_tokens=_MAX_TOKENS,
+                max_tokens=max_tokens,
                 system=system,
                 messages=[{"role": "user", "content": user_content}],
                 thinking={"type": "adaptive"},
@@ -318,7 +321,7 @@ async def stream_structured(
         category = message.stop_details.category if message.stop_details else None
         raise ClaimDraftingError(f"Model declined to draft claims (refusal category: {category})")
     if message.stop_reason == "max_tokens":
-        raise ClaimDraftingError(f"Claim output truncated at max_tokens={_MAX_TOKENS}")
+        raise DraftTruncatedError(f"Claim output truncated at max_tokens={max_tokens}", message)
 
     return message
 

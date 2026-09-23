@@ -390,7 +390,14 @@ def test_a_claim_that_fails_verification_is_disclosed_not_stated(chart: FakeChar
 
     response = ask_with_document(GUIDELINE_QUESTION, drafter=ScriptedDrafter(script=script))
     answer = response.answer_view.answer  # type: ignore[union-attr]
-    assert answer.patient_facts == [] and answer.guideline_evidence == []
+    # The only patient fact is code's count of the rows the scope did not
+    # itemise (D50); nothing the model drafted is stated.
+    assert [
+        f.statement
+        for f in answer.patient_facts
+        if not f.statement.startswith("Not listed individually")
+    ] == []
+    assert answer.guideline_evidence == []
     assert response.status is AskStatus.NOT_IN_RECORD
     reasons = {u.source_type: u.reason for u in response.unverified}
     assert reasons[SourceType.DOCUMENT] == "value_mismatch"
