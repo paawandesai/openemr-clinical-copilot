@@ -4,11 +4,14 @@ FastAPI entrypoint — Clinical Co-Pilot agent service.
 Routes:
   GET  /health           liveness (app/health.py)
   GET  /ready            dependency readiness (app/health.py)
-  POST /documents        upload a document; extraction starts at upload,
-                         not at question time (D7, app/api/documents.py).
-                         STUB: canned statuses, no extraction yet.
+  POST /documents        upload a document for a patient; the intake-extractor
+                         starts at upload, not at question time (D7,
+                         app/api/documents.py)
   GET  /documents/{id}/extraction
                          where that extraction has got to
+  POST /w2/ask           one Week 2 turn: supervisor -> intake-extractor |
+                         evidence-retriever -> verified, cited answer
+                         (app/api/ask.py, app/graph/supervisor.py)
   POST /pre-visit-brief  the Pre-Visit Brief pipeline (app/api/pre_visit_brief.py)
   POST /pre-visit-brief/follow-up
                          one follow-up question on the brief's verified
@@ -35,15 +38,18 @@ from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 
+from app.api.ask import router as ask_router
 from app.api.conversation import router as conversation_router
 from app.api.documents import router as documents_router
 from app.api.follow_up import router as follow_up_router
 from app.api.pre_visit_brief import ApiError
 from app.api.pre_visit_brief import router as pre_visit_brief_router
+from app.graph.supervisor import set_retriever
 from app.health import router as health_router
 from app.middleware.correlation import CorrelationIdMiddleware, get_correlation_id
 from app.middleware.logging import configure_logging, log_event
 from app.models.api import ErrorCode, ErrorResponse
+from app.process_state import warn_if_multi_process
 from app.retrieval.preload import preload_enabled, preload_retrieval
 
 configure_logging()
@@ -76,6 +82,12 @@ async def lifespan(_: FastAPI):
             )
     else:
         app.state.guideline_retriever = None
+    if app.state.guideline_retriever is not None:
+        # The ask path's retriever. When preload is off it loads on first use.
+        set_retriever(app.state.guideline_retriever)
+    # Conversation and document state are in this process's memory: warn,
+    # loudly and at startup, if the server was told to run more than one.
+    warn_if_multi_process()
     yield
 
 
@@ -132,3 +144,4 @@ app.include_router(pre_visit_brief_router)
 app.include_router(follow_up_router)
 app.include_router(conversation_router)
 app.include_router(documents_router)
+app.include_router(ask_router)

@@ -225,3 +225,43 @@ is. What deploying it involves:
 - **Re-run before relying on it:** `pytest tests/` and
   `pytest evals/test_i_conversation.py` against the host's FHIR API
   (`evals/README.md`, section I).
+
+## 7. Week 2 (`POST /w2/ask`, `/documents`): run exactly one worker
+
+**What a second process breaks.** Three stores live in the agent process's
+memory and nowhere else: the conversation store (shared by
+`/pre-visit-brief/conversation` and `/w2/ask`), the uploaded-document store
+with its extraction jobs (`app/workers/document_store.py`), and the
+retriever's rerank circuit. With two or more uvicorn workers, or two
+replicas behind Caddy:
+
+- a document uploaded to process A is unknown to process B — B answers the
+  browser's status poll `404`, and a question naming it `document_not_found`;
+- the extraction runs on A only, and a re-upload that lands on B runs it
+  again (a second vision call, a second bill);
+- a follow-up that refers to an earlier turn ("that result") is reported
+  unresolved when it lands on the other process.
+
+Each of these fails safe — every process checks its own patient binding, so
+none answers from another patient's document or context — but the features
+do not work. A restart or redeploy also forgets every upload and every
+conversation: documents must be uploaded again.
+
+**For Wednesday this is acceptable because the deploy runs one worker**: the
+`Dockerfile` `CMD` starts a single `uvicorn` process and the compose file
+runs one replica. Keep it that way until the stores move out of process
+(Redis for conversations; a persisted document/extraction store). The agent
+checks at startup: if `--workers`/`-w` on the command line, `GUNICORN_CMD_ARGS`
+or `WEB_CONCURRENCY` configures more than one worker, every worker logs a
+`single_process_state_warning` at warning level (`app/process_state.py`).
+It does not refuse to start — the failure is a broken feature, not a leak —
+so check for that line after any change to how the agent is launched:
+
+```bash
+# on the host, in /opt/clinical-copilot/agent/deploy
+docker compose --env-file /etc/clinical-copilot/agent.env -f docker-compose.agent.yml logs agent \
+  | grep single_process_state_warning   # expect no output
+```
+
+A second *replica* (a second container) is not visible to this check; only
+the compose file says how many run.

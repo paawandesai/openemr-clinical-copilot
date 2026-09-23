@@ -368,6 +368,23 @@ class RoutingReasonCode(StrEnum):
     EXTRACTION_FAILED = "extraction_failed"
     #: D7's "still processing": an explicit non-answer, never a wait.
     DOCUMENT_STILL_PROCESSING = "document_still_processing"
+    #: The turn names a document this agent holds no upload of for this
+    #: patient. Deliberately the same code for "no such document" and
+    #: "another patient's document" (the ui-integration 404 rule, D40).
+    DOCUMENT_NOT_FOUND = "document_not_found"
+    #: The extractor's wrong-patient flag: the name or date of birth the
+    #: document prints does not match the chart it was uploaded to (D40).
+    DOCUMENT_IDENTITY_MISMATCH = "document_identity_mismatch"
+    #: The question needs guideline evidence and retrieval found none, or
+    #: no clinical concept could be built from it to search on (D40).
+    NO_GUIDELINE_EVIDENCE = "no_guideline_evidence"
+    #: Tool failures and model failure, each its own code so a refusal
+    #: says which dependency failed without quoting the error (D40).
+    RETRIEVAL_UNAVAILABLE = "retrieval_unavailable"
+    CHART_UNAVAILABLE = "chart_unavailable"
+    MODEL_UNAVAILABLE = "model_unavailable"
+    #: The supervisor's node-visit bound was reached: fail closed (D40).
+    VISIT_LIMIT_EXCEEDED = "visit_limit_exceeded"
 
 
 #: Which reasons may justify which route. A decision whose pair is not in
@@ -399,6 +416,13 @@ ALLOWED_REASONS: dict[Route, frozenset[RoutingReasonCode]] = {
             RoutingReasonCode.UNVERIFIABLE_JUDGMENT,
             RoutingReasonCode.EXTRACTION_FAILED,
             RoutingReasonCode.DOCUMENT_STILL_PROCESSING,
+            RoutingReasonCode.DOCUMENT_NOT_FOUND,
+            RoutingReasonCode.DOCUMENT_IDENTITY_MISMATCH,
+            RoutingReasonCode.NO_GUIDELINE_EVIDENCE,
+            RoutingReasonCode.RETRIEVAL_UNAVAILABLE,
+            RoutingReasonCode.CHART_UNAVAILABLE,
+            RoutingReasonCode.MODEL_UNAVAILABLE,
+            RoutingReasonCode.VISIT_LIMIT_EXCEEDED,
         }
     ),
 }

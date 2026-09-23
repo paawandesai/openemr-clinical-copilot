@@ -32,6 +32,9 @@ This is a general check, not a check on one graph:
 4. **Aliasing is refused.** Rebinding a graph to another name inside a
    function (`graph = PRE_VISIT_BRIEF_GRAPH`) fails, since calls through the
    alias would not be recognised.
+5. **Every node is guarded.** Every node of every discovered compiled graph
+   is Week 1's `_untraced` wrapper (work order 13), read off the compiled
+   graph rather than the source, with a control that a bare node is caught.
 
 `test_the_scanner_catches_*` are the controls: each feeds the scanner a
 source string with one violation and asserts it is reported, so a scanner
@@ -169,7 +172,62 @@ def test_graphs_are_discovered() -> None:
     flat = {name for group in groups for name in group}
     # A control on discovery: if it stopped finding graphs, every check
     # below would pass over nothing.
-    assert {"PRE_VISIT_BRIEF_GRAPH", "INTAKE_EXTRACTOR_GRAPH"} <= flat
+    assert {"PRE_VISIT_BRIEF_GRAPH", "INTAKE_EXTRACTOR_GRAPH", "SUPERVISOR_GRAPH"} <= flat
+
+
+def unguarded_nodes(graph: UntracedGraph) -> list[str]:
+    """Nodes of one compiled graph whose function is not Week 1's `_untraced` wrapper."""
+    found = []
+    for node_name, node in graph._compiled.nodes.items():
+        if node_name == "__start__":
+            continue
+        wrapped = getattr(node.bound, "afunc", None) or getattr(node.bound, "func", None)
+        if getattr(wrapped, "__qualname__", "") != "_untraced.<locals>.untraced_node":
+            found.append(node_name)
+    return found
+
+
+def test_every_node_of_every_graph_runs_inside_the_tracing_guard() -> None:
+    """
+    The other half of the rule. The input check above keeps the root run
+    empty; this keeps every node from running with a tracer attached
+    (CLAUDE.md invariant 1: "a node that can execute with a LangSmith tracer
+    attached is a defect"). Read off the compiled graphs themselves, so a
+    node added to any graph without `_untraced` fails here by name.
+    """
+    unguarded: list[str] = []
+    for info in pkgutil.walk_packages(app.__path__, "app."):
+        module = importlib.import_module(info.name)
+        for name, value in vars(module).items():
+            if isinstance(value, UntracedGraph):
+                unguarded += [f"{info.name}.{name}:{node}" for node in unguarded_nodes(value)]
+    assert unguarded == []
+
+
+def test_the_node_guard_check_catches_an_unguarded_node() -> None:
+    """Control: a graph with one bare node is reported, by that node's name."""
+    from typing import TypedDict
+
+    from langgraph.graph import END, START, StateGraph
+
+    from app.graph.pre_visit_brief import _untraced
+
+    class State(TypedDict, total=False):
+        node_seconds: dict[str, float]
+
+    async def step(state: State) -> dict:
+        return {}
+
+    async def guarded(state: State, runtime: object) -> dict:
+        return {}
+
+    graph = StateGraph(State)
+    graph.add_node("bare", step)
+    graph.add_node("guarded", _untraced(guarded), input_schema=State)
+    graph.add_edge(START, "bare")
+    graph.add_edge("bare", "guarded")
+    graph.add_edge("guarded", END)
+    assert unguarded_nodes(UntracedGraph(graph.compile())) == ["bare"]
 
 
 def test_no_raw_compiled_graph_anywhere_in_app() -> None:

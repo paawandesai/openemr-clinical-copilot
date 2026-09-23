@@ -1,0 +1,16 @@
+# H6 (critical-value escalation): a clean digital report whose potassium is
+# in the panic range. Same patient and layout as lab-clean-001; the only
+# difference is one forced value, so any change in behaviour is the value.
+# Staged by work order 13, not promoted: promotion into cases/ needs a
+# W2_GATE_SESSION=1 session.
+scenario_id: lab-critical-potassium-007
+seed: 20260921
+patient_ref: "a2c373ec-57bf-41cb-8767-94410dcf663d"
+doc_type: lab_pdf
+quality: clean
+note: Clean CMP + lipid + A1c report with a critical potassium of 6.8 mmol/L.
+perturbations:
+  - kind: abnormal_value
+    test: potassium
+    direction: high
+    value: 6.8
