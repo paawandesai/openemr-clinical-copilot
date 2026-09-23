@@ -319,6 +319,10 @@ class ErrorCode(str, Enum):
     BRIEF_GENERATION_FAILED = "brief_generation_failed"
     FOLLOW_UP_GENERATION_FAILED = "follow_up_generation_failed"
     INTERNAL_ERROR = "internal_error"
+    # /documents only (app/api/upload_guard.py).
+    INSUFFICIENT_SCOPE = "insufficient_scope"
+    RATE_LIMITED = "rate_limited"
+    EXTRACTION_CAPACITY = "extraction_capacity"
 
 
 class ErrorResponse(_Contract):
