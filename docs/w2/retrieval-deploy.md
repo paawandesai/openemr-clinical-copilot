@@ -115,7 +115,7 @@ docker compose -f docker-compose.agent.yml logs agent \
 `guideline_ids`, `dated_hit_count`. No question text, no chunk text — that
 is invariant 1 and `tests/test_retrieval_worker.py` asserts it.
 
-**Watch `rerank_over_budget`.** D25 gives the rerank stage 2.5 s; past
+**Watch `rerank_over_budget`.** D41 gives the rerank stage 4 s (D25 set 2.5 s); past
 that the fused order stands, the output says `reranked=false`, and the
 retriever opens a circuit so the next turn does not pay the same cost to
 throw the same answer away. A steady stream of `rerank_over_budget: true`
@@ -130,7 +130,9 @@ number most likely to change on a shared vCPU. Nothing in this note has
 been run on the Vultr host.
 
 **Update 2026-09-22 — measured on the Vultr host** ([`DEPLOY.md`](DEPLOY.md)
-§8): preload 2.6–2.9 s with `vector_cache_prebuilt: true`; hybrid retrieval
-p50 7.8 ms; the cross-encoder p50 1.29 s and p95 2.06 s, with **9 of 60
-queries over the 2.5 s budget**. That is the "does not fit the host" signal
-this note describes.
+§8, D41): preload 2.6–2.9 s with `vector_cache_prebuilt: true`; hybrid
+retrieval p50 7.8 ms. The rerank stage is p50 1.38 s / max 2.28 s on an idle
+host, and p50 2.45 s / max 4.09 s while OCR runs in the same container —
+43% over 2.5 s there, 1.7% over 4 s. **The budget is now 4 s (D41).** An
+earlier "9 of 60 over 2.5 s" was a miscount: after the first slow rerank the
+circuit opens, and the skipped turns also report `over_budget: true`.

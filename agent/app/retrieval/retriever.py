@@ -59,7 +59,7 @@ DEFAULT_FUSION_DEPTH = 30
 #: fitted on, and 30 queries is not enough to adopt a weight from.
 EQUAL_FUSION_WEIGHTS = (1.0, 1.0)
 
-#: The latency budget for the rerank stage: D25 set 2.5 s, D35 raised it to
+#: The latency budget for the rerank stage: D25 set 2.5 s, D41 raised it to
 #: 4 s after measuring the cross-encoder on the deployment host. A rerank
 #: that takes longer than this does not get to decide the order: the result
 #: is discarded, the fused order stands, and the output says

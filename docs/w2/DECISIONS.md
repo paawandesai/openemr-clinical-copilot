@@ -2017,3 +2017,73 @@ be uploaded again before it can be asked about — the chart copy survives,
 and re-uploading adds no row. Each status poll mints a token, as every
 module request does (no token reuse by design), which adds `api_token` rows
 while a document extracts.
+
+---
+
+## D41 — The rerank budget is 4 s, measured on the deployment host; the fused order stays the safety valve
+
+**Status:** DECIDED — supersedes item 5 of D25 (the 2.5 s figure) only. The
+rest of D25 stands, the cross-encoder included.
+**Date:** 2026-09-22
+**Numbering:** written as D35 on `chore/w2-deploy-rehearsal`. D35 on `main` is the
+intake-extractor decision; D41 is the number assigned to this entry, with the
+merge order observability, graph, deploy-rehearsal, eval-gate.
+**Evidence:** [`DEPLOY.md`](DEPLOY.md) §8. Measured on the Vultr host
+(`64.177.42.210`, 4 shared vCPU), 30 dev queries, top-5, inside the deployed
+agent container.
+
+**Decision:**
+
+- `RERANK_BUDGET_SECONDS` is **4.0** (`app/retrieval/retriever.py`, pinned
+  by `tests/test_retrieval_worker.py`).
+- **The reranker stays on the default path.** Nothing here drops it.
+- **The fallback is unchanged and remains the safety valve:** a rerank over
+  budget is discarded, the fused order stands, the output says
+  `reranked=false`, and the retriever opens its circuit.
+
+**The measurement, including a correction.** The first deploy rehearsal
+reported "9 of 60 over the 2.5 s budget", and this change was requested on
+the strength of "15% over at 2.5 s". **That figure was a miscount.** Only one
+rerank actually ran past 2.5 s (2.75 s); it opened the circuit, and the
+next eight queries were *skipped* by the open circuit, and the measurement
+counted each skip as over budget because `RerankOutcome.over_budget` is
+`True` for both. The true rate in that run was 1 in 52 attempted reranks.
+
+Re-measured with the circuit reset before each query, so that every query
+really reranks:
+
+| host state | rerank stage p50 / p95 / max | over 2.5 s | over 4 s |
+|---|---|---|---|
+| idle (n=90) | 1.38 / 2.08 / 2.28 s | 0% | 0% |
+| **OCR running in the same container** (n=60) | 2.45 / 3.39 / 4.09 s | **43.3%** | **1.7%** |
+
+The second row is the one this decision rests on. D7 puts extraction at
+upload time, and OCR is 5-6 s of CPU per scanned page in the same
+container, so a clinician asking a question while a scan is still
+extracting is the ordinary case, not a stress test. At 2.5 s nearly half
+of those turns would lose their rerank; at 4 s one in sixty does.
+
+**Why raising the budget does not contradict D25.** D25 said a sustained
+stream of `rerank_over_budget: true` is the condition to re-open the
+decision, not a reason to raise the budget. The measurement answers the
+question D25 left open: the cross-encoder fits this host when the host is
+idle, with 57% headroom at 4 s, and the overrun appears only under
+contention from the pipeline's own OCR. A budget set without knowing that
+was a laptop guess; this one is a host measurement. Whether that is a
+re-opening or a refinement is recorded here rather than argued.
+
+**Two findings that 4 s does not fix, recorded for whoever owns retrieval
+next:**
+
+1. **The circuit never closes.** Nothing in `app/` calls
+   `reset_rerank_circuit()`. In the contended run, the single 4.09 s rerank
+   opened it and the next 35 of 60 turns ran without reranking; on the live
+   agent that lasts until the process restarts. D25 describes the circuit
+   as sparing "the next turn", not every turn after it.
+2. **`over_budget` conflates "ran and was too slow" with "skipped because
+   the circuit is open".** The `rerank_over_budget` log signal D25 tells an
+   operator to watch therefore reads as a steady stream after a single
+   slow rerank. That is how the 15% was miscounted, and an operator reading
+   the log would miscount it the same way.
+
+Neither is changed here: this entry sets a number.

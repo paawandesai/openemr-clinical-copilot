@@ -248,9 +248,9 @@ def test_the_log_line_says_a_turned_away_rerank_was_busy():
     assert not retriever.rerank_circuit_open
 
 
-def test_the_default_rerank_budget_is_the_one_d35_set():
+def test_the_default_rerank_budget_is_the_one_d41_set():
     """
-    D35 raised D25's 2.5 s to 4 s after measuring the cross-encoder on the
+    D41 raised D25's 2.5 s to 4 s after measuring the cross-encoder on the
     deployment host. A default that drifted from the decision would change
     how often a clinician's turn loses its reranking, silently.
     """

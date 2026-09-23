@@ -9,7 +9,11 @@ something breaks.
 hostname `vultr`) on 2026-09-22, deploying `chore/w2-deploy-rehearsal@35f76ae`
 (which is `main@d65dac4` plus the Tesseract change to `agent/Dockerfile`). Every
 command below ran there, every number below was measured there, and the
-rehearsal's test records were deleted afterwards (see §9).
+rehearsal's test records were deleted afterwards (§7.4).
+
+**Follow-up the same day:** the branch was rebased onto `main@cf182df` (which
+adds `feat/w2-extractor`), `/documents` was routed through the proxy (§2.1)
+and the rerank budget raised to 4 s (D41). The host now runs **`9922314`**.
 
 Background, not repeated here: [`deploy-writeback.md`](deploy-writeback.md)
 (why the ledger and the client re-registration), [`retrieval-deploy.md`](retrieval-deploy.md)
@@ -29,12 +33,15 @@ Read this before promising a demo. As of `d65dac4`, these pieces exist and
 | OCR + text-layer word boxes (D3 stage 1) and the locate step (stage 3) | agent image (library code) | runs in the container; per-page numbers in §8 |
 | Lab write-back endpoint, ledger, idempotent replay | OpenEMR module | 200, replay returns the same ids, audited, reads back over FHIR |
 | Source-document preview route (`document.php`, D28) | OpenEMR module | 200 PDF for the open chart, 404 for any other |
-| `POST /documents`, `GET /documents/{id}/extraction` | agent | **stub**: takes the bytes, hashes them, throws them away, walks `pending → in_progress → complete` on a timer, and never returns a payload (`app/api/documents.py`) |
+| `POST /documents`, `GET /documents/{id}/extraction` | agent, **through the proxy** since `9922314` | **still a stub** on `main@cf182df`: takes the bytes, hashes them, throws them away, walks `pending → in_progress → complete` on a timer, never returns a payload (`app/api/documents.py`) — and **accepts any non-empty bearer string** without checking it with OpenEMR |
 
 And these **do not exist on `main` yet**, so there is nothing to deploy for them:
 
-- **Vision-LLM extraction (D3 stage 2)** and anything that turns an upload into
-  a `LabPdfExtraction`. It is on `feat/w2-extractor`, not merged.
+- **Vision-LLM extraction reachable from an upload.** `feat/w2-extractor` is
+  merged (the intake-extractor worker, vision + locate + LOINC coding), and it
+  is in the deployed image as library code, but it changed no route:
+  `/documents` does not call it. Its cost and latency per page are measured
+  once `feat/w2-graph` lands (§10).
 - **A supervisor, and guideline evidence in an answer.** The retriever is
   preloaded into `app.state.guideline_retriever` and nothing reads it. A
   follow-up question today is the Week 1 conversation graph: chart citations
@@ -145,7 +152,59 @@ ss -tlnp                                                # unchanged; 8000 never 
 **Rollback:** `docker tag clinical-copilot-agent:pre-w2-<old> clinical-copilot-agent:local`,
 `tar -C /opt/clinical-copilot -xzf $B/agent-tree-pre-w2.tgz`, then the same
 `up -d --no-deps --no-build --wait agent`. The Week 1 image is 360 MB and still
-tagged; nothing about it was deleted.
+tagged; nothing about it was deleted. Each Week 2 image stays tagged as
+`clinical-copilot-agent:w2-<commit>`, so rolling back one Week 2 step is a
+re-tag to the previous one.
+
+### 2.1 The proxy: route `/documents`, and size its body cap
+
+Uploads are the Week 2 entry point and go through Caddy like everything else.
+`agent/deploy/Caddyfile` scopes the request-body cap per route:
+
+| matcher | cap | why |
+|---|---|---|
+| everything but `/documents*` | 16 KB (16,000 bytes) | unchanged: briefs and conversation turns carry a few short strings |
+| `/documents*` | **25 MiB** (26,214,400 bytes) | equal to the agent's `MAX_UPLOAD_BYTES` and the card's `MAX_BYTES`, so no layer refuses what another accepts. ~80 pages at the factory's scan density (150–310 KB/page), ~25 pages of a 1 MB/page 300 dpi colour office scan |
+
+The two matchers are **disjoint on purpose**: `request_body` stacks, so a
+site-wide 16 KB cap would still bind inside a larger `/documents` one.
+
+The proxy bind-mounts the Caddyfile as a file, and extracting the tree
+replaces the file's inode, so the running container keeps the old config.
+`admin off` means there is no hot reload. Validate, then recreate the proxy
+**after** the agent is healthy:
+
+```bash
+docker run --rm -e AGENT_PUBLIC_HOST=<host> -v "$PWD/Caddyfile:/etc/caddy/Caddyfile:ro" \
+  caddy:2.11.4-alpine@sha256:5f5c8640aae01df9654968d946d8f1a56c497f1dd5c5cda4cf95ab7c14d58648 \
+  caddy validate --config /etc/caddy/Caddyfile --adapter caddyfile      # "Valid configuration"
+docker exec clinical-copilot-agent-proxy-1 cat /data/caddy/pki/authorities/local/root.crt \
+  | openssl x509 -noout -fingerprint -sha256                             # note it
+docker compose --env-file /etc/clinical-copilot/agent.env \
+  -f docker-compose.agent.yml up -d --no-deps --no-build --force-recreate proxy
+# same fingerprint again: caddy_data is a named volume and survives a recreate
+```
+
+Rehearsal: fingerprint unchanged (`C5:54:80:…:81:89`, equal to the CA file
+OpenEMR pins), recreate 3 s, Week 1 embed 200 afterwards. Verified from
+outside:
+
+| request through `:8443` | result |
+|---|---|
+| 2-page scanned factory sample `intake-scanned-light-med-005.pdf`, 625,765 bytes | 200 `pending`, `byte_length` equal to the file, 335 ms; `GET …/extraction` polled through Caddy walks `pending → in_progress → complete` |
+| same, no bearer | 401 from the agent |
+| exactly 25 MiB | 200 from the agent |
+| 25 MiB + 1 byte | **413 from Caddy** |
+| 20 KB body to `/pre-visit-brief` | 413 from Caddy (the small cap still binds) |
+
+**Exposure to know about:** until the route checks the token with OpenEMR,
+anyone who can reach `:8443` can POST up to 25 MiB to `/documents` with a
+made-up bearer. The agent reads the whole body into memory, hashes it and
+discards it. Nothing is stored or extracted, but that is a memory and CPU
+cost per request with no authentication behind it (§10).
+
+**Rollback:** restore `Caddyfile-<old>` from the backup directory into
+`deploy/` and recreate the proxy the same way.
 
 ---
 
@@ -324,6 +383,64 @@ that, delete it with its `api_token`, `api_refresh_token` and
 disable v2 (`is_enabled = 0`). No restart; the next chart open uses the old
 client.
 
+### 5.2.1 Where the embed client's credentials are
+
+There is deliberately **no plaintext copy at rest**. The client id is the
+`clinical_copilot_oauth_client_id` global. The secret is
+`clinical_copilot_oauth_client_secret`, encrypted with the site key
+(`CryptoGen`), and OpenEMR holds its own encrypted copy in
+`oauth_clients.client_secret`. The registration response that showed it once
+was shredded.
+
+To retrieve both, as root on the host, with
+`/root/w2-rehearsal-20260922/embed-client-credentials.php` (root-only; its
+source is below):
+
+```bash
+F=/root/w2-rehearsal-20260922/embed-client-credentials.php
+docker cp $F development-easy-openemr-1:/tmp/cc-creds.php
+docker exec -u root development-easy-openemr-1 chown apache /tmp/cc-creds.php
+docker exec -u apache development-easy-openemr-1 php /tmp/cc-creds.php < /dev/null
+#   check only: client_name, client_id, is_enabled, secret_len,
+#   module_copy_matches_oauth_clients=true — never the secret
+docker exec -u apache development-easy-openemr-1 php /tmp/cc-creds.php /tmp/cc-client.json < /dev/null
+docker cp development-easy-openemr-1:/tmp/cc-client.json /root/embed-client.json && chmod 600 /root/embed-client.json
+docker exec development-easy-openemr-1 rm -f /tmp/cc-creds.php /tmp/cc-client.json
+# copy it where it belongs, then: shred -u /root/embed-client.json
+```
+
+```php
+<?php // embed-client-credentials.php — run as apache in the OpenEMR container
+$_GET['site'] = 'default'; $ignoreAuth = 1;
+require_once '/var/www/localhost/htdocs/openemr/interface/globals.php';
+use OpenEMR\Common\Crypto\CryptoGen;
+$crypto = new CryptoGen();
+$id = sqlQuery("SELECT gl_value FROM globals WHERE gl_name = 'clinical_copilot_oauth_client_id'")['gl_value'];
+$fromModule = $crypto->decryptFromDatabase(sqlQuery("SELECT gl_value FROM globals WHERE gl_name = 'clinical_copilot_oauth_client_secret'")['gl_value']);
+$client = sqlQuery("SELECT client_name, client_secret, is_enabled FROM oauth_clients WHERE client_id = ?", [$id]);
+$fromOAuth = $client ? $crypto->decryptFromDatabase($client['client_secret']) : false;
+echo 'client_name=' . ($client['client_name'] ?? 'MISSING') . ' client_id=' . $id
+   . ' is_enabled=' . ($client['is_enabled'] ?? '?')
+   . ' secret_len=' . (is_string($fromModule) ? strlen($fromModule) : 'DECRYPT_FAILED')
+   . ' module_copy_matches_oauth_clients=' . var_export(is_string($fromModule) && $fromModule === $fromOAuth, true) . "\n";
+if (isset($argv[1])) {
+    umask(077);
+    file_put_contents($argv[1], json_encode(['client_id' => $id, 'client_secret' => $fromModule]));
+    echo "written to {$argv[1]} (mode " . decoct(fileperms($argv[1]) & 0777) . ")\n";
+}
+```
+
+Checked 2026-09-22 (check mode only): `client_name=Clinical Co-Pilot (chart
+embed) v2`, `is_enabled=1`, `secret_len=86`,
+`module_copy_matches_oauth_clients=true`.
+
+**The old client, for rollback:** `Clinical Co-Pilot (chart embed)`,
+`AMPCwe6N…`, still registered and enabled, unused. Its id and its secret's
+ciphertext are in `/root/w2-rehearsal-20260922/globals-pre-w2.tsv`; the
+rollback is above. A site-key regeneration (the `LOCAL_ENV.md` §3 fix)
+makes **both** secrets undecryptable, at which point the only route back is a
+new registration.
+
 ### 5.3 Test client (smoke test only — delete afterwards)
 
 Password grant, so the endpoint can be driven without the embed. **Never used to
@@ -379,9 +496,8 @@ curl -sk https://<host>:8443/health
 curl -sk https://<host>:8443/ready    # fhir healthy, llm_provider healthy, observability_backend "disabled" (not required)
 ```
 
-`/documents` is **not** routed by the proxy (404 from outside, by design — §10).
-To exercise the stub, call it inside the container:
-`POST http://127.0.0.1:8000/documents?kind=lab_pdf` with the PDF as the body →
+`/documents` goes through the proxy since `9922314` (§2.1):
+`POST https://<host>:8443/documents?kind=lab_pdf` with the PDF as the body →
 200 `pending`; the same bytes again → the same `document_id`; no bearer → 401;
 polling `GET /documents/{id}/extraction` walks `pending → in_progress →
 complete` with `extraction_id: null` and no payload.
@@ -458,10 +574,10 @@ All on `64.177.42.210` (4 vCPU, 7.2 GiB), 2026-09-22.
 
 **Image and process**
 
-| | Week 1 (`e7bb0dc`) | Week 2 (`35f76ae`) |
+| | Week 1 (`e7bb0dc`) | Week 2 (`35f76ae`; `9922314` is the same size) |
 |---|---|---|
 | image size | 360 MB | **1.18 GB** — pip layer 412 MB (PyMuPDF 64 MB, onnxruntime 67 MB, numpy 70 MB…), baked models + vectors 160 MB, Tesseract 104 MB |
-| build time | — | 222 s |
+| build time | — | 222 s (176 s for `9922314`, apt and pip layers cached) |
 | cold start to `/health` 200 (page cache dropped, `--network none`) | — | **7.0 s**, of which retrieval preload 2.86 s |
 | preload on the live restart | — | 2.63 s, `vector_cache_prebuilt: true` |
 | resident memory, idle | **50 MiB** | **760–900 MiB** |
@@ -473,12 +589,22 @@ All on `64.177.42.210` (4 vCPU, 7.2 GiB), 2026-09-22.
 | text layer (5 pages across 3 clean PDFs) | p50 6 ms, max 14 ms |
 | OCR, Tesseract 5.5.0 at 300 dpi (3 pages across 2 scans) | p50 **5.7 s**, max 6.2 s |
 
-**Retrieval** — 30 dev queries × 2, top-5, in-process:
+**Retrieval** — 30 dev queries, top-5, inside the agent container:
 
 | | p50 | p95 | max |
 |---|---|---|---|
-| hybrid, no rerank | 7.8 ms | 9.4 ms | 9.8 ms |
-| hybrid + cross-encoder | **1.29 s** | **2.06 s** | 2.75 s — 9 of 60 over the 2.5 s budget |
+| hybrid, no rerank (n=60) | 7.8 ms | 9.4 ms | 9.8 ms |
+| rerank stage, idle host (n=90) | 1.38 s | 2.08 s | 2.28 s — 0% over 2.5 s, 0% over 4 s |
+| rerank stage, **OCR running in the same container** (n=60) | 2.45 s | 3.39 s | 4.09 s — **43.3% over 2.5 s, 1.7% over 4 s** |
+
+Each rerank row resets the circuit before every query, so every query
+really reranks. **The first rehearsal's "9 of 60 over 2.5 s" was a
+miscount**: one rerank ran over (2.75 s), opened the circuit, and eight
+skipped turns were counted as over budget too, because
+`RerankOutcome.over_budget` is `True` for both. D41 records this, the move
+to 4 s, and two defects 4 s does not fix: the circuit never closes (after
+the one 4.09 s rerank, 35 of the next 60 turns ran without reranking), and
+the log's `rerank_over_budget` cannot tell a slow rerank from a skipped one.
 
 **End-to-end ask** — through the chart embed, brief + the four questions from
 `scripts/measure_session_cost.py`, three patients (pids 5, 38, 40 — 22, 170
@@ -545,9 +671,9 @@ Co-Pilot):
 
 | when this lands | add this step |
 |---|---|
-| module upload route (server-side call to the agent's `/documents`) | a Caddy `handle /documents*` block with its own `request_body max_size` (the site-wide cap is **16 KB**; uploads are up to 25 MB), **and** a real token check in the agent route first — today's stub accepts any bearer string, which is why it is not exposed |
+| module upload route (server-side call to the agent's `/documents`) | the proxy route and cap are done (§2.1). Still needed: a real token check in the agent route — the stub accepts any bearer string, and it is now public |
 | source-documents card | register it in `Bootstrap`; confirm Apache serves `.mjs` as `text/javascript` (D32) |
-| vision extraction (`feat/w2-extractor`) | measure per-page cost and latency here; decide where extraction runs relative to the 900 MiB agent |
+| `/documents` wired to the extractor, and `feat/w2-graph` (supervisor) | redeploy; measure vision extraction cost and latency per page on this host, and one question answered with both a document citation and a guideline citation; decide where extraction runs relative to the ~0.9 GiB agent, given that OCR in the same container more than doubles rerank p95 (§8) |
 | agent-driven write-back | a broker scope set that includes `api:oemr user/lab-writeback.c`; the v2 client already allows it |
 | W2 eval gate | nothing on the host — it runs on recorded fixtures (D6) |
 
@@ -562,7 +688,9 @@ Co-Pilot):
 | `retrieval_preload_event` shows `vector_cache_prebuilt: false` | agent log | image did not bake the `.npz`; every restart re-embeds 693 chunks. Rebuild |
 | `model_cache_dir: null`, or preload fails with a download error | agent log | `AGENT_MODEL_CACHE_DIR` not reaching the process; `HF_HUB_OFFLINE=1` turns the missing weight into a startup error by design |
 | `retrieval_preload_failed_event` | agent log | the service still serves Week 1; retrieval is off. The event names the exception type only |
-| steady `rerank_over_budget: true` in `evidence_retrieval_event` | agent log | the cross-encoder does not fit the host (9/60 queries already exceed 2.5 s here). That is a decision to reopen, not a knob |
+| steady `rerank_over_budget: true` in `evidence_retrieval_event` | agent log | **first check whether it is one slow rerank followed by an open circuit**: the flag is also `True` on every skipped turn, and the circuit never closes until the process restarts (D41). A restart closes it. A stream of genuinely slow reranks means OCR or another load is contending for the CPU (§8) |
+| 413 on an upload | response has no JSON body → Caddy; JSON → the agent | over 25 MiB. Both caps are the same number (§2.1); if only one refuses, they have drifted |
+| 413 on a brief or a question | Caddy | body over 16 KB; the small cap applies to everything but `/documents*` |
 | `OcrUnavailableError` | agent log | image built without Tesseract — i.e. from before `35f76ae` |
 | agent OOM-killed / host swapping | `docker stats`, `dmesg` | the W2 agent idles at ~0.9 GiB; OCR at 300 dpi adds to it per page |
 | `/ready` 503 `fhir` | `/ready` detail | OpenEMR down, or `FHIR_BASE_URL` wrong |
