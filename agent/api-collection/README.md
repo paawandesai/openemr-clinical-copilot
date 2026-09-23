@@ -178,7 +178,7 @@ Langfuse (`docs/w2/OBSERVABILITY.md` §2).
 |---|---|---|
 | 0. Setup | `POST {openemr}/oauth2/default/token` (password grant) | a token with `user/lab-writeback.c`; kept in a collection variable for this run only |
 | 1. Health | `GET /health`, `GET /ready` | `/health` 200; `/ready` names `fhir`, `llm_provider`, `observability_backend`, and is 200 exactly when ready |
-| 2. Encounter | upload → extraction status (polled) → Pre-Visit Brief → one conversation turn → write-back → same write-back again → OpenEMR sign-in → open chart → document preview | upload returns a status, not a wait (D7); the correlation id comes back on every agent response; every claim went through the verifier; write-back returns real ids, and the repeat returns `duplicate_ignored` with the **same** ids (invariant 6); the preview is the PDF |
+| 2. Encounter | upload → extraction status (polled until final) → Pre-Visit Brief → one conversation turn → `/w2/ask` about the uploaded document → `/w2/ask` guideline question → write-back → same write-back again → OpenEMR sign-in → open chart → document preview | upload returns a status, not a wait (D7); a completed extraction has an extraction id; the correlation id comes back on every agent response; every claim went through the verifier; each `/w2/ask` records a routing decision with its reason (D4) and a final status; write-back returns real ids, and the repeat returns `duplicate_ignored` with the **same** ids (invariant 6); the preview is the PDF |
 | 3. Refusals | upload without a token; unknown document; unknown patient; another chart's document; end the conversation | 401, 404, 404 `patient_not_found`, 404, 200 |
 
 Files:
@@ -206,6 +206,7 @@ Files:
 | `patient_uuid` | `a2c373ec-57bf-41cb-8767-94410dcf663d` | The patient the lab fixture belongs to (doc-factory sample `lab-clean-001`). Same UUID on the Vultr host and locally (`docs/w2/LOCAL_ENV.md`). |
 | `patient_pid` | `38` | That patient's **local** pid, for opening the chart before the preview. pids differ per instance: `SELECT pid FROM patient_data WHERE uuid = UNHEX(REPLACE('<uuid>','-',''))`. |
 | `question` | `What medications is the patient on?` | The conversation turn's question. |
+| `document_question`, `guideline_question` | see the file | The two `/w2/ask` questions: one the supervisor answers from the uploaded document, one it sends to the evidence retriever. |
 
 ### One-time setup (local)
 
@@ -241,13 +242,19 @@ the environment, and run the collection with the Runner (order matters —
 later requests read ids earlier ones saved). Point the file bodies at
 `fixtures/` if Postman asks.
 
-**Last local run:** 2026-09-22, 21 requests, 48 assertions, 0 failures —
-output in `docs/w2/evidence/api-collection-run.txt`.
+**Last local run:** 2026-09-22, against the real routes (after
+`feat/w2-graph`). 44 requests, status polls included; 102 assertions;
+0 failures. Output: `docs/w2/evidence/api-collection-run.txt`.
 
-**What is still a stub.** `POST /documents` on `main` does not run the
-extractor: it hashes the bytes and advances a status on a timer
-(`app/api/documents.py`). The upload and status requests exercise the
-contract the chart card depends on, not an extraction. The write-back is
-the module's endpoint called directly with the clinician's token — the
-same call `app/writeback/client.py` makes — because no agent route posts a
-write-back yet.
+**What one run costs and takes.** It makes real model calls, about $0.82 per
+run:
+- the extraction's vision call, on the first upload of the PDF per agent
+  process (identical bytes are the same document and are not re-extracted);
+- the brief, the conversation turn and both asks.
+
+It takes about 3 minutes. The `/w2/ask` about the document alone takes
+90–130 s (`docs/w2/LOAD_TEST.md` §6), and the extraction 15–30 s.
+
+**What is not an agent call.** The write-back is the OpenEMR module's
+endpoint, called directly with the clinician's token. That is the same call
+`app/writeback/client.py` makes, but no agent route posts a write-back yet.

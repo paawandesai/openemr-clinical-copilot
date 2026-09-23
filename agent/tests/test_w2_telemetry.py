@@ -444,3 +444,57 @@ class TestScores:
 
 def test_the_telemetry_types_are_the_three_operational_events() -> None:
     assert TELEMETRY_EVENT_TYPES == {"step_event", "tool_call_event", "http_request_event"}
+
+
+# --- the Week 2 ask path (D40) ------------------------------------------------
+
+
+@pytest.fixture
+def ask_client(monkeypatch: pytest.MonkeyPatch) -> TestClient:
+    """The same offline doubles as tests/test_w2_ask_api.py."""
+    from app.graph import conversation, supervisor
+    from tests.w2_graph_support import FakeChart, ScriptedDrafter, offline_retriever
+
+    FakeChart().install(monkeypatch)
+    monkeypatch.setattr(supervisor, "draft_answer", ScriptedDrafter())
+    monkeypatch.setattr(supervisor, "default_retriever", offline_retriever)
+    monkeypatch.setattr(document_store, "DOCUMENTS", DocumentStore())
+    monkeypatch.setattr(conversation, "STORE", type(conversation.STORE)())
+    with TestClient(app) as test_client:
+        yield test_client
+
+
+def test_an_ask_turn_is_supervisor_steps_on_the_callers_encounter_id(
+    ask_client: TestClient,
+) -> None:
+    from tests.test_w2_ask_api import HEADERS
+    from tests.w2_graph_support import PATIENT as ASK_PATIENT
+
+    with capture_logs() as logs:
+        response = ask_client.post(
+            "/w2/ask",
+            json={
+                "patient_id": ASK_PATIENT,
+                "session_id": "telemetry-session-0001",
+                "question": "What problems are on her list?",
+            },
+            headers={**HEADERS, "X-Correlation-ID": ENCOUNTER},
+        )
+    assert response.status_code == 200, response.text
+    assert response.json()["correlation_id"] == ENCOUNTER
+
+    steps = [
+        (e["event_data"]["step"], e["event_data"]["outcome"])
+        for e in _events(logs, "step_event")
+        if e["event_data"]["pipeline"] == "supervisor"
+    ]
+    assert steps[0] == ("supervisor", "ok")
+    assert ("answer", "ok") in steps
+    (request,) = _events(logs, "http_request_event")
+    assert request["event_data"]["route"] == "/w2/ask"
+    carried = {
+        e["event_data"]["correlation_id"]
+        for e in logs
+        if e.get("event") == "agent_event" and "correlation_id" in e.get("event_data", {})
+    }
+    assert carried == {ENCOUNTER}

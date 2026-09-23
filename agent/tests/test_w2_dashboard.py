@@ -174,6 +174,13 @@ class TestAlerts:
         d = build([request("/pre-visit-brief", 502, 5.0)] * 3)
         assert alert(d, "request_error_rate")["state"] == "insufficient_data"
 
+    def test_the_week_2_ask_route_is_an_answer_route(self) -> None:
+        # One /w2/ask over a whole lab report took 130 s locally (one
+        # 35k-in / 11.5k-out drafting call); this alert must see it.
+        d = build([request("/w2/ask", 200, 130_500.0)] * 10)
+        assert d["requests"]["answer_routes"]["count"] == 10
+        assert alert(d, "answer_p95_latency")["state"] == "firing"
+
     def test_answer_latency_fires_over_its_threshold(self) -> None:
         d = build([request("/pre-visit-brief/conversation", 200, 50_000.0)] * 10)
         assert alert(d, "answer_p95_latency")["state"] == "firing"

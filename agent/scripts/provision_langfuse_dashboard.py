@@ -178,8 +178,10 @@ WIDGETS: list[tuple[dict, int, int, int, int]] = [
             "dimensions": [{"field": "tags"}],
             "metrics": [{"measure": "count", "agg": "count"}],
             "filters": [_names("tool_call_event")],
-            "chart_type": "VERTICAL_BAR",
-            "chart_config": {"type": "VERTICAL_BAR", "row_limit": 20},
+            # Horizontal: each bar is labelled with its tag set. A vertical
+            # bar chart labels only some of its x-axis ticks.
+            "chart_type": "HORIZONTAL_BAR",
+            "chart_config": {"type": "HORIZONTAL_BAR", "row_limit": 20, "show_value_labels": True},
         },
         0,
         8,

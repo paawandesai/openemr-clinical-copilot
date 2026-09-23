@@ -2,7 +2,7 @@
   "info": {
     "name": "Clinical Co-pilot: Week 2 core flow",
     "_postman_id": "8c1d6f7e-2b1a-4c55-9a0e-4e2a9b6c1d01",
-    "description": "One clinician encounter end to end: token, health, readiness, upload a lab PDF, poll extraction status, ask (Pre-Visit Brief and one conversation turn), write the lab results back to OpenEMR (twice, to show idempotency), and preview the written document the way the chart card does.\n\nEvery agent request sends the same X-Correlation-ID ({{encounter_id}}), so the whole encounter is one trace in Langfuse and one correlation id in the agent's stdout log.\n\nRun order matters: later requests read ids that earlier ones saved. Run the whole collection (Runner, or newman), or run a folder from the top. How to run, and what each variable means: agent/api-collection/README.md. No token is stored in this file.",
+    "description": "One clinician encounter end to end: token, health, readiness, upload a lab PDF, poll the real extraction, ask (Pre-Visit Brief, a conversation turn, and two Week 2 asks through the supervisor), write the lab results back to OpenEMR (twice, to show idempotency), and preview the written document the way the chart card does.\n\nEvery agent request sends the same X-Correlation-ID ({{encounter_id}}), so the whole encounter is one trace in Langfuse and one correlation id in the agent's stdout log.\n\nRun order matters: later requests read ids that earlier ones saved. Run the whole collection (Runner, or newman), or run a folder from the top. How to run, and what each variable means: agent/api-collection/README.md. No token is stored in this file.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "event": [
@@ -186,7 +186,7 @@
               }
             ],
             "url": {
-              "raw": "{{agent_base_url}}/documents?kind=lab_pdf",
+              "raw": "{{agent_base_url}}/documents?kind=lab_pdf&patient_id={{patient_uuid}}",
               "host": [
                 "{{agent_base_url}}"
               ],
@@ -197,10 +197,14 @@
                 {
                   "key": "kind",
                   "value": "lab_pdf"
+                },
+                {
+                  "key": "patient_id",
+                  "value": "{{patient_uuid}}"
                 }
               ]
             },
-            "description": "The request body is the PDF itself. Extraction starts at upload, not at question time (D7). On main this route is a STUB: it keeps no bytes and runs no extractor; the status advances on a timer.",
+            "description": "The request body is the PDF itself; patient_id binds it to a chart. Extraction starts at upload, not at question time (D7): the intake-extractor runs in the background (text layer, one vision call, the deterministic locate step). The first upload of a document costs one model call.",
             "body": {
               "mode": "file",
               "file": {
@@ -242,8 +246,8 @@
                 "value": "{{encounter_id}}"
               }
             ],
-            "url": "{{agent_base_url}}/documents/{{agent_document_id}}/extraction",
-            "description": "Returns pending, in_progress, complete or failed. The runner re-sends this request once a second until complete (at most 15 times)."
+            "url": "{{agent_base_url}}/documents/{{agent_document_id}}/extraction?patient_id={{patient_uuid}}",
+            "description": "Returns pending, in_progress, complete or failed. The runner re-sends this request once a second until it is final (at most 90 times): the real extraction is one vision call, 15-30 s for a new document. The same bytes uploaded again are the same document and are not re-extracted."
           },
           "event": [
             {
@@ -258,13 +262,14 @@
                   "});",
                   "const polls = Number(pm.collectionVariables.get('extraction_polls')) + 1;",
                   "pm.collectionVariables.set('extraction_polls', String(polls));",
-                  "if (body.status !== 'complete' && body.status !== 'failed' && polls < 15) {",
+                  "if (body.status !== 'complete' && body.status !== 'failed' && polls < 90) {",
                   "  // Poll again in one second. The ask path never waits like this (D7);",
                   "  // only a client that wants the finished extraction does.",
                   "  setTimeout(() => {}, 1000);",
                   "  pm.execution.setNextRequest(pm.info.requestName);",
                   "} else {",
                   "  pm.test(\"extraction reached a final state\", () => pm.expect(body.status).to.eql(\"complete\"));",
+                  "  pm.test(\"a completed run has an extraction id\", () => pm.expect(body.extraction_id).to.match(/^w2x-/));",
                   "}"
                 ]
               }
@@ -362,6 +367,101 @@
                   "});",
                   "pm.test(\"the turn was routed and answered or refused by rule\", () => pm.expect([\"answered\", \"partially_answered\", \"not_answerable\", \"refused_out_of_scope\", \"refused_unverifiable\"]).to.include(body.turn_status));",
                   "pm.test(\"every claim went through the verifier\", () => pm.expect(body.verification.claims).to.eql(body.claims.length));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Ask about the uploaded document: POST /w2/ask",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              },
+              {
+                "key": "X-Correlation-ID",
+                "value": "{{encounter_id}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{agent_base_url}}/w2/ask",
+            "description": "The Week 2 ask path (D40): the supervisor routes by rule and logs each decision with its reason; the document's extracted values are cited with page and box; anything the locate step could not place is reported unsupported, never as fact.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"patient_id\": \"{{patient_uuid}}\",\n  \"session_id\": \"{{session_id}}\",\n  \"question\": \"{{document_question}}\",\n  \"document_ids\": [\n    \"{{agent_document_id}}\"\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const body = pm.response.json();",
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"the encounter id comes back on the response\", () => pm.expect(body.correlation_id).to.eql(pm.collectionVariables.get(\"encounter_id\")));",
+                  "pm.test(\"a routing decision was made and recorded with its reason (D4)\", () => { pm.expect(body.routing.length).to.be.above(0); body.routing.forEach(r => pm.expect(r.reason_code).to.be.a(\"string\")); });",
+                  "pm.test(\"a final status\", () => pm.expect([\"answered\", \"partially_answered\", \"not_in_record\", \"refused\"]).to.include(body.status));",
+                  "pm.test(\"an answer is drawn only from what it can cite\", () => { if (body.answer_view) { pm.expect(body.answer_view.answer).to.have.property(\"patient_facts\"); } });",
+                  "pm.test(\"the supervisor routed through the extracted document\", () => pm.expect(JSON.stringify(body.routing)).to.match(/document|intake|extract/i));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Ask a guideline question: POST /w2/ask",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              },
+              {
+                "key": "X-Correlation-ID",
+                "value": "{{encounter_id}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{agent_base_url}}/w2/ask",
+            "description": "A question that needs guideline evidence: the supervisor sends concepts (never patient identifiers, D5) to the evidence retriever, and guideline citations stay a separate source type from chart facts (invariant 3).",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"patient_id\": \"{{patient_uuid}}\",\n  \"session_id\": \"{{session_id}}\",\n  \"question\": \"{{guideline_question}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const body = pm.response.json();",
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"the encounter id comes back on the response\", () => pm.expect(body.correlation_id).to.eql(pm.collectionVariables.get(\"encounter_id\")));",
+                  "pm.test(\"a routing decision was made and recorded with its reason (D4)\", () => { pm.expect(body.routing.length).to.be.above(0); body.routing.forEach(r => pm.expect(r.reason_code).to.be.a(\"string\")); });",
+                  "pm.test(\"a final status\", () => pm.expect([\"answered\", \"partially_answered\", \"not_in_record\", \"refused\"]).to.include(body.status));",
+                  "pm.test(\"an answer is drawn only from what it can cite\", () => { if (body.answer_view) { pm.expect(body.answer_view.answer).to.have.property(\"patient_facts\"); } });"
                 ]
               }
             }
@@ -548,7 +648,7 @@
               }
             ],
             "url": {
-              "raw": "{{agent_base_url}}/documents?kind=lab_pdf",
+              "raw": "{{agent_base_url}}/documents?kind=lab_pdf&patient_id={{patient_uuid}}",
               "host": [
                 "{{agent_base_url}}"
               ],
@@ -559,6 +659,10 @@
                 {
                   "key": "kind",
                   "value": "lab_pdf"
+                },
+                {
+                  "key": "patient_id",
+                  "value": "{{patient_uuid}}"
                 }
               ]
             },
@@ -596,7 +700,7 @@
                 "value": "{{encounter_id}}"
               }
             ],
-            "url": "{{agent_base_url}}/documents/0000/extraction",
+            "url": "{{agent_base_url}}/documents/0000/extraction?patient_id={{patient_uuid}}",
             "description": ""
           },
           "event": [

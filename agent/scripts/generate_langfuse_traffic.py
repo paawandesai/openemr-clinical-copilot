@@ -20,7 +20,7 @@ from the result:
     models load from the local cache and are downloaded on first use; if
     they cannot load, this part is skipped and says so.
 - **Synthesized, through the real event models** (so every shape is
-  validated): HTTP requests, pipeline steps, FHIR and LLM tool calls,
+  validated): HTTP requests, pipeline steps (supervisor turns included), FHIR and LLM tool calls,
   verification and latency events, and LLM token usage for encounters.
   Values are drawn from the distributions measured in docs/w2/LOAD_TEST.md,
   and include a small share of FHIR 500s, 5xx responses, SDK retries and
@@ -38,6 +38,7 @@ from __future__ import annotations
 import argparse
 import asyncio
 import contextlib
+import itertools
 import json
 import os
 import random
@@ -72,6 +73,9 @@ from app.models.telemetry_events import (  # noqa: E402
 )
 
 MODEL = "claude-opus-5"
+_ANSWERS = itertools.count()
+_ASKS = itertools.count()
+_LLM_CALLS = itertools.count()
 BRIEF_TYPES = (
     FhirResourceType.CONDITION,
     FhirResourceType.MEDICATION_REQUEST,
@@ -177,9 +181,11 @@ def _answer(enc: Encounter, use_case: UseCase, pipeline: Pipeline, route: str) -
             enc.request("POST", route, 200, rng.uniform(150, 300))
             return
 
-    # FHIR: Patient, then the three base resources; about 1 in 20 answers
-    # meets an OpenEMR 500, the saturation failure LOAD_TEST.md §1 measured.
-    fhir_failed = rng.random() < 0.05
+    # FHIR: Patient, then the three base resources. Every twelfth answer
+    # meets an OpenEMR 500 (the saturation failure LOAD_TEST.md §1 measured),
+    # on a fixed schedule rather than a coin flip: at 5% a seed can draw no
+    # failure at all, which leaves the error widgets empty.
+    fhir_failed = next(_ANSWERS) % 12 == 5
     retrieve_ms = 0.0
     for index, target in enumerate(("Patient", *[t.value for t in BRIEF_TYPES])):
         ms = rng.uniform(120, 420)
@@ -221,7 +227,9 @@ def _answer(enc: Encounter, use_case: UseCase, pipeline: Pipeline, route: str) -
 
     # Draft: real-LLM latency on this project's charts runs 4-19 s.
     draft_ms = rng.uniform(3_800, 18_000)
-    retries = 1 if rng.random() < 0.05 else 0
+    # Every twentieth model call took one SDK retry: fixed, like the FHIR
+    # failures, so the retries widget cannot come up empty by chance.
+    retries = 1 if next(_LLM_CALLS) % 20 == 7 else 0
     enc.tool(Tool.LLM, MODEL, draft_ms, status=None, retries=retries, use_case=use_case)
     input_tokens = rng.randint(1_500, 13_000)
     log_event(
@@ -294,6 +302,49 @@ def _answer(enc: Encounter, use_case: UseCase, pipeline: Pipeline, route: str) -
     enc.request("POST", route, 200, total + rng.uniform(5, 40))
 
 
+def _ask(enc: Encounter) -> None:
+    """
+    One /w2/ask turn through the supervisor (D40): route by rule, maybe
+    retrieve guideline evidence, answer. Latencies follow the real-route
+    run in docs/w2/LOAD_TEST.md: about 10 s for a guideline question, and
+    now and then a very long answer over a whole lab report (130 s measured,
+    one 35k-in / 11.5k-out call).
+    """
+    rng = enc.rng
+    use_case = UseCase.FOLLOW_UP_DRILLING
+    total = 0.0
+    enc.step(Pipeline.SUPERVISOR, "supervisor", rng.uniform(0.2, 1.5), use_case=use_case)
+    if rng.random() < 0.5:
+        retrieval_ms = rng.uniform(200, 600)
+        enc.tool(Tool.GUIDELINE_RETRIEVER, "hybrid", retrieval_ms, status=None, use_case=use_case)
+        enc.step(Pipeline.SUPERVISOR, "evidence_retriever", retrieval_ms, use_case=use_case)
+        enc.step(Pipeline.SUPERVISOR, "supervisor", rng.uniform(0.2, 1.5), use_case=use_case)
+        total += retrieval_ms
+    long_answer = next(_ASKS) % 8 == 3
+    draft_ms = rng.uniform(90_000, 135_000) if long_answer else rng.uniform(8_000, 14_000)
+    input_tokens = rng.randint(30_000, 36_000) if long_answer else rng.randint(9_000, 14_000)
+    output_tokens = rng.randint(9_000, 12_000) if long_answer else rng.randint(400, 2_000)
+    ask_retries = 1 if next(_LLM_CALLS) % 20 == 7 else 0
+    enc.tool(Tool.LLM, MODEL, draft_ms, status=None, retries=ask_retries, use_case=use_case)
+    log_event(
+        "llm_usage_event",
+        {
+            "correlation_id": enc.correlation_id,
+            "model": MODEL,
+            "input_tokens": input_tokens,
+            "output_tokens": output_tokens,
+            "cache_creation_input_tokens": 0,
+            "cache_read_input_tokens": 0,
+            "latency_ms": round(draft_ms),
+        },
+        use_case=use_case,
+        patient_session_key=enc.key,
+    )
+    enc.step(Pipeline.SUPERVISOR, "answer", draft_ms + rng.uniform(5, 40), use_case=use_case)
+    total += draft_ms
+    enc.request("POST", "/w2/ask", 200, total + rng.uniform(20, 80))
+
+
 def _upload(enc: Encounter) -> None:
     rng = enc.rng
     enc.step(
@@ -334,6 +385,8 @@ def synthesize(encounters: int, seed: int) -> None:
                     Pipeline.CONVERSATION,
                     "/pre-visit-brief/conversation",
                 )
+            if rng.random() < 0.4:
+                _ask(enc)
     print(f"synthesized {encounters} encounters", file=sys.stderr)
 
 

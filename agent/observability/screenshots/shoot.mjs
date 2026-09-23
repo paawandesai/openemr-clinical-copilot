@@ -94,13 +94,18 @@ await pause(8000); // every widget runs its own query
 await shootWhole("langfuse-dashboard.png");
 
 if (args.trace) {
-  await page.setViewport({ width: 1920, height: 1200 });
+  // A fixed viewport, not shootWhole: growing the page scrolls the trace
+  // tree away from its header and leaves the detail pane empty. What the
+  // shot has to show is the header (one trace id, its cost and latency),
+  // the top of the observation tree, and one observation's metadata.
+  await page.setViewport({ width: 1920, height: 1600 });
   await page.goto(`${base}/project/${project}/traces/${args.trace}`, {
     waitUntil: "networkidle2",
     timeout: 60000,
   });
-  await pause(5000);
-  await shootWhole("langfuse-encounter-trace.png");
+  await pause(6000);
+  await page.screenshot({ path: path.join(out, "langfuse-encounter-trace.png") });
+  console.log("wrote langfuse-encounter-trace.png");
 }
 
 if (args.html) {

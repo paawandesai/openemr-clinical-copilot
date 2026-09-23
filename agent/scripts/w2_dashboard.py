@@ -54,7 +54,12 @@ PROBE_ROUTES = frozenset({"/health", "/ready"})
 #: The routes a clinician waits on for an answer — the ones KEY_METRICS.md
 #: Metric 4's 90-second budget is about.
 ANSWER_ROUTES = frozenset(
-    {"/pre-visit-brief", "/pre-visit-brief/follow-up", "/pre-visit-brief/conversation"}
+    {
+        "/pre-visit-brief",
+        "/pre-visit-brief/follow-up",
+        "/pre-visit-brief/conversation",
+        "/w2/ask",  # the Week 2 supervisor (D40)
+    }
 )
 
 

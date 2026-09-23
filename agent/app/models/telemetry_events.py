@@ -56,6 +56,10 @@ class Pipeline(StrEnum):
     FOLLOW_UP = "follow_up"
     CONVERSATION = "conversation"
     DOCUMENTS = "documents"
+    #: The Week 2 ask path's graph (app/graph/supervisor.py, D40): one step
+    #: per node run: supervisor, intake_extractor, evidence_retriever,
+    #: answer, refuse. The supervisor node runs again after each worker.
+    SUPERVISOR = "supervisor"
     INTAKE_EXTRACTOR = "intake_extractor"
     EVIDENCE_RETRIEVER = "evidence_retriever"
     WRITEBACK = "writeback"
