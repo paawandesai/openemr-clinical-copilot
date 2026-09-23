@@ -17,7 +17,16 @@ What is allowed, because the log's own rules produce it:
   be neither a duplicate nor a gap.
 
 What it cannot see: an entry dropped from the *end* of the log leaves no
-gap. `.gitattributes` (merge=union on this file) is the guard for that.
+gap. Nothing automatic guards that case; a reviewer reading the merge does.
+
+A `merge=union` rule for this file was tried and removed on 2026-09-23.
+Redoing both lossy merges with it kept every entry (51 of 51, no conflict).
+But union applies to cherry-pick and rebase as well as merge, and it
+resolves every conflict silently: a cherry-pick of a follow-up commit
+without the commit it followed reported no conflict and landed a paragraph
+claiming a rename that had not happened. That trades a loud loss for a
+silent, incoherent merge. The losses we actually had both left gaps, so
+this test catches them, and a conflict keeps stopping the person merging.
 
 Numbers reserved ahead of merge (the header's reservation rule) must merge
 in order, or `main` shows a gap until the lower range lands. That is

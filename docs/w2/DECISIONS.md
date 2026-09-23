@@ -2447,8 +2447,6 @@ while a document extracts.
 
 ---
 
----
-
 ## D41 — The rerank budget is 4 s, measured on the deployment host; the circuit closes itself and is reported apart
 
 **Status:** DECIDED — supersedes item 5 of D25 (the 2.5 s figure, and the
