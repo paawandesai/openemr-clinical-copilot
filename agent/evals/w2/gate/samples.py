@@ -33,7 +33,7 @@ ALL_SCENARIOS = LAB_SCENARIOS + INTAKE_SCENARIOS
 
 @functools.cache
 def ground_truth(scenario_id: str) -> dict[str, Any]:
-    path = FACTORY_SAMPLES_DIR / scenario_id / f"{scenario_id}.ground_truth.json"
+    path = _sample_dir(scenario_id) / f"{scenario_id}.ground_truth.json"
     if not path.is_file():
         raise GateError(
             f"doc-factory sample {scenario_id} is missing ({path}). Regenerate with "
@@ -236,8 +236,24 @@ def transcription(sample: str) -> dict[str, Any]:
     return json.loads(path.read_text(encoding="utf-8"))
 
 
+#: Scenarios the GATE owns, generated from a staged spec and kept here rather
+#: than in the factory's committed sample set. `lab-critical-potassium-007` is
+#: the first: three ungated tests assert the factory ships exactly six samples
+#: (`test_six_sample_scenarios_are_committed`, `test_the_six_samples_are_all_
+#: there`, `test_all_six_samples_build`), and adding a seventh there breaks all
+#: three for branches that have nothing to do with this one. It also belongs
+#: here on the merits — it is a gate fixture, and this directory is gated.
+#:
+#: Regenerate with:
+#:   python -m evals.w2.factory generate \
+#:     evals/w2/staging/specs/lab-critical-potassium-007.yaml \
+#:     --out evals/w2/fixtures/scenarios
+GATE_SCENARIOS_DIR = W2_ROOT / "fixtures" / "scenarios"
+
+
 def _sample_dir(sample: str) -> Path:
-    return FACTORY_SAMPLES_DIR / sample
+    owned = GATE_SCENARIOS_DIR / sample
+    return owned if owned.is_dir() else FACTORY_SAMPLES_DIR / sample
 
 
 def sample_pdf(sample: str) -> bytes:
