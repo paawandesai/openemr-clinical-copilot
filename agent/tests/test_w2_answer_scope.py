@@ -1,5 +1,5 @@
 """
-Answer scope (D49; app/supervisor/scope.py and the answer node in
+Answer scope (D50; app/supervisor/scope.py and the answer node in
 app/graph/supervisor.py).
 
 What a document answer itemises is decided by rule before the drafter sees

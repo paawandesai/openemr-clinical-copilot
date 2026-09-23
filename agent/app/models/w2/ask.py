@@ -97,13 +97,13 @@ class AnswerLimitation(StrEnum):
     #: A cited guideline source is flagged dated by the corpus registry.
     DATED_GUIDELINE_SOURCE = "dated_guideline_source"
     #: Lab results the scope rule did not itemise are counted in a cited
-    #: statement instead (app/supervisor/scope.py, D49).
+    #: statement instead (app/supervisor/scope.py, D50).
     ANSWER_SCOPED = "answer_scoped"
     #: More lab results were in scope than the answer itemises; the rest are
-    #: named, not stated (D49).
+    #: named, not stated (D50).
     ANSWER_CAPPED = "answer_capped"
     #: The drafting call reached its output ceiling; only what code states by
-    #: rule is shown (D49).
+    #: rule is shown (D50).
     OUTPUT_LIMIT_REACHED = "output_limit_reached"
 
 

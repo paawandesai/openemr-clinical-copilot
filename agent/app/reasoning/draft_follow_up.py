@@ -247,7 +247,7 @@ async def stream_structured(
     follow-up below and a conversation turn
     (app/reasoning/draft_conversation_turn.py) make exactly this call, with
     the same model, effort and refusal fallback. Returns the final message.
-    The Week 2 answer step passes a lower `max_tokens` (D49).
+    The Week 2 answer step passes a lower `max_tokens` (D50).
 
     Logs llm_usage_event, or llm_call_failed and re-raises. Raises
     ClaimDraftingError on a refusal, and its subclass DraftTruncatedError on

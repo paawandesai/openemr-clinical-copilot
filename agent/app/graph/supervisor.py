@@ -485,7 +485,7 @@ async def _answer(state: SupervisorState, runtime: Runtime[SupervisorContext]) -
         facts[document_id] = document_facts(report.output.payload)
     retrieval = state.get("retrieval")
     chunks = list(retrieval.chunks) if retrieval is not None else []
-    # D49: which lab rows the drafter is offered, by rule. The verifier and
+    # D50: which lab rows the drafter is offered, by rule. The verifier and
     # the critical scan below still see every located fact.
     scope = scope_answer(ctx.question, reports, facts)
 
@@ -815,7 +815,7 @@ def critical_findings(
 
 @dataclass
 class ScopeBlock:
-    """What the scope rule left out, as cited statements (D49)."""
+    """What the scope rule left out, as cited statements (D50)."""
 
     lines: list[str] = field(default_factory=list)
     claims: list[PatientFactClaim] = field(default_factory=list)
@@ -1051,7 +1051,7 @@ def render_answer(
     verified = sum(1 for result in results if result.passed)
     status = _answer_status(draft, verified)
     criticals = criticals or CriticalBlock()
-    # D49: an answer the scope or the output bound cut short says so in its
+    # D50: an answer the scope or the output bound cut short says so in its
     # status. The scope's count answers a whole-report question in part; for
     # a question about something else it is a disclosure, not an answer.
     stated = verified + len(scope.claims) + sum(1 for v in criticals.values if v.stated)

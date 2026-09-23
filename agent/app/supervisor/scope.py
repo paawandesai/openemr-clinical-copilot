@@ -1,6 +1,6 @@
 """
 Answer scope — which lab rows a document answer itemises, decided by rule
-before the model sees anything (D49).
+before the model sees anything (D50).
 
 **Why.** A question about a whole lab report handed every located value to
 the drafting call and got every one of them back as a citation: 22 rows was
@@ -43,7 +43,7 @@ it binds, the answer is rendered from what code states on its own (critical
 values, this scope's statements, unsupported fields) and says so.
 
 Both numbers are chosen from the measurement in LOAD_TEST.md §7, not
-guessed: see D49.
+guessed: see D50.
 
 Intake forms are not scoped: a form's catalog is a few medications and
 allergies, and none of it is "in range".
@@ -64,11 +64,11 @@ from app.supervisor.facts import DocumentFact
 from app.workers.intake_extractor.report import ExtractionReport
 
 #: Non-critical lab rows offered to the drafting call per turn. Measured:
-#: see D49 and LOAD_TEST.md §7.
+#: see D50 and LOAD_TEST.md §7.
 MAX_ITEMISED_ROWS = 8
 
 #: The drafting call's output ceiling on the ask path (thinking included).
-#: Measured: see D49 and LOAD_TEST.md §7 — ~131 output tokens/s, so this is
+#: Measured: see D50 and LOAD_TEST.md §7 — ~131 output tokens/s, so this is
 #: ~76 s of writing; the cap-bound worst case wrote ~5,100.
 ANSWER_MAX_TOKENS = 10_000
 

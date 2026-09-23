@@ -211,7 +211,7 @@ class DraftTruncatedError(ClaimDraftingError):
     """
     The output hit its `max_tokens` ceiling, so the structured output is
     incomplete. A ClaimDraftingError, so every Week 1 caller is unchanged;
-    the Week 2 answer step catches it first (D49). `final_message` is the
+    the Week 2 answer step catches it first (D50). `final_message` is the
     truncated message, kept for its usage counts only — never parsed.
     """
 

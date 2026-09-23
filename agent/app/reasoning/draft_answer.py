@@ -89,7 +89,7 @@ class AnswerDraft:
 
 class AnswerTruncatedError(ClaimDraftingError):
     """
-    The drafting call hit ANSWER_MAX_TOKENS (D49). Nothing drafted is
+    The drafting call hit ANSWER_MAX_TOKENS (D50). Nothing drafted is
     usable; `usage` is kept so the turn's tokens and cost are still reported.
     """
 

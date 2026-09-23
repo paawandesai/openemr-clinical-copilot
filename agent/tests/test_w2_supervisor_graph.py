@@ -391,7 +391,7 @@ def test_a_claim_that_fails_verification_is_disclosed_not_stated(chart: FakeChar
     response = ask_with_document(GUIDELINE_QUESTION, drafter=ScriptedDrafter(script=script))
     answer = response.answer_view.answer  # type: ignore[union-attr]
     # The only patient fact is code's count of the rows the scope did not
-    # itemise (D49); nothing the model drafted is stated.
+    # itemise (D50); nothing the model drafted is stated.
     assert [
         f.statement
         for f in answer.patient_facts

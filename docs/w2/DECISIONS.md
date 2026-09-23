@@ -1901,7 +1901,7 @@ observability events are emitted with this branch's own names because
 
 ---
 
-## D49 — A document answer itemises by rule: critical, abnormal, named; the rest is counted, and the output is bounded
+## D50 — A document answer itemises by rule: critical, abnormal, named; the rest is counted, and the output is bounded
 
 **Status:** DECIDED — needs human review of two points below (the changed
 `AskStatus` for whole-report questions and the three new `AnswerLimitation`
@@ -1909,6 +1909,11 @@ members), which change what `/w2/ask` returns.
 **Date:** 2026-09-23
 **Raised by:** work order 19 (`feat/w2-answer-scope`), after LOAD_TEST.md §6
 measured `/w2/ask` over a whole lab report at 90–130 s.
+**Numbering:** was D49 on `feat/w2-answer-scope`. Renumbered on the branch
+before merge because `feat/w2-php-wiring` merged its own D49 to `main` first
+(`2ae4d98`, "The PDF preview URL is the one the code serves"), and D42-D48
+are reserved for `feat/w2-eval-gate`. The message of commit `f560fe9`
+still says D49; nothing else does.
 
 **Measured first** (LOAD_TEST.md §7, `agent/load-test/w2/answer_bench.py`,
 read from the `step_event` / `llm_usage_event` the ask path already emits).

@@ -255,7 +255,7 @@ The fix belongs to the ask path, not observability. For example: bound
 the output, or answer from the results the question names rather than all
 of them.
 
-## 7. The answer step, scoped (after `feat/w2-answer-scope`, D49)
+## 7. The answer step, scoped (after `feat/w2-answer-scope`, D50)
 
 Work order 19. `agent/load-test/w2/answer_bench.py`: the real ask path in
 process, one encounter at a time, no load — recorded vision (text layer and
@@ -306,7 +306,7 @@ Cost of these runs: before $3.97 (6 runs), after $1.28 (10 runs).
 | Path | Bottleneck | Evidence |
 |---|---|---|
 | Ask (question → answer) | **OpenEMR's PHP tier**, unchanged from Week 1: saturated at 10 users locally (420% CPU), failing at 50 (58%) | §1 |
-| Ask, wall-clock | The LLM draft: 85% of a real turn. A `/w2/ask` over a whole lab report was **90–196 s** (one call writing a citation per value); scoped by rule (D49) it is **7–13 s**, and 41–45 s when a question asks for every result and the cap binds | §2, §6, §7 |
+| Ask, wall-clock | The LLM draft: 85% of a real turn. A `/w2/ask` over a whole lab report was **90–196 s** (one call writing a citation per value); scoped by rule (D50) it is **7–13 s**, and 41–45 s when a question asks for every result and the cap binds | §2, §6, §7 |
 | Extraction, wall-clock and cost | **The vision call**: 15–31 s, $0.10–0.13 per document | §4b |
 | Extraction, local CPU | **OCR**: 8.25 cores at 50 concurrent, p95 10 s | §4a |
 | Guideline retrieval | **The cross-encoder reranker**: p95 335 s at 50 before the admission bound, **259 ms after** (D39); throughput is about 8 reranks/s, and memory is still up to 3.1 GiB | §5, §5b |
