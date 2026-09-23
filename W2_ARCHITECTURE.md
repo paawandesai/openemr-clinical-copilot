@@ -13,16 +13,16 @@ at. A path with no branch prefix is on `main`.
 
 | Ref | Commit | On `origin`? | What it holds that this document cites |
 |---|---|---|---|
-| `main` | `f59b29c` | yes | D1–D35, D40; extractor, retriever, supervisor, verifier, write-back module |
+| `main` | `fc3143b` | yes | D1–D40; extractor, retriever, supervisor, verifier, write-back module; since the merge of `feat/w2-observability` (`fc3143b`, at its `d1cbfc9`): D36–D39, `docs/w2/{OBSERVABILITY,ALERTS,LOAD_TEST}.md`, `docs/w2/evidence/`, the only real-route `/w2/ask` measurements |
 | `feat/w2-eval-gate` | `647dd9a` | yes | the eval gate, D42–D48, `docs/w2/EVAL_GATE_EVIDENCE.md` |
-| `feat/w2-observability` | `d1cbfc9` | **no, local only** | D36–D39, `docs/w2/{OBSERVABILITY,ALERTS,LOAD_TEST}.md`, `docs/w2/evidence/`; the only real-route `/w2/ask` measurements |
 | `chore/w2-deploy-rehearsal` | `0c0f360` | **no, local only** | D41, `docs/w2/DEPLOY.md`, the upload guard |
 | `feat/w2-php-wiring` | `405b5ac` | **no, local only** | the upload guard ported onto `main`'s real `/documents` route |
 
 The D-number reservation on `main` fixes the merge order: observability
-(D36–D39), graph (D40, merged), deploy rehearsal (D41), eval gate (D42–D48)
-(`docs/w2/DECISIONS.md`, header). **Until those branches merge and are pushed,
-the evidence they hold cannot be seen by anyone reading `origin`.**
+(D36–D39, merged), graph (D40, merged), deploy rehearsal (D41), eval gate
+(D42–D48) (`docs/w2/DECISIONS.md`, header). **`chore/w2-deploy-rehearsal`
+and `feat/w2-php-wiring` are not on `origin`**, so until they are pushed or
+merged, the evidence they hold cannot be seen by anyone reading `origin`.
 
 ---
 
@@ -170,7 +170,7 @@ Nothing from that document is stated, and the discrepancy check does not run
 
 These are two different measurements, and the table keeps them apart. **Real
 vision** is three live model calls, run sequentially
-(`feat/w2-observability@d1cbfc9:docs/w2/evidence/load/extraction-live-vision.json`,
+(`docs/w2/evidence/load/extraction-live-vision.json`,
 `LOAD_TEST.md` §4b). **Replay** is all six committed samples with the vision
 step replaced by ground truth, so it measures everything after the model
 (`docs/w2/evidence/extractor-measurement-f59b29c.txt`, produced by
@@ -320,8 +320,8 @@ Potassium, for example, is critical below 2.5 and above 6.0 mmol/L.
 | Chunking | section-aware; the heading path becomes `page_or_section`, and the body becomes the quotable text | `retrieval-bakeoff.md` §3 |
 | Sparse + dense | BM25 plus `BAAI/bge-small-en-v1.5` (fastembed/ONNX, 384-d, local), each searched to depth 30, fused with RRF at **equal** weights. Dense 2× scored better but was fitted on the same 30 queries it was measured on | D25 |
 | Rerank | local cross-encoder `Xenova/ms-marco-MiniLM-L-6-v2` over the top 20, on every retrieval; 4 chunks passed to the answer step | D25 |
-| Budget | over budget, the fused order stands, `reranked=false`, and the circuit opens. **2.5 s on `main`**; 4.0 s on `chore/w2-deploy-rehearsal` (D41, measured on the host) | `agent/app/retrieval/retriever.py:65`; D41 |
-| Admission | at most 2 concurrent reranks; the rest take the fallback at once (`rerank_busy`). **Not on `main`** | D39 (`feat/w2-observability`) |
+| Budget | over budget, the fused order stands, `reranked=false`, and the circuit opens. **2.5 s on `main`**; 4.0 s on `chore/w2-deploy-rehearsal` (D41, measured on the host) | `agent/app/retrieval/retriever.py:67`; D41 |
+| Admission | at most 2 concurrent reranks; the rest take the fallback at once (`rerank_busy`). On `main` since `fc3143b`; **not on the live host** | D39; `retriever.py:77` |
 | Cohere | adapter present, never run (no key) | D25 item 6 |
 
 **The concept-only query rule.** `routing.CONCEPT_LEXICON` maps wording to
@@ -493,7 +493,8 @@ a run through `getattr` or from outside `app/`.
   line.
 - Failure events carry the exception's class name only (`supervisor.py`).
 
-**On `feat/w2-observability`, not merged** (D36–D38, `OBSERVABILITY.md`):
+**Added by `feat/w2-observability`, merged at `fc3143b`** (D36–D38,
+`OBSERVABILITY.md`):
 
 - Three operational event types that cannot hold text: `counts` is `int |
   float | bool`, and errors carry a class name.
@@ -574,7 +575,7 @@ The agent image grew from 360 MB to 1.18 GB, and idle memory from 50 MiB to
 |---|---|---|---|
 | **The whole-report answer** | one `/w2/ask` about an uploaded report: 91.9 s and 130.5 s, one call at 34,948 in / 11,523 out, $0.46 (`LOAD_TEST.md` §6) | the 45 s `answer_p95_latency` alert covers `/w2/ask` (`ALERTS.md` §1) | past the 90 s budget with no load at all; the fix (bound the output, or answer only from the rows the question names) is not built |
 | **One process, in-memory stores** (conversations, documents, extraction jobs, the rerank circuit) | a second worker or replica makes uploads invisible (`404`), re-bills extraction, and loses follow-up context; a restart forgets every upload | one uvicorn worker; a startup warning when more are configured (D40 item 10, `agent/docs/deployment.md` §7) | a second *replica* is invisible to the check; no persistence |
-| **Reranker under load** | 50 concurrent retrievals: p95 335,224 ms, 0% reranked, 5.3 GiB peak RSS on a cold run (`LOAD_TEST.md` §5) | D39 admission bound: p95 259 ms, but only 1% reranked in the burst and 6.2% at 50 paced users (§5b) | not on `main`; memory still up to 3.1 GiB against a 7.24 GiB host that OpenEMR already takes 4.9 GiB of (D39) |
+| **Reranker under load** | 50 concurrent retrievals: p95 335,224 ms, 0% reranked, 5.3 GiB peak RSS on a cold run (`LOAD_TEST.md` §5) | D39 admission bound: p95 259 ms, but only 1% reranked in the burst and 6.2% at 50 paced users (§5b) | on `main`, not on the live host; memory still up to 3.1 GiB against a 7.24 GiB host that OpenEMR already takes 4.9 GiB of (D39) |
 | **The rerank circuit never closes** | one slow rerank turns reranking off until restart; 35 of the next 60 turns ran unreranked (D41) | none | `rerank_over_budget` conflates "slow" with "skipped" (D41) |
 | **OCR contends with retrieval** | OCR in the same container raises rerank p95 from 2.08 s to 3.39 s (`DEPLOY.md` §8) | 4 s budget (D41, branch) | extraction still runs in the serving process (`LOAD_TEST.md`, "Where the new bottleneck is") |
 | **OpenEMR's PHP tier** | saturated at 10 users locally (420% CPU) and failing 58% at 50 (`LOAD_TEST.md` §1) | none agent-side | Week 1 finding, unchanged |
@@ -592,10 +593,10 @@ The agent image grew from 360 MB to 1.18 GB, and idle memory from 50 MiB to
 | Extraction | D3, D7, D10, D11, D13, D16, D20 (supersedes D12), D24, D35 |
 | Contracts | D9, D14, D17, D18, D21, D22 |
 | Routing and the ask path | D4, D40 |
-| Retrieval | D25 (supersedes D5, D23), D26, D39\*, D41\* |
+| Retrieval | D25 (supersedes D5, D23), D26, D39, D41\* |
 | UI | D27, D28, D30, D32, D33, D34 |
 | Write-back | D1 (superseding), D2, D15, D29, D31 |
-| Observability | D36\*, D37\*, D38\* |
+| Observability | D36, D37, D38 |
 | Evals | D6, D8, D42\*–D48\* |
 
 \* On an unmerged branch at the snapshot. This document makes no new decision
@@ -648,7 +649,7 @@ and takes no D-number.
 9. **No committed live run shows one answer citing a document and a
    guideline together.** The real-route API collection asks two separate
    questions, one about the document and one about guidance, and asserts on
-   each (`feat/w2-observability@d1cbfc9:docs/w2/evidence/api-collection-run.txt`).
+   each (`docs/w2/evidence/api-collection-run.txt`).
    `agent/scripts/w2_e2e_ask.py` asks the combined question and exits non-zero
    without both citation types, but no output from it is committed. The
    combined answer is covered by in-process tests and gate cases only.

@@ -2,7 +2,7 @@
 
 A shot list for recording the Week 2 demo. Each step gives what to run or
 click, what to say, and what the viewer should see. It is built only from
-what exists and works at `main@f59b29c` and `feat/w2-eval-gate@647dd9a`.
+what exists and works at `main@fc3143b` and `feat/w2-eval-gate@647dd9a`.
 Where a step has never been rehearsed end to end, the step says so.
 
 ## Read this before recording: what the demo cannot show
@@ -51,7 +51,7 @@ samples use it.
 ### 3. Pre-run the slow terminal steps and save their output
 
 A question about an uploaded report took **91.9 s and 130.5 s** on the real
-routes (`feat/w2-observability@d1cbfc9:docs/w2/LOAD_TEST.md` §6), and all
+routes (`docs/w2/LOAD_TEST.md` §6), and all
 three runs below ask about the document. Expect up to about 2 minutes each.
 Record the command, then **cut to the saved output**. Do not film the wait.
 
@@ -112,9 +112,8 @@ calls.
 Choose one before recording:
 
 - **Live.** A local Langfuse, set up from nothing with the runbook in
-  `feat/w2-observability@d1cbfc9:docs/w2/OBSERVABILITY.md` §6.
-- **Committed screenshots**, which exist only on local branch
-  `feat/w2-observability` at `d1cbfc9`, under `docs/w2/evidence/screenshots/`:
+  `docs/w2/OBSERVABILITY.md` §6.
+- **Committed screenshots**, on `main` under `docs/w2/evidence/screenshots/`:
 
   | File | What it shows |
   |---|---|
@@ -122,9 +121,7 @@ Choose one before recording:
   | `langfuse-dashboard.png` | a fresh instance filled by the **traffic generator**, not real use |
   | `dashboard-export.png` | the stdout dashboard over an earlier load demo |
 
-  The worktree `../cc-feat-w2-observability/` is on an older commit
-  (`ee3c965`), so check it out at `d1cbfc9` first, or read the files with
-  `git show d1cbfc9:<path>`.
+  They came from `feat/w2-observability`, merged into `main` at `fc3143b`.
 
 ---
 
@@ -379,6 +376,6 @@ showed is a number you can trace to a file."
 | Fixture builder | `agent/scripts/build_ui_fixtures.py` | `main` |
 | Eval gate | `agent/evals/w2/gate/`, `.gitlab-ci.yml` | `feat/w2-eval-gate` (on `origin`) |
 | Planted-regression evidence | `docs/w2/EVAL_GATE_EVIDENCE.md` | `feat/w2-eval-gate` |
-| Langfuse screenshots | `docs/w2/evidence/screenshots/*.png` | `feat/w2-observability` (**local only**) |
-| Dashboard and provisioning | `agent/scripts/w2_dashboard.py`, `agent/scripts/provision_langfuse_dashboard.py` | `feat/w2-observability` (**local only**) |
+| Langfuse screenshots | `docs/w2/evidence/screenshots/*.png` | `main` |
+| Dashboard and provisioning | `agent/scripts/w2_dashboard.py`, `agent/scripts/provision_langfuse_dashboard.py` | `main` |
 | Extractor measurement | `docs/w2/evidence/extractor-measurement-f59b29c.txt` | this branch |

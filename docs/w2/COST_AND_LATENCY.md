@@ -20,13 +20,13 @@ limits.
   arithmetic shown.
 - **Assumed**: an input with no data behind it.
 
-**Snapshot and branches.** Written 2026-09-22 against `main@f59b29c`. Several
-sources are on branches that had not merged, and two of them exist **only
+**Snapshot and branches.** Written 2026-09-22 against `main@fc3143b`. Two
+sources are on branches that had not merged, and one of them exists **only
 locally**, not on `origin`. Short names used below:
 
 | Short name | Full path |
 |---|---|
-| `LOAD_TEST.md`, `OBSERVABILITY.md`, `ALERTS.md` | `feat/w2-observability@d1cbfc9:docs/w2/…` (local only) |
+| `LOAD_TEST.md`, `OBSERVABILITY.md`, `ALERTS.md` | `docs/w2/…` on `main` (merged from `feat/w2-observability` at `fc3143b`) |
 | `DEPLOY.md` | `chore/w2-deploy-rehearsal@0c0f360:docs/w2/DEPLOY.md` (local only) |
 | gate README | `feat/w2-eval-gate@647dd9a:agent/evals/w2/README.md` (on `origin`) |
 
@@ -68,7 +68,8 @@ locally**, not on `origin`. Short names used below:
   - With at most two reranks at once (D39) it is **259 ms**.
   - The cost of that fix: only **1%** of those burst retrievals, and 6.2% at
     50 paced users, were actually reranked.
-  - Neither fix is on `main` or on the live host (§4.3).
+  - The admission bound is on `main` since `fc3143b`, but not on the live
+    host (§4.3).
 
 ---
 
@@ -80,7 +81,7 @@ rounded up.
 | # | What | Amount | Kind | Source |
 |---|---|---|---|---|
 | 1 | Six recorded live vision transcriptions (`claude-opus-5`, one call per factory sample) | **$0.78119** | Measured (sum of per-file `cost_usd`) | `agent/evals/w2/staging/transcriptions/*.transcription.json`; "about $0.78 of real inference", gate README |
-| 2 | Load-test vision sample, 3 sequential live extractions | **$0.34766** | Measured (0.125915 + 0.09553 + 0.126215) | `LOAD_TEST.md` §4b; `feat/w2-observability@d1cbfc9:docs/w2/evidence/load/extraction-live-vision.json` |
+| 2 | Load-test vision sample, 3 sequential live extractions | **$0.34766** | Measured (0.125915 + 0.09553 + 0.126215) | `LOAD_TEST.md` §4b; `docs/w2/evidence/load/extraction-live-vision.json` |
 | | ↳ "one live extraction ~$0.126" | $0.125915 (`lab-clean-001`, 6,663 in / 3,704 out) | Measured | same file, first run |
 | 3 | **Unplanned** real-LLM conversation load run, 100 turns at 10 users (the "~$3.00 overrun") | **$2.99** | Measured per turn: $0.0299 at 4,250 tokens | `LOAD_TEST.md` §2 and "What it cost". The session "assumed the stub covered the conversation route, and the module docstring says it does not" |
 | 4 | Week 1-route API collection runs: 3 runs, 5 calls | **$0.38** ($0.150 + $0.087 + $0.145) | Measured, from logs | `LOAD_TEST.md`, "What it cost" |
@@ -128,7 +129,7 @@ infrastructure. The Vultr host's price was never fetched, the same gap
 The only Week 2 encounter measured end to end, against the real routes with
 real model calls, is the API collection's "Week 2 core flow". It ran twice,
 on patient `a2c373ec-57bf-41cb-8767-94410dcf663d`. The run evidence is
-`feat/w2-observability@d1cbfc9:docs/w2/evidence/api-collection-run.txt`.
+`docs/w2/evidence/api-collection-run.txt`.
 
 | Request | Latency (run `07c0fd35`) | Model calls |
 |---|---|---|
@@ -154,7 +155,7 @@ $0.82 (`LOAD_TEST.md` §6).
   guideline question together.
 - The whole encounter is **67,967 prompt + 19,278 completion = 87,245
   tokens, $0.821785** (measured, from the trace header in
-  `feat/w2-observability@d1cbfc9:docs/w2/evidence/screenshots/langfuse-encounter-trace.png`).
+  `docs/w2/evidence/screenshots/langfuse-encounter-trace.png`).
   Opus 5 list price reproduces the cost exactly: 67,967 × $5 + 19,278 × $25
   per MTok = $0.821785. The per-call splits inside it, other than the
   document question, are not committed.
@@ -293,8 +294,8 @@ constraint.**
   host.
 - Memory is the next wall. The reranker reaches 3.1 GiB under paced load
   (D39), on a 7.2 GiB host where OpenEMR peaks at 4.9 GiB.
-- Merge D39, and fix the circuit breaker that never closes (D41). Both are
-  needed at this level.
+- Deploy D39 (on `main`, not on the host), and fix the circuit breaker
+  that never closes (D41). Both are needed at this level.
 
 **10K encounters a day (about 500 clinicians, many EHR deployments).
 Replicas, and a real reranking tier.**
@@ -404,7 +405,7 @@ already running (D39).
 | paced, 10 users (1 s think) | not measured | 588 ms / **35%** |
 | paced, 50 users | not measured | 426 ms / **6.2%** |
 
-Source: D39 on `feat/w2-observability`; `LOAD_TEST.md` §5, §5b.
+Source: D39; `LOAD_TEST.md` §5, §5b.
 
 **The cost of the fix is that most requests go unreranked.** The latency
 problem is solved by not reranking. At 50 paced users, 469 of 500
@@ -421,8 +422,9 @@ Under that load, that property holds for 1 retrieval in 16.
   of the next 60 turns ran unreranked. The circuit stays open until the
   process restarts.
 - **Deployment.** The live host has the 4 s budget (D41) but not the
-  admission bound (D39). `main` has neither: `retriever.py:65` reads
-  `RERANK_BUDGET_SECONDS = 2.5`.
+  admission bound (D39). `main` has the admission bound
+  (`MAX_CONCURRENT_RERANKS = 2`, `retriever.py:77`) but still the 2.5 s
+  budget (`retriever.py:67`).
 
 ---
 

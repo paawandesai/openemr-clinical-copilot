@@ -18,3 +18,4 @@
 - false-discrepancy rate on derived fields: 0.0% (0/25)
 - fuzzy tier on numeric/unit/date/flag fields: 0
 # tesseract 5.5.3 (local macOS install)
+# re-run on main@fc3143b (after feat/w2-observability merged): table and totals identical

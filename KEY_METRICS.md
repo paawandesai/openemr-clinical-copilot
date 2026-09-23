@@ -18,9 +18,9 @@ says when there is no value.
 **The rule for every number here:** a rate is shown with its numerator and
 denominator. A metric whose denominator is small says so. A metric with no
 live measurement says "not measured", not a target. Sources are on `main`
-(`f59b29c`) unless a branch is named. Two of the branches cited
-(`feat/w2-observability`, `chore/w2-deploy-rehearsal`) exist **only
-locally** at the time of writing.
+(`fc3143b`) unless a branch is named. One branch cited,
+`chore/w2-deploy-rehearsal`, exists **only locally** at the time of
+writing.
 
 | # | Metric | Current value | Target | Strength of evidence |
 |---|---|---|---|---|
@@ -30,7 +30,7 @@ locally** at the time of writing.
 | W2-4 | Intake discrepancy accuracy; never merged | precision 2/2, recall 2/2, false positives 0/25; merges 0 | 0 merges, absolute | weak: n = 2 |
 | W2-5 | Verified and disclosed on the ask path | no live rate; 2 real-route runs pass their citation assertions; gate det 70/70 | 100% disclosed, absolute | tests plus 2 live runs; no runtime disclosure signal |
 | W2-6 | Critical values surfaced | **not measured live**; gate H6 and G7 pass | 100%, absolute | one fixture |
-| W2-7 | Guideline retrieval: recall and the share actually reranked | recall@4 0.666, zero-recall queries 0/30; reranked 35% at 10 paced users, 6.2% at 50 | reranked rate is watched, not targeted | 30 dev queries, local only |
+| W2-7 | Guideline retrieval: recall and the share actually reranked | recall@4 0.666, zero-recall queries 0/30; reranked 35% at 10 paced users, 6.2% at 50 | reranked rate is watched, not targeted | 30 dev queries; laptop measurements only |
 | W2-8 | Eval gate: regressions caught | 12/12 planted regressions blocked; 76/95 cases active | every planted regression blocks | harness-proved; judge uncalibrated |
 | W2-9 | Cost and latency per encounter | **$0.82 measured** (n = 2); a document question takes **92–131 s** | ≤ 90 s per answer (Week 1 budget) | 2 real-route encounters; **fails the budget** |
 
@@ -51,7 +51,7 @@ often a real document yields values the clinician can actually use.
   describe the document, not the extractor (`OBSERVABILITY.md` §3;
   `agent/tests/intake_extractor_measurement.py` docstring).
 - In production it comes from `intake_extraction_completed` events, computed
-  by `agent/scripts/w2_dashboard.py` on `feat/w2-observability`.
+  by `agent/scripts/w2_dashboard.py`.
 - Text-layer pages and scans are **reported separately**. A pooled rate
   would hide a regression on clean pages behind normal scan variance
   (`ALERTS.md` §4).
@@ -68,7 +68,7 @@ often a real document yields values the clinician can actually use.
 Sources:
 
 - The real-vision column is
-  `feat/w2-observability@d1cbfc9:docs/w2/evidence/load/extraction-live-vision.json`,
+  `docs/w2/evidence/load/extraction-live-vision.json`,
   three live calls.
 - The replay column is `docs/w2/evidence/extractor-measurement-f59b29c.txt`,
   run this session with `cd agent && python -m tests.intake_extractor_measurement`.
@@ -198,7 +198,7 @@ UNVERIFIED and never dropped (D40 item 7).
   question about the document and one about guidance. Each passed the
   collection's assertions "an answer is drawn only from what it can cite"
   and "a routing decision was made and recorded with its reason"
-  (`feat/w2-observability@d1cbfc9:docs/w2/evidence/api-collection-run.txt`).
+  (`docs/w2/evidence/api-collection-run.txt`).
   Those assert the shape of the answer. They are not a per-claim pass rate,
   and no committed run shows one answer citing a document and a guideline
   together.
@@ -206,7 +206,7 @@ UNVERIFIED and never dropped (D40 item 7).
   `test_w2_supervisor_graph.py`.
 - Gate categories A and F, part of the deterministic tier's 70/70.
 - On the Week 1 path it extends, 44/44 claims verified in a real-LLM
-  encounter (`feat/w2-observability@d1cbfc9:docs/w2/ALERTS.md` §5).
+  encounter (`docs/w2/ALERTS.md` §5).
 
 **Gap, stated.** Week 1's Metric 2 is computed from `claim_disclosure_event`.
 That event is emitted by `audit_disclosure()`, which reads the *rendered*

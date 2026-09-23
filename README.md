@@ -16,7 +16,7 @@ A Clinical Co-Pilot AI agent built into a fork of [OpenEMR](https://open-emr.org
 
 ## Week 2: start here
 
-Everything in this section refers to `main@f59b29c` unless a branch is
+Everything in this section refers to `main@fc3143b` unless a branch is
 named. The one branch you need is **`feat/w2-eval-gate`**, which holds the
 eval gate and is on `origin`. At the time of writing it had not merged into
 `main`.
@@ -97,7 +97,7 @@ python scripts/w2_e2e_ask.py --sample lab-critical-potassium-007 \
 
 A question about the uploaded report takes about 1.5–2 minutes: 91.9 s and
 130.5 s in the only two real-route runs, about $0.46 each
-(`feat/w2-observability@d1cbfc9:docs/w2/LOAD_TEST.md` §6). That is a known
+(`docs/w2/LOAD_TEST.md` §6). That is a known
 problem, recorded in `W2_ARCHITECTURE.md` §11.
 
 What each printed section means, and what to expect:
@@ -105,30 +105,37 @@ What each printed section means, and what to expect:
 script has been committed yet**, so treat the expectations there as a
 specification to check against, not as a record.
 
-**4. The same over HTTP** (a local agent on `main`). The agent never mints
-tokens. Get a clinician token as in
-[agent/api-collection/README.md](agent/api-collection/README.md), "Getting a
-token", adding the scopes `user/Observation.read` and `user/Encounter.read`.
-Then:
+**4. The whole encounter over HTTP: the Week 2 core-flow collection.** It
+runs against a **local** stack (OpenEMR as in
+[docs/w2/LOCAL_ENV.md](docs/w2/LOCAL_ENV.md), plus the agent from this
+checkout), with real model calls. In order, it runs:
+
+- the upload, and extraction polling;
+- the brief and a conversation turn;
+- one `/w2/ask` about the uploaded document, and one guideline question;
+- the lab write-back, then the same write-back again, which must be
+  idempotent;
+- the document preview;
+- the refusal cases.
 
 ```bash
-cd agent
-ANTHROPIC_API_KEY=… FHIR_BASE_URL=https://64.177.42.210:9300/apis/default/fhir FHIR_VERIFY_TLS=false \
-  uvicorn app.main:app --host 127.0.0.1 --port 8000 --workers 1      # in its own terminal; one worker, because state is in memory (D40 item 10)
-P=a2c373ec-57bf-41cb-8767-94410dcf663d                               # lab-clean-001's patient; pid 38 on the live host
-curl -s -X POST "http://127.0.0.1:8000/documents?kind=lab_pdf&patient_id=$P" \
-  -H "Authorization: Bearer $ACCESS_TOKEN" -H "Content-Type: application/pdf" \
-  --data-binary @evals/w2/factory/output/samples/lab-clean-001/lab-clean-001.pdf     # -> {"document_id": …, "status": "pending"}
-DOC=<document_id from that response>                                 # poll until "status": "complete"
-curl -s "http://127.0.0.1:8000/documents/$DOC/extraction?patient_id=$P" -H "Authorization: Bearer $ACCESS_TOKEN"
-curl -s -X POST http://127.0.0.1:8000/w2/ask -H "Authorization: Bearer $ACCESS_TOKEN" -H "Content-Type: application/json" \
-  -d "{\"patient_id\":\"$P\",\"session_id\":\"demo-0001\",\"document_ids\":[\"$DOC\"],\"question\":\"What was her glucose on the uploaded lab report, and what does the USPSTF recommend about screening for prediabetes?\"}"
+LOG=$PWD/agent/logs/run.jsonl AGENT_ENV_FILE=<file with ANTHROPIC_API_KEY> LANGFUSE=off \
+  agent/load-test/w2/start_local_agent.sh &                          # agent on 127.0.0.1:8100, one worker; needs agent/.venv
+FHIR_CLIENT_ID=<client_id> FHIR_CLIENT_SECRET=<client_secret> agent/api-collection/run.sh
 ```
 
-Route contracts are in [`docs/w2/ui-integration.md`](docs/w2/ui-integration.md)
-§2.2–§2.4 and `agent/app/models/w2/ask.py`. **These HTTP commands were not run
-in the session that wrote this README.** Step 3 does the same through the
-repository's own script, in process.
+The client must allow the password grant and hold the scopes in
+`agent/api-collection/local.postman_environment.json`. The one-time
+registration is in [agent/api-collection/README.md](agent/api-collection/README.md),
+"Week 2 core flow".
+
+The last committed run is `docs/w2/evidence/api-collection-run.txt`: 44
+requests, 102 assertions, 0 failed. It took 2 min 52.7 s, including the
+1 min 31.9 s document question, and one encounter costs about $0.82
+(`docs/w2/OBSERVABILITY.md` §2). **It was not re-run in the session that
+wrote this README.** Route contracts are in
+[docs/w2/ui-integration.md](docs/w2/ui-integration.md) §2.2–§2.4 and
+`agent/app/models/w2/ask.py`.
 
 ### Run the eval gate
 
@@ -169,19 +176,19 @@ says why. No committed evidence shows it has run on a GitLab runner.
 | [KEY_METRICS.md](KEY_METRICS.md) | the Week 2 metrics, with honest denominators; the Week 1 six are in [docs/KEY_METRICS.md](docs/KEY_METRICS.md) |
 | [docs/w2/COST_AND_LATENCY.md](docs/w2/COST_AND_LATENCY.md) | actual dev spend, per-encounter cost, projections at 100 to 100K encounters a day, p50/p95 and bottlenecks |
 | [docs/w2/DEMO_SCRIPT.md](docs/w2/DEMO_SCRIPT.md) | the recorded walkthrough |
-| [docs/w2/DECISIONS.md](docs/w2/DECISIONS.md) | every Week 2 decision, D1–D40 on `main` (D36–D39 and D41–D48 are on their branches) |
+| [docs/w2/DECISIONS.md](docs/w2/DECISIONS.md) | every Week 2 decision, D1–D40 on `main` (D41 and D42–D48 are on their branches) |
 | [docs/w2/EVAL_DESIGN.md](docs/w2/EVAL_DESIGN.md), [docs/w2/GATE.md](docs/w2/GATE.md) | why the gate is shaped as it is, and how gate files are protected |
 | [docs/w2/retrieval-bakeoff.md](docs/w2/retrieval-bakeoff.md) | the corpus, its licensing, and the retrieval measurements |
 | [docs/w2/spikes/writeback.md](docs/w2/spikes/writeback.md), [docs/w2/deploy-writeback.md](docs/w2/deploy-writeback.md) | how OpenEMR can be written to, and how the endpoint deploys |
 | [docs/w2/ui-integration.md](docs/w2/ui-integration.md) | the answer view, and the PHP still to wire |
 | [docs/w2/WEEK1_DEBT.md](docs/w2/WEEK1_DEBT.md), [docs/w2/LOCAL_ENV.md](docs/w2/LOCAL_ENV.md), [docs/w2/root-run-trace-gap.md](docs/w2/root-run-trace-gap.md) | Week 1 debt triage, a local stack that matches the host, and the trace-containment finding |
 
-Several Week 2 documents are on branches that had not merged when this was
-written. `docs/w2/DEPLOY.md` (the host rehearsal and measurements) is on
-`chore/w2-deploy-rehearsal`. `docs/w2/OBSERVABILITY.md`, `ALERTS.md` and
-`LOAD_TEST.md` are on `feat/w2-observability`. **Neither branch is on
-`origin`**, so until they are pushed or merged, the numbers the documents
-above cite from them cannot be checked from a clone.
+`docs/w2/OBSERVABILITY.md`, `ALERTS.md` and `LOAD_TEST.md` (tracing,
+dashboard, alerts, load tests and the real-route `/w2/ask` measurements)
+are on `main`. `docs/w2/DEPLOY.md`, the host rehearsal and its
+measurements, is on `chore/w2-deploy-rehearsal`, which **is not on
+`origin`**. Until it is pushed or merged, the numbers the documents above
+cite from it cannot be checked from a clone.
 
 ---
 
