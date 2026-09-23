@@ -139,7 +139,7 @@ Pass-2 droplet database commands were run as
   +---------------------------------------------+------------+-----------------+-------------------------------------------+
   | 773KrZky-wldK_iBDh-Il71sae3Y8EmMMP8cwu8Mpuc |          1 |               1 | authorization_code,password,refresh_token |
   | lfNdNEhC8IgkYgSRVXQlOcvszc20A6nUB9JaCFRE4hE |          0 |               1 | authorization_code                        |
-  | zYinBZAW5lI5wznAUKl-GVw21tX4QyDeVE0UZQbwaIg |          0 |               1 | authorization_code                        |
+  | <redacted>                                  |          0 |               1 | authorization_code                        |
   +---------------------------------------------+------------+-----------------+-------------------------------------------+
   ```
 - **Correction / addition to the brief:** three clients exist, not one. The two
@@ -176,8 +176,8 @@ Pass-2 droplet database commands were run as
   ```
   $ docker compose exec -T openemr /root/devtools register-oauth2-client
   Registering a oauth2 client to site default
-  client id: "zYinBZAW5lI5wznAUKl-GVw21tX4QyDeVE0UZQbwaIg"
-  client secret: "81VXoufIzsEZm1R9acpTRZbstOfk3MG_EzjZGLOr7iXuZzoI3paf2YJVlAdCsWjIkUh55InsyV79QHmCRmwAXw"
+  client id: "<redacted>"
+  client secret: "<redacted>"
   EXIT_CODE=0
   ```
   Source: `/root/devtools:811-814` extracts both with `jq` and `echo`s them.
@@ -235,12 +235,12 @@ Pass-2 droplet database commands were run as
 - **Evidence:**
   ```
   $ docker compose exec -T mysql mariadb -uopenemr -popenemr openemr -t -e "SELECT client_id, LEFT(client_secret,12) AS secret_prefix, LENGTH(client_secret) AS secret_len FROM oauth_clients;"
-  | zYinBZAW5lI5wznAUKl-GVw21tX4QyDeVE0UZQbwaIg | 007Z87FyXQQ/  |        219 |
+  | <redacted>                                  | 007Z87FyXQQ/  |        219 |
   | lfNdNEhC8IgkYgSRVXQlOcvszc20A6nUB9JaCFRE4hE | 007QjV5U0gvd  |        219 |
   | 773KrZky-wldK_iBDh-Il71sae3Y8EmMMP8cwu8Mpuc | 007wGb6T1Yb0  |        219 |
   ```
-  The printed secret for `zYinBZAW…` was
-  `81VXoufIzsEZm1R9acpTRZbstOfk3MG_EzjZGLOr7iXuZzoI3paf2YJVlAdCsWjIkUh55InsyV79QHmCRmwAXw`
+  The printed secret for that client was
+  `<redacted>`
   (88 chars) — no prefix match, different length. The `007` prefix is the
   zero-padded current key version: `src/Common/Crypto/KeyVersion.php:30`
   `public const PREFIX_LENGTH = 3;`, `:31` `public const CURRENT = self::SEVEN;`,

@@ -1,43 +1,5 @@
 # Week 2 Architecture — Clinical Co-Pilot: documents, workers, evidence
 
-**Source of record.** Every capability below traces to a decision in
-[`docs/w2/DECISIONS.md`](docs/w2/DECISIONS.md) (cited as Dn) or to code, and
-every number traces to a committed artifact, cited where it is used. Week 1's
-architecture is unchanged and is not repeated here:
-[`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) (authorization, tool scope,
-conversation state, the deterministic verifier).
-
-**Snapshot: `main@056cba9`**, which is on `origin`. Every path, number and
-decision below is on that commit. It includes these merges:
-
-| Merge | At | What it brought |
-|---|---|---|
-| `feat/w2-php-wiring` | `2ae4d98` | the Documents & Sources card, its routes, the upload guard |
-| `chore/w2-deploy-rehearsal` | `21f1053` | D41 |
-| its first post-deploy figures | `bc5236f` | `DEPLOY.md` §8.0 |
-| its D50-redeploy figures | `5ad81c5` | `DEPLOY.md` §8.00 |
-| `feat/w2-eval-gate` | `0b4ae04` | the eval gate, D42–D48 |
-| `feat/w2-answer-scope` | `ea198c8` | D50 |
-| the DECISIONS restore | `caa92f8` | the dropped decision entries |
-| `EVAL_GATE.md` | `0318c35` | the gate's page for reviewers |
-| the decisions guard | `c1c5e21` | D51 |
-| the event-tags fix | `056cba9` | D52 |
-
-**The host runs `main@ea198c8`** since 2026-09-23 17:12 UTC (`DEPLOY.md`
-§8.00). It lacks only the event-tags telemetry fix (D52) and the
-documentation and test commits after it. Neither changes an answer.
-
-**Three kinds of host figure:**
-
-- **`DEPLOY.md` §8.00:** the D50 redeploy, on `ea198c8`.
-- **`DEPLOY.md` §8.0:** the earlier deploy, on `21f1053`, **before D50**.
-  D50 changes only how a document answer is scoped, so these still describe
-  extraction, retrieval and memory. They do not describe the answer step.
-- **Before any Week 2 deploy:** labelled "rehearsal host, before the Week 2
-  deploy".
-
----
-
 ## Summary
 
 Week 2 teaches a co-pilot that already reads and verifies a chart to do three
@@ -107,6 +69,46 @@ beside chart facts without the two blurring. Nine decisions carry the weight.
   tokens (`DEPLOY.md` §8.00).
 
 §11 lists every known limitation.
+
+---
+
+## Provenance: snapshot and host figures
+
+**Source of record.** Every capability below traces to a decision in
+[`docs/w2/DECISIONS.md`](docs/w2/DECISIONS.md) (cited as Dn) or to code, and
+every number traces to a committed artifact, cited where it is used. Week 1's
+architecture is unchanged and is not repeated here:
+[`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) (authorization, tool scope,
+conversation state, the deterministic verifier).
+
+**Snapshot: `main@056cba9`**, which is on `origin`. Every path, number and
+decision below is on that commit. It includes these merges:
+
+| Merge | At | What it brought |
+|---|---|---|
+| `feat/w2-php-wiring` | `2ae4d98` | the Documents & Sources card, its routes, the upload guard |
+| `chore/w2-deploy-rehearsal` | `21f1053` | D41 |
+| its first post-deploy figures | `bc5236f` | `DEPLOY.md` §8.0 |
+| its D50-redeploy figures | `5ad81c5` | `DEPLOY.md` §8.00 |
+| `feat/w2-eval-gate` | `0b4ae04` | the eval gate, D42–D48 |
+| `feat/w2-answer-scope` | `ea198c8` | D50 |
+| the DECISIONS restore | `caa92f8` | the dropped decision entries |
+| `EVAL_GATE.md` | `0318c35` | the gate's page for reviewers |
+| the decisions guard | `c1c5e21` | D51 |
+| the event-tags fix | `056cba9` | D52 |
+
+**The host runs `main@ea198c8`** since 2026-09-23 17:12 UTC (`DEPLOY.md`
+§8.00). It lacks only the event-tags telemetry fix (D52) and the
+documentation and test commits after it. Neither changes an answer.
+
+**Three kinds of host figure:**
+
+- **`DEPLOY.md` §8.00:** the D50 redeploy, on `ea198c8`.
+- **`DEPLOY.md` §8.0:** the earlier deploy, on `21f1053`, **before D50**.
+  D50 changes only how a document answer is scoped, so these still describe
+  extraction, retrieval and memory. They do not describe the answer step.
+- **Before any Week 2 deploy:** labelled "rehearsal host, before the Week 2
+  deploy".
 
 ---
 
@@ -595,6 +597,19 @@ API-collection encounter, `07c0fd35-…`, is one Langfuse trace: 2 min 52 s,
 - 6 supervisor node steps;
 - 55 tool calls.
 
+**Two dashboards, two sources.** Production telemetry is stdout by design:
+the live host runs with Langfuse disabled (below), so its metrics come from
+its JSON event log.
+
+- **Local:** the Langfuse screenshots,
+  [`langfuse-dashboard.png`](docs/w2/evidence/screenshots/langfuse-dashboard.png)
+  and [`langfuse-encounter-trace.png`](docs/w2/evidence/screenshots/langfuse-encounter-trace.png).
+- **Production:** [the dashboard computed from the deployed host's logs](docs/w2/evidence/host-dashboard.html)
+  ([JSON](docs/w2/evidence/host-dashboard.json)), by `agent/scripts/w2_dashboard.py`
+  over the host's stdout from the `ea198c8` deploy, 2026-09-23 17:12–21:00
+  UTC. It shows 83 requests, 0 5xx, 165 of 165 claims verified, and all five
+  alerts `ok`. It holds aggregates only.
+
 **Open chain breaks:**
 
 - ~~The chart card never sends `X-Correlation-ID`.~~ Closed on `main` at
@@ -684,9 +699,9 @@ The agent image grew from 360 MB to 1.18 GB, and idle memory from 50 MiB to
 | Evals | D6, D8, D42–D48 |
 | The decisions log itself | D53 (no merge driver for `DECISIONS.md`; a numbering test guards it) |
 
-D1–D52 are on `main`. D53 records a decision already made in commit
-`cb99e7b`. This branch appended it at the owner's request; it was not
-decided here. This document makes no new decision.
+D1–D53 are on `main`. D53 records a decision already made in commit
+`cb99e7b`; it was appended at the owner's request, not decided here. This
+document makes no new decision.
 
 ---
 

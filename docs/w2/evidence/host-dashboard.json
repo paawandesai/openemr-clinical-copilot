@@ -1,0 +1,423 @@
+{
+  "dashboard": {
+    "window": {
+      "first_event": "2026-09-23T17:12:54.478525+00:00",
+      "last_event": "2026-09-23T21:00:13.493309+00:00",
+      "span_seconds": 13639.014784,
+      "events": 1246,
+      "correlation_ids": 496
+    },
+    "requests": {
+      "count": 83,
+      "errors": 0,
+      "p50_ms": 292.611,
+      "p95_ms": 19816.197799999998,
+      "p99_ms": 22446.843099999973,
+      "max_ms": 25542.339,
+      "error_rate": 0.0,
+      "status_classes": {
+        "2xx": 67,
+        "4xx": 16
+      },
+      "probe_requests": 456,
+      "throughput_rps": 0.006085483542210669,
+      "answer_routes": {
+        "count": 24,
+        "errors": 0,
+        "p50_ms": 10868.554,
+        "p95_ms": 21695.22625,
+        "p99_ms": 24674.09015,
+        "max_ms": 25542.339
+      },
+      "by_route": {
+        "GET /documents/{document_id}/extraction": {
+          "count": 37,
+          "errors": 0,
+          "p50_ms": 285.411,
+          "p95_ms": 386.75959999999986,
+          "p99_ms": 416.37416,
+          "max_ms": 417.884
+        },
+        "GET unmatched": {
+          "count": 3,
+          "errors": 0,
+          "p50_ms": 1.28,
+          "p95_ms": 148.3022,
+          "p99_ms": 161.37084000000002,
+          "max_ms": 164.638
+        },
+        "POST /documents": {
+          "count": 19,
+          "errors": 0,
+          "p50_ms": 303.024,
+          "p95_ms": 329.0421999999999,
+          "p99_ms": 353.97724000000005,
+          "max_ms": 360.211
+        },
+        "POST /pre-visit-brief": {
+          "count": 7,
+          "errors": 0,
+          "p50_ms": 19335.075,
+          "p95_ms": 20268.7216,
+          "p99_ms": 20412.937120000002,
+          "max_ms": 20448.991
+        },
+        "POST /pre-visit-brief/conversation": {
+          "count": 1,
+          "errors": 0,
+          "p50_ms": 4393.617,
+          "p95_ms": 4393.617,
+          "p99_ms": 4393.617,
+          "max_ms": 4393.617
+        },
+        "POST /w2/ask": {
+          "count": 16,
+          "errors": 0,
+          "p50_ms": 6274.406999999999,
+          "p95_ms": 22711.09275,
+          "p99_ms": 24976.08975,
+          "max_ms": 25542.339
+        }
+      }
+    },
+    "steps": {
+      "conversation.draft": {
+        "count": 1,
+        "errors": 0,
+        "p50_ms": 3258.474,
+        "p95_ms": 3258.474,
+        "p99_ms": 3258.474,
+        "max_ms": 3258.474,
+        "outcomes": {
+          "ok": 1
+        }
+      },
+      "conversation.render": {
+        "count": 1,
+        "errors": 0,
+        "p50_ms": 1.936,
+        "p95_ms": 1.936,
+        "p99_ms": 1.936,
+        "max_ms": 1.936,
+        "outcomes": {
+          "ok": 1
+        }
+      },
+      "conversation.retrieve": {
+        "count": 1,
+        "errors": 0,
+        "p50_ms": 1130.035,
+        "p95_ms": 1130.035,
+        "p99_ms": 1130.035,
+        "max_ms": 1130.035,
+        "outcomes": {
+          "ok": 1
+        }
+      },
+      "conversation.routing": {
+        "count": 1,
+        "errors": 0,
+        "p50_ms": 0.127,
+        "p95_ms": 0.127,
+        "p99_ms": 0.127,
+        "max_ms": 0.127,
+        "outcomes": {
+          "ok": 1
+        }
+      },
+      "conversation.verify": {
+        "count": 1,
+        "errors": 0,
+        "p50_ms": 0.431,
+        "p95_ms": 0.431,
+        "p99_ms": 0.431,
+        "max_ms": 0.431,
+        "outcomes": {
+          "ok": 1
+        }
+      },
+      "documents.extraction_status": {
+        "count": 34,
+        "errors": 0,
+        "p50_ms": 286.2085,
+        "p95_ms": 390.8272999999999,
+        "p99_ms": 415.66184,
+        "max_ms": 417.131,
+        "outcomes": {
+          "pending": 31,
+          "ok": 3
+        }
+      },
+      "documents.upload": {
+        "count": 13,
+        "errors": 0,
+        "p50_ms": 304.902,
+        "p95_ms": 337.61979999999994,
+        "p99_ms": 353.04315999999994,
+        "max_ms": 356.899,
+        "outcomes": {
+          "ok": 13
+        }
+      },
+      "evidence_retriever.retrieval": {
+        "count": 3,
+        "errors": 0,
+        "p50_ms": 1584.227,
+        "p95_ms": 1794.0782,
+        "p99_ms": 1812.73164,
+        "max_ms": 1817.395,
+        "outcomes": {
+          "ok": 3
+        }
+      },
+      "intake_extractor.locate": {
+        "count": 3,
+        "errors": 0,
+        "p50_ms": 38.487,
+        "p95_ms": 47.4816,
+        "p99_ms": 48.28112,
+        "max_ms": 48.481,
+        "outcomes": {
+          "ok": 3
+        }
+      },
+      "intake_extractor.read_document": {
+        "count": 3,
+        "errors": 0,
+        "p50_ms": 16.099,
+        "p95_ms": 22.7473,
+        "p99_ms": 23.338260000000002,
+        "max_ms": 23.486,
+        "outcomes": {
+          "ok": 3
+        }
+      },
+      "intake_extractor.verify": {
+        "count": 3,
+        "errors": 0,
+        "p50_ms": 1165.205,
+        "p95_ms": 1235.1368,
+        "p99_ms": 1241.35296,
+        "max_ms": 1242.907,
+        "outcomes": {
+          "ok": 3
+        }
+      },
+      "intake_extractor.vision": {
+        "count": 3,
+        "errors": 0,
+        "p50_ms": 31949.605,
+        "p95_ms": 54132.292,
+        "p99_ms": 56104.0864,
+        "max_ms": 56597.035,
+        "outcomes": {
+          "ok": 3
+        }
+      },
+      "pre_visit_brief.draft": {
+        "count": 7,
+        "errors": 0,
+        "p50_ms": 18222.714,
+        "p95_ms": 19284.483,
+        "p99_ms": 19405.0902,
+        "max_ms": 19435.242,
+        "outcomes": {
+          "ok": 7
+        }
+      },
+      "pre_visit_brief.render": {
+        "count": 7,
+        "errors": 0,
+        "p50_ms": 0.146,
+        "p95_ms": 0.22469999999999996,
+        "p99_ms": 0.23453999999999997,
+        "max_ms": 0.237,
+        "outcomes": {
+          "ok": 7
+        }
+      },
+      "pre_visit_brief.retrieve": {
+        "count": 7,
+        "errors": 0,
+        "p50_ms": 1006.352,
+        "p95_ms": 1124.6399,
+        "p99_ms": 1131.32078,
+        "max_ms": 1132.991,
+        "outcomes": {
+          "ok": 7
+        }
+      },
+      "pre_visit_brief.verify": {
+        "count": 7,
+        "errors": 0,
+        "p50_ms": 1.417,
+        "p95_ms": 5.375099999999997,
+        "p99_ms": 6.611819999999998,
+        "max_ms": 6.921,
+        "outcomes": {
+          "ok": 7
+        }
+      },
+      "supervisor.answer": {
+        "count": 9,
+        "errors": 0,
+        "p50_ms": 10686.375,
+        "p95_ms": 22144.891,
+        "p99_ms": 23356.6622,
+        "max_ms": 23659.605,
+        "outcomes": {
+          "ok": 9
+        }
+      },
+      "supervisor.evidence_retriever": {
+        "count": 3,
+        "errors": 0,
+        "p50_ms": 1584.951,
+        "p95_ms": 1794.8526,
+        "p99_ms": 1813.51052,
+        "max_ms": 1818.175,
+        "outcomes": {
+          "ok": 3
+        }
+      },
+      "supervisor.supervisor": {
+        "count": 12,
+        "errors": 0,
+        "p50_ms": 0.39,
+        "p95_ms": 0.54545,
+        "p99_ms": 0.55469,
+        "max_ms": 0.557,
+        "outcomes": {
+          "ok": 12
+        }
+      }
+    },
+    "tools": {
+      "fhir_read": {
+        "calls": 133,
+        "dependency_failures": 0,
+        "failure_rate": 0.0,
+        "other_errors": 1,
+        "retries": 0,
+        "calls_with_retries": 0,
+        "latency_p50_ms": 313.217,
+        "latency_p95_ms": 761.5717999999999
+      },
+      "guideline_retriever": {
+        "calls": 3,
+        "dependency_failures": 0,
+        "failure_rate": 0.0,
+        "other_errors": 0,
+        "retries": 0,
+        "calls_with_retries": 0,
+        "latency_p50_ms": 1583.923,
+        "latency_p95_ms": 1793.7355
+      },
+      "llm": {
+        "calls": 17,
+        "dependency_failures": 0,
+        "failure_rate": 0.0,
+        "other_errors": 0,
+        "retries": 0,
+        "calls_with_retries": 0,
+        "latency_p50_ms": 17232.954,
+        "latency_p95_ms": 20118.406199999998
+      }
+    },
+    "verification": {
+      "claims": 165,
+      "passed": 165,
+      "failed": 0,
+      "pass_rate": 1.0,
+      "failed_claims_checked_in_render": 0,
+      "disclosure_rate": null
+    },
+    "extraction": {
+      "completed": 3,
+      "failed": 0,
+      "field_outcomes": {
+        "located": 396,
+        "unlocated": 6,
+        "missing": 86
+      },
+      "located_rate": 0.9850746268656716,
+      "text_layer_located_rate": 0.9850746268656716,
+      "text_layer_fields_read": 402,
+      "min_located_rate": 0.9807692307692307,
+      "mean_confidence": 0.9838
+    },
+    "retrieval": {
+      "retrievals": 3,
+      "mean_hits": 4.0,
+      "zero_hit": 0,
+      "reranked": 3,
+      "reranked_rate": 1.0,
+      "rerank_requested": 3
+    },
+    "cost": {
+      "priced": true,
+      "encounters_with_llm_calls": 19,
+      "llm_calls": 20,
+      "tokens_per_encounter_mean": 11787.78947368421,
+      "tokens_per_encounter_p95": 19247.299999999977,
+      "cost_per_encounter_mean_usd": 0.09680736842105263,
+      "cost_total_usd": 1.83934,
+      "unpriced_calls": 0
+    }
+  },
+  "alerts": [
+    {
+      "name": "answer_p95_latency",
+      "severity": "page",
+      "state": "ok",
+      "value": 21695.22625,
+      "threshold": 45000,
+      "sample": 24,
+      "min_sample": 10,
+      "description": "p95 of answer-route latency (brief, follow-up, conversation turn) in ms"
+    },
+    {
+      "name": "request_error_rate",
+      "severity": "page",
+      "state": "ok",
+      "value": 0.0,
+      "threshold": 0.05,
+      "sample": 83,
+      "min_sample": 20,
+      "description": "share of non-probe requests answered 5xx"
+    },
+    {
+      "name": "tool_failure_rate",
+      "severity": "page",
+      "state": "ok",
+      "value": {
+        "tool": "fhir_read",
+        "rate": 0
+      },
+      "threshold": 0.05,
+      "sample": 133,
+      "min_sample": 20,
+      "description": "worst per-tool dependency-failure rate (no response, 5xx or 429)"
+    },
+    {
+      "name": "text_layer_located_rate_collapse",
+      "severity": "ticket",
+      "state": "ok",
+      "value": 0.9850746268656716,
+      "threshold": 0.85,
+      "sample": 402,
+      "min_sample": 50,
+      "description": "located / (located + unlocated) over fields read from text-layer PDFs"
+    },
+    {
+      "name": "verification_failure_spike",
+      "severity": "ticket",
+      "state": "ok",
+      "value": 0.0,
+      "threshold": 0.1,
+      "sample": 165,
+      "min_sample": 20,
+      "description": "share of drafted claims failing deterministic verification"
+    }
+  ]
+}

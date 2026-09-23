@@ -18,10 +18,11 @@ and the rerank budget raised to 4 s (D41).
 **Security fix the same night:** `/documents` accepted any non-empty bearer
 string. It was denied at the proxy (`22585d2`, 503 from Caddy), the agent
 gained an upload guard (`98f1758`, §2.2), and the route was reopened behind
-it with `/w2/ask` forwarded too (`a78ba51`). The host now runs
-**`a78ba51`** (agent image built from `98f1758`; the two differ only in the
-Caddyfile), rebased on `main@523d445`. `feat/w2-graph` (D40) is on `main`
-but **not deployed** — see §2.2 before deploying it.
+it with `/w2/ask` forwarded too (`a78ba51`).
+
+**What the host runs now:** the agent image from **`main@ea198c8`** (the eval
+gate and D50's answer scope), deployed 2026-09-23 17:12 UTC; the Caddyfile is
+still `a78ba51`'s. See §8.00 for that deploy and its measurements.
 
 Background, not repeated here: [`deploy-writeback.md`](deploy-writeback.md)
 (why the ledger and the client re-registration), [`retrieval-deploy.md`](retrieval-deploy.md)
