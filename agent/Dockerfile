@@ -11,7 +11,14 @@ FROM python:3.12-slim@sha256:78387bc3881b8273120a12ebe6c1ab22b018ccc2c9adf565ae1
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     HOME=/tmp \
-    AGENT_MODEL_CACHE_DIR=/opt/models
+    AGENT_MODEL_CACHE_DIR=/opt/models \
+    OMP_THREAD_LIMIT=1
+
+# OMP_THREAD_LIMIT=1: Debian's Tesseract is built with OpenMP and starts one
+# thread per core per process. Two OCR jobs at once on the 4-vCPU host then
+# fight each other: ~162 s per page, against 5.6 s with the limit (measured
+# on the host, docs/w2/DEPLOY.md §8). ONNX Runtime uses its own thread pool,
+# not OpenMP, so reranking is unaffected.
 
 WORKDIR /app
 

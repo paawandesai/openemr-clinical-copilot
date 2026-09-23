@@ -663,6 +663,37 @@ ran without reranking) and now closes itself after 60 s or 10 skipped
 turns; and a skipped turn is now `rerank_skipped_circuit_open`, never
 `rerank_over_budget`.
 
+**Memory under OCR and reranking together** — 2026-09-23, image from
+`d06e251` (graph + observability's rerank admission + the D41 circuit), in
+a throwaway container on the host: the production restrictions, **no
+network**, a **5 GiB cap** so the demo stack could not be starved, and
+`memory.peak` read from its cgroup. The load drives the real retriever
+(D39 admission, D41 budget and circuit) from request threads and runs
+Tesseract on the two scanned factory samples in separate processes.
+
+| load | agent peak | host min available (of 7.2 GiB) | result |
+|---|---|---|---|
+| rerank only: 8 threads, candidate pools 10-40 | 3.6 GiB | 2.2 GiB | rerank p50 3.3 s / p95 6.6 s; 3,665 of 4,011 turns turned away `busy` |
+| OCR only: 2 workers, `OMP_THREAD_LIMIT` unset | 1.0 GiB | 4.8 GiB | **~162 s per page** — Tesseract's OpenMP threads, two processes, 4 vCPU |
+| OCR only: 2 workers, `OMP_THREAD_LIMIT=1` | 1.3 GiB | 4.5 GiB | **5.6 s per page**, 36 pages in 90 s |
+| both, stress: 8 rerank threads, varied pools, 2 OCR workers | **5.0 GiB — OOM-killed at the cap** | **0.99 GiB** | twice, with and without the OMP fix |
+| **both, demo-sized: 2 rerank threads, default pool, 1 OCR worker** | **3.7 GiB** | 2.25 GiB | rerank p50 2.3 s / p95 3.1 s, 1 of 119 over 4 s — the circuit opened, skipped 10 turns and closed itself (D41); OCR 5.8 s/page |
+
+What this means for Wednesday:
+
+- **The agent needs ~3.7 GiB at demo load**, against 0.36-0.9 GiB idle.
+  With OpenEMR, MariaDB and Caddy at ~1.5 GiB the host has ~2.2 GiB
+  left. The reranker is most of it (D39: ONNX Runtime memory grows with
+  input-shape variety); OCR adds ~1 GiB.
+- **Past demo load it does not stop growing.** Uncapped, the kernel's OOM
+  killer would choose among the agent, MariaDB and OpenEMR. The compose
+  file therefore caps the agent at **4.5 GiB** (`mem_limit`, no swap
+  beyond it): under overload the agent is killed and `restart:
+  unless-stopped` brings it back in ~10-15 s, and the database is never the
+  victim.
+- **`OMP_THREAD_LIMIT=1` is baked into the image.** Without it two
+  concurrent scans take minutes per page.
+
 **End-to-end ask** — through the chart embed, brief + the four questions from
 `scripts/measure_session_cost.py`, three patients (pids 5, 38, 40 — 22, 170
 and 3,226 lab results):
@@ -706,6 +737,8 @@ the code tree (`--env-file`, interpolated by `docker-compose.agent.yml`):
 | `AGENT_UPLOAD_LIMIT_WINDOW_SECONDS` | no | 600 | the sliding window |
 | `AGENT_EXTRACTION_MAX_CONCURRENT` | no | 2 | extraction slots; the rest get 503 |
 | `AGENT_RERANK_CIRCUIT_RESET_SECONDS` / `_TURNS` | no | 60 / 10 | how long an open rerank circuit stays open, or how many turns it skips (D41) |
+
+**Set in the image or the compose file, not the env file:** `OMP_THREAD_LIMIT=1` (Dockerfile), and the agent's `mem_limit` / `memswap_limit` of 4608m (compose).
 | `LANGFUSE_BASE_URL`, `LANGFUSE_PUBLIC_KEY`, `LANGFUSE_SECRET_KEY` | no | unset | unset → `/ready` reports `observability_backend: disabled` |
 | `COHERE_API_KEY` | no | unset | only for the unmeasured Cohere rerank adapter; the deployed path does not use it |
 
@@ -760,7 +793,8 @@ Co-Pilot):
 | upload 503 `extraction_capacity` | agent log `w2_extraction_capacity_full` | all `AGENT_EXTRACTION_MAX_CONCURRENT` slots busy; retry after 10 s |
 | `POST /w2/ask` returns the static UI's HTML | Caddyfile | the `/w2/ask*` handle is missing — `a78ba51` adds it |
 | `OcrUnavailableError` | agent log | image built without Tesseract — i.e. from before `35f76ae` |
-| agent OOM-killed / host swapping | `docker stats`, `dmesg` | the W2 agent idles at ~0.9 GiB; OCR at 300 dpi adds to it per page |
+| agent restarted, `docker inspect` shows `OOMKilled: true` | `docker stats`, `dmesg` | it hit its 4.5 GiB `mem_limit` — by design, so the database is never the OOM killer's choice. Demo load peaks at ~3.7 GiB (§8); repeated kills mean more concurrent reranks than the demo shape, or the D39 memory growth — restart the agent to reset ONNX memory |
+| scanned uploads take minutes per page | `docker exec … env \| grep OMP` | `OMP_THREAD_LIMIT` is not 1 — an image built before it was set (§8) |
 | `/ready` 503 `fhir` | `/ready` detail | OpenEMR down, or `FHIR_BASE_URL` wrong |
 | embed: "OpenEMR did not issue an access token" | Apache log, `Co-Pilot` lines: `stage`, `http_status` | new client not enabled, `skip_ehr_launch_authorization_flow` = 0 (307 to login), redirect URI mismatch, or the secret was written in plaintext instead of through `CryptoGen` |
 | embed: lab/visit questions refused, others fine | `api_token.scope` for the client | client registered without `user/Observation.read user/Encounter.read` |
