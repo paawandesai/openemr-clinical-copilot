@@ -585,7 +585,7 @@ def parse_reported_flag(glyph: str) -> ReportedFlag:
     """
     stripped = glyph.strip().lower()
     if not stripped:
-        return ReportedFlag.NOT_REPORTED
+        return ReportedFlag.NORMAL
     return _REPORTED_FLAG_GLYPHS.get(stripped, ReportedFlag.UNRECOGNISED)
 
 
