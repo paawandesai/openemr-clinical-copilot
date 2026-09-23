@@ -18,6 +18,38 @@
       "source": "agent/app/reasoning/draft_follow_up.py",
       "sha256": "2524dfe5c889d2283a91df795f889455af3cd06b60b60a0a218864a295008527"
     },
+    "app.reasoning.draft_answer.output_schema()": {
+      "source": "agent/app/reasoning/draft_answer.py",
+      "sha256": "67bd9c2481aeed8c0a22e2604093be7d9694c372ebd85865f4cb57e95226a288"
+    },
+    "app.reasoning.draft_answer.build_user_content()": {
+      "source": "agent/app/reasoning/draft_answer.py",
+      "sha256": "ff9dbbfe3333a7250e407db48d3ff937f3cc1539a544740fb486ab8d6951dee6"
+    },
+    "app.reasoning.draft_claims._OUTPUT_SCHEMA": {
+      "source": "agent/app/reasoning/draft_claims.py",
+      "sha256": "4366d309e191871e6a4d61bea1f86a26dd5b17914df0a536efa45cee48db6318"
+    },
+    "app.reasoning.draft_claims.build_user_content()": {
+      "source": "agent/app/reasoning/draft_claims.py",
+      "sha256": "12d64eb855a9df2cae3e21e9c313e09d195a5524c9ce7b803fea0a610437ba25"
+    },
+    "app.reasoning.draft_conversation_turn.output_schema()": {
+      "source": "agent/app/reasoning/draft_conversation_turn.py",
+      "sha256": "893b7bc94f461859849eb915c90fcd99979fbf43f548f0dbad8a735a6e9c0a3a"
+    },
+    "app.reasoning.draft_conversation_turn.build_user_content()": {
+      "source": "agent/app/reasoning/draft_conversation_turn.py",
+      "sha256": "1063280a2b9636dcc130d44e6ff99a2a679e4a2c3fb07b6c0798f0b95e7ab421"
+    },
+    "app.reasoning.draft_follow_up._OUTPUT_SCHEMA": {
+      "source": "agent/app/reasoning/draft_follow_up.py",
+      "sha256": "b5dabd6240d6ccd83305ae3fbfa7ccf5143e687d2f737305820816f726bac310"
+    },
+    "app.reasoning.draft_follow_up.build_user_content()": {
+      "source": "agent/app/reasoning/draft_follow_up.py",
+      "sha256": "857201cc954617a450738d159496b6294dced1d10600a1628d1e4eb8d23c6d30"
+    },
     "app.workers.intake_extractor.vision_schema.SYSTEM_PROMPT": {
       "source": "agent/app/workers/intake_extractor/vision_schema.py",
       "sha256": "9d62558d048567b4e47091d82ff0080361e291236ee7b3410ae7b615c29d59c9"
@@ -29,6 +61,14 @@
     "app.workers.intake_extractor.vision_schema.OUTPUT_SCHEMA[intake_form]": {
       "source": "agent/app/workers/intake_extractor/vision_schema.py",
       "sha256": "e9db5803d049761b0ab06d166b0a7ac8f91fd02bda87b96231039e459836bbea"
+    },
+    "app.workers.intake_extractor.vision._content_blocks()[lab_pdf]": {
+      "source": "agent/app/workers/intake_extractor/vision.py (page labels) and vision_schema.py (user_instruction)",
+      "sha256": "df2d491aed1905c4fa61080042b5a4d9a54fb1181c8f01027e1f7d056d0be5c9"
+    },
+    "app.workers.intake_extractor.vision._content_blocks()[intake_form]": {
+      "source": "agent/app/workers/intake_extractor/vision.py (page labels) and vision_schema.py (user_instruction)",
+      "sha256": "4328b64840c31f82ff0ede1c0385454d3b3b25f97cd7b5843875ad45bb63e479"
     },
     "judge_prompts/factually_consistent.txt": {
       "source": "agent/evals/w2/judge_prompts/factually_consistent.txt",

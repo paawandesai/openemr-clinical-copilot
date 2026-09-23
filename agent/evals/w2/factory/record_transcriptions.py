@@ -38,19 +38,16 @@ from app.graph.intake_extractor import EXTRACTOR_VERSION
 from app.models.w2.documents import DocumentKind
 from app.reasoning.draft_claims import MODEL
 from app.workers.intake_extractor.vision import extract_with_claude
-from app.workers.intake_extractor.vision_schema import OUTPUT_SCHEMA, SYSTEM_PROMPT
+
+# Gated: the gate's staleness check compares against this same function, so
+# it lives where an implementation session cannot edit it (samples.py).
+from evals.w2.gate.samples import prompt_fingerprint
 
 AGENT_ROOT = Path(__file__).resolve().parents[3]
 SAMPLES_DIR = AGENT_ROOT / "evals/w2/factory/output/samples"
 STAGING_DIR = AGENT_ROOT / "evals/w2/staging/transcriptions"
 
 TRANSCRIPTION_FORMAT = "w2-staging/vision-transcription/1.0.0"
-
-
-def prompt_fingerprint(kind: DocumentKind) -> str:
-    """Changes whenever the prompt or the output schema does — a stale-replay detector."""
-    material = SYSTEM_PROMPT + json.dumps(OUTPUT_SCHEMA[kind], sort_keys=True)
-    return hashlib.sha256(material.encode("utf-8")).hexdigest()
 
 
 async def record(sample: str) -> dict[str, object]:

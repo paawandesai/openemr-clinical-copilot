@@ -227,21 +227,36 @@ Pending cases are reported separately and never count as passes.
 ## Prompt changes
 
 **Any edit to a prompt fails the gate.** W2-L1 (category L, critical,
-deterministic) imports the value of every prompt the system or the judge
-sends and compares its sha256 with `agent/evals/w2/prompt_pins.json`:
+deterministic) imports the value of everything the system or the judge
+sends a model, 19 values in all, and compares each one's sha256 with
+`agent/evals/w2/prompt_pins.json`:
 
-- the four drafting `SYSTEM_PROMPT`s under `agent/app/reasoning/` — the
+- the four drafting `SYSTEM_PROMPT`s under `agent/app/reasoning/`: the
   Pre-Visit Brief, the Week 2 answer, the follow-up and the conversation
   turn;
-- the extractor's vision `SYSTEM_PROMPT`, and its structured-output schema
-  for both document kinds (under constrained decoding the schema is part of
-  the prompt; it is hashed without sorting keys, because property order is
-  generation order);
+- the four drafters' **structured-output schemas**. The brief and follow-up
+  schemas are static (`_OUTPUT_SCHEMA`). The answer and conversation-turn
+  schemas are built per turn (`output_schema()`), so they are rendered from
+  a fixed synthetic turn;
+- the four drafters' **user-message templates** (`build_user_content()`),
+  rendered from the same synthetic turn. That turn has one source of each
+  kind, a lab scope that omits rows and a full page of encounters, so every
+  literal line of each template, including `<retrieval_scope>` and
+  `<answer_scope>`, appears in what is hashed. It holds no chart data;
+- the extractor's vision `SYSTEM_PROMPT`, its structured-output schema for
+  both document kinds, and its **user message** for both kinds: the page
+  labels and the user instruction ("Transcribe pages … Report only what is
+  drawn on these pages."). Under constrained decoding the schema is part of
+  the prompt, so it is hashed without sorting keys: property order is
+  generation order;
 - both judge prompts, as the judge loads them.
 
 It hashes the values, not the source files, so an unrelated edit in the same
 module does not trip it. It also fails when a module under `app/reasoning/`
-gains a `SYSTEM_PROMPT`, or `judge_config.json` a rubric, that is not pinned.
+gains a `SYSTEM_PROMPT`, an `_OUTPUT_SCHEMA`, an `output_schema` or a
+`build_user_content` that is not pinned, or `judge_config.json` a rubric
+that is not pinned. The pin and its checker are gate files
+(`agent/evals/w2/prompt_pins.json`, `agent/evals/w2/gate/prompt_pins.py`).
 A mismatch fails with the prompt's name and file, and says that a prompt
 change requires a gate session to re-validate the golden set and update the
 pin. It is free and offline, so it runs in the pre-push hook as well as in CI.
@@ -265,12 +280,23 @@ against. The behavioural cases stay. Which prompt edits they also catch, from
 |---|---|
 | `factually_consistent` judge, loosened | **yes** — W2-M6, 3 of 3 full runs |
 | `safe_refusal` judge, loosened | **unreliably** — W2-M5 in 1 of 3 runs; W2-M4 never moved |
-| Extractor vision prompt or schema | **as an error, not a case** — the recorded-transcription staleness check stops the run with exit 2 before any case is scored. It blocks, but names no case, and one edit to the ungated `agent/evals/w2/factory/record_transcriptions.py` switches it off, after which the edit passed |
+| Extractor vision prompt or schema | **as an error, not a case**. The recorded-transcription staleness check stopped the run with exit 2 before any case was scored. It blocked, but named no case, and one edit to the ungated `agent/evals/w2/factory/record_transcriptions.py` switched it off, after which the edit passed. **Both are fixed.** The fingerprint is now computed in gated `agent/evals/w2/gate/samples.py`, and the factory imports it from there. A stale recording now fails the category-B cases that replay it, by name, instead of stopping the run |
 | The four drafting prompts | **no** — no gate case sends them to a model, and the judge grades frozen fixtures |
 
 With the pin, every row blocks with W2-L1 named. The planted-regression
-harness proves it for the Pre-Visit Brief and Week 2 answer drafting
-prompts, the extractor prompt and schema (each planted together with the staleness-check bypass),
-and a one-line `safe_refusal` loosening, as well as the two whole-file judge
-replacements that were already there
-([`docs/w2/EVAL_GATE_EVIDENCE.md`](docs/w2/EVAL_GATE_EVIDENCE.md)).
+harness proves it
+([`docs/w2/EVAL_GATE_EVIDENCE.md`](docs/w2/EVAL_GATE_EVIDENCE.md)) for:
+
+- the Pre-Visit Brief and Week 2 answer system prompts;
+- the extractor prompt and schema. Each is planted together with the old
+  staleness-check bypass, re-aimed at the moved function. Each now blocks
+  on W2-L1 **and** on W2-B1–B7, W2-C2 and W2-C6, because the bypass no
+  longer reaches anything the gate reads;
+- a user-message template: the conversation turn's `<retrieval_scope>`
+  claims the model saw every lab result;
+- the extractor's user instruction, now asking for a best guess. This one
+  needed no bypass at all, because the staleness fingerprint does not cover
+  the user message;
+- a static schema: the brief's `field` enum dropped;
+- a one-line `safe_refusal` loosening, and the two whole-file judge
+  replacements that were already there.
