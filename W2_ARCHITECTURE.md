@@ -34,7 +34,7 @@ beside chart facts without the two blurring. Nine decisions carry the weight.
    UNIQUE on document hash, test code and collection date. Results land
    unreviewed.
 9. **The measured code cannot move its own gate** (D8, D42–D48). Gated paths
-   are hook-protected. 74 deterministic checks must pass at 100%, a regressed
+   are hook-protected. 75 deterministic checks must pass at 100%, a regressed
    critical case blocks alone, and all 19 planted regressions block (§6).
 
 **Tradeoffs:**
@@ -479,9 +479,9 @@ rests on.
   "blank flag means normal", and W2-D2 blocks it:
   `VERDICT: BLOCKED | specs 96 | active 79 | pending 15 | det 72/73 | judge 8/8`
   (`EVAL_GATE.md`; recorded before W2-L1, when there were 96 specs).
-- **The gate at the snapshot.** 97 specs (80 active, 15 pending, 2
-  delegated), 74/74 deterministic and 8/8 judge (evidence control run,
-  re-seeded after W2-L1, the prompt pin).
+- **The gate at the snapshot.** 98 specs (81 active, 15 pending, 2
+  delegated), 75/75 deterministic and 8/8 judge (evidence control run,
+  re-seeded after W2-J8, the turn event's scope fields).
 - **The judge is UNCALIBRATED.** It is `claude-haiku-4-5-20251001`,
   best-of-3 (D43, D48). Category M detects drift, not agreement with humans.
 - **Its protection is a guard, not a boundary.** The hooks and

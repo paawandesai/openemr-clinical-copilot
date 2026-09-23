@@ -312,8 +312,8 @@ located.
 
 ### 3:15–4:10 — The eval gate blocks a planted regression
 
-Every figure in this scene is from `docs/w2/EVAL_GATE_EVIDENCE.md` on
-`main`, re-seeded after W2-L1 (the prompt pin) was added.
+Every figure in this scene is from `docs/w2/EVAL_GATE_EVIDENCE.md`,
+re-seeded after W2-J8 (the turn event's scope fields) was added.
 
 **Do:** in `agent/`:
 
@@ -322,10 +322,10 @@ python -m evals.w2.gate; echo "exit=$?"
 ```
 
 **Viewer should see:** the category table, then
-`VERDICT: PASS | specs 97 | active 80 | pending 15 | det 74/74 | judge 8/8`
+`VERDICT: PASS | specs 98 | active 81 | pending 15 | det 75/75 | judge 8/8`
 and `exit=0`.
 
-**Say:** "Ninety-seven cases. Seventy-four deterministic checks at a hundred
+**Say:** "Ninety-eight cases. Seventy-five deterministic checks at a hundred
 percent, and eight judge meta-checks. Now I reintroduce a bug we actually
 had: treating a blank flag column as 'normal'."
 
@@ -341,7 +341,7 @@ python -m evals.w2.gate; echo "exit=$?"
 
 - `BLOCKED by rule (b) deterministic tier at 100%`;
 - `BLOCKED by rule (c) critical-case override`, naming **W2-D2**;
-- `VERDICT: BLOCKED | specs 97 | active 80 | pending 15 | det 73/74 | judge 8/8`;
+- `VERDICT: BLOCKED | specs 98 | active 81 | pending 15 | det 74/75 | judge 8/8`;
 - `exit=1`.
 
 That is regression 1 in the evidence file.

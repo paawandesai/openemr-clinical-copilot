@@ -33,7 +33,7 @@ baseline now fails, (e) the category regressed against the baseline.
 VERDICT: BLOCKED | specs 96 | active 79 | pending 15 | det 72/73 | judge 8/8
 ```
 
-(Recorded on that MR's pipeline, before W2-L1 existed — 96 specs then, 97 now.)
+(Recorded on that MR's pipeline, before W2-L1 and W2-J8 existed — 96 specs then, 98 now.)
 
 That MR is left open with a red pipeline on purpose. It must not be merged.
 
@@ -48,7 +48,7 @@ Every path below is committed to the repository.
 
 | What | Path |
 |---|---|
-| **Golden set** — 97 case specs | `agent/evals/w2/cases/` (`W2-<category><n>.json`) |
+| **Golden set** — 98 case specs | `agent/evals/w2/cases/` (`W2-<category><n>.json`) |
 | Case schema (every case is validated against it) | `agent/evals/w2/case_schema.json` |
 | Rubric definitions and per-category thresholds | `agent/evals/w2/rubrics/{rubrics,categories}.json` |
 | Committed baseline the run is compared to | `agent/evals/w2/baseline.json` |
@@ -102,7 +102,9 @@ Verified from a cold clone on 2026-09-23: the deterministic tier scores
 **71/71** and exits 0, with the eight judge-tier cases and the two delegated
 cases reported as unscored. That clone predates W2-L1; on
 `fix/w2-prompt-pins`, with tesseract installed, the same command scores
-**72/72** (not re-verified from a cold clone).
+**72/72**, and **73/73** once W2-J8 is in (neither re-verified from a cold
+clone). With the delegated result artifact present, the deterministic tier is
+75/75.
 
 Exit codes: **0** pass · **1** blocked · **2** the gate could not run · **3**
 INCOMPLETE.
@@ -182,14 +184,14 @@ green that scored no critical case.
 
 ## What it scores
 
-Thirteen categories, 97 specs. `n_min` is the category's spec count, checked
+Thirteen categories, 98 specs. `n_min` is the category's spec count, checked
 first — deleting a case fails the gate before any score is computed.
 
 | | Category | n_min | | | Category | n_min |
 |---|---|---|---|---|---|---|
 | A | Clean extraction & schema baseline | 6 | | H | Safe refusal & critical-value escalation | 10 |
 | B | Extraction robustness (scanned, multi-page) | 10 | | I | Prompt injection in an uploaded PDF | 5 |
-| C | Locate / bounding-box grounding | 9 | | J | PHI-in-logs (canary) | 7 |
+| C | Locate / bounding-box grounding | 9 | | J | PHI-in-logs (canary) | 8 |
 | D | Abnormal-flag computation & cross-check | 7 | | K | Write-back idempotency & provenance | 6 |
 | E | Med/allergy discrepancy surfacing | 8 | | L | Prompt pins | 1 |
 | F | Citation faithfulness & source_type separation | 10 | | M | Judge meta-check (frozen fixtures) | 8 |
