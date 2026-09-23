@@ -19,10 +19,13 @@ re-run is in `agent/load-test/w2/README.md`.
     document. It is Anthropic-bound, not local-CPU-bound.
   - **OCR** is the local CPU cost of extraction: about 1.1 CPU-seconds per
     document; 8.25 cores busy at 50 concurrent extractions.
-  - **The cross-encoder reranker** is the worst behaved under concurrency.
-    At 10 concurrent retrievals its circuit breaker opened and only 5% were
-    reranked. At 50 concurrent, in-flight reranks, which are never
-    cancelled, thrashed the CPU: **p95 335 s**.
+  - **The cross-encoder reranker** was the worst behaved under concurrency.
+    At 50 concurrent retrievals, in-flight reranks, which are never
+    cancelled, thrashed the CPU: **p95 335 s**. **Fixed on this branch
+    (D39):** at most two reranks run at once, and the rest fall back to the
+    fused order immediately. Burst p95 at 50 is now 259 ms. Under load most
+    retrievals go unreranked (6% at 50 paced users), and memory is still
+    3.1 GiB (§5).
   - **Embedding** is not a bottleneck: p95 77 ms at 50 concurrent.
 
 ## Setup
@@ -193,11 +196,38 @@ What this shows:
   - On the 7.24 GiB Vultr host, where OpenEMR peaks at 4.9 GiB (Week 1),
     that peak would not fit.
 
-**Recommendation (not implemented; a retrieval work order's call):**
+### 5b. After the admission bound (D39)
 
-- Bound reranks with a semaphore of 1–2.
-- Treat a queued rerank as over budget, rather than starting it.
-- Preload the reranker at deploy, as `AGENT_PRELOAD_RETRIEVAL` already does.
+The fix: `MAX_CONCURRENT_RERANKS = 2`, taken non-blocking. A request that
+finds both slots taken returns the fused order at once (`rerank_busy`).
+Admitted reranks run on a fixed two-thread pool. Same bench, same queries.
+"Paced" adds a 1 s think time per user, like the k6 tests; "burst" fires
+back to back.
+
+| Load | p50 | p95 | p99 | Reranked | Busy (turned away) | Circuit | Peak RSS |
+|---|---|---|---|---|---|---|---|
+| burst, 1 | 255 ms | 339 ms | 350 ms | 100% | 0 | closed | 1.0 GiB |
+| burst, 10 | 38 ms | **143 ms** (was 4,260) | 632 ms | 5% | 38 / 40 | closed (was open) | 1.3 GiB |
+| burst, 50 | 81 ms | **259 ms** (was 335,224) | 372 ms | 1% | 198 / 200 | closed (was open) | 1.7 GiB |
+| paced, 10 users | 12 ms | **588 ms** | 746 ms | **35%** | 65 / 100 | closed | 3.1 GiB |
+| paced, 50 users | 18 ms | **426 ms** | 686 ms | **6.2%** | 469 / 500 | closed | 3.1 GiB |
+
+Retrieval latency is now bounded by one rerank, not by the queue. What the
+bound cannot do is make reranking cheaper: two slots at about 250 ms each
+is roughly 8 reranks a second. Under load most retrievals are unreranked,
+and the dashboard's reranked-true rate shows exactly that.
+
+**Memory is not fixed.** The growth follows input-shape variety: on one
+thread, 100 varied reranks grew RSS from 967 MiB to about 2.7 GiB before
+plateauing. Measured and not adopted:
+
+- arena off: 4.1 GiB, worse;
+- fixed-length padding: 512 tokens bounds growth at +0.6 GiB but costs
+  +50% latency; 256 tokens is flat and faster but truncates and would
+  change rankings.
+
+D39 has the numbers. The next step is re-running the retrieval bakeoff at a
+fixed length.
 
 ## Where the new bottleneck is
 
@@ -207,7 +237,7 @@ What this shows:
 | Ask, wall-clock | The LLM draft: 85% of a real turn | §2 |
 | Extraction, wall-clock and cost | **The vision call**: 15–31 s, $0.10–0.13 per document | §4b |
 | Extraction, local CPU | **OCR**: 8.25 cores at 50 concurrent, p95 10 s | §4a |
-| Guideline retrieval | **The cross-encoder reranker**: circuit opens at 10 concurrent, p95 335 s at 50, 1.1–5.3 GiB | §5 |
+| Guideline retrieval | **The cross-encoder reranker**: p95 335 s at 50 before the admission bound, **259 ms after** (D39); throughput is about 8 reranks/s, and memory is still up to 3.1 GiB | §5, §5b |
 | Embedding | Not a bottleneck: p95 77 ms at 50 | §5 |
 
 **Does Week 2 change the ~10-user ceiling?**
@@ -238,4 +268,4 @@ the module docstring says it does not.
 - 50 concurrent real conversation turns.
 - Any of this on Vultr.
 - The upload route with the real extractor behind it (not wired on `main`).
-- The cause of the reranker's 5.3 GiB cold peak.
+- A fix for the reranker's memory growth (shape-driven; D39 has the options measured).
