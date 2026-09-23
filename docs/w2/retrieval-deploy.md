@@ -117,10 +117,14 @@ is invariant 1 and `tests/test_retrieval_worker.py` asserts it.
 
 **Watch `rerank_over_budget`.** D41 gives the rerank stage 4 s (D25 set 2.5 s); past
 that the fused order stands, the output says `reranked=false`, and the
-retriever opens a circuit so the next turn does not pay the same cost to
-throw the same answer away. A steady stream of `rerank_over_budget: true`
-on the droplet means the cross-encoder does not fit the host, and that is
-the D25 re-open condition, not something to tune around.
+retriever opens a circuit so the next turns do not pay the same cost to
+throw the same answer away. Since D41 the circuit closes itself after 60 s
+or 10 skipped turns, logs `rerank_circuit_opened_event` and
+`rerank_circuit_closed_event`, and a skipped turn reports
+`rerank_skipped_circuit_open` rather than `rerank_over_budget`. So a steady
+stream of `rerank_over_budget: true` now means reranks that really ran
+long: the cross-encoder does not fit the host, and that is the D25 re-open
+condition, not something to tune around.
 
 ## What has not been measured
 

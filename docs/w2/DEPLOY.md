@@ -657,9 +657,11 @@ really reranks. **The first rehearsal's "9 of 60 over 2.5 s" was a
 miscount**: one rerank ran over (2.75 s), opened the circuit, and eight
 skipped turns were counted as over budget too, because
 `RerankOutcome.over_budget` is `True` for both. D41 records this, the move
-to 4 s, and two defects 4 s does not fix: the circuit never closes (after
-the one 4.09 s rerank, 35 of the next 60 turns ran without reranking), and
-the log's `rerank_over_budget` cannot tell a slow rerank from a skipped one.
+to 4 s, and fixes the two defects 4 s alone does not: the circuit used to
+latch until restart (after the one 4.09 s rerank, 35 of the next 60 turns
+ran without reranking) and now closes itself after 60 s or 10 skipped
+turns; and a skipped turn is now `rerank_skipped_circuit_open`, never
+`rerank_over_budget`.
 
 **End-to-end ask** — through the chart embed, brief + the four questions from
 `scripts/measure_session_cost.py`, three patients (pids 5, 38, 40 — 22, 170
@@ -703,6 +705,7 @@ the code tree (`--env-file`, interpolated by `docker-compose.agent.yml`):
 | `AGENT_UPLOAD_LIMIT_PER_CLIENT` / `_PER_USER` / `_PER_PATIENT` | no | 120 / 20 / 10 | uploads per window, per OAuth client, user, patient (§2.2) |
 | `AGENT_UPLOAD_LIMIT_WINDOW_SECONDS` | no | 600 | the sliding window |
 | `AGENT_EXTRACTION_MAX_CONCURRENT` | no | 2 | extraction slots; the rest get 503 |
+| `AGENT_RERANK_CIRCUIT_RESET_SECONDS` / `_TURNS` | no | 60 / 10 | how long an open rerank circuit stays open, or how many turns it skips (D41) |
 | `LANGFUSE_BASE_URL`, `LANGFUSE_PUBLIC_KEY`, `LANGFUSE_SECRET_KEY` | no | unset | unset → `/ready` reports `observability_backend: disabled` |
 | `COHERE_API_KEY` | no | unset | only for the unmeasured Cohere rerank adapter; the deployed path does not use it |
 
@@ -746,7 +749,9 @@ Co-Pilot):
 | `retrieval_preload_event` shows `vector_cache_prebuilt: false` | agent log | image did not bake the `.npz`; every restart re-embeds 693 chunks. Rebuild |
 | `model_cache_dir: null`, or preload fails with a download error | agent log | `AGENT_MODEL_CACHE_DIR` not reaching the process; `HF_HUB_OFFLINE=1` turns the missing weight into a startup error by design |
 | `retrieval_preload_failed_event` | agent log | the service still serves Week 1; retrieval is off. The event names the exception type only |
-| steady `rerank_over_budget: true` in `evidence_retrieval_event` | agent log | **first check whether it is one slow rerank followed by an open circuit**: the flag is also `True` on every skipped turn, and the circuit never closes until the process restarts (D41). A restart closes it. A stream of genuinely slow reranks means OCR or another load is contending for the CPU (§8) |
+| steady `rerank_over_budget: true` in `evidence_retrieval_event` | agent log | since D41 that flag means reranks that really ran long; skipped turns are `rerank_skipped_circuit_open`. A stream of genuinely slow reranks means OCR or another load is contending for the CPU (§8) |
+| answers unreranked for a stretch | `rerank_circuit_opened_event` / `rerank_circuit_closed_event` | one slow rerank opened the circuit; it closes itself after 60 s or 10 skipped turns (D41). Repeated open/close pairs mean the retry keeps finding the host busy |
+| `rerank_busy: true` | agent log | both D39 rerank slots were taken; the turn was not queued |
 | 413 on an upload | response has no JSON body → Caddy; JSON → the agent | over 25 MiB. Both caps are the same number (§2.1); if only one refuses, they have drifted |
 | 413 on a brief or a question | Caddy | body over 16 KB; the small cap applies to everything but `/documents*` |
 | upload 401 `malformed_bearer_token` from the card | agent log `w2_document_auth_refused` | the module sent something that is not an OpenEMR JWT |

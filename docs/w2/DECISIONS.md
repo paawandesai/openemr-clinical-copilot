@@ -2020,10 +2020,11 @@ while a document extracts.
 
 ---
 
-## D41 — The rerank budget is 4 s, measured on the deployment host; the fused order stays the safety valve
+## D41 — The rerank budget is 4 s, measured on the deployment host; the circuit closes itself and is reported apart
 
-**Status:** DECIDED — supersedes item 5 of D25 (the 2.5 s figure) only. The
-rest of D25 stands, the cross-encoder included.
+**Status:** DECIDED — supersedes item 5 of D25 (the 2.5 s figure, and the
+circuit's lifetime) only. The rest of D25 stands, the cross-encoder
+included, and so does D39's admission bound, on top of which this is built.
 **Date:** 2026-09-22
 **Numbering:** written as D35 on `chore/w2-deploy-rehearsal`. D35 on `main` is the
 intake-extractor decision; D41 is the number assigned to this entry, with the
@@ -2072,18 +2073,36 @@ contention from the pipeline's own OCR. A budget set without knowing that
 was a laptop guess; this one is a host measurement. Whether that is a
 re-opening or a refinement is recorded here rather than argued.
 
-**Two findings that 4 s does not fix, recorded for whoever owns retrieval
-next:**
+**Two defects 4 s alone does not fix, and what this entry does about them:**
 
-1. **The circuit never closes.** Nothing in `app/` calls
+1. **The circuit never closed.** Nothing in `app/` called
    `reset_rerank_circuit()`. In the contended run, the single 4.09 s rerank
    opened it and the next 35 of 60 turns ran without reranking; on the live
-   agent that lasts until the process restarts. D25 describes the circuit
+   agent that lasted until the process restarted. D25 describes the circuit
    as sparing "the next turn", not every turn after it.
-2. **`over_budget` conflates "ran and was too slow" with "skipped because
-   the circuit is open".** The `rerank_over_budget` log signal D25 tells an
-   operator to watch therefore reads as a steady stream after a single
-   slow rerank. That is how the 15% was miscounted, and an operator reading
-   the log would miscount it the same way.
+   **Now:** the circuit closes itself after **60 s or 10 skipped turns**,
+   whichever comes first (`RERANK_CIRCUIT_RESET_SECONDS`,
+   `RERANK_CIRCUIT_RESET_TURNS`; `AGENT_RERANK_CIRCUIT_RESET_SECONDS` /
+   `_TURNS` override them). The next rerank is a single retry: if it is
+   slow too, the circuit opens again. Its state is behind a lock, because
+   D39's reranks run on two pool threads.
+2. **`over_budget` conflated "ran and was too slow" with "skipped because
+   the circuit is open".** The `rerank_over_budget` signal D25 tells an
+   operator to watch read as a steady stream after a single slow rerank.
+   That is how the 15% was miscounted.
+   **Now:** `RerankOutcome.over_budget` is true only for a rerank that ran
+   past the budget; a skipped turn is `skipped_circuit_open`, carried to
+   `evidence_retrieval_event` and the retrieval step's counts as
+   `rerank_skipped_circuit_open`, next to D39's `rerank_busy`.
 
-Neither is changed here: this entry sets a number.
+**Two events** make the circuit visible instead of inferable from a run of
+`reranked=false`: `rerank_circuit_opened_event` (`elapsed_ms`, `budget_ms`,
+`reset_seconds`, `reset_turns`) and `rerank_circuit_closed_event`
+(`reason`: `timeout` | `turns` | `manual`, `open_seconds`,
+`skipped_turns`). Numbers and a closed reason only (invariant 1). Pinned by
+`agent/tests/test_rerank_circuit.py`.
+
+**Why 60 s and 10 turns.** Long enough that a host under a burst of OCR is
+not re-probed every turn — each probe that fails costs a clinician the full
+4 s budget — and short enough that one bad moment costs at most a minute of
+unreranked answers rather than the life of the process.
