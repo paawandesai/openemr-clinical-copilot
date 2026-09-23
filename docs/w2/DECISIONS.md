@@ -1898,3 +1898,95 @@ conversations, a persisted document/extraction store); `/ready` still
 reports three checks and does not report the guideline retriever; the
 observability events are emitted with this branch's own names because
 `feat/w2-observability` has not merged.
+
+---
+
+## D49 — A document answer itemises by rule: critical, abnormal, named; the rest is counted, and the output is bounded
+
+**Status:** DECIDED — needs human review of two points below (the changed
+`AskStatus` for whole-report questions and the three new `AnswerLimitation`
+members), which change what `/w2/ask` returns.
+**Date:** 2026-09-23
+**Raised by:** work order 19 (`feat/w2-answer-scope`), after LOAD_TEST.md §6
+measured `/w2/ask` over a whole lab report at 90–130 s.
+
+**Measured first** (LOAD_TEST.md §7, `agent/load-test/w2/answer_bench.py`,
+read from the `step_event` / `llm_usage_event` the ask path already emits).
+"What were the results on the uploaded lab report?", 3 runs each, before:
+22 rows p50 89.0 s / worst 91.8 s, 32,776 tokens in / 11,511 out, 91
+citations, $0.45; 44 rows p50 188.8 s / worst 195.9 s, 49,465 in / 24,762
+out, 180 citations, $0.87. The drafting call is 99% of the answer step, and
+its time is output: ~131 output tokens/s, ~130–140 output tokens (thinking
+included) per citation, so about one second per citation. Input size barely
+matters. The answer was slow because it cited every value on the report,
+five fields a row.
+
+**Decision:**
+
+1. **Scope is decided in code before the model sees anything**
+   (`agent/app/supervisor/scope.py`), not by asking the model to be brief.
+   Every lab row with a located fact is classed, in priority order:
+   *critical* (critical.py's table, located or not); *abnormal* (a printed
+   high/low/abnormal/unreadable flag, a value outside its printed range by
+   `compute_abnormal_flag`, or printed and computed flags disagreeing); *not
+   compared* (no located value, no range, a censored value straddling it, or
+   a flag read but not located — never summarised as in range, D20);
+   *named* (the question names the test or panel, by Week 1's
+   `ANALYTE_RULES` — by LOINC code for a coded row — or by the printed name);
+   *in range*.
+2. **The drafter is offered** critical, abnormal, not-compared and named
+   rows, plus in-range rows only when the question asks for every result
+   (`asks_for_every_result`, by wording). Specimen facts and every intake
+   form fact are always offered. The verifier and the critical scan still
+   see every located fact.
+3. **In-range rows are counted, not itemised**, in one statement per
+   document built by code — "Not listed individually: N result(s) on the lab
+   report (panel counts). Each has a value located on the page that is
+   inside the reference range printed beside it, by the co-pilot's
+   arithmetic (not a clinical judgment), and none carries a high, low or
+   abnormal flag from the laboratory. Ask about a test or panel by name, or
+   for all results, to see them." It is a `PatientFactClaim` citing each
+   row's located value and range, each passed through `verify_document_fact`
+   (invariant 2). It never says "normal" (D20).
+4. **A cap of 8 non-critical rows** (`MAX_ITEMISED_ROWS`). Critical rows
+   are never counted against it: a cap of 0 still offers them (tested). Rows
+   past it are named in a cited statement of their own — flagged or
+   uncomparable ones first — and never silently dropped.
+5. **An output ceiling of 10,000 tokens** (`ANSWER_MAX_TOKENS`, thinking
+   included) on the answer call only; Week 1's calls keep 64,000. If it
+   binds, `DraftTruncatedError` → `AnswerTruncatedError` carries the usage,
+   and the answer is rendered from what code states on its own — critical
+   values, the scope statements, unsupported fields — with fixed wording
+   saying the drafted part was not used. It is not a `model_unavailable`
+   refusal: a refusal states no critical value, and this must not hide one.
+6. **The rule is stated in the answer** (`SCOPE_RULE`) whenever anything on
+   a report was not itemised, and the drafter is told how many rows code
+   reports itself (`<answer_scope>`), so their absence is not drafted as a
+   gap.
+7. **Response changes** (review): three `AnswerLimitation` members,
+   `answer_scoped`, `answer_capped`, `output_limit_reached`; a lab question
+   that names no test or panel and has rows counted, or any answer where
+   the cap or the output ceiling bound, is `partially_answered` rather than
+   `answered`. A question about something else (glucose, a guideline) keeps
+   its own status — the count is a disclosure, not an answer to it.
+   `w2_ask_turn_completed` gains `answer_scope` (counts) and
+   `output_limited`.
+
+**Why these numbers.** At ~140 output tokens per citation and ~131 tokens/s,
+8 rows (about 36 citations with the specimen) measured 41–45 s when the cap
+binds on the 44-row report ("Show me all the results", 3 runs, ~5,100
+tokens out) — under the 90 s budget with room for criticals, but at the 45 s
+`answer_p95_latency` alert. 10,000 tokens is ~76 s of writing: twice the
+cap-bound output, room for about six critical rows on top, and still inside
+90 s. The default whole-report question now takes 6.6–9.1 s (22 rows) and
+11.4–13.0 s (44 rows), $0.08–0.09.
+
+**Rationale:** the clinician needs the rows that change what they do next
+and to know what was left out; they do not need 44 in-range values read to
+them between rooms. Silence about the omission is what D20 and the Week 1
+lab-cap fix exist to prevent, so the omission is a cited statement, not an
+absence.
+
+**Not settled here:** whether the 45 s alert should fire on an "all
+results" question that deliberately itemises the maximum; whether the cap
+should fall to 6 to clear it (~33 s by the same arithmetic, unmeasured).

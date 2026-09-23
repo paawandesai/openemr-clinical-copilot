@@ -69,9 +69,12 @@ blended p95 down.
    ceiling is OpenEMR's PHP tier, around 10 concurrent users on a 4-vCPU host
    (`agent/load-test/RESULTS.md`). Shed load or scale OpenEMR; the agent is
    not the constraint.
-3. If `supervisor.answer`: a `/w2/ask` over a whole lab report takes 90–130 s
-   with no load at all (LOAD_TEST.md §6). One model call writes 11k+ tokens.
-   That is a product fix, not an incident.
+3. If `supervisor.answer`: before D49 a `/w2/ask` over a whole lab report
+   took 90–196 s with no load at all (LOAD_TEST.md §6, §7). Scoped, it is
+   7–13 s; a question asking for *every* result itemises up to the cap and
+   takes 41–45 s, at this threshold. Check the turn's `answer_scope.capped`
+   and `output_limited`: a capped answer near 45 s is the known worst case,
+   not an incident; an uncapped one this slow is.
 4. If draft: check the `llm` tool row for retries. Rising retries mean
    Anthropic is overloaded or rate limiting. Check provider status; nothing
    local fixes it.

@@ -1,0 +1,123 @@
+{
+  "sample": "lab-multipage-003",
+  "question": "What were the results on the uploaded lab report?",
+  "runs": [
+    {
+      "status": "answered",
+      "rows_on_report": 44,
+      "answer_step_ms": 188764.013,
+      "llm_call_ms": 188046.668,
+      "total_ms": 189172,
+      "input_tokens": 49465,
+      "output_tokens": 24685,
+      "stop_reason": "end_turn",
+      "cost_usd": 0.86445,
+      "claims": {
+        "chart": {
+          "drafted": 0,
+          "verified": 0
+        },
+        "document": {
+          "drafted": 180,
+          "verified": 180
+        },
+        "guideline": {
+          "drafted": 0,
+          "verified": 0
+        }
+      },
+      "scope": null,
+      "patient_fact_lines": 45,
+      "critical_values": [],
+      "unverified": 0,
+      "unsupported_disclosed": 45
+    },
+    {
+      "status": "answered",
+      "rows_on_report": 44,
+      "answer_step_ms": 195925.151,
+      "llm_call_ms": 195235.457,
+      "total_ms": 196320,
+      "input_tokens": 49465,
+      "output_tokens": 25467,
+      "stop_reason": "end_turn",
+      "cost_usd": 0.884,
+      "claims": {
+        "chart": {
+          "drafted": 0,
+          "verified": 0
+        },
+        "document": {
+          "drafted": 180,
+          "verified": 180
+        },
+        "guideline": {
+          "drafted": 0,
+          "verified": 0
+        }
+      },
+      "scope": null,
+      "patient_fact_lines": 45,
+      "critical_values": [],
+      "unverified": 0,
+      "unsupported_disclosed": 45
+    },
+    {
+      "status": "answered",
+      "rows_on_report": 44,
+      "answer_step_ms": 187467.168,
+      "llm_call_ms": 186612.705,
+      "total_ms": 187895,
+      "input_tokens": 49465,
+      "output_tokens": 24762,
+      "stop_reason": "end_turn",
+      "cost_usd": 0.866375,
+      "claims": {
+        "chart": {
+          "drafted": 0,
+          "verified": 0
+        },
+        "document": {
+          "drafted": 180,
+          "verified": 180
+        },
+        "guideline": {
+          "drafted": 0,
+          "verified": 0
+        }
+      },
+      "scope": null,
+      "patient_fact_lines": 45,
+      "critical_values": [],
+      "unverified": 0,
+      "unsupported_disclosed": 45
+    }
+  ],
+  "summary": {
+    "answer_step_ms": {
+      "p50": 188764.013,
+      "worst": 195925.151
+    },
+    "llm_call_ms": {
+      "p50": 188046.668,
+      "worst": 195235.457
+    },
+    "total_ms": {
+      "p50": 189172,
+      "worst": 196320
+    },
+    "input_tokens": {
+      "p50": 49465,
+      "worst": 49465
+    },
+    "output_tokens": {
+      "p50": 24762,
+      "worst": 25467
+    },
+    "cost_usd": {
+      "p50": 0.866375,
+      "worst": 0.884
+    }
+  },
+  "total_cost_usd": 2.6148
+}

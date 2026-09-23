@@ -192,9 +192,16 @@ class ScriptedDrafter:
         context: tuple[Any, ...],
         *,
         patient_session_key: str,
+        withheld_rows: int = 0,
     ) -> AnswerDraft:
         self.calls.append(
-            {"chart": chart, "documents": documents, "chunks": chunks, "context": context}
+            {
+                "chart": chart,
+                "documents": documents,
+                "chunks": chunks,
+                "context": context,
+                "withheld_rows": withheld_rows,
+            }
         )
         if self.fail_with is not None:
             raise self.fail_with

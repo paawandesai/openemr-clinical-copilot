@@ -255,12 +255,58 @@ The fix belongs to the ask path, not observability. For example: bound
 the output, or answer from the results the question names rather than all
 of them.
 
+## 7. The answer step, scoped (after `feat/w2-answer-scope`, D49)
+
+Work order 19. `agent/load-test/w2/answer_bench.py`: the real ask path in
+process, one encounter at a time, no load — recorded vision (text layer and
+locate live on the PDF), live FHIR reads on the Vultr host under the eval
+physician's token, one live drafting call per run. It adds no
+instrumentation: every number is read back from the `step_event`
+(`supervisor.answer`), `tool_call_event` (`llm`), `llm_usage_event` and
+`w2_ask_turn_completed` that `feat/w2-observability` put on this path. Raw
+output: `docs/w2/evidence/load/answer-{before,after}-*.json`.
+
+**Before** — "What were the results on the uploaded lab report?", 3 runs:
+
+| Report | Answer step p50 / worst | Model call p50 | Tokens in / out (p50) | Citations | Cost / run |
+|---|---|---|---|---|---|
+| `lab-clean-001`, 22 rows | 89.0 s / 91.8 s | 87.9 s | 32,776 / 11,511 | 91 | $0.45 |
+| `lab-multipage-003`, 44 rows | 188.8 s / 195.9 s | 188.0 s | 49,465 / 24,762 | 180 | $0.87 |
+
+The model call is 99% of the answer step, and it is output-bound: ~131
+output tokens/s and ~130–140 output tokens (thinking included) per citation,
+so about a second per citation. The drafter cited every value on the report,
+five fields a row.
+
+**After** — the same question and reports, 3 runs, plus the case where the
+cap binds and the staged critical scenario:
+
+| Case | Answer step p50 / worst | Tokens in / out (p50) | Citations | Cost / run | Rows itemised / counted / capped |
+|---|---|---|---|---|---|
+| 22 rows | **6.9 s / 9.1 s** | 14,585 / 461 | 3 | $0.084 | 0 / 22 / 0 |
+| 44 rows | **11.7 s / 13.0 s** | 12,095 / 1,151 | 8 | $0.089 | 1 (ferritin, printed L) / 43 / 0 |
+| 44 rows, "Show me all the results on this report" | 43.4 s / 45.5 s | 18,194 / 5,092 | 36 | $0.22 | 8 / 0 / 36 |
+| `lab-critical-potassium-007`, 22 rows, 1 run | 12.5 s | 15,515 / 1,005 | 8 | $0.10 | 1 critical / 21 / 0 |
+
+The whole-report question is 13× faster on 22 rows and 16× on 44, at a fifth
+to a tenth of the cost. The worst case — a request for every result on the
+44-row report, where the cap of 8 binds — is 41–45 s: well under 90 s, but
+at the 45 s `answer_p95_latency` alert (ALERTS.md). In the critical run the
+6.8 mmol/L potassium leads the answer, stated and cited, and the rest of
+the report is counted.
+
+Input tokens fell by less than output (33k → 15k): most of what is left is
+the chart (the bounded base set and lab Observations the lab wording
+reads), which this change does not scope.
+
+Cost of these runs: before $3.97 (6 runs), after $1.28 (10 runs).
+
 ## Where the new bottleneck is
 
 | Path | Bottleneck | Evidence |
 |---|---|---|
 | Ask (question → answer) | **OpenEMR's PHP tier**, unchanged from Week 1: saturated at 10 users locally (420% CPU), failing at 50 (58%) | §1 |
-| Ask, wall-clock | The LLM draft: 85% of a real turn; **90–130 s** for a `/w2/ask` over a whole lab report (one 35k-in / 11.5k-out call) | §2, §6 |
+| Ask, wall-clock | The LLM draft: 85% of a real turn. A `/w2/ask` over a whole lab report was **90–196 s** (one call writing a citation per value); scoped by rule (D49) it is **7–13 s**, and 41–45 s when a question asks for every result and the cap binds | §2, §6, §7 |
 | Extraction, wall-clock and cost | **The vision call**: 15–31 s, $0.10–0.13 per document | §4b |
 | Extraction, local CPU | **OCR**: 8.25 cores at 50 concurrent, p95 10 s | §4a |
 | Guideline retrieval | **The cross-encoder reranker**: p95 335 s at 50 before the admission bound, **259 ms after** (D39); throughput is about 8 reranks/s, and memory is still up to 3.1 GiB | §5, §5b |

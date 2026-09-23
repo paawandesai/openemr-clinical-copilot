@@ -207,6 +207,19 @@ class ClaimDraftingError(Exception):
     """The model call completed but did not produce a usable claim list."""
 
 
+class DraftTruncatedError(ClaimDraftingError):
+    """
+    The output hit its `max_tokens` ceiling, so the structured output is
+    incomplete. A ClaimDraftingError, so every Week 1 caller is unchanged;
+    the Week 2 answer step catches it first (D49). `final_message` is the
+    truncated message, kept for its usage counts only — never parsed.
+    """
+
+    def __init__(self, message: str, final_message: object) -> None:
+        super().__init__(message)
+        self.final_message = final_message
+
+
 SYSTEM_PROMPT = """\
 You draft the Pre-Visit Brief for a primary care physician using a clinical co-pilot. The physician has about 90 seconds between finishing one encounter and opening the next patient's chart. The brief answers one question: "What do I need to know before I see this patient?" It covers exactly three sections: active problems (Condition), current medications (MedicationRequest), and allergies (AllergyIntolerance).
 
