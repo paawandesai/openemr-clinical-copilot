@@ -44,8 +44,39 @@ final readonly class SourceDocumentReader
      */
     public const PREVIEWABLE_MIME_TYPE = 'application/pdf';
 
-    public function __construct(private LoggerInterface $logger)
+    /** @var \Closure(string, list<int|string|null>): mixed */
+    private \Closure $querySingleRow;
+
+    /**
+     * @param ?\Closure(string, list<int|string|null>): mixed $querySingleRow
+     *     QueryUtils::querySingleRow() outside tests.
+     */
+    public function __construct(private LoggerInterface $logger, ?\Closure $querySingleRow = null)
     {
+        $this->querySingleRow = $querySingleRow ?? QueryUtils::querySingleRow(...);
+    }
+
+    /**
+     * The one query both forms of `document_id` run. Only the key column
+     * differs — `id` for OpenEMR's integer, `hash` for a Week 2 citation's
+     * SHA3-512 — so "belongs to the open chart, not deleted" is the same
+     * clause, bound to the same session pid, whichever form was asked for.
+     * A digest stored twice on one chart (OpenEMR does not deduplicate) is
+     * the same bytes, so the oldest row serves; an integer matches one row.
+     *
+     * @return array{string, list<int|string|null>}
+     */
+    public static function rowQuery(DocumentReadRequest $request): array
+    {
+        [$column, $key] = $request->sha3512 !== null
+            ? ['hash', $request->sha3512]
+            : ['id', $request->documentId];
+        return [
+            'SELECT `id`, `name`, `mimetype` FROM `documents`'
+            . ' WHERE `' . $column . '` = ? AND `foreign_id` = ? AND `deleted` = 0'
+            . ' ORDER BY `id` ASC LIMIT 1',
+            [$key, $request->pid],
+        ];
     }
 
     /**
@@ -53,11 +84,10 @@ final readonly class SourceDocumentReader
      */
     public function read(DocumentReadRequest $request): SourceDocumentBytes
     {
-        $row = QueryUtils::querySingleRow(
-            'SELECT `id`, `name`, `mimetype` FROM `documents`'
-            . ' WHERE `id` = ? AND `foreign_id` = ? AND `deleted` = 0',
-            [$request->documentId, $request->pid]
-        );
+        // By id, or by the digest a Week 2 citation carries: one query,
+        // scoped to the open chart either way (rowQuery()).
+        [$sql, $binds] = self::rowQuery($request);
+        $row = ($this->querySingleRow)($sql, $binds);
         if (!is_array($row) || !isset($row['id'])) {
             // One answer for "no such id", "another patient's document" and
             // "deleted": see DocumentFailure.
@@ -67,7 +97,8 @@ final readonly class SourceDocumentReader
             throw new DocumentUnavailable(DocumentFailure::NotPreviewable);
         }
 
-        $document = new Document($request->documentId);
+        $documentId = Row::int($row, 'id');
+        $document = new Document($documentId);
         if ($document->is_deleted() || $document->has_expired()) {
             throw new DocumentUnavailable(DocumentFailure::NotFound);
         }
@@ -77,19 +108,20 @@ final readonly class SourceDocumentReader
         } catch (Throwable $exception) {
             // Decryption failures name key material and file paths.
             $this->logger->error('Clinical Co-Pilot could not read a source document', [
-                'document_id' => $request->documentId,
+                'document_id' => $documentId,
                 'exception' => $exception,
             ]);
             throw new DocumentUnavailable(DocumentFailure::Unreadable);
         }
         if (!is_string($bytes) || $bytes === '') {
             $this->logger->error('Clinical Co-Pilot read an empty source document', [
-                'document_id' => $request->documentId,
+                'document_id' => $documentId,
             ]);
             throw new DocumentUnavailable(DocumentFailure::Unreadable);
         }
 
         return new SourceDocumentBytes(
+            $documentId,
             $bytes,
             self::PREVIEWABLE_MIME_TYPE,
             self::safeFilename(Row::string($row, 'name')),

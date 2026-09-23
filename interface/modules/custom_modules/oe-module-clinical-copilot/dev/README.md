@@ -39,6 +39,11 @@ node interface/modules/custom_modules/oe-module-clinical-copilot/dev/serve.mjs
 # http://127.0.0.1:8760/dev/fixture.html
 ```
 
+Run it from the repository root, exactly as above; it works from a checkout
+whose path contains spaces. It always prints `serving <dir>` and the URL —
+if it exits without printing, that is a bug, not a quiet success. An optional
+port follows the path (`… serve.mjs 0` picks a free one).
+
 The scenario picker switches samples; `?scenario=<id>` deep-links one.
 Click any **document** chip to scroll the page to its region and highlight
 it; chart and guideline chips open their own detail instead, because

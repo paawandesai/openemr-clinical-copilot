@@ -90,6 +90,9 @@ const DEFAULT_STRINGS = {
     failureModelOutputInvalid: 'the extractor returned something the schema rejects',
     failurePageLimitExceeded: 'too many pages',
     failureTimedOut: 'extraction timed out',
+    failureVisionCallFailed: 'the extraction model could not be reached',
+    failureNoFieldsLocated: 'nothing read from the file could be found on its pages',
+    failureInternalError: 'the extractor failed unexpectedly',
 };
 
 const STATUS_STRINGS = {
@@ -106,6 +109,9 @@ const FAILURE_STRINGS = {
     model_output_invalid: 'failureModelOutputInvalid',
     page_limit_exceeded: 'failurePageLimitExceeded',
     timed_out: 'failureTimedOut',
+    vision_call_failed: 'failureVisionCallFailed',
+    no_fields_located: 'failureNoFieldsLocated',
+    internal_error: 'failureInternalError',
 };
 
 function node(tag, className, text) {
@@ -196,7 +202,11 @@ export function moduleUploadSource({endpoint, statusEndpoint, fields}) {
     };
 }
 
-/** A failure with a code; the payload is kept only for a correlation id. */
+/**
+ * A failure with a code; the payload is kept only for a correlation id and
+ * the module's `message`, which the module guarantees is safe to show (it is
+ * fixed text chosen by the error code, never exception text or chart content).
+ */
 export class UploadError extends Error {
     constructor(code, payload) {
         super(code);
@@ -204,6 +214,7 @@ export class UploadError extends Error {
         this.code = code;
         this.correlationId =
             payload && typeof payload.correlation_id === 'string' ? payload.correlation_id : null;
+        this.safeMessage = payload && typeof payload.message === 'string' ? payload.message : null;
     }
 }
 
@@ -351,7 +362,10 @@ export function createUploadControl(
                 error instanceof UploadError && error.correlationId
                     ? ` (${strings.reference} ${error.correlationId})`
                     : '';
-            say(strings.uploadFailed + reference, true);
+            // The module's own wording says why (for instance, D40's 409: the
+            // file is already on a different chart); otherwise the generic line.
+            const why = error instanceof UploadError && error.safeMessage ? ` ${error.safeMessage}` : '';
+            say(strings.uploadFailed + why + reference, true);
             file.disabled = false;
             kind.disabled = false;
             send.disabled = false;

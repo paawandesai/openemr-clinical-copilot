@@ -25,7 +25,8 @@ from fastapi.testclient import TestClient
 from pydantic import ValidationError
 from structlog.testing import capture_logs
 
-from app.api import documents
+from app.api import documents, upload_guard
+from app.fhir import client as fhir_client
 from app.fhir.exceptions import PatientNotFoundError
 from app.main import app
 from app.middleware import langfuse_export
@@ -47,9 +48,12 @@ from tests.intake_extractor_support import (
     patient_uuid,
     pdf_bytes,
 )
+from tests.test_w2_documents_api import bearer
 from tests.test_w2_writeback_client import _post as post_writeback
 
-TOKEN = {"Authorization": "Bearer test-token"}
+#: An OpenEMR-shaped token with the extraction scopes: /documents is guarded
+#: (app/api/upload_guard.py) and refuses anything else before the body is read.
+TOKEN = bearer()
 ENCOUNTER = "7f3a9c2e-5b1d-4e8a-9c2f-000000000001"  # a UUID4, as D36 requires
 
 
@@ -84,13 +88,16 @@ def client(monkeypatch: pytest.MonkeyPatch) -> TestClient:
 
         return read
 
-    monkeypatch.setattr(documents.fhir_client, "ensure_patient_exists", patient_exists)
+    # Where the upload guard reads it, now that the route no longer does.
+    monkeypatch.setattr(fhir_client, "ensure_patient_exists", patient_exists)
     monkeypatch.setattr(documents, "fhir_chart_reader", chart_reader)
     monkeypatch.setattr(
         document_store, "DOCUMENTS", DocumentStore(vision=ground_truth_vision(SAMPLE))
     )
+    upload_guard.reset_for_tests()
     with TestClient(app) as test_client:
         yield test_client
+    upload_guard.reset_for_tests()
 
 
 def upload(client: TestClient, headers: dict | None = None):  # noqa: ANN201

@@ -8,7 +8,8 @@
  * `admin`/`users` ACL and therefore 403s for a physician — see
  * WriteBack\SourceDocumentReader and DECISIONS.md D30.
  *
- * Request (query): document_id.
+ * Request (query): document_id — OpenEMR's documents.id, or the SHA3-512 digest
+ *   a Week 2 citation carries (resolved on the open chart only).
  * Response: the PDF with `Content-Type: application/pdf`, or JSON
  *   {"status": "error", "error": DocumentFailure value, "message": ...}
  *   with DocumentFailure::httpStatus().
@@ -70,7 +71,7 @@ EventAuditLogger::getInstance()->newEvent(
     $session->get('authUser'),
     $session->get('authProvider'),
     1,
-    'Clinical Co-Pilot source document preview: documents.id ' . $read->documentId,
+    'Clinical Co-Pilot source document preview: documents.id ' . $document->documentId,
     $read->pid,
 );
 

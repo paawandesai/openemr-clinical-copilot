@@ -28,7 +28,9 @@ held by the extraction task until it finishes and nowhere else.
 
 from __future__ import annotations
 
+import asyncio
 import hashlib
+from collections.abc import Callable
 from dataclasses import dataclass
 
 import pymupdf
@@ -92,6 +94,8 @@ class DocumentStore:
     ) -> None:
         self.jobs = jobs if jobs is not None else ExtractionJobs(vision=vision)
         self._documents: dict[str, StoredDocument] = {}
+        # asyncio holds tasks weakly; these must outlive the request.
+        self._watchers: set[asyncio.Task[object]] = set()
 
     def accept(
         self,
@@ -100,11 +104,39 @@ class DocumentStore:
         kind: DocumentKind,
         *,
         chart_reader: ChartReader | None = None,
+        on_finished: Callable[[], None] | None = None,
     ) -> tuple[StoredDocument, IntakeExtractorOutput, bool]:
         """
         Register the upload and start extracting it (D7). Returns at once,
         on a running event loop. `(stored, status, duplicate)`.
+
+        `on_finished` is called exactly once, when no extraction this call
+        started is running any more: when the one it started ends — complete,
+        failed, raised or cancelled — or before this returns or raises, if it
+        started none (a duplicate, `DocumentBoundElsewhere`, `UnreadablePdf`).
+        The upload route passes the release of its extraction slot
+        (app/api/upload_guard.py), which is what makes the concurrency cap
+        cover the background job and not only the body read.
         """
+        handed_off = False
+        try:
+            stored, output, duplicate, started = self._accept(patient_uuid, pdf, kind, chart_reader)
+            if started and on_finished is not None:
+                self._call_when_done(stored.document.document_id, on_finished)
+                handed_off = True
+            return stored, output, duplicate
+        finally:
+            if not handed_off and on_finished is not None:
+                on_finished()
+
+    def _accept(
+        self,
+        patient_uuid: str,
+        pdf: bytes,
+        kind: DocumentKind,
+        chart_reader: ChartReader | None,
+    ) -> tuple[StoredDocument, IntakeExtractorOutput, bool, bool]:
+        """`accept` without the callback; the last element is whether a job started."""
         digest = hashlib.sha3_512(pdf).hexdigest()
         document_id = document_idempotency_key(digest)
         existing = self._documents.get(document_id)
@@ -113,7 +145,7 @@ class DocumentStore:
                 raise DocumentBoundElsewhere("this file is attached to a different chart")
             status = self.jobs.status(document_id)
             if status is not None:
-                return existing, status, True
+                return existing, status, True, False
 
         page_count, pages, has_text = read_geometry(pdf)
         stored = StoredDocument(
@@ -134,7 +166,30 @@ class DocumentStore:
         output = self.jobs.submit(
             patient_uuid, pdf, kind, document_id=document_id, chart_reader=chart_reader
         )
-        return stored, output, existing is not None
+        return stored, output, existing is not None, True
+
+    def _call_when_done(self, document_id: str, callback: Callable[[], None]) -> None:
+        """
+        Run `callback` once the job for `document_id` has ended, however it
+        ended. Watches through the public `jobs.wait`, so the job itself is
+        not changed; a done-callback fires on cancellation too, which a
+        `finally` inside the job would not if it were cancelled before it
+        first ran.
+        """
+
+        def finished(watcher: asyncio.Task[object]) -> None:
+            self._watchers.discard(watcher)
+            if not watcher.cancelled():
+                # Retrieved so asyncio does not report it; the job's own
+                # outcome is its status, which the status route reads.
+                watcher.exception()
+            callback()
+
+        watcher: asyncio.Task[object] = asyncio.get_running_loop().create_task(
+            self.jobs.wait(document_id)
+        )
+        self._watchers.add(watcher)
+        watcher.add_done_callback(finished)
 
     def lookup(self, document_id: str, patient_uuid: str) -> StoredDocument | None:
         stored = self._documents.get(document_id)

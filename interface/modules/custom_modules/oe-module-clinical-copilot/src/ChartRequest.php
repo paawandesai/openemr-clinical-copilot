@@ -1,11 +1,18 @@
 <?php
 
 /**
- * A request from the chart card that has passed the checks every co-pilot
- * endpoint applies, in this order: POST, CSRF token, a well-formed pid, the
- * medical-record ACL, and that the pid is still the patient open in the
- * session. brief.php and conversation.php both obtain one before doing
- * anything else, so neither can apply a weaker set.
+ * A request from a chart card that has passed the checks every co-pilot
+ * endpoint applies, in this order: the method, CSRF token, a well-formed pid,
+ * the ACL, and that the pid is still the patient open in the session.
+ * brief.php, conversation.php, and the Week 2 upload.php, upload-status.php
+ * and ask.php all obtain one before doing anything else, so none can apply a
+ * weaker set.
+ *
+ * The method is POST except for the extraction-status poll, a GET the
+ * browser repeats (docs/w2/ui-integration.md §2.3). A GET reads the same
+ * fields from the query string instead of the form body and is checked in
+ * the same order; nothing is skipped for it. Which ACL applies is the
+ * caller's: the brief reads the medical record, the Week 2 card documents.
  *
  * @package   OpenEMR
  * @link      https://www.open-emr.org
@@ -32,18 +39,25 @@ final readonly class ChartRequest
     /**
      * @param mixed $sessionPid The session's active patient, as stored.
      * @param \Closure(string): bool $csrfValid CsrfUtils::verifyCsrfToken() for this session.
-     * @param \Closure(): bool $mayReadRecord The Bootstrap::ACL check for the logged-in user.
+     * @param \Closure(): bool $mayReadRecord The ACL check for the logged-in user (Bootstrap::ACL, or Bootstrap::DOCUMENTS_ACL).
+     * @param 'POST'|'GET' $method
      * @throws BriefUnavailable
      */
-    public static function fromRequest(Request $request, mixed $sessionPid, \Closure $csrfValid, \Closure $mayReadRecord): self
-    {
-        if (!$request->isMethod('POST')) {
+    public static function fromRequest(
+        Request $request,
+        mixed $sessionPid,
+        \Closure $csrfValid,
+        \Closure $mayReadRecord,
+        string $method = 'POST',
+    ): self {
+        if (!$request->isMethod($method)) {
             throw new BriefUnavailable(BriefFailure::InvalidRequest);
         }
-        if (!$csrfValid($request->request->getString('csrf_token_form'))) {
+        $fields = $method === 'GET' ? $request->query : $request->request;
+        if (!$csrfValid($fields->getString('csrf_token_form'))) {
             throw new BriefUnavailable(BriefFailure::InvalidRequest);
         }
-        $requestedPid = filter_var($request->request->getString('pid'), FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
+        $requestedPid = filter_var($fields->getString('pid'), FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
         if ($requestedPid === false) {
             throw new BriefUnavailable(BriefFailure::InvalidRequest);
         }

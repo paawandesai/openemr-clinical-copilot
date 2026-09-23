@@ -14,6 +14,7 @@ declare(strict_types=1);
 
 namespace OpenEMR\Modules\ClinicalCopilot\WriteBack;
 
+use OpenEMR\Modules\ClinicalCopilot\W2\AgentDocumentId;
 use Symfony\Component\HttpFoundation\Request;
 
 /**
@@ -27,7 +28,12 @@ use Symfony\Component\HttpFoundation\Request;
  *    CSRF token: a token in a query string leaks through referrers and
  *    history, and CSRF protects state changes, which this is not. OpenEMR's
  *    own document retrieval does the same.
- * 2. **A well-formed `document_id`.**
+ * 2. **A well-formed `document_id`**: OpenEMR's integer `documents.id`, or
+ *    the Week 2 card's form of it — the agent's document id, which is the
+ *    file's SHA3-512 digest (W2\AgentDocumentId) and so the same string
+ *    OpenEMR stored in `documents.hash`. A citation chip carries the digest;
+ *    SourceDocumentReader resolves it on the open chart only, so it can
+ *    reach nothing an integer id could not.
  * 3. **The `patients`/`docs` ACL**, which is what OpenEMR's own viewer
  *    checks (`_rest_routes_standard.inc.php:505`,
  *    `interface/patient_file/document.php`).
@@ -44,8 +50,13 @@ use Symfony\Component\HttpFoundation\Request;
  */
 final readonly class DocumentReadRequest
 {
-    /** @param int<1, max> $documentId */
-    private function __construct(public int $documentId, public int $pid)
+    /**
+     * Exactly one of `$documentId` and `$sha3512` is set.
+     *
+     * @param ?int<1, max> $documentId
+     * @param ?string $sha3512 Lowercase hex, 128 characters.
+     */
+    private function __construct(public ?int $documentId, public int $pid, public ?string $sha3512 = null)
     {
     }
 
@@ -59,11 +70,11 @@ final readonly class DocumentReadRequest
         if (!$request->isMethod('GET')) {
             throw new DocumentUnavailable(DocumentFailure::InvalidRequest);
         }
-        $documentId = filter_var(
-            $request->query->getString('document_id'),
-            FILTER_VALIDATE_INT,
-            ['options' => ['min_range' => 1]]
-        );
+        $raw = $request->query->getString('document_id');
+        $sha3512 = preg_match(AgentDocumentId::PATTERN, $raw) === 1 ? $raw : null;
+        $documentId = $sha3512 === null
+            ? filter_var($raw, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]])
+            : null;
         if ($documentId === false) {
             throw new DocumentUnavailable(DocumentFailure::InvalidRequest);
         }
@@ -74,6 +85,6 @@ final readonly class DocumentReadRequest
         if ($pid === false) {
             throw new DocumentUnavailable(DocumentFailure::NoOpenChart);
         }
-        return new self($documentId, $pid);
+        return new self($documentId, $pid, $sha3512);
     }
 }

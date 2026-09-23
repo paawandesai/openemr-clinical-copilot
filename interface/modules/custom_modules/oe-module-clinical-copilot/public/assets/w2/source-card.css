@@ -418,3 +418,84 @@
   color: var(--ccw2-bad);
   font-weight: 700;
 }
+
+/* --- question box and answer header (ask.mjs, source-card.mjs) ----------- */
+/*
+ * Every piece of text sits on a panel painted with --ccw2-panel. The colours
+ * follow the OS's prefers-color-scheme, but the chart page follows OpenEMR's
+ * theme; text left on the page's own background turns near-white on white
+ * when the OS is dark and OpenEMR is not. A panel carries its own background,
+ * so its text matches it in either combination.
+ */
+
+.ccw2-ask,
+.ccw2-answer-head,
+.ccw2-root .ccw2-answer-body > .ccw2-prose {
+  border: 1px solid var(--ccw2-border);
+  border-radius: 6px;
+  padding: 0.6rem 0.75rem;
+  margin-bottom: 0.75rem;
+  background: var(--ccw2-panel);
+  color: var(--ccw2-text);
+}
+
+.ccw2-root .ccw2-answer-body > .ccw2-prose {
+  white-space: pre-wrap;
+}
+
+.ccw2-ask-question {
+  display: block;
+  width: 100%;
+  font: inherit;
+  padding: 0.35rem 0.5rem;
+  border: 1px solid var(--ccw2-border);
+  border-radius: 4px;
+  background: var(--ccw2-raised);
+  color: var(--ccw2-text);
+  resize: vertical;
+}
+
+.ccw2-ask-send {
+  margin-top: 0.4rem;
+  border: 1px solid var(--ccw2-chart);
+  background: var(--ccw2-chart);
+  color: #fff;
+  border-radius: 4px;
+  padding: 0.25rem 0.9rem;
+  cursor: pointer;
+}
+
+.ccw2-ask-send:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.ccw2-ask-documents,
+.ccw2-ask-status {
+  margin: 0.4rem 0 0;
+  font-size: 0.8rem;
+  color: var(--ccw2-muted);
+}
+
+.ccw2-answer-head {
+  padding: 0;
+  overflow: hidden;
+}
+
+.ccw2-patient-bar {
+  background: #212529;
+  color: #fff;
+  padding: 0.35rem 0.75rem;
+}
+
+.ccw2-answer-status {
+  margin: 0;
+  padding: 0.4rem 0.75rem;
+  font-weight: 700;
+}
+
+.ccw2-answer-status[data-answer-status="refused"],
+.ccw2-answer-status[data-answer-status="not_in_record"],
+.ccw2-answer-status[data-answer-status="partially_answered"] {
+  color: var(--ccw2-warn);
+}

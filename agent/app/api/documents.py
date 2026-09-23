@@ -10,6 +10,30 @@ unchanged — the JavaScript on feat/w2-ui already parses them — except that
 `extraction_id` and `failure_reason` are now real values rather than always
 null, and both routes take `patient_id` (below).
 
+CHECK ORDER — WHAT IS DECIDED BEFORE THE BODY IS READ
+-----------------------------------------------------
+The upload is the one route where an unauthenticated caller could make
+this service do real work — read up to 25 MiB, then spend OCR CPU and a
+vision call — so everything that can refuse a request without its body
+runs first, in this order (`app/api/upload_guard.py`, carried over from
+`chore/w2-deploy-rehearsal` onto this real route):
+
+1. `authorize_document_request` — an OpenEMR token (401), carrying the
+   scopes extraction reads with (403 `insufficient_scope`), accepted by
+   OpenEMR for this `patient_id` (401 / 404 / 502);
+2. `LIMITS.check_and_record` — per OAuth client, user and patient (429).
+   A request counts once it passes (1), even if it is later refused as
+   409 or 415: the caller made this service start work, and a refusal of
+   the bytes does not undo that;
+3. the declared `Content-Type` (415) and `Content-Length` (413, unread);
+4. an extraction slot (503, never a queue).
+
+Only then is the body read. The slot is held for the whole background
+extraction, not just the read: `DocumentStore.accept` hands it back
+exactly once, when the job ends however it ends, or at once when no job
+started (a duplicate, a 409, an unreadable file). A leaked slot would be a
+permanent 503 after `AGENT_EXTRACTION_MAX_CONCURRENT` leaks.
+
 D7 — EXTRACTION RUNS AT UPLOAD TIME
 -----------------------------------
 `POST /documents` returns as soon as the job is started, with `pending`
@@ -53,13 +77,13 @@ lost on restart, not shared between workers. Recorded as an open item.
 from __future__ import annotations
 
 import time
+from collections.abc import Callable
 
 from fastapi import APIRouter, Depends, Query, Request
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
-from app.api.conversation import _failures_as_api_errors
+from app.api import upload_guard
 from app.api.pre_visit_brief import ApiError
-from app.fhir import client as fhir_client
 from app.middleware.correlation import get_correlation_id
 from app.middleware.logging import log_event
 from app.middleware.telemetry import record_step
@@ -91,7 +115,8 @@ PDF_MIME = "application/pdf"
 _RAW_BODY_NOTE = "the PDF bytes, as the request body"
 
 _ERROR_RESPONSES: dict[int | str, dict[str, object]] = {
-    status: {"model": ErrorResponse} for status in (400, 401, 404, 409, 413, 415, 422, 502)
+    status: {"model": ErrorResponse}
+    for status in (400, 401, 403, 404, 409, 413, 415, 422, 429, 502, 503)
 }
 
 _PATIENT_QUERY = Query(
@@ -125,17 +150,6 @@ class ExtractionState(W2Contract):
     correlation_id: str
 
 
-def _require_token(credentials: HTTPAuthorizationCredentials | None) -> str:
-    if credentials is None or not credentials.credentials:
-        raise ApiError(
-            401,
-            ErrorCode.MISSING_BEARER_TOKEN,
-            "This endpoint needs the clinician's OpenEMR access token as a bearer token.",
-            {"WWW-Authenticate": "Bearer"},
-        )
-    return credentials.credentials
-
-
 @router.post(
     "/documents",
     response_model=UploadAccepted,
@@ -149,7 +163,10 @@ async def upload_document(
     credentials: HTTPAuthorizationCredentials | None = Depends(_bearer),
 ) -> UploadAccepted:
     started = time.perf_counter()
-    token = _require_token(credentials)
+    # Steps 1-4 of the module docstring: nothing below reads the body until
+    # the caller, the rate, the declared size and a free slot are settled.
+    caller = await upload_guard.authorize_document_request(credentials, patient_id)
+    upload_guard.LIMITS.check_and_record(caller)
     correlation_id = get_correlation_id() or "no-request-context"
 
     content_type = (request.headers.get("content-type") or "").split(";")[0].strip().lower()
@@ -159,25 +176,41 @@ async def upload_document(
             ErrorCode.INVALID_REQUEST,
             f"Only {PDF_MIME} can be extracted ({_RAW_BODY_NOTE}).",
         )
-
-    body = await request.body()
-    if len(body) == 0:
-        raise ApiError(400, ErrorCode.INVALID_REQUEST, "The uploaded file is empty.")
-    if len(body) > MAX_UPLOAD_BYTES:
+    declared = request.headers.get("content-length")
+    if declared is not None and declared.isdigit() and int(declared) > MAX_UPLOAD_BYTES:
         raise ApiError(
             413,
             ErrorCode.INVALID_REQUEST,
             f"The uploaded file is larger than {MAX_UPLOAD_BYTES} bytes.",
         )
-    if not body.startswith(b"%PDF-"):
-        raise ApiError(415, ErrorCode.INVALID_REQUEST, "The uploaded file is not a PDF.")
 
-    with _failures_as_api_errors("w2_document_upload_failed"):
-        await fhir_client.ensure_patient_exists(token, patient_id)
+    upload_guard.SLOTS.try_acquire()
+    release = _once(upload_guard.SLOTS.release)
+    try:
+        body = await request.body()
+        if len(body) == 0:
+            raise ApiError(400, ErrorCode.INVALID_REQUEST, "The uploaded file is empty.")
+        if len(body) > MAX_UPLOAD_BYTES:
+            raise ApiError(
+                413,
+                ErrorCode.INVALID_REQUEST,
+                f"The uploaded file is larger than {MAX_UPLOAD_BYTES} bytes.",
+            )
+        if not body.startswith(b"%PDF-"):
+            raise ApiError(415, ErrorCode.INVALID_REQUEST, "The uploaded file is not a PDF.")
+    except BaseException:
+        release()
+        raise
 
+    # From here `accept` owns the slot: it calls `release` exactly once,
+    # whether it raises, finds a duplicate, or starts a job that later ends.
     try:
         stored, output, duplicate = document_store.DOCUMENTS.accept(
-            patient_id, body, kind, chart_reader=fhir_chart_reader(token)
+            patient_id,
+            body,
+            kind,
+            chart_reader=fhir_chart_reader(caller.token),
+            on_finished=release,
         )
     except UnreadablePdf:
         raise ApiError(
@@ -230,11 +263,10 @@ async def extraction_state(
     credentials: HTTPAuthorizationCredentials | None = Depends(_bearer),
 ) -> ExtractionState:
     started = time.perf_counter()
-    token = _require_token(credentials)
+    # Checked exactly as the upload is (401 / 403 / 404 / 502); not counted
+    # against the upload limits, because polling is not new work.
+    await upload_guard.authorize_document_request(credentials, patient_id)
     correlation_id = get_correlation_id() or "no-request-context"
-
-    with _failures_as_api_errors("w2_extraction_state_failed"):
-        await fhir_client.ensure_patient_exists(token, patient_id)
 
     store = document_store.DOCUMENTS
     stored = store.lookup(document_id, patient_id)
@@ -271,6 +303,20 @@ async def extraction_state(
     )
 
 
+def _once(callback: Callable[[], None]) -> Callable[[], None]:
+    """`callback`, made safe to call more than once: only the first call runs it."""
+    called = False
+
+    def run() -> None:
+        nonlocal called
+        if not called:
+            called = True
+            callback()
+
+    return run
+
+
 def _reset_for_tests() -> None:
-    """Forget every upload. Used by tests only."""
+    """Forget every upload, and reset the limits and slots. Used by tests only."""
     document_store.DOCUMENTS.clear()
+    upload_guard.reset_for_tests()
