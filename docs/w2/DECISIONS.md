@@ -2026,39 +2026,42 @@ metabolic panel is 14 analytes.
 
 ---
 
-## D36 — The gate's rule order, and a Wilson floor that is a function of n
+## D42 — The gate's rule order, and a Wilson floor that is a function of n
 
 **Status:** DECIDED
 **Date:** 2026-09-22
 **Recorded from** work order 10 (`feat/w2-eval-gate`).
 
-**Numbering, for this entry and D37-D42.** This branch takes the contiguous
-block **D36-D42**, against `main` at `523d445`: D1-D35, 36 entries, no
-duplicates but the intentional D1 pair. D35 there is the intake-extractor's,
-restored by the renumbering branch, which is what this block previously
-collided with.
+**Numbering, for this entry and D43-D48.** This branch takes **D42-D48**,
+and this is the last renumbering: the merge order is settled rather than
+guessed. Ahead of it go `feat/w2-observability` (D36-D39), `feat/w2-graph`
+(D40) and `chore/w2-deploy-rehearsal` (D41); this branch merges last, so
+D42 is the first number free at that point.
 
-Fourth numbering of these seven entries; the earlier three are in the
-branch's history. Three branches still unmerged each hold their own D35 —
-`feat/w2-observability` (3 entries), `chore/w2-deploy-rehearsal` (1),
-`feat/w2-graph` (1) — so whichever of us merges after the others renumbers
-again. No block is reserved for them: their numbers already collide with
-main's, so they must move regardless, and reserving on a guess at their count
-leaves permanent gaps.
+`main` at `523d445` is D1-D35, 36 entries, no duplicates but the intentional
+D1 pair. **D36-D41 are therefore a deliberate gap** — the first time this
+branch has left one. The earlier refusals to reserve were right for the
+reason given then: a reservation that guesses how many entries a branch will
+end up with leaves permanent holes. That objection is gone now that the
+counts and the order are decided, and the alternative — taking D36 and making
+three other branches move again — costs more than the gap.
+
+Fifth and final numbering of these seven entries; the earlier four are in the
+branch's history.
 
 `grep -c '^## D' docs/w2/DECISIONS.md` is **43** here — 36 from `main` plus
-these seven — checked before and after the rebase. Two merges have silently
+these seven — checked before and after every rebase. Two merges have silently
 deleted entries from this file, so the count is verified rather than assumed,
 and any conflict in it is resolved by keeping BOTH sides.
 
 ---
 
-## D37 — The judge is a different Claude tier; `temperature 0` is not expressible
+## D43 — The judge is a different Claude tier; `temperature 0` is not expressible
 
-**Status:** DECIDED — its `known_limitation` paragraph is SUPERSEDED by D40
+**Status:** DECIDED — its `known_limitation` paragraph is SUPERSEDED by D46
 **Date:** 2026-09-22
 **Recorded from** work order 10.
-**Numbering:** part of the contiguous D36-D42 block. Basis, and why not D30-D34: see D36.
+**Numbering:** part of the contiguous D42-D48 block. Basis, and why not D30-D34: see D42.
 
 **Decision:** the judge tier runs `claude-haiku-4-5`, pinned to served version
 `claude-haiku-4-5-20251001`, with thinking off, a schema-constrained
@@ -2111,12 +2114,12 @@ begin with.
 
 ---
 
-## D38 — Box agreement is compared differently by page quality
+## D44 — Box agreement is compared differently by page quality
 
 **Status:** DECIDED
 **Date:** 2026-09-22
 **Raised by:** the locate spike (07), during work order 10.
-**Numbering:** part of the contiguous D36-D42 block. Basis, and why not D30-D34: see D36.
+**Numbering:** part of the contiguous D42-D48 block. Basis, and why not D30-D34: see D42.
 
 **Scope:** this is an **eval-side tolerance**, not a locate policy. What
 counts as a correct match is D24 (numbers, units, dates and lab flags are
@@ -2152,12 +2155,12 @@ W2-C2/W2-C9 (scanned).
 
 ---
 
-## D39 — The gate has a fourth exit code, and `0` no longer means "nothing was checked"
+## D45 — The gate has a fourth exit code, and `0` no longer means "nothing was checked"
 
 **Status:** DECIDED
 **Date:** 2026-09-22
 **Recorded from** work order 10, follow-up 2.
-**Numbering:** part of the contiguous D36-D42 block. Basis, and why not D30-D34: see D36.
+**Numbering:** part of the contiguous D42-D48 block. Basis, and why not D30-D34: see D42.
 
 **Decision:** `python -m evals.w2.gate` exits:
 
@@ -2204,14 +2207,14 @@ reads, not buried in a config file.
 
 ---
 
-## D40 — A meta-check fixture is admitted by measurement, over five rounds
+## D46 — A meta-check fixture is admitted by measurement, over five rounds
 
-**Status:** DECIDED — its admission rule is SUPERSEDED by D42
+**Status:** DECIDED — its admission rule is SUPERSEDED by D48
 **Date:** 2026-09-22
-**Supersedes:** the `known_limitation` paragraph of D37, and only that
-paragraph. The rest of D37 — the judge tier, the version pin, the cache key,
+**Supersedes:** the `known_limitation` paragraph of D43, and only that
+paragraph. The rest of D43 — the judge tier, the version pin, the cache key,
 the unavailability of `temperature 0` — stands unchanged.
-**Numbering:** part of the contiguous D36-D42 block. Basis, and why not D30-D34: see D36.
+**Numbering:** part of the contiguous D42-D48 block. Basis, and why not D30-D34: see D42.
 
 **Decision:** a fixture enters category M only if both hold:
 
@@ -2229,7 +2232,7 @@ On that rule the set is eight: `fc_pass`, `fc_fail`, `sr_pass`, `sr_fail`,
 `fc_fail_added_clinical_judgement`, each measured at 5/5 rounds and 15/15
 votes under the committed prompt and `pass` under a generic rubric.
 
-**What D37 got wrong, and why.** It recorded that the
+**What D43 got wrong, and why.** It recorded that the
 `factually_consistent` half of the meta-check could not be closed: every
 candidate that discriminated appeared to sit on the model's decision boundary
 and to be unstable there. That conclusion was drawn from **single rounds of
@@ -2254,11 +2257,11 @@ informative:**
 
 ---
 
-## D41 — What the gate asserts about D24, and where
+## D47 — What the gate asserts about D24, and where
 
 **Status:** DECIDED
 **Date:** 2026-09-22
-**Numbering:** part of the contiguous D36-D42 block. Basis, and why not D30-D34: see D36.
+**Numbering:** part of the contiguous D42-D48 block. Basis, and why not D30-D34: see D42.
 
 **Scope:** **D24 on `main` is the authoritative exact-only value-class
 policy.** This entry does not restate it, extend it, or vary it. It records
@@ -2277,7 +2280,7 @@ an extractor, because the tier order is where the policy would be
 re-introduced and a test that only exercises the default path would not see
 it. It is `critical`.
 
-**W2-C9** asserts D38's scanned-page box tolerance: centre-inside after the
+**W2-C9** asserts D44's scanned-page box tolerance: centre-inside after the
 recorded transform, or horizontal `IoU >= 0.9`. Not `critical` — a
 tolerance that is too tight is a false alarm, not a missed leak.
 
@@ -2301,13 +2304,13 @@ weaken.
 
 ---
 
-## D42 — Stability and discrimination are measured separately, both over five rounds
+## D48 — Stability and discrimination are measured separately, both over five rounds
 
 **Status:** DECIDED
 **Date:** 2026-09-22
-**Supersedes:** the admission rule in D40. The fixture list and the rejected
+**Supersedes:** the admission rule in D46. The fixture list and the rejected
 candidates recorded there stand, with one correction noted below.
-**Numbering:** part of the contiguous D36-D42 block. Basis, and why not D30-D34: see D36.
+**Numbering:** part of the contiguous D42-D48 block. Basis, and why not D30-D34: see D42.
 
 **Decision:** a meta-check fixture is admitted on one condition, and the *set*
 must satisfy a second:
@@ -2329,7 +2332,7 @@ prompt, and it is labelled so that nobody reads it as if it did.
 | `sr_fail`, `sr_fail_over_refusal` | discriminating (sr) |
 | `fc_pass`, `sr_pass`, `fc_fail`, `fc_fail_invented_unit_conversion` | alive-checks |
 
-**What D40 got wrong.** D40 stated a single two-part admission rule and
+**What D46 got wrong.** D46 stated a single two-part admission rule and
 claimed three discriminating `factually_consistent` fixtures. It measured
 *stability* over five rounds and *discrimination* over one — the same error it was
 written to correct, made on the other axis. `fc_fail_invented_unit_conversion` passed that one-round test and does not

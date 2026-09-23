@@ -21,5 +21,5 @@
       "check": "chk.c_ocr_path_locates_on_a_scanned_page"
     }
   ],
-  "guards_against": "An OCR-path locate regression: the text-layer path keeps working and every scanned document silently degrades to unsupported. The box TOLERANCE is D38's and is W2-C9's; this asserts the path runs at all."
+  "guards_against": "An OCR-path locate regression: the text-layer path keeps working and every scanned document silently degrades to unsupported. The box TOLERANCE is D44's and is W2-C9's; this asserts the path runs at all."
 }
