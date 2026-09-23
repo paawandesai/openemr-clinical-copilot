@@ -5,28 +5,38 @@ run, what to say, and what the viewer should see. It is built only from what
 exists at the snapshot below. Where a step has not been measured on the
 deployed host, the step says so.
 
-**Snapshot: `main@bc5236f`**, which is on `origin`. A claim marked PENDING
-rests on a branch not yet merged into `main`: **[PENDING `feat/w2-eval-gate`]** or **[PENDING `feat/w2-answer-scope`]**.
+**Snapshot: `main@caa92f8`**, which is on `origin`. It is an interim pin:
+the last step before submission repins every citation to one final `main`
+commit, after the event-tags (D52), DECISIONS-guard and eval-gate follow-up
+merges.
 
-- **The host runs `main@21f1053`**, deployed 2026-09-23. It was measured
-  after the deploy through the real chart card, one document at a time
-  (`docs/w2/DEPLOY.md` §8.0). The snapshot adds only that section on top of
-  it.
-- **Still to merge:** `feat/w2-eval-gate` and `feat/w2-answer-scope`, both on
-  `origin`. Every citation is then repinned to the one resulting `main`
-  commit, and the markers come out.
-- **Host figures** come from `DEPLOY.md` §8.0. Anything measured before the
-  deploy is labelled "rehearsal host, before the Week 2 deploy".
+- **Merged into `main`, so no longer marked:**
+  - `feat/w2-php-wiring` (`2ae4d98`);
+  - `chore/w2-deploy-rehearsal` (`21f1053`, and its post-deploy §8.0 at
+    `bc5236f`);
+  - `feat/w2-eval-gate` (`0b4ae04`);
+  - `feat/w2-answer-scope` (`ea198c8`, D50);
+  - the DECISIONS restore (`caa92f8`).
+- **[PENDING `chore/w2-deploy-rehearsal`]** marks a figure from `docs/w2/DEPLOY.md` §8.00, the D50 redeploy.
+  That section is on `chore/w2-deploy-rehearsal` (`88be2a2`, on `origin`)
+  and not yet in `main`.
+- **The host runs `main@ea198c8`** since 2026-09-23 17:12 UTC **[PENDING `chore/w2-deploy-rehearsal`]**. Figures
+  from `DEPLOY.md` §8.0 were measured on the earlier deploy, `21f1053`,
+  **before D50**. D50 changes only how a document answer is scoped, so they
+  still describe extraction, retrieval and memory. They do not describe the
+  answer step. Figures from before any Week 2 deploy are labelled
+  "rehearsal host, before the Week 2 deploy".
 
 ## What the demo shows, and where
 
 | Scene | Where it runs | Measured on the deployed host? |
 |---|---|---|
-| Upload a lab report, watch it extract, ask a document + guideline question | **the real chart on the host**, Documents & Sources card | **yes**: 3 of 3 answered, 7 document + 2 guideline citations, 0 unverified, 15.3–21.2 s (`DEPLOY.md` §8.0) |
+| Upload a lab report, watch it extract, ask a document + guideline question | **the real chart on the host**, Documents & Sources card | **before D50 only**: 3 of 3 answered, 7 document + 2 guideline citations, 0 unverified, 15.3–21.2 s (`DEPLOY.md` §8.0, `21f1053`). Not re-measured on `ea198c8` **[PENDING `chore/w2-deploy-rehearsal`]**. Rehearse it |
+| Ask about the whole report: a scoped answer | the same chart | **yes, after D50**: 6.9–8.4 s, `partially_answered`, 49 document citations, 0 unverified (`DEPLOY.md` §8.00 **[PENDING `chore/w2-deploy-rehearsal`]**) |
 | Click a document chip, see the box on the page | the same chart | the preview by a citation's digest is verified on the host (§8.0). The chip → box draw is verified on the **local** stack (`docs/w2/evidence/php-wiring-e2e-run.md`, run C) |
-| A critical potassium leads the answer | the same chart | **no**: gate case W2-H6 **[PENDING `feat/w2-eval-gate`]** and D40 item 9 say it should. Rehearse it |
+| A critical potassium leads the answer | the same chart | **no**: gate case W2-H6 and D40 item 9 say it should. Rehearse it |
 | A heavy scan refuses to state a value it cannot place | the chart, on the scan's own patient | **no**: the scan's extraction was measured on the host (§8.0), the question was not. Rehearse it |
-| The eval gate blocks a planted regression | a terminal, in a `feat/w2-eval-gate` worktree **[PENDING `feat/w2-eval-gate`]** | n/a: recorded fixtures (D6) |
+| The eval gate blocks a planted regression | a terminal, in `agent/` on `main` | n/a: recorded fixtures (D6) |
 | One encounter is one trace | the committed Langfuse screenshot (**local** Langfuse) | no: the host's Langfuse state after the deploy is not recorded |
 
 **Fallbacks** exist for the two unmeasured chart scenes (step 4 below):
@@ -76,18 +86,21 @@ the rehearsal is their test. What a rehearsal can change:
   and extraction live after a rehearsal, use a chart that has not seen that
   file yet, or accept that the status reads `complete` at once.
 
-### 3. The eval-gate worktree
+### 3. The eval gate
+
+It is on `main`:
 
 ```bash
-git fetch origin && git worktree add ../w2-eval-gate origin/feat/w2-eval-gate
-cd ../w2-eval-gate/agent && python -m pip install -r requirements.txt -r requirements-dev.txt
+cd agent && python -m pip install -r requirements.txt -r requirements-dev.txt
 python -m evals.w2.gate          # once, to warm the judge cache: 24 calls, ~$0.03
 ```
 
-The judge cost is measured in the gate README **[PENDING `feat/w2-eval-gate`]**
-("What a run costs"). With `ANTHROPIC_API_KEY` set and the cache warm, the
-recorded runs make 0 judge calls. Tesseract is required
-(`brew install tesseract` or `apt-get install tesseract-ocr`).
+- The judge cost is measured in `agent/evals/w2/README.md` ("What a run
+  costs").
+- With `ANTHROPIC_API_KEY` set and the cache warm, the recorded runs make 0
+  judge calls.
+- Tesseract is required (`brew install tesseract` or
+  `apt-get install tesseract-ocr`).
 
 ### 4. Fallbacks for the unmeasured scenes (optional)
 
@@ -165,10 +178,10 @@ code can't put back on the page."
 | Step | What appears | Source |
 |---|---|---|
 | Upload | the status moves from pending to complete, in about half a minute | the vision step took 29.4 s for this document on the host (§8.0); upload to complete took 34–35 s locally |
-| Answer | arrives in about **15–21 s** | 15.3, 20.9, 21.2 s on the host (§8.0) |
+| Answer | arrives in about **15–21 s**, measured before D50 | 15.3, 20.9, 21.2 s on `21f1053` (§8.0). Not re-measured since D50 **[PENDING `chore/w2-deploy-rehearsal`]** |
 | Answer header | a patient bar naming her | the local run C (`docs/w2/evidence/php-wiring-e2e-run.md`) |
 | Sections | chart, document, guideline, unsupported and flags, each in its own section | same |
-| Chips | **7 document** and **2 guideline**, and **no UNVERIFIED line** | host, 3 of 3 (§8.0); locally the chart chips varied between 0 and 4 with the draft |
+| Chips | **2 guideline** chips, **no UNVERIFIED line**, and the glucose row's document chips | before D50: 7 document + 2 guideline, 3 of 3 (§8.0). After D50, expect **more** document chips. Code adds one cited statement counting the in-range rows it did not itemise (D50 item 3). The status should stay `answered`, because the question names a test (D50 item 7). Unmeasured: confirm it in the rehearsal |
 
 **Say:**
 
@@ -207,7 +220,28 @@ boxes at all rather than plausible wrong ones."
 Sources: D27, D33, D51. The chip opens the stored PDF by the citation's
 digest, on the open chart only.
 
-### 1:50–2:30 — A critical potassium leads the answer (rehearse first)
+### 1:50–2:10 — Ask about the whole report: a scoped answer (measured on the host)
+
+**Do:** on the same chart, ask **"What were the results on the uploaded lab
+report?"**
+
+**Viewer should see** (`DEPLOY.md` §8.00 **[PENDING `chore/w2-deploy-rehearsal`]**):
+
+- an answer in about **7–8 s** (6.9–8.4 s end to end);
+- status `partially_answered`, with 0 unverified;
+- a cited statement saying how many in-range results were not listed
+  individually;
+- about 49 document chips. By D50 item 3, most of them are on that statement.
+
+**Say:** "Before this change the same question took ninety seconds: the model
+wrote a citation for every value on the report. Now code decides the scope.
+Anything critical, abnormal or named is itemised. The rest is counted, in one
+statement that cites each row and never calls them normal. It takes seven
+seconds, and the answer tells you what it left out and how to ask for it."
+
+Sources: D50; `LOAD_TEST.md` §7 (89.0 s before, in process); `DEPLOY.md` §8.00 **[PENDING `chore/w2-deploy-rehearsal`]**.
+
+### 2:10–2:40 — A critical potassium leads the answer (rehearse first)
 
 **Do:** on the same chart, upload `lab-critical-potassium-007.pdf`, then ask
 the same glucose-and-screening question.
@@ -216,7 +250,7 @@ the same glucose-and-screening question.
 as a critical value, before anything about glucose.
 
 - **Not measured on the host.** This scene rests on gate case W2-H6
-  **[PENDING `feat/w2-eval-gate`]**, which asserts this sample surfaces the
+ , which asserts this sample surfaces the
   6.8 as a critical value with its reading, and on D40 item 9.
 - If the rehearsal differs, use the in-process fallback and show
   `/tmp/demo-critical.txt`. Its `critical values:` line should show a stated
@@ -230,7 +264,7 @@ that has them in hand, and the lab-result cap can never drop one."
 Also say on camera: "These thresholds are a demo list, not reviewed for any
 site."
 
-### 2:30–3:10 — The heavy scan refuses to state what it cannot place (rehearse first)
+### 2:40–3:15 — The heavy scan refuses to state what it cannot place (rehearse first)
 
 **Do:**
 
@@ -269,12 +303,12 @@ that isn't on the page."
 Sources: D24; `docs/w2/evidence/extractor-measurement.txt`, 33.6% (36/107)
 located.
 
-### 3:10–4:10 — The eval gate blocks a planted regression
+### 3:15–4:10 — The eval gate blocks a planted regression
 
-Every figure in this scene is **[PENDING `feat/w2-eval-gate`]**, from its
-`docs/w2/EVAL_GATE_EVIDENCE.md` at `origin` tip `6d40ac5`.
+Every figure in this scene is from `docs/w2/EVAL_GATE_EVIDENCE.md` on
+`main`, re-seeded after the J3 fix.
 
-**Do:** in the `../w2-eval-gate/agent` terminal:
+**Do:** in `agent/`:
 
 ```bash
 python -m evals.w2.gate; echo "exit=$?"
@@ -313,7 +347,7 @@ that on every run."
 
 **Do:** restore the file with `git checkout -- app/models/w2/lab_values.py`.
 
-**Fallback:** show `docs/w2/EVAL_GATE_EVIDENCE.md` in that worktree: the
+**Fallback:** show `docs/w2/EVAL_GATE_EVIDENCE.md`: the
 control block, then the "Planted regressions" table, 14 rows, all BLOCKED.
 
 ### 4:10–4:40 — One encounter, one trace
@@ -335,8 +369,8 @@ do not quote its numbers.
 
 **Say:** "Every event for this encounter shares one correlation id: upload,
 extraction, retrieval, the answer. This is also how we found our slowest
-path: a question about a whole report makes about ninety claims, at about a
-second each. Events carry counts, ids and class names, never values, and
+path: a question about a whole report was writing eleven thousand tokens,
+about ninety seconds. That's what the scoped answer fixed. Events carry counts, ids and class names, never values, and
 the event schema enforces that. Production metrics come from stdout,
 because no BAA covers a hosted tracing service."
 
@@ -347,10 +381,10 @@ Sources: D36, D38; `docs/w2/OBSERVABILITY.md` §2 (encounter `07c0fd35-…`,
 
 **Say:** "What's not done:
 
-- A question about a whole report is too slow, at about ninety seconds,
-  because it cites every value. The fix is measured but not merged.
-- The deployed flow has been measured one document at a time, never under
-  load.
+- The deployed flow has been measured one question at a time, never
+  under load.
+- Asking for every result on a 44-row report still takes about 43 seconds,
+  right at our alert threshold.
 - The prompt-injection cases prove containment, not refusal.
 - The judge is uncalibrated.
 
@@ -363,14 +397,14 @@ we showed traces to a file."
 
 | Asset | Where | Branch |
 |---|---|---|
-| The deployed chart | `https://64.177.42.210:9300`, `physician`; card "Clinical Co-Pilot: Documents & Sources" | host runs `main@21f1053` |
-| Post-deploy measurements | `docs/w2/DEPLOY.md` §8.0 | `main` |
+| The deployed chart | `https://64.177.42.210:9300`, `physician`; card "Clinical Co-Pilot: Documents & Sources" | host runs `main@ea198c8` **[PENDING `chore/w2-deploy-rehearsal`]** |
+| Post-deploy measurements | `docs/w2/DEPLOY.md` §8.0 (`21f1053`); §8.00 (`ea198c8`, D50) | §8.0 on `main`; §8.00 on `chore/w2-deploy-rehearsal` **[PENDING `chore/w2-deploy-rehearsal`]** |
 | Local chart run, including the chip → box | `docs/w2/evidence/php-wiring-e2e-run.md` | `main` |
 | Samples | `agent/evals/w2/factory/output/samples/{lab-clean-001,lab-scanned-heavy-abnormal-002}/` | `main` |
-| Critical sample | `agent/evals/w2/staging/samples/lab-critical-potassium-007/` | `main`; moved to the gated `agent/evals/w2/fixtures/scenarios/` on `feat/w2-eval-gate` **[PENDING `feat/w2-eval-gate`]** |
+| Critical sample | `agent/evals/w2/staging/samples/lab-critical-potassium-007/` | `main`, with the gate's copy in `agent/evals/w2/fixtures/scenarios/` |
 | Recorded vision | `agent/evals/w2/staging/transcriptions/` | `main` |
 | In-process ask path | `agent/scripts/w2_e2e_ask.py` | `main` |
 | Fixture UI | `interface/modules/custom_modules/oe-module-clinical-copilot/dev/` | `main` |
-| Eval gate and its evidence | `agent/evals/w2/gate/`, `.gitlab-ci.yml`, `docs/w2/EVAL_GATE_EVIDENCE.md` | `feat/w2-eval-gate` **[PENDING `feat/w2-eval-gate`]** |
+| Eval gate and its evidence | `agent/evals/w2/gate/`, `.gitlab-ci.yml`, `docs/w2/EVAL_GATE_EVIDENCE.md` | `main` |
 | Langfuse screenshots | `docs/w2/evidence/screenshots/*.png` | `main` |
 | Offline evidence (measurement, heavy-scan replay, routing check) | `docs/w2/evidence/extractor-measurement.txt`, `docs/w2/evidence/demo_checks.py` | this branch |

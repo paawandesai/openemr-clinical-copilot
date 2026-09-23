@@ -7,29 +7,27 @@ architecture is unchanged and is not repeated here:
 [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) (authorization, tool scope,
 conversation state, the deterministic verifier).
 
-**Snapshot: `main@bc5236f`.** Every path and number below is on that commit
-unless it is marked PENDING. That commit is on `origin`.
+**Snapshot: `main@caa92f8`**, which is on `origin`. It is an interim pin:
+the last step before submission repins every citation to one final `main`
+commit, after the event-tags (D52), DECISIONS-guard and eval-gate follow-up
+merges.
 
-**PENDING** marks a claim that rests on a branch not yet merged into `main`,
-and names the branch:
-
-| Marker | Branch | On `origin`? | What rests on it |
-|---|---|---|---|
-| **[PENDING `feat/w2-eval-gate`]** | `feat/w2-eval-gate` | yes, unmerged; merges **last** | the eval gate, its cases and evidence (`docs/w2/EVAL_GATE_EVIDENCE.md`); D42–D48 |
-| **[PENDING `feat/w2-answer-scope`]** | `feat/w2-answer-scope` | yes, unmerged | the scoped answer and its before/after numbers (`LOAD_TEST.md` §7); D50 |
-
-`feat/w2-php-wiring` (at `2ae4d98`) and `chore/w2-deploy-rehearsal` (at
-`21f1053`) have merged, and their claims are no longer marked. The host runs
-`main@21f1053` since 2026-09-23; the snapshot `bc5236f` adds only the
-post-deploy measurements (`DEPLOY.md` §8.0). When the rest are in, every citation is repinned to the one resulting
-`main` commit and the markers come out. Until then a PENDING claim cannot be
-checked from `main`.
-
-**Host figures come from after the deploy** (`DEPLOY.md` §8.0) wherever one exists.
-A figure measured before it, on `a78ba51`, is labelled "rehearsal host, before the Week 2 deploy". Those are
-kept only where no post-deploy figure exists (the Week 1 session cost, the
-OCR-contended rerank, the write-back rehearsal) or for comparison.
-
+- **Merged into `main`, so no longer marked:**
+  - `feat/w2-php-wiring` (`2ae4d98`);
+  - `chore/w2-deploy-rehearsal` (`21f1053`, and its post-deploy §8.0 at
+    `bc5236f`);
+  - `feat/w2-eval-gate` (`0b4ae04`);
+  - `feat/w2-answer-scope` (`ea198c8`, D50);
+  - the DECISIONS restore (`caa92f8`).
+- **[PENDING `chore/w2-deploy-rehearsal`]** marks a figure from `docs/w2/DEPLOY.md` §8.00, the D50 redeploy.
+  That section is on `chore/w2-deploy-rehearsal` (`88be2a2`, on `origin`)
+  and not yet in `main`.
+- **The host runs `main@ea198c8`** since 2026-09-23 17:12 UTC **[PENDING `chore/w2-deploy-rehearsal`]**. Figures
+  from `DEPLOY.md` §8.0 were measured on the earlier deploy, `21f1053`,
+  **before D50**. D50 changes only how a document answer is scoped, so they
+  still describe extraction, retrieval and memory. They do not describe the
+  answer step. Figures from before any Week 2 deploy are labelled
+  "rehearsal host, before the Week 2 deploy".
 
 ---
 
@@ -66,9 +64,9 @@ beside chart facts without the two blurring. Nine decisions carry the weight.
    endpoint writes the lab chain in one transaction behind a ledger keyed
    UNIQUE on document hash, test code and collection date. Results land
    unreviewed.
-9. **The measured code cannot move its own gate** (D8, D42–D48) **[PENDING `feat/w2-eval-gate`]**. Gated paths
+9. **The measured code cannot move its own gate** (D8, D42–D48). Gated paths
    are hook-protected. 72 deterministic checks must pass at 100%, a regressed
-   critical case blocks alone, and all 14 planted regressions **[PENDING `feat/w2-eval-gate`]** block (§6).
+   critical case blocks alone, and all 14 planted regressions block (§6).
 
 **Tradeoffs:**
 
@@ -82,18 +80,24 @@ beside chart facts without the two blurring. Nine decisions carry the weight.
 
 **Not true yet:**
 
-- **A whole-report answer takes about 90 s: 88.2–91.8 s** (answer step,
-  n = 3, `LOAD_TEST.md` §7 on `feat/w2-answer-scope` **[PENDING `feat/w2-answer-scope`]**). It makes 91 citations and writes about 11.5k output tokens.
-  - That is past the 90 s budget, and about half the $0.82 encounter cost.
-  - **Answer latency scales with the number of claims**, at about 1 s per
-    citation plus 3.7 s (estimated fit, R² = 0.997).
-  - From the chart, one analyte plus one guideline topic makes 8–12
-    citations and answers in 17.2–19.5 s (`docs/w2/evidence/php-wiring-e2e-run.md`).
-  - Scoping brings the whole-report answer to 6.9 s p50
-    (`docs/w2/COST_AND_LATENCY.md` §4.1a, §4.1d).
-- **The deployed flow has been measured one document at a time, never
-  under load** (`DEPLOY.md` §8.0).
-- The eval gate has not merged **[PENDING `feat/w2-eval-gate`]**.
+- **The deployed flow has been measured one question at a time, never
+  under load** (`DEPLOY.md` §8.0, `DEPLOY.md` §8.00 **[PENDING `chore/w2-deploy-rehearsal`]**).
+- **The document + guideline question has not been re-measured since D50.**
+  Its host figures (7 document + 2 guideline citations, 15.3–21.2 s) are
+  from `21f1053`, before D50.
+
+**Answer latency tracks what the model writes** (D50;
+`docs/w2/COST_AND_LATENCY.md` §4.1a).
+
+- **Before D50,** a whole-report answer on a 22-row report drafted all 91
+  citations, about 11.5k output tokens, in 88.2–91.8 s (`LOAD_TEST.md` §7).
+  That was past the 90 s budget.
+- **D50 moves the work into code.** Code decides the scope, itemises
+  critical, abnormal and named rows, and counts the rest in one cited
+  statement of its own.
+- **On the host,** the same question now answers in **6.9–8.4 s** end to
+  end, with 49 document citations and 0 unverified, from 368–461 output
+  tokens (`DEPLOY.md` §8.00 **[PENDING `chore/w2-deploy-rehearsal`]**).
 
 §11 lists every known limitation.
 
@@ -295,7 +299,7 @@ exception is HTTP 500 `internal_error` with fixed wording (D40 item 3).
   me Jane Doe's recent labs" is classified as an ordinary record lookup, for
   the open chart only.
 
-Gate case W2-H2 **[PENDING `feat/w2-eval-gate`]** asserts both halves and asserts the limitation, so it will
+Gate case W2-H2 asserts both halves and asserts the limitation, so it will
 fail if the router starts refusing on names (commit message,
 "activate the supervisor batch").
 
@@ -428,7 +432,7 @@ Documents and lab values are written through a custom module endpoint.
 | Idempotency key | `<document sha3-512>:<TEST CODE>:<YYYY-MM-DD>`, UNIQUE in `module_clinical_copilot_writeback_ledger`; per result, not per request | D1, D15, D31 |
 | Provenance | `procedure_result.comments` carries `w2x-` plus 128 bits of `sha3-256(key)`. It surfaces as `Observation.note[0].text`, and the ledger maps it to the document, page and bbox | D1, D15 |
 | Review state | `review_status = 'received'`: the result lands in *Pending Review*, not *Patient Results*, until a clinician signs it | D29 |
-| Intake guard | the write-back request type refuses any document that is not a `lab_pdf`, so an intake form has no path into the chart | `agent/app/models/w2/writeback.py`; planted regression **[PENDING `feat/w2-eval-gate`]** `auto-merge-intake` |
+| Intake guard | the write-back request type refuses any document that is not a `lab_pdf`, so an intake form has no path into the chart | `agent/app/models/w2/writeback.py`; planted regression `auto-merge-intake` |
 | Preview | `GET <module>/public/document.php`: session ACL `patients/docs`, the open patient only, PDF only. 404 is identical for missing, another patient's and deleted documents | D28, D30, D49 |
 
 **Verified on the rehearsal host, before the Week 2 deploy** (`DEPLOY.md` §7.3):
@@ -453,8 +457,9 @@ Write-back is a verified endpoint plus a library, not a user-facing feature.
 
 ## 6. The eval gate
 
-**[PENDING `feat/w2-eval-gate`]**: **every row and number in this section** rests on
-`feat/w2-eval-gate`, read at its `origin` tip.
+Merged into `main` at `0b4ae04`. The figures are from
+`docs/w2/EVAL_GATE_EVIDENCE.md` at the snapshot, re-seeded after the J3
+fix.
 
 | | |
 |---|---|
@@ -598,23 +603,29 @@ API-collection encounter, `07c0fd35-…`, is one Langfuse trace: 2 min 52 s,
 
 ## 8. Deployment state
 
-The host `64.177.42.210` runs **`main@21f1053`**, deployed 2026-09-23 16:40
-UTC. The agent image and the OpenEMR module are both built from it. It was
-measured after the deploy through the real chart card, one document at a
-time (`DEPLOY.md` §8.0).
+The host `64.177.42.210` runs **`main@ea198c8`**, deployed 2026-09-23 17:12
+UTC **[PENDING `chore/w2-deploy-rehearsal`]**. That is the eval gate and D50 on top of `21f1053`, with the module,
+Caddyfile and compose file unchanged.
 
-| Surface | `main` | Host, after the deploy (`DEPLOY.md` §8.0) |
+- It was first deployed at `21f1053` (16:40 UTC) and measured through the
+  real chart card, one document at a time (`DEPLOY.md` §8.0).
+- The D50 redeploy re-verified the guard and measured the whole-report
+  question (`DEPLOY.md` §8.00 **[PENDING `chore/w2-deploy-rehearsal`]**).
+- Rows below are from §8.0 unless marked. They describe `21f1053`, and D50
+  changes only the answer step.
+
+| Surface | `main` | Host (`DEPLOY.md` §8.0; §8.00 where marked) |
 |---|---|---|
 | Week 1 brief + conversation in the chart | yes | yes; brief 24/24 and medication and lab turns unchanged after the deploy |
 | Documents & Sources card and its routes | yes (`Bootstrap.php`; `public/{upload,upload-status,ask,document}.php`) | yes; the post-deploy run was driven through it |
 | `POST /documents` | the real extractor, behind the upload guard (token, scopes and OpenEMR's acceptance, then rate limits, declared size and an extraction slot, all before the body is read) | yes; the guard was verified on the new image **before** the proxy served it: 401 with no bearer or a made-up one, 403 without the scopes, 200 with them, 409 for the same bytes on a second chart, and 422 for an unknown patient, refused on its id format before OpenEMR is asked (`DEPLOY.md` §2.2, §8.0) |
 | Extraction | vision + locate + checks | one vision call per document, 15.7–54.5 s; OCR +4.9–6.1 s per scanned page; locate and verify ~1 s; 0 parse failures over five documents |
-| `POST /w2/ask` (supervisor) | yes | yes; the document + guideline question answered 3 of 3 times with 7 document + 2 guideline citations, 0 unverified, 15.3–21.2 s end to end |
+| `POST /w2/ask` (supervisor) | yes | yes. On `21f1053`, before D50, the document + guideline question answered 3 of 3 with 7 document + 2 guideline citations, 0 unverified, 15.3–21.2 s end to end. On `ea198c8`, the whole-report question answered 3 of 3 per report as `partially_answered` (D50 item 7), 0 unverified: 22 rows 6.9–8.4 s with 49 document citations, 44 rows 12.0–13.1 s with 97 (`DEPLOY.md` §8.00 **[PENDING `chore/w2-deploy-rehearsal`]**) |
 | Retrieval, D39 admission, D41 budget and circuit | yes | yes; retrieval including rerank 1.55–1.68 s, and every rerank ran, none over budget, busy or skipped |
 | Preview by a citation's digest | yes | 200 `application/pdf` with that chart open, bytes identical to the upload; 404 with another chart open |
 | Memory | agent capped at 4.5 GiB | peak **1.32 GiB** over the run, 0 OOM kills; 3.7 GiB is the stress bound with concurrent reranking (`DEPLOY.md` §8) |
 | Lab write-back endpoint and ledger | yes | yes; rehearsed on the rehearsal host, before the Week 2 deploy (§5) |
-| Eval gate | no (branch) | n/a: runs on fixtures (D6) |
+| Eval gate | yes (`0b4ae04`) | n/a: runs on fixtures (D6) |
 
 **What the deploy did not measure:** load. Every post-deploy figure is one
 document or one question at a time, so the concurrency limits (the D39
@@ -638,7 +649,7 @@ The agent image grew from 360 MB to 1.18 GB, and idle memory from 50 MiB to
 
 | Risk | Where it bites | Mitigation today | What is still exposed |
 |---|---|---|---|
-| **The whole-report answer** | one `/w2/ask` about a whole uploaded report: answer step 88.2–91.8 s, 91 citations, ~11.5k tokens out, about $0.45 (`LOAD_TEST.md` §7 on `feat/w2-answer-scope` **[PENDING `feat/w2-answer-scope`]**); whole request 91.9 s and 130.5 s (`LOAD_TEST.md` §6) | the 45 s `answer_p95_latency` alert covers `/w2/ask` (`ALERTS.md` §1) | past the 90 s budget with no load at all; the fix (bound the output, or answer only from the rows the question names) is in progress on `feat/w2-answer-scope` **[PENDING `feat/w2-answer-scope`]** |
+| **The whole-report answer** (fixed on `main` and on the host) | before D50: answer step 88.2–91.8 s, 91 citations, ~11.5k tokens out, about $0.45 (`LOAD_TEST.md` §7); whole request 91.9 s and 130.5 s (`LOAD_TEST.md` §6) | D50: code scopes and counts; the answer step is 6.9 s p50 in process (`LOAD_TEST.md` §7), and on the host 6.9–8.4 s end to end, ~$0.084 (`DEPLOY.md` §8.00 **[PENDING `chore/w2-deploy-rehearsal`]**) | the 44-row "Show me all the results" case lands at 43.4 s, at the 45 s alert (`LOAD_TEST.md` §7) |
 | **One process, in-memory stores** (conversations, documents, extraction jobs, the rerank circuit) | a second worker or replica makes uploads invisible (`404`), re-bills extraction, and loses follow-up context; a restart forgets every upload | one uvicorn worker; a startup warning when more are configured (D40 item 10, `agent/docs/deployment.md` §7) | a second *replica* is invisible to the check; no persistence |
 | **Reranker under load** | 50 concurrent retrievals: p95 335,224 ms, 0% reranked, 5.3 GiB peak RSS on a cold run (`LOAD_TEST.md` §5) | D39 admission bound: p95 259 ms, but only 1% reranked in the burst and 6.2% at 50 paced users (§5b). A 4.5 GiB memory cap on the agent, so overload restarts the agent rather than the kernel killing the database (`DEPLOY.md` §8) | deployed. After the deploy, one document at a time, the agent peaked at 1.32 GiB (`DEPLOY.md` §8.0). The stress bound, with concurrent reranking, is **3.7 GiB**, and a heavier mix was OOM-killed at a 5 GiB test cap (`DEPLOY.md` §8) |
 | **The rerank circuit latched** (fixed on `main`) | one slow rerank turned reranking off until restart; 35 of the next 60 turns ran unreranked (D41) | it closes itself after 60 s or 10 skipped turns, and skipped turns are reported apart from slow ones (D41); at demo load it opened, skipped 10 turns and closed (`DEPLOY.md` §8) | deployed; in the post-deploy questions no rerank was skipped (`DEPLOY.md` §8.0) |
@@ -657,15 +668,15 @@ The agent image grew from 360 MB to 1.18 GB, and idle memory from 50 MiB to
 |---|---|
 | Extraction | D3, D7, D10, D11, D13, D16, D20 (supersedes D12), D24, D35 |
 | Contracts | D9, D14, D17, D18, D21, D22 |
-| Routing and the ask path | D4, D40, D50\* (the scoped document answer) |
+| Routing and the ask path | D4, D40, D50 (the scoped document answer) |
 | Retrieval | D25 (supersedes D5, D23), D26, D39, D41 |
 | UI | D27, D28, D30, D32, D33, D34, D49 (the preview URL; supersedes D28 and D30 on that point), D51 (the card's module routes; a citation's digest opens the preview) |
 | Write-back | D1 (superseding), D2, D15, D29, D31 |
 | Observability | D36, D37, D38 |
-| Evals | D6, D8, D42–D48 **[PENDING `feat/w2-eval-gate`]** |
+| Evals | D6, D8, D42–D48 |
 
-D42–D48 and D50 are on unmerged branches (marked PENDING above). This document
-makes no new decision and takes no D-number.
+All of these are on `main`. This document makes no new decision and takes no
+D-number.
 
 ---
 
@@ -681,9 +692,9 @@ makes no new decision and takes no D-number.
 2. **The judge cannot enforce D20 at the prose level.** "The laboratory
    reported the potassium as normal", over a blank flag column, was graded
    **pass** in 12 of 15 votes under the committed `factually_consistent`
-   prompt (D46 **[PENDING `feat/w2-eval-gate`]**). Blank-is-not-normal is held deterministically instead: by
-   code-rendered sentences (§4) and by gate case W2-D2 **[PENDING `feat/w2-eval-gate`]**. The judge is
-   **uncalibrated** against human labels (D43 **[PENDING `feat/w2-eval-gate`]**, D48).
+   prompt (D46). Blank-is-not-normal is held deterministically instead: by
+   code-rendered sentences (§4) and by gate case W2-D2. The judge is
+   **uncalibrated** against human labels (D43, D48).
 3. **The heavy-scan located rate is low by design: 34% (36/107)** with real
    vision, and 33.6% (36/107) in replay (§1.4). D24 chose exact-only matching
    for numbers, units, dates and flags over recall. On that scan the flag
@@ -708,37 +719,37 @@ makes no new decision and takes no D-number.
    located (§1.4 evidence file). It is not evidence that the extractor reads
    flags in general (D20, "Consequence for the eval gate").
 8. **Prompt injection inside an uploaded PDF is contained, not tested for
-   refusal** **[PENDING `feat/w2-eval-gate`]**.
+   refusal**.
    - W2-I1 and W2-I2 assert that a payload in the text layer or the
      metadata reaches no log, trace, extraction output or disclosure.
    - W2-I3 asserts it cannot redirect a chart write.
    - Their extraction bypasses the vision model, so nothing tests whether a
-     model that reads the payload declines it. That is W2-I5 **[PENDING `feat/w2-eval-gate`]**,
+     model that reads the payload declines it. That is W2-I5,
      which is pending along with I4 (§6). The structural defences are that the model writes no prose,
    its citation ids are narrowed by schema, and it has no write channel.
-9. **Live evidence for a combined answer is six runs.** On the deployed
-   host, three runs of the document + guideline question each cited 7
-   document + 2 guideline values, 0 unverified (`DEPLOY.md` §8.0). Before that, on the
+9. **Live evidence for a combined answer is six runs, all before D50.** On
+   the deployed host at `21f1053`, three runs of the document + guideline
+   question each cited 7 document + 2 guideline values, 0 unverified
+   (`DEPLOY.md` §8.0). Not re-measured on `ea198c8`. Before that, on the
    local stack: From the real chart (`docs/w2/evidence/php-wiring-e2e-run.md`), three answers to one question cited
    a document and a guideline together: 6 + 4 + 2 citations, then 6 + 0 + 2
    twice, with 0 unverified each time. None of them ran on the host.
    `agent/scripts/w2_e2e_ask.py` asks the same question in process; no
    output from it is committed.
-10. **A question about a whole uploaded report is too slow and too
-    expensive on `main`.** The answer step takes 88.2–91.8 s (n = 3) and
-    costs about $0.45: it cites all 91 values on a 22-row report, writing
-    ~11.5k tokens (`LOAD_TEST.md` §7 on `feat/w2-answer-scope` **[PENDING `feat/w2-answer-scope`]**).
-    - `LOAD_TEST.md` §6 measured the whole request at 91.9 s and 130.5 s.
-    - Answer latency scales with the number of claims, at about 1 s each.
-      One analyte plus one guideline topic (8–12 citations) answers in
-      17.2–19.5 s (`docs/w2/evidence/php-wiring-e2e-run.md`).
-    - The fix is scoping, not a faster model or retriever. On
-      `feat/w2-answer-scope` it brings the 22-row answer to 6.9 s p50 and
-      $0.084 (`docs/w2/COST_AND_LATENCY.md` §4.1a, §4.1d).
-    - That branch is on `origin`, unmerged (D50).
+10. **The whole-report question was too slow before D50, and the fix is
+    narrower than it looks.**
+    - Before: the answer step took 88.2–91.8 s and about $0.45, citing all 91
+      values on a 22-row report (`LOAD_TEST.md` §7).
+    - After D50 on the host: 6.9–8.4 s and about $0.084 (`DEPLOY.md` §8.00 **[PENDING `chore/w2-deploy-rehearsal`]**).
+    - The answer is `partially_answered` by design: in-range rows are counted
+      in one cited statement, not itemised (D50 item 7).
+    - "Show me all the results" on 44 rows still takes 43.4 s p50, at the
+      45 s alert (`LOAD_TEST.md` §7).
+    - The 10,000-token output ceiling is about 76 s of writing (D50 item 5),
+      which is inside the 90 s budget, but only just.
 11. **A wrapped field's multi-box path is unit-tested only.** No sample wraps a
     field (D34).
-12. **The deployed flow is measured one document at a time only.** The card,
-    its routes, the guard and the ask path run on the host (`main@21f1053`,
-    `DEPLOY.md` §8.0). No load test has run against them there.
+12. **The deployed flow is measured one question at a time only.** The card,
+    its routes, the guard and the scoped ask path run on the host
+    (`main@ea198c8`, `DEPLOY.md` §8.00 **[PENDING `chore/w2-deploy-rehearsal`]**). No load test has run against them there.
 13. **No FHIR paging.** `_count` is the sharp edge (`docs/w2/WEEK1_DEBT.md` §4).

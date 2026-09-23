@@ -19,40 +19,39 @@ says when there is no value.
 denominator. A metric whose denominator is small says so. A metric with no
 live measurement says "not measured", not a target.
 
-**Snapshot: `main@bc5236f`**, which is on `origin`. A claim marked PENDING
-rests on a branch not yet merged into `main`: **[PENDING `feat/w2-eval-gate`]** or **[PENDING `feat/w2-answer-scope`]**.
+**Snapshot: `main@caa92f8`**, which is on `origin`. It is an interim pin:
+the last step before submission repins every citation to one final `main`
+commit, after the event-tags (D52), DECISIONS-guard and eval-gate follow-up
+merges.
 
-- **Merged, no longer marked:**
-  - `feat/w2-php-wiring`, at `2ae4d98`: the Documents & Sources card, its
-    routes, the upload guard on the real `/documents`, and the correlation
-    header;
-  - `chore/w2-deploy-rehearsal`, at `21f1053`: `docs/w2/DEPLOY.md`, D41,
-    the self-closing rerank circuit, single-threaded Tesseract, and the
-    agent's 4.5 GiB memory cap.
-- **Still to merge:** `feat/w2-eval-gate` and `feat/w2-answer-scope`, both
-  on `origin`. Every citation is then repinned to the one resulting `main`
-  commit, and the markers come out.
-- **The host runs `main@21f1053`**, deployed 2026-09-23 and measured after
-  the deploy (`docs/w2/DEPLOY.md` §8.0). The snapshot adds only that section
-  on top of it.
-- **Answer-scope:** `feat/w2-answer-scope` fixes the slow whole-report
-  question. Its decision is D50.
-- **Host figures:**
-  - post-deploy figures come from `docs/w2/DEPLOY.md` §8.0;
-  - figures measured before the deploy stay labelled "rehearsal host, before the Week 2 deploy", and are kept
-    only where no post-deploy figure exists, or for comparison.
+- **Merged into `main`, so no longer marked:**
+  - `feat/w2-php-wiring` (`2ae4d98`);
+  - `chore/w2-deploy-rehearsal` (`21f1053`, and its post-deploy §8.0 at
+    `bc5236f`);
+  - `feat/w2-eval-gate` (`0b4ae04`);
+  - `feat/w2-answer-scope` (`ea198c8`, D50);
+  - the DECISIONS restore (`caa92f8`).
+- **[PENDING `chore/w2-deploy-rehearsal`]** marks a figure from `docs/w2/DEPLOY.md` §8.00, the D50 redeploy.
+  That section is on `chore/w2-deploy-rehearsal` (`88be2a2`, on `origin`)
+  and not yet in `main`.
+- **The host runs `main@ea198c8`** since 2026-09-23 17:12 UTC **[PENDING `chore/w2-deploy-rehearsal`]**. Figures
+  from `DEPLOY.md` §8.0 were measured on the earlier deploy, `21f1053`,
+  **before D50**. D50 changes only how a document answer is scoped, so they
+  still describe extraction, retrieval and memory. They do not describe the
+  answer step. Figures from before any Week 2 deploy are labelled
+  "rehearsal host, before the Week 2 deploy".
 
 | # | Metric | Current value | Target | Strength of evidence |
 |---|---|---|---|---|
 | W2-1 | Located rate, text-layer pages | 97.8% (391/400) in replay; 98% (102/104) and 92% (45/49) with real vision | ≥ 85% (alert) | real model, n = 2 documents |
-| W2-2 | Unlocated values stated as fact | 0, enforced by the type system | 0, absolute | gate critical case plus planted regression **[PENDING `feat/w2-eval-gate`]** |
+| W2-2 | Unlocated values stated as fact | 0, enforced by the type system | 0, absolute | gate critical case plus planted regression |
 | W2-3 | Flag cross-check agreement, comparable flags only | 100% (**1/1**) | none set; the denominator is the finding | very weak: n = 1 |
 | W2-4 | Intake discrepancy accuracy; never merged | precision 2/2, recall 2/2, false positives 0/25; merges 0 | 0 merges, absolute | weak: n = 2 |
-| W2-5 | Verified and disclosed on the ask path | no rate; 6 live combined answers (3 on the deployed host, 3 local), 0 unverified; 2 real-route runs pass their citation assertions; gate det 73/73 **[PENDING `feat/w2-eval-gate`]** | 100% disclosed, absolute | tests plus 2 live runs; no runtime disclosure signal |
+| W2-5 | Verified and disclosed on the ask path | no rate; 6 live combined answers before D50 (3 on the host, 3 local), 0 unverified; after D50 the host's whole-report answers had 0 unverified in 6 runs **[PENDING `chore/w2-deploy-rehearsal`]**; 2 real-route runs pass their citation assertions; gate det 73/73 | 100% disclosed, absolute | tests plus 2 live runs; no runtime disclosure signal |
 | W2-6 | Critical values surfaced | **not measured live**; gate H6 and G7 pass | 100%, absolute | one fixture |
 | W2-7 | Guideline retrieval: recall and the share actually reranked | recall@4 0.666, zero-recall queries 0/30; reranked 35% at 10 paced users, 6.2% at 50 | reranked rate is watched, not targeted | 30 dev queries; laptop measurements only |
-| W2-8 | Eval gate: regressions caught **[PENDING `feat/w2-eval-gate`]** | 14/14 planted regressions blocked; 79/96 cases active | every planted regression blocks | harness-proved; judge uncalibrated |
-| W2-9 | Cost and latency per encounter | **$0.82 measured** (n = 2); answer latency scales with the number of claims: about 1 s per citation, so 88–92 s for a whole-report answer (91 citations) and 17–19 s for one analyte and one guideline topic (8–12 citations) | ≤ 90 s per answer (Week 1 budget) | 2 real-route encounters; **fails the budget**; fix on `feat/w2-answer-scope` **[PENDING `feat/w2-answer-scope`]** |
+| W2-8 | Eval gate: regressions caught | 14/14 planted regressions blocked; 79/96 cases active | every planted regression blocks | harness-proved; judge uncalibrated |
+| W2-9 | Cost and latency per encounter | $0.82 measured before D50 (n = 2), about $0.44 estimated after; latency tracks what the model writes, ~4.1 s + 7.45 s per 1k output tokens; whole-report question **6.9–8.4 s** on the host after D50 **[PENDING `chore/w2-deploy-rehearsal`]** (88–92 s before) | ≤ 90 s per answer (Week 1 budget) | **passes on the host**, one question at a time; 44-row "show me all" at 43.4 s |
 
 ---
 
@@ -99,7 +98,7 @@ Sources:
 dates and flags are matched exactly or not at all (D24). A one-character OCR
 slip therefore produces an `unsupported` field rather than a wrong number.
 The alternative is a wrong number with a box drawn behind it, which gate case
-W2-B6 **[PENDING `feat/w2-eval-gate`]** describes as the one mode that is unrecoverable, because the chart has
+W2-B6 describes as the one mode that is unrecoverable, because the chart has
 no reference ranges to contradict it. The low rate is the recorded
 cost of that choice.
 
@@ -118,14 +117,14 @@ never rendered as fact and never counted as verified.
 
 - `PRESENTABLE_STATUSES = {LOCATED}`, and `as_presented_fact()` is the only
   route from an extracted field to a value (D13).
-- Gate case W2-C3 **[PENDING `feat/w2-eval-gate`]** is **critical**, so its failure blocks regardless of
+- Gate case W2-C3 is **critical**, so its failure blocks regardless of
   aggregates.
-- The planted regression **[PENDING `feat/w2-eval-gate`]** `unlocated-value-is-presentable` widens that set by
+- The planted regression `unlocated-value-is-presentable` widens that set by
   one member. It blocks the gate, and 6 cases move from pass to fail.
 
-Source: `docs/w2/EVAL_GATE_EVIDENCE.md`, regression 3 **[PENDING `feat/w2-eval-gate`]**.
+Source: `docs/w2/EVAL_GATE_EVIDENCE.md`, regression 3.
 
-**Current.** 0 by construction. The gate passes with W2-C3 active **[PENDING `feat/w2-eval-gate`]**.
+**Current.** 0 by construction. The gate passes with W2-C3 active.
 
 **What it does not cover.** A clinician is told a value is unsupported. The
 metric does not measure whether the clinician then opens the page.
@@ -172,12 +171,12 @@ invariant 5).
   `derived`, where the patient writes a name differently from the chart
   (D35 item 9).
 - Merges are held at zero structurally. The write-back request type refuses
-  any document that is not a lab PDF. The planted regression **[PENDING `feat/w2-eval-gate`]** `auto-merge-intake`
-  removes that check and blocks the gate through W2-E1 **[PENDING `feat/w2-eval-gate`]**, which is critical.
-- W2-H3 **[PENDING `feat/w2-eval-gate`]** asserts that the ask path references no write-back code at all.
+  any document that is not a lab PDF. The planted regression `auto-merge-intake`
+  removes that check and blocks the gate through W2-E1, which is critical.
+- W2-H3 asserts that the ask path references no write-back code at all.
 
-Sources: `EVAL_GATE_EVIDENCE.md` **[PENDING `feat/w2-eval-gate`]** regression 11; the commit that activated
-G1, H3, H5 and H6 **[PENDING `feat/w2-eval-gate`]**.
+Sources: `EVAL_GATE_EVIDENCE.md` regression 11; the commit that activated
+G1, H3, H5 and H6.
 
 **Current.**
 
@@ -192,7 +191,7 @@ Source: replay, `docs/w2/evidence/extractor-measurement.txt`.
 
 **Read it as:** two real discrepancies, both found. That is a denominator of
 2. The 0/25 false-positive figure is the stronger half, because a
-discrepancy list that cries wolf stops being read (planted regression **[PENDING `feat/w2-eval-gate`]**
+discrepancy list that cries wolf stops being read (planted regression
 `derived-rendering-is-a-discrepancy`).
 
 ## W2-5. Answer verification and disclosure on the Week 2 ask path
@@ -219,9 +218,14 @@ UNVERIFIED and never dropped (D40 item 7).
   and "a routing decision was made and recorded with its reason"
   (`docs/w2/evidence/api-collection-run.txt`).
   Those assert the shape of the answer. They are not a per-claim pass rate.
-- **On the deployed host** (`DEPLOY.md` §8.0), the document + guideline question
-  answered 3 of 3 times with **7 document + 2 guideline citations, 0
-  unverified**.
+- **On the deployed host.**
+  - On `21f1053`, before D50 (`DEPLOY.md` §8.0), the document + guideline
+    question answered 3 of 3 times with **7 document + 2 guideline
+    citations, 0 unverified**.
+  - On `ea198c8`, after D50, the whole-report question answered 3 of 3 on
+    each of two reports, with **0 unverified**: 49 and 97 document citations
+    (`DEPLOY.md` §8.00 **[PENDING `chore/w2-deploy-rehearsal`]**). Most of those are the cited count statement code builds (D50
+    item 3).
 - **From the real chart** (`docs/w2/evidence/php-wiring-e2e-run.md`, local stack), three timed answers to one
   question cited a document and a guideline together:
   - 6 document + 4 chart + 2 guideline citations, then 6 + 0 + 2 twice;
@@ -230,7 +234,7 @@ UNVERIFIED and never dropped (D40 item 7).
   (12 + 8 + 8 = 28 citations). It is not a production rate.
 - In-process tests: `agent/tests/test_w2_checker.py` and
   `test_w2_supervisor_graph.py`.
-- Gate categories A and F, part of the deterministic tier's 73/73 **[PENDING `feat/w2-eval-gate`]**.
+- Gate categories A and F, part of the deterministic tier's 73/73.
 - On the Week 1 path it extends, 44/44 claims verified in a real-LLM
   encounter (`docs/w2/ALERTS.md` §5).
 
@@ -251,15 +255,15 @@ possible panic value is named without its number (H6, D40 item 9).
 
 - Counts per turn on `w2_ask_turn_completed`: `critical_values`,
   `possible_critical_values` and `critical_restored_past_cap`.
-- Gate cases **[PENDING `feat/w2-eval-gate`]**:
+- Gate cases:
 
 | Case | Asserts | Critical? |
 |---|---|---|
-| W2-H6 **[PENDING `feat/w2-eval-gate`]** | potassium 6.8 mmol/L on `lab-critical-potassium-007` surfaces as a critical value with its reading | yes |
-| W2-G7 **[PENDING `feat/w2-eval-gate`]** | a critical row the cap dropped is restored | yes |
-| W2-H10 **[PENDING `feat/w2-eval-gate`]** | the threshold table is checked as data: every row has a limit and names its units | yes |
+| W2-H6 | potassium 6.8 mmol/L on `lab-critical-potassium-007` surfaces as a critical value with its reading | yes |
+| W2-G7 | a critical row the cap dropped is restored | yes |
+| W2-H10 | the threshold table is checked as data: every row has a limit and names its units | yes |
 
-**Current.** All three cases pass, and they are active (`EVAL_GATE_EVIDENCE.md` **[PENDING `feat/w2-eval-gate`]**
+**Current.** All three cases pass, and they are active (`EVAL_GATE_EVIDENCE.md`
 control run; the commits that activated the supervisor batch and H6).
 **Not measured live.** The
 threshold table is a demo configuration, not reviewed for any site.
@@ -307,7 +311,7 @@ Under load it mostly does not.
 to copies of the tree, runs the gate on each, and reads the catching case
 from the run's own JSON (`python -m evals.w2.gate.planted_regressions`).
 
-**Current** (`docs/w2/EVAL_GATE_EVIDENCE.md`) **[PENDING `feat/w2-eval-gate`]**:
+**Current** (`docs/w2/EVAL_GATE_EVIDENCE.md`):
 
 - The control run passes (exit 0), and **14/14 planted regressions block**
   (exit 1).
@@ -327,7 +331,7 @@ from the run's own JSON (`python -m evals.w2.gate.planted_regressions`).
 | W2-C7 to W2-C9 | box tolerance on scans, and the D24 policy asserted from the gate |
 | The judge's agreement with human labels | the judge is **UNCALIBRATED** (D43, D48): its eight meta-check fixtures detect a judge that has drifted, not whether it was right to begin with |
 
-**The pipelines have run on GitLab** **[PENDING `feat/w2-eval-gate`]**. The write-back job failed six
+**The pipelines have run on GitLab**. The write-back job failed six
 in a row on a missing `unzip`, which is why delegated cases are now scored
 against the job's own result (commit "score delegated cases against the
 job's own result, not its config"). Whether a fully green pipeline has run
@@ -352,36 +356,41 @@ is not recorded in the repository.
   87,245 tokens (`OBSERVABILITY.md` §2; trace header in
   `docs/w2/evidence/screenshots/langfuse-encounter-trace.png` on that
   branch).
-- **Answer latency scales with the number of claims the answer makes**
-  (`docs/w2/COST_AND_LATENCY.md` §4.1a). The answer step is about **3.7 s +
-  1.0 s per citation** over six cases from 3 to 180 citations (R² = 0.997,
-  estimated from `LOAD_TEST.md` §7 on `feat/w2-answer-scope` **[PENDING `feat/w2-answer-scope`]**).
-  - A whole-report answer makes **91 citations and ~11.5k output tokens,
-    and takes 88.2–91.8 s** (answer step, n = 3, same source). That is over
-    the 90 s budget with one user and no load, and the call is about $0.46
-    of the $0.82.
-  - An answer about one analyte and one guideline topic from the chart
-    makes **8–12 citations and takes 17.2–19.5 s**, client wall clock, n = 3
-    (`docs/w2/evidence/php-wiring-e2e-run.md`).
-  - Both runs used the same model, so the claim count is what differs.
-  - `LOAD_TEST.md` §6 on `main` timed the same whole-report question as a
-    whole HTTP request: 91.9 s and 130.5 s. The 130.5 s run is unexplained
-    (§4.1a).
+- **Answer latency tracks what the model writes**
+  (`docs/w2/COST_AND_LATENCY.md` §4.1a).
+  - The answer step is about **4.1 s + 7.45 s per 1,000 output tokens**
+    over six cases from 461 to 24,762 tokens (R² = 0.9998, estimated from
+    `LOAD_TEST.md` §7).
+  - **Before D50,** a whole-report answer wrote all 91 citations, ~11.5k
+    tokens, in **88.2–91.8 s** (answer step, n = 3). That was over the 90 s
+    budget, and about $0.46 of the $0.82.
+  - **After D50,** on the host, the same question answers in **6.9–8.4 s**
+    end to end on 22 rows and 12.0–13.1 s on 44, from 368–461 output tokens
+    on 22 rows, for about $0.084 (`DEPLOY.md` §8.00 **[PENDING `chore/w2-deploy-rehearsal`]**).
+  - **Before D50, from the chart,** one analyte plus one guideline topic made
+    **8–12 citations in 17.2–19.5 s**, client wall clock (`docs/w2/evidence/php-wiring-e2e-run.md`).
+  - Every run used one model, so this says nothing about other models.
+  - `LOAD_TEST.md` §6 timed the whole-report question, before D50, as a whole
+    HTTP request: 91.9 s and 130.5 s. The 130.5 s run is unexplained.
   - A guideline question is **10.5–10.6 s** (`LOAD_TEST.md` §6).
 - Extraction is 15–33 s per document, and it runs at upload (D7).
 - A Week 1 conversation turn is p95 6.41 s locally at 10 users.
 
-**This metric fails today for whole-report questions**, on a single
-request, and the cause is known: the answer cites every extracted result.
-Scoping the answer (`feat/w2-answer-scope` **[PENDING `feat/w2-answer-scope`]**) brings the 22-row
-whole-report answer to **6.9 s p50** with 3 citations, and the 44-row one to
-11.7 s (`docs/w2/COST_AND_LATENCY.md` §4.1d).
+**This metric passes on the host after D50, one question at a time**
+(`DEPLOY.md` §8.00 **[PENDING `chore/w2-deploy-rehearsal`]**).
 
-**On the deployed host** (`DEPLOY.md` §8.0), one document at a time:
+- Before D50 it failed for whole-report questions, because the answer cited
+  every extracted result.
+- **Still at the edge:** "Show me all the results" on a 44-row report is
+  43.4 s p50, at the 45 s alert (`LOAD_TEST.md` §7).
+- **Not measured on the host:** any load, and the document + guideline
+  question after D50.
+
+**On the deployed host at `21f1053`, before D50** (`DEPLOY.md` §8.0), one document at a time:
 
 | Measure | Value |
 |---|---|
-| Document + guideline question | 15.3–21.2 s end to end, about **$0.178** a question |
+| Document + guideline question (before D50) | 15.3–21.2 s end to end, about **$0.178** a question |
 | Vision, lab page | 27.8–39.8 s and $0.11–0.13 |
 | Vision, intake page | 8.3–15.0 s and about $0.05 |
 | Upload → complete, as the card sees it | 20.8 s (clean intake), 35.3 s (scanned intake), 42.2 s (scanned lab) |
@@ -406,7 +415,7 @@ alert fires at p95 > 45 s (`ALERTS.md` §1).
   it would add no information.
 - **Judge pass rate on system output.** The judge is uncalibrated. A rate
   from an instrument with unknown agreement is not defensible to anyone
-  (D43 **[PENDING `feat/w2-eval-gate`]**).
+  (D43).
 - **A pooled located rate across all pages as a headline.** 84.5% sounds
   like a grade and hides a 34% scan behind 98% clean pages. W2-1 shows the
   two separately instead.

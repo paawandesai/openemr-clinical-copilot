@@ -9,48 +9,48 @@ A Clinical Co-Pilot AI agent built into a fork of [OpenEMR](https://open-emr.org
 | | Week 1: baseline | Week 2: multimodal |
 |---|---|---|
 | What it does | Pre-Visit Brief and multi-turn follow-up, read from the chart over FHIR; every claim deterministically verified | lab PDFs and intake forms extracted to a strict schema with page-located values; a supervisor over an intake-extractor and an evidence-retriever; hybrid RAG over guideline evidence; an eval gate |
-| Deployed at `64.177.42.210`? | **Yes**, the whole Week 1 surface | **Yes**, since 2026-09-23 (`main@21f1053`): upload, extraction, the ask path and the Documents & Sources card run on the host, measured one document at a time (`docs/w2/DEPLOY.md` §8.0) |
+| Deployed at `64.177.42.210`? | **Yes**, the whole Week 1 surface | **Yes.** The host runs `main@ea198c8` **[PENDING `chore/w2-deploy-rehearsal`]**: upload, extraction, the scoped ask path and the Documents & Sources card, measured one question at a time (`docs/w2/DEPLOY.md` §8.0 on `21f1053`; §8.00 after D50) |
 | Start reading | [Week 1 baseline](#week-1-baseline) below | [Week 2: start here](#week-2-start-here), next |
 
 ---
 
 ## Week 2: start here
 
-**Snapshot: `main@bc5236f`**, which is on `origin`. Everything in this
-section is on that commit unless it is marked PENDING, which names the
-unmerged branch the claim rests on: **[PENDING `feat/w2-eval-gate`]** or **[PENDING `feat/w2-answer-scope`]**.
+Everything in this section is on the snapshot below unless it is marked.
 
-- **Merged, no longer marked:**
-  - `feat/w2-php-wiring`, at `2ae4d98`: the Documents & Sources card, its
-    routes, the upload guard on the real `/documents`, and the correlation
-    header;
-  - `chore/w2-deploy-rehearsal`, at `21f1053`: `docs/w2/DEPLOY.md`, D41,
-    the self-closing rerank circuit, single-threaded Tesseract, and the
-    agent's 4.5 GiB memory cap.
-- **Still to merge:** `feat/w2-eval-gate` and `feat/w2-answer-scope`, both
-  on `origin`. Every citation is then repinned to the one resulting `main`
-  commit, and the markers come out.
-- **The host runs `main@21f1053`**, deployed 2026-09-23 and measured after
-  the deploy (`docs/w2/DEPLOY.md` §8.0). The snapshot adds only that section
-  on top of it.
-- **Answer-scope:** `feat/w2-answer-scope` fixes the slow whole-report
-  question. Its decision is D50.
-- **Host figures:**
-  - post-deploy figures come from `docs/w2/DEPLOY.md` §8.0;
-  - figures measured before the deploy stay labelled "rehearsal host, before the Week 2 deploy", and are kept
-    only where no post-deploy figure exists, or for comparison.
+**Snapshot: `main@caa92f8`**, which is on `origin`. It is an interim pin:
+the last step before submission repins every citation to one final `main`
+commit, after the event-tags (D52), DECISIONS-guard and eval-gate follow-up
+merges.
+
+- **Merged into `main`, so no longer marked:**
+  - `feat/w2-php-wiring` (`2ae4d98`);
+  - `chore/w2-deploy-rehearsal` (`21f1053`, and its post-deploy §8.0 at
+    `bc5236f`);
+  - `feat/w2-eval-gate` (`0b4ae04`);
+  - `feat/w2-answer-scope` (`ea198c8`, D50);
+  - the DECISIONS restore (`caa92f8`).
+- **[PENDING `chore/w2-deploy-rehearsal`]** marks a figure from `docs/w2/DEPLOY.md` §8.00, the D50 redeploy.
+  That section is on `chore/w2-deploy-rehearsal` (`88be2a2`, on `origin`)
+  and not yet in `main`.
+- **The host runs `main@ea198c8`** since 2026-09-23 17:12 UTC **[PENDING `chore/w2-deploy-rehearsal`]**. Figures
+  from `DEPLOY.md` §8.0 were measured on the earlier deploy, `21f1053`,
+  **before D50**. D50 changes only how a document answer is scoped, so they
+  still describe extraction, retrieval and memory. They do not describe the
+  answer step. Figures from before any Week 2 deploy are labelled
+  "rehearsal host, before the Week 2 deploy".
 
 ### What Week 2 adds, and where it runs
 
-| Piece | Code | On `main` | On the host (`main@21f1053`, `docs/w2/DEPLOY.md` §8.0) |
+| Piece | Code | On `main` | On the host (`main@ea198c8` **[PENDING `chore/w2-deploy-rehearsal`]**; figures from `docs/w2/DEPLOY.md` §8.0 on `21f1053` unless marked) |
 |---|---|---|---|
 | Document extraction: text layer / OCR → one vision call → deterministic locate → flag cross-check → discrepancies | `agent/app/graph/intake_extractor.py`, `agent/app/workers/intake_extractor/`, `agent/app/extraction/` | yes | yes: one vision call per document, 15.7–54.5 s |
-| Supervisor + workers, `POST /w2/ask` | `agent/app/graph/supervisor.py`, `agent/app/supervisor/`, `agent/app/api/ask.py` | yes | yes: the document + guideline question answered 3 of 3, 15.3–21.2 s |
+| Supervisor + workers, `POST /w2/ask` | `agent/app/graph/supervisor.py`, `agent/app/supervisor/`, `agent/app/api/ask.py` | yes | yes. After D50, the whole-report question answers in 6.9–8.4 s on 22 rows **[PENDING `chore/w2-deploy-rehearsal`]**. Before D50, the document + guideline question answered 3 of 3 in 15.3–21.2 s |
 | Guideline retrieval: 28 documents, BM25 + local embeddings + local rerank | `agent/app/retrieval/` | yes | yes: every rerank ran after the deploy, 1.55–1.68 s |
-| Week 2 verifier, citation contract | `agent/app/verification/w2_checker.py`, `agent/app/models/w2/` | yes | yes: 0 unverified in 3 post-deploy answers |
+| Week 2 verifier, citation contract | `agent/app/verification/w2_checker.py`, `agent/app/models/w2/` | yes | yes: 0 unverified in 3 answers before D50, and in 6 after **[PENDING `chore/w2-deploy-rehearsal`]** |
 | Source-grounded answer view: PDF.js with bbox overlay | `interface/modules/custom_modules/oe-module-clinical-copilot/public/assets/w2/` | yes, in the chart: the Documents & Sources card, its upload, status and ask routes (since `2ae4d98`) | yes |
 | Lab write-back endpoint + idempotency ledger | the same module, `src/WriteBack/` | yes | yes, rehearsed |
-| Eval gate: 96 cases, CI job **[PENDING `feat/w2-eval-gate`]** | `agent/evals/w2/gate/`, `.gitlab-ci.yml` | **no**, `feat/w2-eval-gate` | n/a: runs on recorded fixtures |
+| Eval gate: 96 cases, CI job | `agent/evals/w2/gate/`, `.gitlab-ci.yml` | yes (`0b4ae04`) | n/a: runs on recorded fixtures |
 
 Where the facts in this table come from, and what is not wired yet:
 [`W2_ARCHITECTURE.md`](W2_ARCHITECTURE.md) §8 and §11.
@@ -115,9 +115,12 @@ python scripts/w2_e2e_ask.py --sample lab-critical-potassium-007 \
 ```
 
 The default question (one analyte plus one guideline topic) answered in
-17.2–19.5 s from the chart (`docs/w2/evidence/php-wiring-e2e-run.md`). **A whole-report question takes about
-90 s**: 88.2–91.8 s for 91 citations. Answer latency is about a second per
-claim (`docs/w2/COST_AND_LATENCY.md` §4.1a; `W2_ARCHITECTURE.md` §11).
+17.2–19.5 s from the chart, before D50
+(`docs/w2/evidence/php-wiring-e2e-run.md`). A whole-report question ("What
+were the results on the uploaded lab report?") took 88.2–91.8 s before D50.
+On the host after D50 it takes **6.9–8.4 s** (`docs/w2/DEPLOY.md` §8.00 **[PENDING `chore/w2-deploy-rehearsal`]**). Answer latency tracks
+what the model writes, about 4.1 s + 7.45 s per 1,000 output tokens
+(`docs/w2/COST_AND_LATENCY.md` §4.1a).
 
 What each printed section means, and what to expect:
 [`docs/w2/DEMO_SCRIPT.md`](docs/w2/DEMO_SCRIPT.md). **No output from this
@@ -158,14 +161,11 @@ wrote this README.** Route contracts are in
 
 ### Run the eval gate
 
-**[PENDING `feat/w2-eval-gate`]**: this whole subsection rests on `feat/w2-eval-gate`, which is on
-`origin` but not merged into `main`:
+The gate is on `main` (merged at `0b4ae04`):
 
 ```bash
-git fetch origin && git worktree add ../w2-eval-gate origin/feat/w2-eval-gate
-cd ../w2-eval-gate/agent
-python -m pip install -r requirements.txt -r requirements-dev.txt    # plus Tesseract, as above
-python -m evals.w2.gate --det-only                                   # deterministic tier; no key, no model call
+cd agent
+python -m evals.w2.gate --det-only                                   # deterministic tier; no key, no model call; exits 3 (see below)
 ANTHROPIC_API_KEY=… python -m evals.w2.gate                          # both tiers; a cold judge run is 24 calls, $0.0288
 python -m evals.w2.gate.planted_regressions --out ../docs/w2/EVAL_GATE_EVIDENCE.md   # needs the key
 ```
@@ -177,18 +177,26 @@ python -m evals.w2.gate.planted_regressions --out ../docs/w2/EVAL_GATE_EVIDENCE.
 | 2 | ERROR |
 | 3 | INCOMPLETE: a critical case went unscored |
 
-`--det-only` alone therefore exits 3, because the judge's critical
-meta-check cases go unscored. The gate README on that branch
-(`agent/evals/w2/README.md`) covers the five rules, the cases and the judge.
-The committed evidence is `docs/w2/EVAL_GATE_EVIDENCE.md` on that branch:
-the control run passes, and 14 of 14 planted regressions block.
+`--det-only` alone exits 3, because the judge's critical meta-check cases go
+unscored. The five rules, the cases and the judge are in
+`agent/evals/w2/README.md`.
 
-In CI the gate is the `w2-eval-gate` job in `.gitlab-ci.yml` on that branch.
-It needs a masked, **unprotected** `ANTHROPIC_API_KEY` variable, a runner
-tagged `w2-eval`, and "Pipelines must succeed" enabled; the file's header
-says why. The pipelines have run: the write-back job failed six in a row
-on a missing `unzip` before it was fixed. Whether a fully green pipeline has
-run is not recorded in the repository.
+The committed evidence is `docs/w2/EVAL_GATE_EVIDENCE.md`, re-seeded after
+the J3 fix:
+
+- the control run passes, at 96 specs (79 active), 73/73 deterministic and
+  8/8 judge;
+- 14 of 14 planted regressions block.
+
+In CI the gate is the `w2-eval-gate` job in `.gitlab-ci.yml`. It needs:
+
+- a masked, **unprotected** `ANTHROPIC_API_KEY` variable;
+- a runner tagged `w2-eval`;
+- "Pipelines must succeed" enabled.
+
+The file's header says why. The pipelines have run: the write-back job
+failed six in a row on a missing `unzip` before it was fixed. Whether a
+fully green pipeline has run is not recorded in the repository.
 
 ### Week 2 documents
 
@@ -198,7 +206,7 @@ run is not recorded in the repository.
 | [KEY_METRICS.md](KEY_METRICS.md) | the Week 2 metrics, with honest denominators; the Week 1 six are in [docs/KEY_METRICS.md](docs/KEY_METRICS.md) |
 | [docs/w2/COST_AND_LATENCY.md](docs/w2/COST_AND_LATENCY.md) | actual dev spend, per-encounter cost, projections at 100 to 100K encounters a day, p50/p95 and bottlenecks |
 | [docs/w2/DEMO_SCRIPT.md](docs/w2/DEMO_SCRIPT.md) | the recorded walkthrough |
-| [docs/w2/DECISIONS.md](docs/w2/DECISIONS.md) | every Week 2 decision, D1–D40 and D49 on `main` (D41 and D42–D48 **[PENDING `feat/w2-eval-gate`]** are on their branches) |
+| [docs/w2/DECISIONS.md](docs/w2/DECISIONS.md) | every Week 2 decision, D1–D40 and D49 on `main` (D41 and D42–D48 are on their branches) |
 | [docs/w2/EVAL_DESIGN.md](docs/w2/EVAL_DESIGN.md), [docs/w2/GATE.md](docs/w2/GATE.md) | why the gate is shaped as it is, and how gate files are protected |
 | [docs/w2/retrieval-bakeoff.md](docs/w2/retrieval-bakeoff.md) | the corpus, its licensing, and the retrieval measurements |
 | [docs/w2/spikes/writeback.md](docs/w2/spikes/writeback.md), [docs/w2/deploy-writeback.md](docs/w2/deploy-writeback.md) | how OpenEMR can be written to, and how the endpoint deploys |
