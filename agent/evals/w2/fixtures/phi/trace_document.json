@@ -1,0 +1,33 @@
+{
+  "fixture_id": "trace_document",
+  "arm": "seeded",
+  "note": "Document handling and the write-back ledger. Raw page text and page images must never reach a captured field; the ledger carries identifiers and coordinates, which is what makes it safe to dump while debugging.",
+  "captured": {
+    "log.event": "lab_writeback.committed",
+    "log.correlation_id": "4c547101-195d-47b2-bc4b-0db614573052",
+    "log.patient_uuid": "a2c373ec-57bf-41cb-8767-94410dcf663d",
+    "log.document_sha3_512_prefix": "9c2a41be",
+    "log.page_count": 2,
+    "log.results_written": 3,
+    "log.results_duplicate_ignored": 9,
+    "ledger.rows": [
+      {
+        "idempotency_key_prefix": "9c2a41be",
+        "extraction_id": "w2x-8f4c1d9a3b6e05f27c0a19d4e8b73612",
+        "test_code": "2345-7",
+        "page": 1,
+        "bbox": [230.0, 396.3, 275.6, 407.2]
+      },
+      {
+        "idempotency_key_prefix": "9c2a41be",
+        "extraction_id": "w2x-1a55c7e0b93d4682f70c5ad18e2b4497",
+        "test_code": "1742-6",
+        "page": 2,
+        "bbox": [230.0, 188.1, 271.4, 199.0]
+      }
+    ],
+    "trace.ocr_pages_processed": 2,
+    "trace.locate_hits": 27,
+    "trace.locate_misses": 1
+  }
+}

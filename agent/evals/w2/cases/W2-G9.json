@@ -1,0 +1,19 @@
+{
+  "id": "W2-G9",
+  "category": "G",
+  "critical": false,
+  "status": "pending_sut",
+  "inputs": {
+    "kind": "not_built",
+    "note": "Needs the supervisor graph: routing trajectories are asserted over nodes_ran, visit counts and reason codes."
+  },
+  "expected": "A question asked against a document that has not finished extracting routes to refuse with document_still_processing — never a wait, never a partial extraction.",
+  "assertions": [
+    {
+      "rubric": "routing_trajectory",
+      "tier": "det",
+      "check": "pending.w2_g9_routing_trajectory"
+    }
+  ],
+  "guards_against": "A synchronous wait on OCR inside an interactive answer, or a half-extracted document presented as complete (D7)."
+}

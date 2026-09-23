@@ -1,0 +1,24 @@
+{
+  "id": "W2-G10",
+  "category": "G",
+  "critical": false,
+  "status": "pending_sut",
+  "inputs": {
+    "kind": "not_built",
+    "note": "Needs the supervisor graph: routing trajectories are asserted over nodes_ran, visit counts and reason codes."
+  },
+  "expected": "A failed extraction routes to refuse with extraction_failed and surfaces the closed-enum failure reason, with no chart content in the surfaced text.",
+  "assertions": [
+    {
+      "rubric": "routing_trajectory",
+      "tier": "det",
+      "check": "pending.w2_g10_routing_trajectory"
+    },
+    {
+      "rubric": "no_phi_in_logs",
+      "tier": "det",
+      "check": "pending.w2_g10_no_phi_in_logs"
+    }
+  ],
+  "guards_against": "A failure explained in free text written by a model that has just read a chart."
+}

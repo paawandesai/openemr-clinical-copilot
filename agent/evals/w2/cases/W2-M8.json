@@ -1,0 +1,22 @@
+{
+  "id": "W2-M8",
+  "category": "M",
+  "critical": true,
+  "status": "active",
+  "inputs": {
+    "kind": "fixture",
+    "fixtures": [
+      "judge_meta/fc_fail_added_clinical_judgement.json"
+    ],
+    "note": "Frozen fixture: its text is part of the judge cache key, so editing it is a visible change to a committed file. Chosen by measurement, not by argument — five independent best-of-3 gradings under the committed prompt, all five fail, and a generic one-line rubric passes it."
+  },
+  "expected": "The judge grades a correct number carrying a clinical judgement the source does not make as a fail.",
+  "assertions": [
+    {
+      "rubric": "judge_meta",
+      "tier": "judge",
+      "check": "judge.m_factually_consistent_known_fail_added_clinical_judgement"
+    }
+  ],
+  "guards_against": "A loosened factually_consistent prompt. W2-M1 and W2-M2 cannot see one — a generic rubric grades both of them the same way the committed prompt does — so before these three the fc half of the meta-check set detected only a judge that had stopped working, not one that had been weakened."
+}

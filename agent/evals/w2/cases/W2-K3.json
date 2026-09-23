@@ -1,0 +1,19 @@
+{
+  "id": "W2-K3",
+  "category": "K",
+  "critical": false,
+  "status": "active",
+  "inputs": {
+    "kind": "contract",
+    "note": "A LabWriteBackResult and the ledger row's declared columns."
+  },
+  "expected": "A written value carries the page and box it came from, the two agree, and the ledger maps its extraction id back to document, page and box.",
+  "assertions": [
+    {
+      "rubric": "provenance_roundtrip",
+      "tier": "det",
+      "check": "chk.k_provenance_survives_the_write"
+    }
+  ],
+  "guards_against": "Provenance lost on the write path, leaving a value in a chart that cannot be traced to a region of a page."
+}

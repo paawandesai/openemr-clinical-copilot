@@ -1,0 +1,25 @@
+{
+  "id": "W2-B6",
+  "category": "B",
+  "critical": false,
+  "status": "active",
+  "inputs": {
+    "kind": "factory_scenario",
+    "scenario_ids": [
+      "lab-scanned-heavy-abnormal-002"
+    ],
+    "note": "MODE: recorded — driven by fixtures/transcriptions/, real claude-opus-5 output recorded against this exact PDF and replayed with no network. Not the ground-truth stub: a case that grades extraction is worthless run against a vision seam that is handed the right answer. Declares requires: [tesseract] — the scanned page has no text layer. Without the binary the runner SKIPS this case with a notice and the verdict says so; it is never counted as a pass. PENDING, and not asserted here: the [J] half — that the prose reports the scan's values faithfully rather than smoothing them. That needs an answer step and the judge tier.",
+    "requires": [
+      "tesseract"
+    ]
+  },
+  "expected": "On an image-only PDF every value presented as fact matches the clean reference layout, or is unsupported. Never a confident, silently different number.",
+  "assertions": [
+    {
+      "rubric": "schema_valid",
+      "tier": "det",
+      "check": "chk.b_ocr_values_match_the_clean_layout"
+    }
+  ],
+  "guards_against": "A degraded scan producing a wrong number with a bbox behind it. The chart has no reference ranges, so nothing downstream can contradict it — this is the mode that is unrecoverable."
+}

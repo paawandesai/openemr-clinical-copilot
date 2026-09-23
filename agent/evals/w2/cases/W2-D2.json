@@ -1,0 +1,19 @@
+{
+  "id": "W2-D2",
+  "category": "D",
+  "critical": true,
+  "status": "active",
+  "inputs": {
+    "kind": "contract",
+    "note": "parse_reported_flag over blank strings, and a FlagCrossCheck constructed with outcome=agree over reported=not_reported."
+  },
+  "expected": "A blank flag column is `not_reported`. It is not `normal`, it is not in COMPARABLE_REPORTED_FLAGS, the cross-check outcome over it is `not_reported`, and FlagCrossCheck refuses to record agreement with a flag no laboratory printed.",
+  "assertions": [
+    {
+      "rubric": "abnormal_flag_crosscheck",
+      "tier": "det",
+      "check": "chk.d_blank_flag_is_not_reported"
+    }
+  ],
+  "guards_against": "A blank column treated as normal (D12, superseded by D20) — the failure that is loudest and most reassuring exactly when an extractor has lost the flag column entirely."
+}

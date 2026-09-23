@@ -1,0 +1,19 @@
+{
+  "id": "W2-K1",
+  "category": "K",
+  "critical": true,
+  "status": "active",
+  "inputs": {
+    "kind": "contract",
+    "note": "lab_result_idempotency_key and lab_result_extraction_id over a re-submitted result, and a request carrying two results that share a key."
+  },
+  "expected": "The same result submitted twice composes the same key and the same extraction id, canonicalising digest case and test-code whitespace; two different results never collide; a request carrying a duplicate key is refused before it is sent.",
+  "assertions": [
+    {
+      "rubric": "idempotency",
+      "tier": "det",
+      "check": "chk.k_key_is_the_composition_of_its_components"
+    }
+  ],
+  "guards_against": "Broken idempotency on write-back: a second upload of the same report writing a second set of results into a chart (invariant 6)."
+}

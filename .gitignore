@@ -54,3 +54,9 @@ tmp/
 
 # Root virtualenv (agent/.venv is ignored separately)
 .venv/
+
+# The delegated write-back job writes this in CI. It is EVIDENCE, produced by
+# the job it vouches for — committing one would let a forged green travel with
+# the branch and be believed offline.
+/w2-writeback-php.result.json
+/w2-writeback-php.xml

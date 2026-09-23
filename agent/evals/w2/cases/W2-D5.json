@@ -1,0 +1,24 @@
+{
+  "id": "W2-D5",
+  "category": "D",
+  "critical": false,
+  "status": "active",
+  "inputs": {
+    "kind": "contract",
+    "note": "A potassium of 7.0 mmol/L — a CLIA 'must know now' value — against 3.5 - 5.1, and openemr_abnormal_code over every flag."
+  },
+  "expected": "A panic value computes to a decidable flag and maps to a real procedure_result.abnormal code; `indeterminate` refuses to map at all.",
+  "assertions": [
+    {
+      "rubric": "abnormal_flag_crosscheck",
+      "tier": "det",
+      "check": "chk.d_panic_value_is_decidable"
+    },
+    {
+      "rubric": "provenance_roundtrip",
+      "tier": "det",
+      "check": "chk.k_provenance_survives_the_write"
+    }
+  ],
+  "guards_against": "An undecidable result written into a chart as `no`, which is a false normal with a patient in it."
+}

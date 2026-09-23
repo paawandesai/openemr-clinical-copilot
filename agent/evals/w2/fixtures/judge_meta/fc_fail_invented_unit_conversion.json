@@ -1,0 +1,12 @@
+{
+  "fixture_id": "fc_fail_invented_unit_conversion",
+  "rubric": "factually_consistent",
+  "expected_verdict": "fail",
+  "frozen": true,
+  "why_this_label": "9.3 mmol/L is what 168 mg/dL converts to. It is arithmetically right and it is not what the page says, and rule (a) of the committed prompt names exactly this: a unit conversion the source did not perform. The conversion is the project's documented VLM failure mode (MedRepBench's character-level unit misreads, mg/dL vs mmol/L), and a value the page does not carry cannot be cited to it.",
+  "what_this_detects": "A judge that has stopped working, on a failure mode this project is specifically exposed to. It is NOT a drift detector. Measured over five independent best-of-3 gradings each way: the committed prompt grades it fail 5/5 rounds and 15/15 votes, but a generic one-line rubric splits — fail on two rounds of five, 7/15 votes — so a loosened prompt does not reliably move it. The fixture stays because it is stable and because mg/dL vs mmol/L is the documented VLM misread this suite exists to catch; it is classed with fc_pass and fc_fail rather than with the two fixtures that discriminate.",
+  "payload": {
+    "statement": "Glucose was 9.3 mmol/L.",
+    "source_text": "GLUCOSE            168    mg/dL    70 - 99    H\nSpecimen collected 2 March. Comprehensive Metabolic Panel."
+  }
+}

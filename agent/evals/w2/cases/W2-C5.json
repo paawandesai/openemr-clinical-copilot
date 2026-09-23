@@ -1,0 +1,22 @@
+{
+  "id": "W2-C5",
+  "category": "C",
+  "critical": false,
+  "status": "active",
+  "inputs": {
+    "kind": "factory_scenario",
+    "scenario_ids": [
+      "lab-clean-001",
+      "lab-multipage-003"
+    ]
+  },
+  "expected": "A citation cannot name one page and point at another, and cannot point past the end of the document it cites.",
+  "assertions": [
+    {
+      "rubric": "citation_present",
+      "tier": "det",
+      "check": "chk.c_bbox_and_page_agree"
+    }
+  ],
+  "guards_against": "A citation whose page and box disagree, which sends a reviewer to the wrong page and makes the provenance unverifiable by eye."
+}

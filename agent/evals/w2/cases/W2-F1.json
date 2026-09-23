@@ -1,0 +1,24 @@
+{
+  "id": "W2-F1",
+  "category": "F",
+  "critical": false,
+  "status": "active",
+  "inputs": {
+    "kind": "contract",
+    "note": "Two layers. The contract layer builds a GuidelineClaim by hand and checks it refuses chart and document citations. The implementation layer runs a real lexical retrieval over the committed corpus and checks every citation app.retrieval.worker.citation_for mints. PENDING, and deliberately not asserted here: the judge half — that the cited section entails the claim. There is no answer step yet to produce a claim, so W2-F4 carries that and stays pending_sut."
+  },
+  "expected": "Every guideline citation is source_type=guideline, carries all five of invariant 2's fields with the chunk's section as page_or_section, and carries neither bbox nor extraction_id. A chart or document citation is refused in guideline_evidence.",
+  "assertions": [
+    {
+      "rubric": "source_type_correct",
+      "tier": "det",
+      "check": "chk.f_guideline_evidence_cites_guidelines_only"
+    },
+    {
+      "rubric": "citation_present",
+      "tier": "det",
+      "check": "chk.f_real_guideline_citation_is_complete"
+    }
+  ],
+  "guards_against": "A guideline citation mislabelled as chart provenance — GroUSE's FM6, 'missing or incorrect citation'."
+}

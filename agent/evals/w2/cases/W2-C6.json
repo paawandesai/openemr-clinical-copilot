@@ -1,0 +1,24 @@
+{
+  "id": "W2-C6",
+  "category": "C",
+  "critical": false,
+  "status": "active",
+  "inputs": {
+    "kind": "factory_scenario",
+    "scenario_ids": [
+      "lab-clean-001",
+      "intake-missing-allergy-006",
+      "lab-multipage-003"
+    ],
+    "note": "MODE: recorded — driven by fixtures/transcriptions/, real claude-opus-5 output recorded against this exact PDF and replayed with no network. Not the ground-truth stub: a case that grades extraction is worthless run against a vision seam that is handed the right answer."
+  },
+  "expected": "End to end through the worker: no field is presentable without a box, and every field the locate step could not place is disclosed.",
+  "assertions": [
+    {
+      "rubric": "locate_result",
+      "tier": "det",
+      "check": "chk.c_unlocatable_value_is_disclosed"
+    }
+  ],
+  "guards_against": "The model's word becoming a fact without the locate step agreeing. W2-C3 asserts this at the contract; this asserts the worker actually behaves that way on real model output."
+}

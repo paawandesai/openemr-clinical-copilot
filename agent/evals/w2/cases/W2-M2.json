@@ -1,0 +1,22 @@
+{
+  "id": "W2-M2",
+  "category": "M",
+  "critical": true,
+  "status": "active",
+  "inputs": {
+    "kind": "fixture",
+    "fixtures": [
+      "judge_meta/fc_fail.json"
+    ],
+    "note": "Frozen fixture: its text is part of the judge cache key, so editing it is a visible change to a committed file."
+  },
+  "expected": "The judge grades a statement that reports the reference-range bound as the result value as a fail.",
+  "assertions": [
+    {
+      "rubric": "judge_meta",
+      "tier": "judge",
+      "check": "judge.m_factually_consistent_known_fail"
+    }
+  ],
+  "guards_against": "A judge prompt loosened until the range-misread-as-value mode passes — the grader edits the rubric and the suite goes green."
+}

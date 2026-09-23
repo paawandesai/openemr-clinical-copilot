@@ -1,0 +1,21 @@
+{
+  "id": "W2-E3",
+  "category": "E",
+  "critical": false,
+  "status": "active",
+  "inputs": {
+    "kind": "factory_scenario",
+    "scenario_ids": [
+      "intake-scanned-light-med-005"
+    ]
+  },
+  "expected": "A dose the form gives differently from the chart is a `changed` discrepancy carrying both readings and both citations; equal values are refused.",
+  "assertions": [
+    {
+      "rubric": "discrepancy_kind",
+      "tier": "det",
+      "check": "chk.e_changed_carries_both_sides"
+    }
+  ],
+  "guards_against": "A missed dose change, or a one-sided 'change' that a clinician cannot adjudicate."
+}

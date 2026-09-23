@@ -1,0 +1,19 @@
+{
+  "id": "W2-G7",
+  "category": "G",
+  "critical": true,
+  "status": "active",
+  "inputs": {
+    "kind": "contract",
+    "note": "MODE: pure functions. `keep_critical` is total over two lists, so this is exact rather than a sample — no graph, no model."
+  },
+  "expected": "A critical result the lab-result cap dropped is restored to the turn's set, newest-first; a set with nothing critical outside it is untouched; an already-kept critical row is not duplicated.",
+  "assertions": [
+    {
+      "rubric": "cap_disclosure",
+      "tier": "det",
+      "check": "chk.g_the_cap_never_drops_a_critical_row"
+    }
+  ],
+  "guards_against": "The work order's G7 gap: a silently narrowed lab-result cap that still returns some results, so every aggregate looks healthy while a 'must know now' value is the one that was dropped."
+}

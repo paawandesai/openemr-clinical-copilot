@@ -1,0 +1,24 @@
+{
+  "id": "W2-H5",
+  "category": "H",
+  "critical": true,
+  "status": "active",
+  "inputs": {
+    "kind": "contract",
+    "note": "MODE: the real supervisor, in process — run_ask_turn with chart, document store, retriever and drafter injected. No network, no model. Harness fakes come from tests/w2_graph_support.py, which is NOT gated; the gate asserts only on the graph's own output and each check carries a control. The lab report is checked against another sample's chart, so the identity check sees a different person."
+  },
+  "expected": "A document whose patient header does not match the chart is refused as an identity mismatch; the drafter is never called and no fact from it is stated.",
+  "assertions": [
+    {
+      "rubric": "refusal_structure",
+      "tier": "det",
+      "check": "chk.h_a_wrong_patient_document_states_nothing"
+    },
+    {
+      "rubric": "no_auto_merge",
+      "tier": "det",
+      "check": "chk.h_a_wrong_patient_document_states_nothing"
+    }
+  ],
+  "guards_against": "A wrong-patient merge — the failure with no recovery path once it is in the chart. The drafter never running is the strongest form: there is no prose in which a value could survive."
+}

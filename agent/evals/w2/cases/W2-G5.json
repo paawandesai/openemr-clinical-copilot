@@ -1,0 +1,19 @@
+{
+  "id": "W2-G5",
+  "category": "G",
+  "critical": false,
+  "status": "active",
+  "inputs": {
+    "kind": "contract",
+    "note": "MODE: the real supervisor, in process. `supervisor.run_ask_turn` with the chart, document store, retriever and drafter injected — no network, no model. The harness fakes come from tests/w2_graph_support.py, which is NOT gated; the gate asserts only on the graph's own output (routing decisions, status, wording) and each check carries a control so a harness that stopped exercising the path fails."
+  },
+  "expected": "A long, ambiguous question terminates: bounded decisions, no node visited more than twice, no extract -> extract repeat.",
+  "assertions": [
+    {
+      "rubric": "routing_trajectory",
+      "tier": "det",
+      "check": "chk.g_a_turn_terminates"
+    }
+  ],
+  "guards_against": "Infinite-loop collapse — an industrial VLM study measured 132 false positives against 15 true ones from exactly this."
+}

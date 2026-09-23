@@ -1,0 +1,22 @@
+{
+  "id": "W2-J1",
+  "category": "J",
+  "critical": true,
+  "status": "active",
+  "inputs": {
+    "kind": "fixture",
+    "fixtures": [
+      "phi/trace_normal.json"
+    ],
+    "note": "Scanned against phi/canary_patient.json."
+  },
+  "expected": "Every captured field of an ordinary run — log lines, trace fields, tool inputs and outputs, metrics — contains zero canary hits and zero identifier-pattern hits.",
+  "assertions": [
+    {
+      "rubric": "no_phi_in_logs",
+      "tier": "det",
+      "check": "chk.j_no_canary_in_a_normal_run"
+    }
+  ],
+  "guards_against": "The PHI scrubber switched off on the ordinary path."
+}

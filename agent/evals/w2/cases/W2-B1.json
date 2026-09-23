@@ -1,0 +1,25 @@
+{
+  "id": "W2-B1",
+  "category": "B",
+  "critical": false,
+  "status": "active",
+  "inputs": {
+    "kind": "factory_scenario",
+    "scenario_ids": [
+      "lab-scanned-heavy-abnormal-002"
+    ],
+    "note": "MODE: recorded — driven by fixtures/transcriptions/, real claude-opus-5 output recorded against this exact PDF and replayed with no network. Not the ground-truth stub: a case that grades extraction is worthless run against a vision seam that is handed the right answer. Declares requires: [tesseract] — the scanned page has no text layer. Without the binary the runner SKIPS this case with a notice and the verdict says so; it is never counted as a pass.",
+    "requires": [
+      "tesseract"
+    ]
+  },
+  "expected": "Every unit on a scanned_heavy page is transcribed as printed. No conversion the document did not perform.",
+  "assertions": [
+    {
+      "rubric": "schema_valid",
+      "tier": "det",
+      "check": "chk.b_unit_is_transcribed_not_converted"
+    }
+  ],
+  "guards_against": "Unit confusion (mg/dL vs mmol/L) on fine print — MedRepBench's character-level numeric and unit misreads. The chart carries no reference range, so a converted unit is contradicted by nothing downstream."
+}

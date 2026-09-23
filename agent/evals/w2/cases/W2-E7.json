@@ -1,0 +1,23 @@
+{
+  "id": "W2-E7",
+  "category": "E",
+  "critical": false,
+  "status": "active",
+  "inputs": {
+    "kind": "factory_scenario",
+    "scenario_ids": [
+      "intake-clean-004",
+      "intake-scanned-light-med-005",
+      "intake-missing-allergy-006"
+    ]
+  },
+  "expected": "The 'no known drug allergies' box is its own field: a ticked box is an assertion and an empty allergy list is an absence, and the two stay distinguishable.",
+  "assertions": [
+    {
+      "rubric": "schema_valid",
+      "tier": "det",
+      "check": "chk.e_nkda_is_distinct_from_an_empty_list"
+    }
+  ],
+  "guards_against": "'The patient did not fill this in' rendered as 'the patient has no allergies'."
+}

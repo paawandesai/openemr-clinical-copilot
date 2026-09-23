@@ -1,0 +1,18 @@
+{
+  "fixture_id": "trace_control_clean",
+  "arm": "control",
+  "note": "The matched no-injection control. No canary was seeded into this run at all, so any hit the scanner reports here is a false positive. phi-canary's fourth check exists for the same reason: a detector that has never been shown to be quiet is not evidence of anything.",
+  "captured": {
+    "log.event": "pre_visit_brief.completed",
+    "log.correlation_id": "0f2b9a41-7c33-4d18-9e6a-51cb4470a2de",
+    "log.patient_uuid": "a2c373d1-c8c6-47f3-b566-e4ceaacdb1c7",
+    "log.resource_counts": { "Observation": 18, "Condition": 4 },
+    "log.claims_drafted": 6,
+    "log.duration_ms": 5120,
+    "trace.node_sequence": ["fetch_chart", "draft_claims", "verify", "render"],
+    "trace.routing_decision": { "decision": "answer", "reason_code": "chart_only_question" },
+    "trace.extraction_id": "w2x-3d71fa0c4e8b25976a1c03df5eb28401",
+    "metrics.input_tokens": 9044,
+    "metrics.output_tokens": 640
+  }
+}

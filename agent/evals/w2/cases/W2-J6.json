@@ -1,0 +1,21 @@
+{
+  "id": "W2-J6",
+  "category": "J",
+  "critical": true,
+  "status": "active",
+  "inputs": {
+    "kind": "fixture",
+    "fixtures": [
+      "phi/trace_positive_control.json"
+    ]
+  },
+  "expected": "A blatant plant — a name, an MRN, a date of birth and a free-text finding in four fields — is detected in every one of them, by both the canary and the pattern detector.",
+  "assertions": [
+    {
+      "rubric": "no_phi_in_logs",
+      "tier": "det",
+      "check": "chk.j_positive_control_is_detected"
+    }
+  ],
+  "guards_against": "A dead scanner. With the detector disabled the four seeded arms go quiet for the wrong reason and report zero exactly as a working scanner does; this is the arm that can tell the difference."
+}

@@ -1,0 +1,19 @@
+{
+  "id": "W2-A5",
+  "category": "A",
+  "critical": false,
+  "status": "active",
+  "inputs": {
+    "kind": "contract",
+    "note": "A converted sample re-serialised with its schema_version changed."
+  },
+  "expected": "Both extraction schemas refuse a payload announcing a schema_version they do not pin, rather than reading old bytes under new meanings.",
+  "assertions": [
+    {
+      "rubric": "schema_valid",
+      "tier": "det",
+      "check": "chk.a_schema_version_is_pinned"
+    }
+  ],
+  "guards_against": "Silent schema-version drift: a consumer writing 1.0.0 payloads against a 2.0.0 reader and finding out in production."
+}

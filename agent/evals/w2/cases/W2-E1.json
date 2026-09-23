@@ -1,0 +1,24 @@
+{
+  "id": "W2-E1",
+  "category": "E",
+  "critical": true,
+  "status": "active",
+  "inputs": {
+    "kind": "contract",
+    "note": "A Discrepancy(kind=added), the intake_form module's exported names, and a LabWriteBackRequest carrying an intake document."
+  },
+  "expected": "A medication on the form and not in the chart is surfaced as an `added` discrepancy with a document citation and no chart side; no merge-shaped operation exists; the write-back request refuses an intake document outright.",
+  "assertions": [
+    {
+      "rubric": "discrepancy_kind",
+      "tier": "det",
+      "check": "chk.e_added_is_surfaced_and_never_merged"
+    },
+    {
+      "rubric": "no_auto_merge",
+      "tier": "det",
+      "check": "chk.e_added_is_surfaced_and_never_merged"
+    }
+  ],
+  "guards_against": "Auto-merging intake medications into the chart — invariant 5 and D2, and a patient-safety failure rather than a data-quality one."
+}

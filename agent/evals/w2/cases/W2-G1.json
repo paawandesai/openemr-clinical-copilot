@@ -1,0 +1,19 @@
+{
+  "id": "W2-G1",
+  "category": "G",
+  "critical": false,
+  "status": "active",
+  "inputs": {
+    "kind": "contract",
+    "note": "MODE: the real supervisor, in process — run_ask_turn with chart, document store, retriever and drafter injected. No network, no model. Harness fakes come from tests/w2_graph_support.py, which is NOT gated; the gate asserts only on the graph's own output and each check carries a control."
+  },
+  "expected": "A document already in the store with a finished extraction is answered from, not handed to the extractor again: the extract node is absent from the trajectory.",
+  "assertions": [
+    {
+      "rubric": "routing_trajectory",
+      "tier": "det",
+      "check": "chk.g_an_extracted_document_is_not_re_extracted"
+    }
+  ],
+  "guards_against": "A skip-extraction regression: every question about an already-extracted document paying for a re-extraction, and D7's upload-time contract quietly broken."
+}

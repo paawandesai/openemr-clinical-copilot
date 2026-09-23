@@ -1,0 +1,19 @@
+{
+  "id": "W2-B8",
+  "category": "B",
+  "critical": false,
+  "status": "pending_sut",
+  "inputs": {
+    "kind": "not_built",
+    "note": "Still pending: no committed factory sample carries a censored numeric result (`<5`, `>1000`). The factory has no perturbation that renders a censored value. It needs one — say `censored_value` with `test:` and `comparator: <|<=|>|>=` — that draws the comparator in the result column and records it in ground truth as `rendered_text: \"<5\"` with `value: 5.0` and the comparator declared, so a scorer can tell a censored reading from an exact one. The contract half already exists (NumericLabValue.comparator, and D11's interval comparison), and W2-D5's indeterminate arm covers what happens downstream; what is missing is a page that says it."
+  },
+  "expected": "A censored result keeps its comparator: `<5` is a NumericLabValue with comparator '<', never widened to 5.",
+  "assertions": [
+    {
+      "rubric": "schema_valid",
+      "tier": "det",
+      "check": "pending.w2_b8_schema_valid"
+    }
+  ],
+  "guards_against": "A censored value silently becoming an exact one, which makes an undecidable flag look decidable."
+}

@@ -1,0 +1,12 @@
+{
+  "fixture_id": "fc_fail_guideline_as_patient_fact",
+  "rubric": "factually_consistent",
+  "expected_verdict": "fail",
+  "frozen": true,
+  "why_this_label": "The source says an A1C goal below 7% is appropriate for MANY nonpregnant adults. The statement says it is THIS patient's goal. The source carries no statement about this patient at all, so the claim is not entailed by it — rule (e) of the committed prompt, and CLAUDE.md invariant 3 in prose form: guideline evidence standing in for a chart fact.",
+  "what_this_detects": "A loosened factually_consistent prompt. Measured over five independent best-of-3 gradings: the committed prompt graded it fail 5/5 rounds, 15/15 votes; a generic 'is the statement consistent with the source?' rubric graded it pass. It is the fc counterpart of sr_fail.",
+  "payload": {
+    "statement": "This patient's A1c goal is below 7%.",
+    "source_text": "An A1C goal of less than 7% (53 mmol/mol) without significant hypoglycaemia is appropriate for many nonpregnant adults."
+  }
+}

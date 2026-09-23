@@ -1,0 +1,19 @@
+{
+  "id": "W2-K2",
+  "category": "K",
+  "critical": true,
+  "status": "active",
+  "inputs": {
+    "kind": "contract",
+    "note": "Two halves, in two jobs. HERE: the agent's write-back client over httpx.MockTransport — a replayed duplicate_ignored is read as a duplicate, keeps the winner's ids, counts nothing as created. THERE: that two concurrent requests commit exactly one chain, enforced by the CI job `w2-writeback-php` running WriteBackServiceTest::testTheChainRanOnceEvenThoughBothRequestsTried and ::testTheLoserOfAnIdempotencyRaceReturnsTheWinnersIds. This case stays `active` rather than `delegated` because the half the gate runs is real and worth scoring on its own; W2-K4 and W2-K6, which have no such half, are the delegated ones."
+  },
+  "expected": "A replayed duplicate is read as a duplicate and not as an error: zero results counted as created, the winning write's procedure_report_id and procedure_result_id returned unchanged, the same idempotency key, one request sent.",
+  "assertions": [
+    {
+      "rubric": "idempotency",
+      "tier": "det",
+      "check": "chk.k_replayed_duplicate_returns_the_winners_ids"
+    }
+  ],
+  "guards_against": "The race between the initial lookup and the durable write — where idempotency defects actually live, and which a replayed 200 does not detect."
+}

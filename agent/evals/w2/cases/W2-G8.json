@@ -1,0 +1,24 @@
+{
+  "id": "W2-G8",
+  "category": "G",
+  "critical": false,
+  "status": "pending_sut",
+  "inputs": {
+    "kind": "not_built",
+    "note": "Needs the supervisor graph: routing trajectories are asserted over nodes_ran, visit counts and reason codes."
+  },
+  "expected": "A truncated result set is never reported as a total: the count the answer states is the count the chart holds, or the answer says it is a partial view.",
+  "assertions": [
+    {
+      "rubric": "factually_consistent",
+      "tier": "judge",
+      "check": "pending.w2_g8_factually_consistent"
+    },
+    {
+      "rubric": "cap_disclosure",
+      "tier": "det",
+      "check": "pending.w2_g8_cap_disclosure"
+    }
+  ],
+  "guards_against": "Week 1's `_count` truncation reported as a total, re-covered on the Week 2 path."
+}

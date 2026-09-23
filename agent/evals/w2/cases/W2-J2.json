@@ -1,0 +1,21 @@
+{
+  "id": "W2-J2",
+  "category": "J",
+  "critical": true,
+  "status": "active",
+  "inputs": {
+    "kind": "fixture",
+    "fixtures": [
+      "phi/trace_error.json"
+    ]
+  },
+  "expected": "The error path carries no PHI: the message, the exception type and the stack frames are free of canaries and identifier shapes, and every reason is a closed-enum member.",
+  "assertions": [
+    {
+      "rubric": "no_phi_in_logs",
+      "tier": "det",
+      "check": "chk.j_no_phi_on_the_error_path"
+    }
+  ],
+  "guards_against": "PHI in an error message — one of the highest-yield leak sites, because an exception string is formatted from whatever happened to be in scope."
+}

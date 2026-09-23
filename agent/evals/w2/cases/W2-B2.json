@@ -1,0 +1,25 @@
+{
+  "id": "W2-B2",
+  "category": "B",
+  "critical": false,
+  "status": "active",
+  "inputs": {
+    "kind": "factory_scenario",
+    "scenario_ids": [
+      "lab-scanned-heavy-abnormal-002"
+    ],
+    "note": "MODE: recorded — driven by fixtures/transcriptions/, real claude-opus-5 output recorded against this exact PDF and replayed with no network. Not the ground-truth stub: a case that grades extraction is worthless run against a vision seam that is handed the right answer. Declares requires: [tesseract] — the scanned page has no text layer. Without the binary the runner SKIPS this case with a notice and the verdict says so; it is never counted as a pass.",
+    "requires": [
+      "tesseract"
+    ]
+  },
+  "expected": "Where the result column sits beside the reference-range column, the extracted value is the result and never a bound of the range next to it.",
+  "assertions": [
+    {
+      "rubric": "schema_valid",
+      "tier": "det",
+      "check": "chk.b_value_is_not_the_reference_range_bound"
+    }
+  ],
+  "guards_against": "Range-misread-as-value: RJUA-MedDQA's documented failure when the item name is not located correctly."
+}

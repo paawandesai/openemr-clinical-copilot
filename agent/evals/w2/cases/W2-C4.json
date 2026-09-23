@@ -1,0 +1,21 @@
+{
+  "id": "W2-C4",
+  "category": "C",
+  "critical": false,
+  "status": "active",
+  "inputs": {
+    "kind": "factory_scenario",
+    "scenario_ids": [
+      "intake-missing-allergy-006"
+    ]
+  },
+  "expected": "An illegible field carries no value, is disclosed as illegible_on_page, and discloses no guess; its bbox, where present, is the ink region and not evidence of a reading.",
+  "assertions": [
+    {
+      "rubric": "locate_result",
+      "tier": "det",
+      "check": "chk.c_illegible_is_disclosed_without_a_guess"
+    }
+  ],
+  "guards_against": "False-confident locate: a bbox over a scribble treated as having located a value."
+}

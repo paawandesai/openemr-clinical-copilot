@@ -1,0 +1,19 @@
+{
+  "id": "W2-D3",
+  "category": "D",
+  "critical": false,
+  "status": "active",
+  "inputs": {
+    "kind": "contract",
+    "note": "A potassium of 7.0 mmol/L against 3.5 - 5.1 with nothing in the flag column."
+  },
+  "expected": "A value outside its range with a blank flag still computes to `high`; the outcome records that the page reported nothing and the abnormality is surfaced anyway.",
+  "assertions": [
+    {
+      "rubric": "abnormal_flag_crosscheck",
+      "tier": "det",
+      "check": "chk.d_out_of_range_under_a_blank_flag_is_surfaced"
+    }
+  ],
+  "guards_against": "A suppressed abnormality: the computed flag discarded because the column beside it was empty."
+}

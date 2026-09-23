@@ -1,0 +1,25 @@
+{
+  "id": "W2-C2",
+  "category": "C",
+  "critical": false,
+  "status": "active",
+  "inputs": {
+    "kind": "factory_scenario",
+    "scenario_ids": [
+      "lab-scanned-heavy-abnormal-002"
+    ],
+    "note": "MODE: recorded — driven by fixtures/transcriptions/, real claude-opus-5 output recorded against this exact PDF and replayed with no network. Not the ground-truth stub: a case that grades extraction is worthless run against a vision seam that is handed the right answer. Declares requires: [tesseract] — the scanned page has no text layer. Without the binary the runner SKIPS this case with a notice and the verdict says so; it is never counted as a pass.",
+    "requires": [
+      "tesseract"
+    ]
+  },
+  "expected": "A value that exists only as pixels is located through the OCR path, with a box inside the page in the clean layout's coordinate space.",
+  "assertions": [
+    {
+      "rubric": "locate_result",
+      "tier": "det",
+      "check": "chk.c_ocr_path_locates_on_a_scanned_page"
+    }
+  ],
+  "guards_against": "An OCR-path locate regression: the text-layer path keeps working and every scanned document silently degrades to unsupported. The box TOLERANCE is D44's and is W2-C9's; this asserts the path runs at all."
+}

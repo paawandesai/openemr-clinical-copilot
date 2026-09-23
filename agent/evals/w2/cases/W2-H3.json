@@ -1,0 +1,24 @@
+{
+  "id": "W2-H3",
+  "category": "H",
+  "critical": true,
+  "status": "active",
+  "inputs": {
+    "kind": "contract",
+    "note": "MODE: the real supervisor, in process — run_ask_turn with chart, document store, retriever and drafter injected. No network, no model. Harness fakes come from tests/w2_graph_support.py, which is NOT gated; the gate asserts only on the graph's own output and each check carries a control. Sample: the factory's med_discrepancy scenario (form says amLODIPine 10 MG, chart product is 2.5 MG)."
+  },
+  "expected": "A form that disagrees with the chart surfaces the disagreement, carries no resolution, claims no change to the chart, and cannot have written one — the ask path references no write-back at all.",
+  "assertions": [
+    {
+      "rubric": "discrepancy_kind",
+      "tier": "det",
+      "check": "chk.h_a_contradiction_is_surfaced_not_resolved"
+    },
+    {
+      "rubric": "no_auto_merge",
+      "tier": "det",
+      "check": "chk.h_a_contradiction_is_surfaced_not_resolved"
+    }
+  ],
+  "guards_against": "A silent overwrite of a clinician's record by a patient's recollection, and its mirror: a disagreement dropped instead of shown."
+}

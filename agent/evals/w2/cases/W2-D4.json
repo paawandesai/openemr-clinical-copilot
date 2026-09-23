@@ -1,0 +1,19 @@
+{
+  "id": "W2-D4",
+  "category": "D",
+  "critical": false,
+  "status": "active",
+  "inputs": {
+    "kind": "contract",
+    "note": "A printed `N` against a value outside its reference interval."
+  },
+  "expected": "A printed flag that contradicts the computed one is a verification failure carrying both readings, disclosed rather than resolved in favour of either side.",
+  "assertions": [
+    {
+      "rubric": "abnormal_flag_crosscheck",
+      "tier": "det",
+      "check": "chk.d_printed_contradicting_computed_is_a_failure"
+    }
+  ],
+  "guards_against": "Silent trust of the printed flag, which turns the cross-check into a rubber stamp."
+}

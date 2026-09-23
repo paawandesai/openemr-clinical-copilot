@@ -1,0 +1,25 @@
+{
+  "fixture_id": "trace_normal",
+  "arm": "seeded",
+  "note": "Every field a normal pre-visit run captures. Identifiers and counts, nothing else — CLAUDE.md invariant 1.",
+  "captured": {
+    "log.event": "pre_visit_brief.completed",
+    "log.correlation_id": "4c547101-195d-47b2-bc4b-0db614573052",
+    "log.patient_uuid": "a2c373ec-57bf-41cb-8767-94410dcf663d",
+    "log.resource_counts": { "Observation": 42, "MedicationRequest": 7, "AllergyIntolerance": 3 },
+    "log.claims_drafted": 11,
+    "log.claims_verified": 9,
+    "log.claims_unverified": 2,
+    "log.duration_ms": 8134,
+    "trace.node_sequence": ["fetch_chart", "draft_claims", "verify", "render"],
+    "trace.routing_decision": { "decision": "answer", "reason_code": "chart_only_question" },
+    "trace.tool_input": { "resource_type": "Observation", "count": 50 },
+    "trace.tool_output_summary": { "returned": 42, "capped": false },
+    "trace.document_id": "lab-clean-001",
+    "trace.extraction_id": "w2x-8f4c1d9a3b6e05f27c0a19d4e8b73612",
+    "trace.idempotency_key_prefix": "b41f7c2e",
+    "metrics.model": "claude-opus-5",
+    "metrics.input_tokens": 18422,
+    "metrics.output_tokens": 1190
+  }
+}

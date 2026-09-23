@@ -1,0 +1,19 @@
+{
+  "id": "W2-D7",
+  "category": "D",
+  "critical": false,
+  "status": "active",
+  "inputs": {
+    "kind": "contract",
+    "note": "parse_reported_flag over unreadable glyphs and over printed N / WNL / HH / ll."
+  },
+  "expected": "An unreadable glyph is `unrecognised` — the report asserted something we cannot read — and stays distinguishable from a blank column, which asserted nothing. N and WNL remain printed assertions of normality.",
+  "assertions": [
+    {
+      "rubric": "abnormal_flag_crosscheck",
+      "tier": "det",
+      "check": "chk.d_unrecognised_glyph_is_distinct_from_blank"
+    }
+  ],
+  "guards_against": "Collapsing 'unreadable' into 'not printed', which loses the cause of a not_reported outcome in exactly the log line that would explain it."
+}

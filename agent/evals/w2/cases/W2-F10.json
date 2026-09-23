@@ -1,0 +1,19 @@
+{
+  "id": "W2-F10",
+  "category": "F",
+  "critical": false,
+  "status": "active",
+  "inputs": {
+    "kind": "contract",
+    "note": "Real chunks from a lexical retrieval, re-wrapped in EvidenceRetrieverOutput three ways: claiming a rerank with no scores, denying one while carrying them, and claiming one with a single chunk's score missing. Added per the retrieval session: the reranked <-> rerank_score invariant is enforced on EvidenceRetrieverOutput over its EvidenceChunks, so this needs no reranker to exercise."
+  },
+  "expected": "`reranked` and the per-chunk `rerank_score` must agree. A result set cannot claim a rerank it did not run, cannot deny one it did, and cannot claim one with a chunk's score missing.",
+  "assertions": [
+    {
+      "rubric": "rerank_declared",
+      "tier": "det",
+      "check": "chk.f_reranker_cannot_be_silently_off"
+    }
+  ],
+  "guards_against": "A reranker silently switched off. The design doc routes that to W2-G3 and W2-F4 — one needing the supervisor, the other the judge tier — which means today it would be caught by nobody. Here it is a validation error: a reranker that stops either declares itself off, where the log line's `reranked` and `rerank_unavailable` show it, or the result set does not construct. Neither needs a model, a graph or a judge to notice."
+}

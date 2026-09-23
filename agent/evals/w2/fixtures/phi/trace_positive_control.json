@@ -1,0 +1,14 @@
+{
+  "fixture_id": "trace_positive_control",
+  "arm": "positive_control",
+  "note": "A blatant plant. Four fields carry chart content that no log line has any business holding: the patient's name, MRN, date of birth and a free-text clinical finding. The scanner MUST report every one of them. This is the arm that fails when the scrubber is switched off, because with the scrubber off the seeded arms above go quiet for the wrong reason — they contain no chart content to find, and a disabled detector reports zero on them exactly as a working one does.",
+  "captured": {
+    "log.event": "pre_visit_brief.completed",
+    "log.correlation_id": "4c547101-195d-47b2-bc4b-0db614573052",
+    "log.patient_display_name": "Quenby Vandermolen-Ashgrove",
+    "log.patient_mrn": "ZZCANARY7413MRN",
+    "log.error_message": "could not resolve patient Quenby Vandermolen-Ashgrove (dob 1971-04-02)",
+    "retrieval.query_string": "recurrent nocturnal palpitations since the Brindlemere move ZZCANARY7413MRN",
+    "log.claims_drafted": 11
+  }
+}

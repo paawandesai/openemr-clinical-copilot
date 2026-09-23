@@ -1,0 +1,19 @@
+{
+  "id": "W2-F7",
+  "category": "F",
+  "critical": false,
+  "status": "active",
+  "inputs": {
+    "kind": "contract",
+    "note": "Chart and guideline citations offered a bbox."
+  },
+  "expected": "bbox is document-only: a chart has no pages and a guideline chunk has no pixels, so a coordinate on either is refused rather than ignored (D3).",
+  "assertions": [
+    {
+      "rubric": "citation_present",
+      "tier": "det",
+      "check": "chk.f_bbox_is_document_only"
+    }
+  ],
+  "guards_against": "A coordinate arriving from a source that cannot produce one, which makes a bbox stop meaning 'the locate step placed this'."
+}

@@ -1,0 +1,750 @@
+{
+  "doc_type": "lab_pdf",
+  "document_sha256": "e4117a27cc6b199429406422272d43ac014b7d7a1e13cbae0889319f29571218",
+  "extractor_version": "intake-extractor/1.0.0+claude-opus-5",
+  "format": "w2-staging/vision-transcription/1.0.0",
+  "prompt_fingerprint": "5fd2e6afff94a609db2f6066bbdc92fa42ff2ba2fc7d0229744b28b1693addd1",
+  "raw": {
+    "order": {
+      "accession": {
+        "page": 1,
+        "state": "present",
+        "text": "260830-993-9962"
+      },
+      "collected_at": {
+        "page": 1,
+        "state": "present",
+        "text": "2026-08-30 07:12"
+      },
+      "ordering_provider": {
+        "page": 1,
+        "state": "present",
+        "text": "Marcus Oyelaran, MD"
+      },
+      "received_at": {
+        "page": 1,
+        "state": "present",
+        "text": "2026-08-30 09:29"
+      },
+      "reported_at": {
+        "page": 1,
+        "state": "present",
+        "text": "2026-08-30 16:29"
+      },
+      "specimen": {
+        "page": 1,
+        "state": "present",
+        "text": "Serum"
+      }
+    },
+    "patient": {
+      "address": {
+        "page": 1,
+        "state": "present",
+        "text": "890 Mills Well"
+      },
+      "city_state_zip": {
+        "page": 1,
+        "state": "present",
+        "text": "Westwood, Massachusetts 00000"
+      },
+      "date_of_birth": {
+        "page": 1,
+        "state": "present",
+        "text": "1960-09-25"
+      },
+      "mrn": {
+        "page": 1,
+        "state": "present",
+        "text": "38"
+      },
+      "name": {
+        "page": 1,
+        "state": "present",
+        "text": "Merlyn225 Sanda877 Mueller846"
+      },
+      "sex": {
+        "page": 1,
+        "state": "present",
+        "text": "Female"
+      }
+    },
+    "performing_lab": {
+      "address": {
+        "page": 1,
+        "state": "present",
+        "text": "88 Harborview Drive Quincy, MA 02169  Tel (617) 555-0188"
+      },
+      "clia": {
+        "page": 1,
+        "state": "present",
+        "text": "22D2118740"
+      },
+      "director": {
+        "page": 1,
+        "state": "present",
+        "text": "Nadia Okonjo-Reyes, MD"
+      },
+      "name": {
+        "page": 1,
+        "state": "present",
+        "text": "BAY STATE CLINICAL DIAGNOSTICS"
+      }
+    },
+    "results": [
+      {
+        "flag": {
+          "page": 1,
+          "state": "present",
+          "text": ""
+        },
+        "panel": "comprehensive metabolic panel",
+        "reference_range": {
+          "page": 1,
+          "state": "present",
+          "text": "70 - 99"
+        },
+        "test_key": "glucose",
+        "test_name": {
+          "page": 1,
+          "state": "present",
+          "text": "Glucose"
+        },
+        "unit": {
+          "page": 1,
+          "state": "present",
+          "text": "mg/dL"
+        },
+        "value": {
+          "page": 1,
+          "state": "present",
+          "text": "89"
+        }
+      },
+      {
+        "flag": {
+          "page": 1,
+          "state": "present",
+          "text": ""
+        },
+        "panel": "comprehensive metabolic panel",
+        "reference_range": {
+          "page": 1,
+          "state": "present",
+          "text": "7 - 20"
+        },
+        "test_key": "bun",
+        "test_name": {
+          "page": 1,
+          "state": "present",
+          "text": "BUN (Urea Nitrogen)"
+        },
+        "unit": {
+          "page": 1,
+          "state": "present",
+          "text": "mg/dL"
+        },
+        "value": {
+          "page": 1,
+          "state": "present",
+          "text": "15"
+        }
+      },
+      {
+        "flag": {
+          "page": 1,
+          "state": "present",
+          "text": ""
+        },
+        "panel": "comprehensive metabolic panel",
+        "reference_range": {
+          "page": 1,
+          "state": "present",
+          "text": "0.50 - 1.10"
+        },
+        "test_key": "creatinine",
+        "test_name": {
+          "page": 1,
+          "state": "present",
+          "text": "Creatinine"
+        },
+        "unit": {
+          "page": 1,
+          "state": "present",
+          "text": "mg/dL"
+        },
+        "value": {
+          "page": 1,
+          "state": "present",
+          "text": "0.84"
+        }
+      },
+      {
+        "flag": {
+          "page": 1,
+          "state": "present",
+          "text": ""
+        },
+        "panel": "comprehensive metabolic panel",
+        "reference_range": {
+          "page": 1,
+          "state": "present",
+          "text": "60 - 120"
+        },
+        "test_key": "egfr",
+        "test_name": {
+          "page": 1,
+          "state": "present",
+          "text": "eGFR"
+        },
+        "unit": {
+          "page": 1,
+          "state": "present",
+          "text": "mL/min/1.73"
+        },
+        "value": {
+          "page": 1,
+          "state": "present",
+          "text": "90"
+        }
+      },
+      {
+        "flag": {
+          "page": 1,
+          "state": "present",
+          "text": ""
+        },
+        "panel": "comprehensive metabolic panel",
+        "reference_range": {
+          "page": 1,
+          "state": "present",
+          "text": "136 - 145"
+        },
+        "test_key": "sodium",
+        "test_name": {
+          "page": 1,
+          "state": "present",
+          "text": "Sodium"
+        },
+        "unit": {
+          "page": 1,
+          "state": "present",
+          "text": "mmol/L"
+        },
+        "value": {
+          "page": 1,
+          "state": "present",
+          "text": "137"
+        }
+      },
+      {
+        "flag": {
+          "page": 1,
+          "state": "present",
+          "text": ""
+        },
+        "panel": "comprehensive metabolic panel",
+        "reference_range": {
+          "page": 1,
+          "state": "present",
+          "text": "3.5 - 5.1"
+        },
+        "test_key": "potassium",
+        "test_name": {
+          "page": 1,
+          "state": "present",
+          "text": "Potassium"
+        },
+        "unit": {
+          "page": 1,
+          "state": "present",
+          "text": "mmol/L"
+        },
+        "value": {
+          "page": 1,
+          "state": "present",
+          "text": "4.1"
+        }
+      },
+      {
+        "flag": {
+          "page": 1,
+          "state": "present",
+          "text": ""
+        },
+        "panel": "comprehensive metabolic panel",
+        "reference_range": {
+          "page": 1,
+          "state": "present",
+          "text": "98 - 107"
+        },
+        "test_key": "chloride",
+        "test_name": {
+          "page": 1,
+          "state": "present",
+          "text": "Chloride"
+        },
+        "unit": {
+          "page": 1,
+          "state": "present",
+          "text": "mmol/L"
+        },
+        "value": {
+          "page": 1,
+          "state": "present",
+          "text": "102"
+        }
+      },
+      {
+        "flag": {
+          "page": 1,
+          "state": "present",
+          "text": ""
+        },
+        "panel": "comprehensive metabolic panel",
+        "reference_range": {
+          "page": 1,
+          "state": "present",
+          "text": "22 - 29"
+        },
+        "test_key": "co2",
+        "test_name": {
+          "page": 1,
+          "state": "present",
+          "text": "CO2 (Bicarbonate)"
+        },
+        "unit": {
+          "page": 1,
+          "state": "present",
+          "text": "mmol/L"
+        },
+        "value": {
+          "page": 1,
+          "state": "present",
+          "text": "25"
+        }
+      },
+      {
+        "flag": {
+          "page": 1,
+          "state": "present",
+          "text": ""
+        },
+        "panel": "comprehensive metabolic panel",
+        "reference_range": {
+          "page": 1,
+          "state": "present",
+          "text": "8.6 - 10.2"
+        },
+        "test_key": "calcium",
+        "test_name": {
+          "page": 1,
+          "state": "present",
+          "text": "Calcium"
+        },
+        "unit": {
+          "page": 1,
+          "state": "present",
+          "text": "mg/dL"
+        },
+        "value": {
+          "page": 1,
+          "state": "present",
+          "text": "9.3"
+        }
+      },
+      {
+        "flag": {
+          "page": 1,
+          "state": "present",
+          "text": ""
+        },
+        "panel": "comprehensive metabolic panel",
+        "reference_range": {
+          "page": 1,
+          "state": "present",
+          "text": "6.4 - 8.3"
+        },
+        "test_key": "protein_total",
+        "test_name": {
+          "page": 1,
+          "state": "present",
+          "text": "Protein, Total"
+        },
+        "unit": {
+          "page": 1,
+          "state": "present",
+          "text": "g/dL"
+        },
+        "value": {
+          "page": 1,
+          "state": "present",
+          "text": "7.3"
+        }
+      },
+      {
+        "flag": {
+          "page": 1,
+          "state": "present",
+          "text": ""
+        },
+        "panel": "comprehensive metabolic panel",
+        "reference_range": {
+          "page": 1,
+          "state": "present",
+          "text": "3.5 - 5.0"
+        },
+        "test_key": "albumin",
+        "test_name": {
+          "page": 1,
+          "state": "present",
+          "text": "Albumin"
+        },
+        "unit": {
+          "page": 1,
+          "state": "present",
+          "text": "g/dL"
+        },
+        "value": {
+          "page": 1,
+          "state": "present",
+          "text": "3.7"
+        }
+      },
+      {
+        "flag": {
+          "page": 1,
+          "state": "present",
+          "text": ""
+        },
+        "panel": "comprehensive metabolic panel",
+        "reference_range": {
+          "page": 1,
+          "state": "present",
+          "text": "0.2 - 1.2"
+        },
+        "test_key": "bilirubin_total",
+        "test_name": {
+          "page": 1,
+          "state": "present",
+          "text": "Bilirubin, Total"
+        },
+        "unit": {
+          "page": 1,
+          "state": "present",
+          "text": "mg/dL"
+        },
+        "value": {
+          "page": 1,
+          "state": "present",
+          "text": "0.7"
+        }
+      },
+      {
+        "flag": {
+          "page": 1,
+          "state": "present",
+          "text": ""
+        },
+        "panel": "comprehensive metabolic panel",
+        "reference_range": {
+          "page": 1,
+          "state": "present",
+          "text": "40 - 129"
+        },
+        "test_key": "alkaline_phosphatase",
+        "test_name": {
+          "page": 1,
+          "state": "present",
+          "text": "Alkaline Phosphatase"
+        },
+        "unit": {
+          "page": 1,
+          "state": "present",
+          "text": "U/L"
+        },
+        "value": {
+          "page": 1,
+          "state": "present",
+          "text": "81"
+        }
+      },
+      {
+        "flag": {
+          "page": 1,
+          "state": "present",
+          "text": ""
+        },
+        "panel": "comprehensive metabolic panel",
+        "reference_range": {
+          "page": 1,
+          "state": "present",
+          "text": "10 - 40"
+        },
+        "test_key": "ast",
+        "test_name": {
+          "page": 1,
+          "state": "present",
+          "text": "AST (SGOT)"
+        },
+        "unit": {
+          "page": 1,
+          "state": "present",
+          "text": "U/L"
+        },
+        "value": {
+          "page": 1,
+          "state": "present",
+          "text": "28"
+        }
+      },
+      {
+        "flag": {
+          "page": 1,
+          "state": "present",
+          "text": ""
+        },
+        "panel": "comprehensive metabolic panel",
+        "reference_range": {
+          "page": 1,
+          "state": "present",
+          "text": "7 - 56"
+        },
+        "test_key": "alt",
+        "test_name": {
+          "page": 1,
+          "state": "present",
+          "text": "ALT (SGPT)"
+        },
+        "unit": {
+          "page": 1,
+          "state": "present",
+          "text": "U/L"
+        },
+        "value": {
+          "page": 1,
+          "state": "present",
+          "text": "37"
+        }
+      },
+      {
+        "flag": {
+          "page": 1,
+          "state": "present",
+          "text": ""
+        },
+        "panel": "lipid panel",
+        "reference_range": {
+          "page": 1,
+          "state": "present",
+          "text": "125 - 200"
+        },
+        "test_key": "cholesterol_total",
+        "test_name": {
+          "page": 1,
+          "state": "present",
+          "text": "Cholesterol, Total"
+        },
+        "unit": {
+          "page": 1,
+          "state": "present",
+          "text": "mg/dL"
+        },
+        "value": {
+          "page": 1,
+          "state": "present",
+          "text": "144"
+        }
+      },
+      {
+        "flag": {
+          "page": 1,
+          "state": "present",
+          "text": ""
+        },
+        "panel": "lipid panel",
+        "reference_range": {
+          "page": 1,
+          "state": "present",
+          "text": "35 - 150"
+        },
+        "test_key": "triglycerides",
+        "test_name": {
+          "page": 1,
+          "state": "present",
+          "text": "Triglycerides"
+        },
+        "unit": {
+          "page": 1,
+          "state": "present",
+          "text": "mg/dL"
+        },
+        "value": {
+          "page": 1,
+          "state": "present",
+          "text": "89"
+        }
+      },
+      {
+        "flag": {
+          "page": 1,
+          "state": "present",
+          "text": ""
+        },
+        "panel": "lipid panel",
+        "reference_range": {
+          "page": 1,
+          "state": "present",
+          "text": "50 - 100"
+        },
+        "test_key": "hdl",
+        "test_name": {
+          "page": 1,
+          "state": "present",
+          "text": "HDL Cholesterol"
+        },
+        "unit": {
+          "page": 1,
+          "state": "present",
+          "text": "mg/dL"
+        },
+        "value": {
+          "page": 1,
+          "state": "present",
+          "text": "95"
+        }
+      },
+      {
+        "flag": {
+          "page": 1,
+          "state": "present",
+          "text": ""
+        },
+        "panel": "lipid panel",
+        "reference_range": {
+          "page": 1,
+          "state": "present",
+          "text": "40 - 100"
+        },
+        "test_key": "ldl_calc",
+        "test_name": {
+          "page": 1,
+          "state": "present",
+          "text": "LDL Cholesterol (calc)"
+        },
+        "unit": {
+          "page": 1,
+          "state": "present",
+          "text": "mg/dL"
+        },
+        "value": {
+          "page": 1,
+          "state": "present",
+          "text": "68"
+        }
+      },
+      {
+        "flag": {
+          "page": 1,
+          "state": "present",
+          "text": ""
+        },
+        "panel": "lipid panel",
+        "reference_range": {
+          "page": 1,
+          "state": "present",
+          "text": "1.5 - 5.0"
+        },
+        "test_key": "chol_hdl_ratio",
+        "test_name": {
+          "page": 1,
+          "state": "present",
+          "text": "Total Chol / HDL Ratio"
+        },
+        "unit": {
+          "page": 1,
+          "state": "present",
+          "text": "ratio"
+        },
+        "value": {
+          "page": 1,
+          "state": "present",
+          "text": "3.4"
+        }
+      },
+      {
+        "flag": {
+          "page": 1,
+          "state": "present",
+          "text": ""
+        },
+        "panel": "hemoglobin a1c",
+        "reference_range": {
+          "page": 1,
+          "state": "present",
+          "text": "4.0 - 5.6"
+        },
+        "test_key": "hemoglobin_a1c",
+        "test_name": {
+          "page": 1,
+          "state": "present",
+          "text": "Hemoglobin A1c"
+        },
+        "unit": {
+          "page": 1,
+          "state": "present",
+          "text": "%"
+        },
+        "value": {
+          "page": 1,
+          "state": "present",
+          "text": "4.8"
+        }
+      },
+      {
+        "flag": {
+          "page": 1,
+          "state": "present",
+          "text": ""
+        },
+        "panel": "hemoglobin a1c",
+        "reference_range": {
+          "page": 1,
+          "state": "present",
+          "text": "68 - 114"
+        },
+        "test_key": "est_average_glucose",
+        "test_name": {
+          "page": 1,
+          "state": "present",
+          "text": "Est. Average Glucose"
+        },
+        "unit": {
+          "page": 1,
+          "state": "present",
+          "text": "mg/dL"
+        },
+        "value": {
+          "page": 1,
+          "state": "present",
+          "text": "85"
+        }
+      }
+    ]
+  },
+  "recorded_at": "2026-09-22T22:12:34+00:00",
+  "requested_model": "claude-opus-5",
+  "sample": "lab-clean-001",
+  "served_models": [
+    "claude-opus-5"
+  ],
+  "usage": {
+    "cache_creation_input_tokens": 0,
+    "cache_read_input_tokens": 0,
+    "calls": 1,
+    "cost_usd": 0.125915,
+    "input_tokens": 6663,
+    "latency_ms": 29441,
+    "output_tokens": 3704
+  }
+}
