@@ -84,6 +84,20 @@ def execute(cases: list[Case], *, det_only: bool, judge_available: bool) -> list
 
 
 def _commit() -> str:
+    """
+    The commit this run scored.
+
+    Read from the environment first. `CI_COMMIT_SHA` is what GitLab sets, and
+    `W2_GATE_COMMIT` is the manual override for a containerised run: this
+    repository is developed in git worktrees, where `.git` is a *file*
+    pointing at a path outside the container, so `git rev-parse` inside one
+    cannot resolve it and silently produced a baseline naming "unknown" —
+    which defeats the point of recording a commit at all.
+    """
+    for name in ("W2_GATE_COMMIT", "CI_COMMIT_SHA"):
+        value = os.environ.get(name, "").strip()
+        if value:
+            return value
     try:
         return subprocess.run(
             ["git", "-C", str(REPO_ROOT), "rev-parse", "HEAD"],
@@ -404,6 +418,14 @@ def main(argv: list[str] | None = None) -> int:
                 "refusing to seed a baseline from a run that did not score "
                 f"{len(unscored_critical)} critical case(s): "
                 f"{', '.join(r.case.id for r in unscored_critical)}",
+                file=sys.stderr,
+            )
+            return 2
+        if payload.get("commit") in (None, "", "unknown"):
+            print(
+                "refusing to seed a baseline that cannot name the commit it scored. "
+                "Set W2_GATE_COMMIT (or run where `git rev-parse` works): a baseline "
+                "naming 'unknown' cannot be compared against anything later.",
                 file=sys.stderr,
             )
             return 2
