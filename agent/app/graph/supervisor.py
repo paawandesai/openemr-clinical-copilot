@@ -81,7 +81,7 @@ from app.fhir.exceptions import FhirClientError, PatientNotFoundError
 from app.graph import conversation as week1
 from app.graph.follow_up import fetch_bounded_set
 from app.graph.pre_visit_brief import UntracedGraph, _timed, _untraced
-from app.middleware.correlation import correlation_scope, get_correlation_id
+from app.middleware.correlation import correlation_scope, event_tags_scope, get_correlation_id
 from app.middleware.logging import log_event
 from app.models.claims import Claim, VerificationResult
 from app.models.conversation import ConversationGap
@@ -1289,7 +1289,7 @@ async def run_ask_turn(
     correlation_id = get_correlation_id() or str(uuid.uuid4())
     started = time.perf_counter()
 
-    with correlation_scope(correlation_id):
+    with correlation_scope(correlation_id), event_tags_scope(_USE_CASE, key):
         try:
             await fhir_client.ensure_patient_exists(token, patient_id)
         except PatientNotFoundError:

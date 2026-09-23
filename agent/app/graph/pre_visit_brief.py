@@ -72,7 +72,7 @@ from langgraph.runtime import Runtime
 from langsmith import tracing_context
 
 from app.fhir import client as fhir_client
-from app.middleware.correlation import correlation_scope, get_correlation_id
+from app.middleware.correlation import correlation_scope, event_tags_scope, get_correlation_id
 from app.middleware.langfuse_export import LATENCY_EVENT
 from app.middleware.logging import log_event
 from app.middleware.telemetry import step
@@ -474,7 +474,7 @@ async def run_pre_visit_brief(
         trigger_ts=trigger_ts,
     )
     correlation_id = get_correlation_id() or str(uuid.uuid4())
-    with correlation_scope(correlation_id):
+    with correlation_scope(correlation_id), event_tags_scope(_USE_CASE, patient_session_key):
         final = await PRE_VISIT_BRIEF_GRAPH.ainvoke({"node_seconds": {}}, context=context)
 
     return PreVisitBriefResult(

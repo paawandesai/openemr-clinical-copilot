@@ -2533,3 +2533,82 @@ re-opening or a refinement is recorded here rather than argued.
 not re-probed every turn — each probe that fails costs a clinician the full
 4 s budget — and short enough that one bad moment costs at most a minute of
 unreranked answers rather than the life of the process.
+
+---
+
+## D52 — A turn's tags reach the operational events through a per-request holder, and a request that runs no turn stays untagged
+
+**Status:** DECIDED
+**Date:** 2026-09-23
+**Work order:** 20 (`fix/w2-event-tags`).
+**Numbering:** written as D-NEXT. Takes D52: D41-D50 are taken on `main`
+(`caa92f8`), and D51 is reserved for the work-order-17 entry, which is
+being renumbered from "D-unassigned" to D51 on the docs session's branch.
+**Evidence:** `docs/w2/evidence/i2-i11-event-tagging.md` (the diagnosis, on
+`main` since `b7ef892`); `agent/tests/test_w2_event_tags.py`.
+
+**Problem.** D38's `tool_call_event` for every FHIR read and the
+middleware's `http_request_event` reached a conversation turn with
+`use_case` and `patient_session_key` both null, so Week 1's I2 and I11 failed
+their attribution check on `main` (10/12). Offline, one lab-question turn
+emits 21 events and 6 were untagged: the Patient read, the four FHIR searches
+and the request event. Every safety assertion in both cases already passed.
+It was a telemetry defect only.
+
+**Decision.**
+
+- `CorrelationIdMiddleware` sets a fresh, empty, **mutable** `EventTags`
+  holder in a `ContextVar` for each request and resets it afterwards
+  (`app/middleware/correlation.py`).
+- Each turn entry point opens `event_tags_scope(use_case, key)` next to its
+  existing `correlation_scope`: `run_conversation_turn`, `run_follow_up`,
+  `run_pre_visit_brief`, `run_ask_turn`. Inside a request this writes the
+  turn's tags into the request's holder. Outside one (a script, a unit test)
+  it sets a holder for the block and removes it after.
+- `tool_call()` and `record_step()` fall back to the holder **per field**
+  when their caller passes no tag, and `_emit_request_event` reads the
+  holder. **A caller's explicit tag always wins.**
+- Week 1 product events (`log_event` called directly) do **not** fall back.
+  They keep their explicit tagging, because some rely on a null `use_case`
+  meaning "the caller did not say" (`_emit_retrieval_event`).
+
+**Why a holder and not a plain ContextVar.** Under `BaseHTTPMiddleware` the
+endpoint runs in a *copy* of the request's context. A ContextVar the turn
+sets is invisible to the middleware once `call_next` returns, which is when
+the request event is emitted. The copy shares the holder object, so what the
+turn writes into it the middleware reads.
+
+**Why not thread the tags through the calls.** `_get_bundle(token,
+resource_type, params)` and `ensure_patient_exists(token, patient_id)` are
+signatures the gated Week 1 evals (I9, A6, H1-H4) patch with fakes of
+exactly that shape. The first attempt widened them and broke I9. No
+tool-call signature changes here.
+
+**Requests with no patient context.** `/health`, `/ready`, an unmatched
+path, a document upload, and a request refused before the turn starts (a
+missing or malformed bearer token) never open a scope. Their holder is empty,
+and their events stay untagged. They are never tagged with a previous turn's
+key: the holder is created per request, not reused. Pinned by tests, and by
+mutation (a holder shared across requests fails four of them). Dashboards
+must not assume every `http_request_event` carries a key.
+
+**A turn OpenEMR rejects is still tagged.** The key is computed before the
+Patient read, from the token's unchecked `sub`, so a 401 turn's Patient
+tool call and request event carry it. This is the key the brief has always
+logged on a rejected token. It cannot carry free text: `sub` is held to
+`^[A-Za-z0-9._-]{1,128}$`, `patient_id` to a UUID and `session_id` to
+`^[A-Za-z0-9-]{8,64}$`.
+
+**Invariant 1.** No field is added to any event. `use_case` and
+`patient_session_key` were already top-level keys on every `agent_event`
+line, null on these three event types. They are now populated inside a
+turn. The `event_data` payloads are unchanged and still validate against
+D38's closed schemas. The Langfuse exporter maps the two values to session,
+trace name and tag, exactly as it already did for every other event of the
+same turn.
+
+**Result.** Week 1 I-suite 12/12 (was 10/12 on `main`): first on `53b524e`
+over `21f1053`, then again after rebasing onto `caa92f8`, with the fix at
+`6f2fbab` (2026-09-23 17:40-17:45Z, 265.7 s). The second run made 17 model
+calls, 157,403 input and 16,730 output tokens with no cache use, which is
+**$1.21** at $5 / $25 per MTok.
