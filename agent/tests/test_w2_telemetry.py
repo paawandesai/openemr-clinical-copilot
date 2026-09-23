@@ -15,6 +15,7 @@ of these events can carry text.
 from __future__ import annotations
 
 import asyncio
+import time
 import uuid
 
 import anthropic
@@ -25,6 +26,7 @@ from pydantic import ValidationError
 from structlog.testing import capture_logs
 
 from app.api import documents
+from app.fhir.exceptions import PatientNotFoundError
 from app.main import app
 from app.middleware import langfuse_export
 from app.middleware.correlation import accepted_correlation_id, correlation_scope
@@ -37,11 +39,18 @@ from app.models.telemetry_events import (
     Tool,
     ToolCallEvent,
 )
+from app.workers import document_store
+from app.workers.document_store import DocumentStore
+from tests.intake_extractor_support import (
+    chart_for,
+    ground_truth_vision,
+    patient_uuid,
+    pdf_bytes,
+)
 from tests.test_w2_writeback_client import _post as post_writeback
 
 TOKEN = {"Authorization": "Bearer test-token"}
-PDF = b"%PDF-1.7\n% a tiny but plausible file\n%%EOF\n"
-ENCOUNTER = "enc-7f3a9c2e-0001"
+ENCOUNTER = "7f3a9c2e-5b1d-4e8a-9c2f-000000000001"  # a UUID4, as D36 requires
 
 
 def _events(logs: list[dict], event_type: str) -> list[dict]:
@@ -52,12 +61,59 @@ def _events(logs: list[dict], event_type: str) -> list[dict]:
     ]
 
 
+# The real upload route (D7, work order 13) with main's own test doubles:
+# the Patient read patched, the vision call replayed from ground truth, the
+# chart the factory generated against. Text layer, locate and checks are real.
+
+SAMPLE = "lab-clean-001"
+PATIENT = patient_uuid(SAMPLE)
+PDF = pdf_bytes(SAMPLE)
+
+
 @pytest.fixture
-def client() -> TestClient:
-    documents._reset_for_tests()
+def client(monkeypatch: pytest.MonkeyPatch) -> TestClient:
+    """The same doubles as tests/test_w2_documents_api.py's fixture."""
+
+    async def patient_exists(token: str, patient_id: str) -> None:
+        if patient_id != PATIENT:
+            raise PatientNotFoundError(patient_id)
+
+    def chart_reader(token: str, **_: object):  # noqa: ANN202
+        async def read(uuid: str):  # noqa: ANN202
+            return chart_for(SAMPLE)
+
+        return read
+
+    monkeypatch.setattr(documents.fhir_client, "ensure_patient_exists", patient_exists)
+    monkeypatch.setattr(documents, "fhir_chart_reader", chart_reader)
+    monkeypatch.setattr(
+        document_store, "DOCUMENTS", DocumentStore(vision=ground_truth_vision(SAMPLE))
+    )
     with TestClient(app) as test_client:
         yield test_client
-    documents._reset_for_tests()
+
+
+def upload(client: TestClient, headers: dict | None = None):  # noqa: ANN201
+    return client.post(
+        "/documents",
+        params={"kind": "lab_pdf", "patient_id": PATIENT},
+        content=PDF,
+        headers={"Content-Type": "application/pdf", **(headers or TOKEN)},
+    )
+
+
+def poll(client: TestClient, document_id: str, headers: dict, seconds: float = 60.0) -> dict:
+    deadline = time.monotonic() + seconds
+    while time.monotonic() < deadline:
+        body = client.get(
+            f"/documents/{document_id}/extraction",
+            params={"patient_id": PATIENT},
+            headers=headers,
+        ).json()
+        if body["status"] in ("complete", "failed"):
+            return body
+        time.sleep(0.1)
+    raise AssertionError("extraction did not finish")
 
 
 # --- correlation id: one encounter, one id -------------------------------
@@ -87,27 +143,58 @@ class TestCorrelationId:
         assert "Jane Doe" not in response.headers["X-Correlation-ID"]
 
     def test_every_request_of_an_encounter_carries_the_callers_id(self, client: TestClient) -> None:
+        """
+        Upload, the background extraction it starts, and every status poll
+        are one correlation id: the caller's. The extraction runs on its own
+        task after the upload returns, so this is the chain break the
+        extractor used to have (it minted its own id).
+        """
         headers = {**TOKEN, "X-Correlation-ID": ENCOUNTER}
         with capture_logs() as logs:
-            uploaded = client.post(
-                "/documents",
-                params={"kind": "lab_pdf"},
-                content=PDF,
-                headers={**headers, "Content-Type": "application/pdf"},
-            )
-            document_id = uploaded.json()["document_id"]
-            client.get(f"/documents/{document_id}/extraction", headers=headers)
+            uploaded = upload(client, headers=headers)
+            assert uploaded.status_code == 200, uploaded.text
+            final = poll(client, uploaded.json()["document_id"], headers)
+        assert final["status"] == "complete"
 
         agent_events = [log for log in logs if log.get("event") == "agent_event"]
-        assert {e["event_type"] for e in agent_events} >= {
+        types = {e["event_type"] for e in agent_events}
+        assert {
             "w2_document_upload_accepted",
             "w2_extraction_state_read",
+            "intake_extraction_completed",
             "step_event",
             "http_request_event",
-        }
+        } <= types
+        extractor_steps = [
+            e["event_data"]["step"]
+            for e in agent_events
+            if e["event_type"] == "step_event" and e["event_data"]["pipeline"] == "intake_extractor"
+        ]
+        assert extractor_steps == ["read_document", "vision", "locate", "verify"]
         # capture_logs drops the contextvars processor, so read the id each
         # event carries in its own payload.
         assert {e["event_data"]["correlation_id"] for e in agent_events} == {ENCOUNTER}
+
+    def test_a_non_uuid_encounter_id_still_uploads_and_links_the_two_traces(
+        self, client: TestClient
+    ) -> None:
+        """
+        The extraction contract requires a UUID. An identifier-shaped
+        non-UUID the middleware accepted must not turn an upload into a 500:
+        the extraction gets its own id, and the link is logged under the
+        request's.
+        """
+        headers = {**TOKEN, "X-Correlation-ID": "enc-7f3a9c2e-0001"}
+        with capture_logs() as logs:
+            uploaded = upload(client, headers=headers)
+            assert uploaded.status_code == 200, uploaded.text
+            final = poll(client, uploaded.json()["document_id"], headers)
+        assert final["status"] == "complete"
+        (link,) = _events(logs, "w2_extraction_correlation_replaced")
+        extraction_id = link["event_data"]["extraction_correlation_id"]
+        assert uuid.UUID(extraction_id).version == 4
+        (completed,) = _events(logs, "intake_extraction_completed")
+        assert completed["event_data"]["correlation_id"] == extraction_id
 
 
 # --- http_request_event -----------------------------------------------------
@@ -116,7 +203,11 @@ class TestCorrelationId:
 class TestRequestEvents:
     def test_the_route_is_the_template_not_the_path(self, client: TestClient) -> None:
         with capture_logs() as logs:
-            client.get("/documents/some-unknown-document/extraction", headers=TOKEN)
+            client.get(
+                "/documents/some-unknown-document/extraction",
+                params={"patient_id": PATIENT},
+                headers=TOKEN,
+            )
         (request,) = _events(logs, "http_request_event")
         data = request["event_data"]
         assert data["route"] == "/documents/{document_id}/extraction"
@@ -137,19 +228,22 @@ class TestRequestEvents:
 class TestSteps:
     def test_upload_and_status_are_steps_with_outcomes(self, client: TestClient) -> None:
         with capture_logs() as logs:
-            uploaded = client.post(
-                "/documents",
-                params={"kind": "lab_pdf"},
-                content=PDF,
-                headers={**TOKEN, "Content-Type": "application/pdf"},
-            )
-            client.get(f"/documents/{uploaded.json()['document_id']}/extraction", headers=TOKEN)
-        steps = [e["event_data"] for e in _events(logs, "step_event")]
-        assert [(s["pipeline"], s["step"], s["outcome"]) for s in steps] == [
-            ("documents", "upload", "ok"),
-            ("documents", "extraction_status", "pending"),
+            uploaded = upload(client)
+            poll(client, uploaded.json()["document_id"], TOKEN)
+        steps = [
+            (e["event_data"]["pipeline"], e["event_data"]["step"], e["event_data"]["outcome"])
+            for e in _events(logs, "step_event")
+            if e["event_data"]["pipeline"] == "documents"
         ]
-        assert steps[0]["counts"] == {"byte_length": len(PDF), "duplicate": False, "stub": True}
+        assert steps[0] == ("documents", "upload", "ok")
+        assert steps[-1] == ("documents", "extraction_status", "ok")
+        assert all(step == "extraction_status" for _, step, _ in steps[1:])
+        (upload_counts,) = [
+            e["event_data"]["counts"]
+            for e in _events(logs, "step_event")
+            if e["event_data"]["step"] == "upload"
+        ]
+        assert upload_counts == {"byte_length": len(PDF), "duplicate": False}
 
     def test_a_failing_step_records_the_class_name_and_reraises(self) -> None:
         with capture_logs() as logs, pytest.raises(KeyError):

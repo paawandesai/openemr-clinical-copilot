@@ -241,6 +241,33 @@ def _log_outcome(report: ExtractionReport) -> None:
     log_event(event, event_data={"correlation_id": report.output.correlation_id, **summary})
 
 
+def _extraction_correlation_id(document_id: str) -> str:
+    """
+    The id the background extraction runs under.
+
+    The uploading request's id when it is a UUID, so the extraction stays on
+    the encounter's trace (docs/w2/OBSERVABILITY.md §2, D36).
+    `IntakeExtractorOutput.correlation_id` must be a UUID, and the middleware
+    also accepts other identifier-shaped ids (`corr-…`, k6's ids). For those,
+    and outside any request, a fresh UUID. When one replaces the request's
+    id, the link is logged under the request's id, so the two traces still
+    join.
+    """
+    inherited = get_correlation_id()
+    try:
+        if inherited is not None and str(uuid.UUID(inherited)) == inherited.lower():
+            return inherited
+    except ValueError:
+        pass
+    fresh = _new_correlation_id()
+    if inherited is not None:
+        log_event(
+            "w2_extraction_correlation_replaced",
+            {"document_id": document_id, "extraction_correlation_id": fresh},
+        )
+    return fresh
+
+
 class ExtractionJobs:
     """
     Upload-time extraction with a status the ask path can read (D7).
@@ -276,10 +303,7 @@ class ExtractionJobs:
         existing = self._status.get(document_id)
         if existing is not None and not force_reextract:
             return existing
-        # The uploading request's id when there is one, so the background
-        # extraction stays on the encounter's trace (docs/w2/OBSERVABILITY.md
-        # §2). A fresh id only when submitted outside any request.
-        correlation_id = get_correlation_id() or _new_correlation_id()
+        correlation_id = _extraction_correlation_id(document_id)
         pending = IntakeExtractorOutput(
             status=ExtractionStatus.PENDING,
             document_id=document_id,
