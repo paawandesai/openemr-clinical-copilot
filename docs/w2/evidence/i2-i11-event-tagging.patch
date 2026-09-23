@@ -1,0 +1,389 @@
+From b33332bd3a1f44616bd5bc6b1534af301c705e63 Mon Sep 17 00:00:00 2001
+From: paawandesai <paawankdesai@gmail.com>
+Date: Wed, 23 Sep 2026 11:17:40 -0500
+Subject: [PATCH] fix(observability): tag FHIR tool-call events with the turn's
+ use case and key
+
+feat/w2-observability wrapped every FHIR read in tool_call() without the
+caller's use_case or patient_session_key, so each read in a turn emitted
+an untagged tool_call_event. Week 1 evals I2 and I11 check that every
+event of a turn is attributable and failed on main for that reason. The
+search helpers and the Patient read now pass the caller's tags through;
+every graph that reads the chart supplies them.
+---
+ agent/app/fhir/client.py                    | 66 ++++++++++++++++++---
+ agent/app/graph/conversation.py             |  4 +-
+ agent/app/graph/follow_up.py                |  4 +-
+ agent/app/graph/pre_visit_brief.py          |  7 ++-
+ agent/app/graph/supervisor.py               |  4 +-
+ agent/tests/test_conversation.py            |  2 +-
+ agent/tests/test_follow_up.py               |  2 +-
+ agent/tests/test_langsmith_tracing_guard.py |  2 +-
+ agent/tests/test_pre_visit_brief_api.py     |  2 +-
+ agent/tests/test_uncoded_names.py           | 10 +++-
+ agent/tests/test_w2_documents_api.py        |  2 +-
+ agent/tests/test_w2_telemetry.py            | 37 +++++++++++-
+ agent/tests/w2_graph_support.py             |  2 +-
+ 13 files changed, 121 insertions(+), 23 deletions(-)
+
+diff --git a/agent/app/fhir/client.py b/agent/app/fhir/client.py
+index 7d07ce4..27e930c 100644
+--- a/agent/app/fhir/client.py
++++ b/agent/app/fhir/client.py
+@@ -85,15 +85,29 @@ def _raise_for_status(response: httpx.Response) -> None:
+         raise FhirServerError(f"FHIR server returned {response.status_code}: {response.text}")
+ 
+ 
+-async def _get_bundle(token: str, resource_type: str, params: dict[str, Any]) -> dict[str, Any]:
++async def _get_bundle(
++    token: str,
++    resource_type: str,
++    params: dict[str, Any],
++    *,
++    use_case: UseCase | None = None,
++    patient_session_key: str | None = None,
++) -> dict[str, Any]:
+     """
+     One authenticated GET against the FHIR search endpoint for
+     `resource_type`, returning the parsed Bundle JSON. `token` is supplied
+     by the caller on every call (§2) — never read from configuration, an
+-    environment variable, or any client-held state.
++    environment variable, or any client-held state. The tool-call event
++    carries the caller's use case and session key, like every other event
++    of the turn (eval I2/I11 check that no event of a turn is untagged).
+     """
+     headers = {"Authorization": f"Bearer {token}"}
+-    with tool_call(Tool.FHIR_READ, resource_type) as call:
++    with tool_call(
++        Tool.FHIR_READ,
++        resource_type,
++        use_case=use_case,
++        patient_session_key=patient_session_key,
++    ) as call:
+         async with httpx.AsyncClient(verify=_VERIFY_TLS, timeout=_TIMEOUT_SECONDS) as http:
+             response = await http.get(
+                 f"{FHIR_BASE_URL}/{resource_type}", headers=headers, params=params
+@@ -447,7 +461,13 @@ async def check_capability_statement(timeout_seconds: float = 5.0) -> None:
+         raise FhirServerError("FHIR metadata response was not a CapabilityStatement")
+ 
+ 
+-async def ensure_patient_exists(token: str, patient_id: str) -> None:
++async def ensure_patient_exists(
++    token: str,
++    patient_id: str,
++    *,
++    use_case: UseCase | None = None,
++    patient_session_key: str | None = None,
++) -> None:
+     """
+     ARCHITECTURE.md §3's implicit Patient read — resolving that the chart
+     exists — made explicit, because the searches below cannot do it.
+@@ -461,7 +481,9 @@ async def ensure_patient_exists(token: str, patient_id: str) -> None:
+     resource (§3; app/models/fhir_resources.py).
+     """
+     headers = {"Authorization": f"Bearer {token}"}
+-    with tool_call(Tool.FHIR_READ, "Patient") as call:
++    with tool_call(
++        Tool.FHIR_READ, "Patient", use_case=use_case, patient_session_key=patient_session_key
++    ) as call:
+         async with httpx.AsyncClient(verify=_VERIFY_TLS, timeout=_TIMEOUT_SECONDS) as http:
+             response = await http.get(
+                 f"{FHIR_BASE_URL}/Patient/{quote(patient_id, safe='')}", headers=headers
+@@ -520,7 +542,13 @@ async def get_conditions(
+     problem list) and Use Case 2 (problems added/resolved). Endpoint:
+     GET {FHIR_BASE_URL}/Condition?patient=<patient_id>
+     """
+-    bundle = await _get_bundle(token, "Condition", {"patient": patient_id})
++    bundle = await _get_bundle(
++        token,
++        "Condition",
++        {"patient": patient_id},
++        use_case=use_case,
++        patient_session_key=patient_session_key,
++    )
+     conditions = []
+     for r in _resources_from_bundle(bundle):
+         clinical_status = _first_coding(r.get("clinicalStatus"))
+@@ -548,7 +576,13 @@ async def get_medication_requests(
+     (current medications) and Use Case 2 (started/stopped/changed).
+     Endpoint: GET {FHIR_BASE_URL}/MedicationRequest?patient=<patient_id>
+     """
+-    bundle = await _get_bundle(token, "MedicationRequest", {"patient": patient_id})
++    bundle = await _get_bundle(
++        token,
++        "MedicationRequest",
++        {"patient": patient_id},
++        use_case=use_case,
++        patient_session_key=patient_session_key,
++    )
+     requests = []
+     for r in _resources_from_bundle(bundle):
+         med = r.get("medicationCodeableConcept")
+@@ -584,7 +618,13 @@ async def get_allergy_intolerances(
+     not here, but this client must not obscure the distinction by, e.g.,
+     treating an empty list as an exceptional case.
+     """
+-    bundle = await _get_bundle(token, "AllergyIntolerance", {"patient": patient_id})
++    bundle = await _get_bundle(
++        token,
++        "AllergyIntolerance",
++        {"patient": patient_id},
++        use_case=use_case,
++        patient_session_key=patient_session_key,
++    )
+     allergies = []
+     for r in _resources_from_bundle(bundle):
+         clinical_status = _first_coding(r.get("clinicalStatus"))
+@@ -622,6 +662,8 @@ async def get_encounters(
+         token,
+         "Encounter",
+         {"patient": patient_id, "_sort": "-date", "_count": count},
++        use_case=use_case,
++        patient_session_key=patient_session_key,
+     )
+     encounters = []
+     for r in _resources_from_bundle(bundle):
+@@ -668,7 +710,13 @@ async def get_observations(
+     if since is not None:
+         params["date"] = f"ge{since.strftime('%Y-%m-%d')}"
+ 
+-    bundle = await _get_bundle(token, "Observation", params)
++    bundle = await _get_bundle(
++        token,
++        "Observation",
++        params,
++        use_case=use_case,
++        patient_session_key=patient_session_key,
++    )
+     observations = []
+     for r in _resources_from_bundle(bundle):
+         value_quantity = r.get("valueQuantity")
+diff --git a/agent/app/graph/conversation.py b/agent/app/graph/conversation.py
+index ed32d70..313fde8 100644
+--- a/agent/app/graph/conversation.py
++++ b/agent/app/graph/conversation.py
+@@ -520,7 +520,9 @@ async def run_conversation_turn(
+         # authorize: OpenEMR accepts the token (proving `user`) and knows
+         # the patient, before any conversation state is touched.
+         try:
+-            await fhir_client.ensure_patient_exists(token, patient_id)
++            await fhir_client.ensure_patient_exists(
++                token, patient_id, use_case=_USE_CASE, patient_session_key=key
++            )
+         except PatientNotFoundError:
+             dropped = store.discard_if_bound_elsewhere(user, session_id, patient_id)
+             if dropped is not None:
+diff --git a/agent/app/graph/follow_up.py b/agent/app/graph/follow_up.py
+index eb8a192..9eb54d1 100644
+--- a/agent/app/graph/follow_up.py
++++ b/agent/app/graph/follow_up.py
+@@ -162,7 +162,9 @@ async def retrieve_bounded_set(
+     """The Pre-Visit Brief's retrieval, tagged follow_up_drilling."""
+     # Raises PatientNotFoundError before any search runs (§5): FHIR search
+     # answers an unknown patient id with empty results.
+-    await fhir_client.ensure_patient_exists(token, patient_id)
++    await fhir_client.ensure_patient_exists(
++        token, patient_id, use_case=_USE_CASE, patient_session_key=patient_session_key
++    )
+     return await fetch_bounded_set(token, patient_id, patient_session_key)
+ 
+ 
+diff --git a/agent/app/graph/pre_visit_brief.py b/agent/app/graph/pre_visit_brief.py
+index 04410cf..b190c42 100644
+--- a/agent/app/graph/pre_visit_brief.py
++++ b/agent/app/graph/pre_visit_brief.py
+@@ -252,7 +252,12 @@ async def _retrieve(
+     ctx = runtime.context
+     # Raises PatientNotFoundError before any search runs, so an unknown id
+     # never reaches rendering and logs no retrieval events.
+-    await fhir_client.ensure_patient_exists(ctx.token, ctx.patient_id)
++    await fhir_client.ensure_patient_exists(
++        ctx.token,
++        ctx.patient_id,
++        use_case=_USE_CASE,
++        patient_session_key=ctx.patient_session_key,
++    )
+     conditions, medications, allergies = await asyncio.gather(
+         fhir_client.get_conditions(
+             ctx.token,
+diff --git a/agent/app/graph/supervisor.py b/agent/app/graph/supervisor.py
+index 8ee1f08..4ac5cc3 100644
+--- a/agent/app/graph/supervisor.py
++++ b/agent/app/graph/supervisor.py
+@@ -1291,7 +1291,9 @@ async def run_ask_turn(
+ 
+     with correlation_scope(correlation_id):
+         try:
+-            await fhir_client.ensure_patient_exists(token, patient_id)
++            await fhir_client.ensure_patient_exists(
++                token, patient_id, use_case=_USE_CASE, patient_session_key=key
++            )
+         except PatientNotFoundError:
+             dropped = store.discard_if_bound_elsewhere(user, session_id, patient_id)
+             if dropped is not None:
+diff --git a/agent/tests/test_conversation.py b/agent/tests/test_conversation.py
+index 276894d..cc42088 100644
+--- a/agent/tests/test_conversation.py
++++ b/agent/tests/test_conversation.py
+@@ -175,7 +175,7 @@ class FakeWorld:
+         self.patient_error: Exception | None = None
+ 
+     def patches(self) -> list[Any]:
+-        async def patient_read(token: str, patient_id: str) -> None:
++        async def patient_read(token: str, patient_id: str, **_tags: object) -> None:
+             self.tokens.add(token)
+             self.reads.append(("Patient", patient_id))
+             if self.patient_error is not None:
+diff --git a/agent/tests/test_follow_up.py b/agent/tests/test_follow_up.py
+index 88d2857..a22de83 100644
+--- a/agent/tests/test_follow_up.py
++++ b/agent/tests/test_follow_up.py
+@@ -99,7 +99,7 @@ class FakePipeline:
+         self.questions_seen: list[str] = []
+ 
+     def patches(self) -> list[Any]:
+-        async def patient_read(token: str, patient_id: str) -> None:
++        async def patient_read(token: str, patient_id: str, **_tags: object) -> None:
+             self.tokens_seen.append(token)
+ 
+         def fetch(resource_type: R) -> Any:
+diff --git a/agent/tests/test_langsmith_tracing_guard.py b/agent/tests/test_langsmith_tracing_guard.py
+index c5baeff..5fa0d21 100644
+--- a/agent/tests/test_langsmith_tracing_guard.py
++++ b/agent/tests/test_langsmith_tracing_guard.py
+@@ -201,7 +201,7 @@ class _TracingEnabled(unittest.TestCase):
+             }
+             return PreVisitBriefDraft(claims=claims, section_counts=counts)
+ 
+-        async def fake_patient_read(token: str, patient_id: str) -> None:
++        async def fake_patient_read(token: str, patient_id: str, **_tags: object) -> None:
+             self.fhir_calls += 1
+ 
+         patcher = mock.patch.object(pvb.fhir_client, "ensure_patient_exists", fake_patient_read)
+diff --git a/agent/tests/test_pre_visit_brief_api.py b/agent/tests/test_pre_visit_brief_api.py
+index 0e07e8e..02827d1 100644
+--- a/agent/tests/test_pre_visit_brief_api.py
++++ b/agent/tests/test_pre_visit_brief_api.py
+@@ -77,7 +77,7 @@ class SuccessTest(unittest.TestCase):
+             FhirResourceType.ALLERGY_INTOLERANCE: [],
+         }
+ 
+-        async def patient_read(token: str, patient_id: str) -> None:
++        async def patient_read(token: str, patient_id: str, **_tags: object) -> None:
+             self.tokens_seen.append(token)
+ 
+         def fetch(resource_type: FhirResourceType) -> Any:
+diff --git a/agent/tests/test_uncoded_names.py b/agent/tests/test_uncoded_names.py
+index fe27ba3..2282556 100644
+--- a/agent/tests/test_uncoded_names.py
++++ b/agent/tests/test_uncoded_names.py
+@@ -120,7 +120,9 @@ def _bundle(*resources: dict[str, Any]) -> dict[str, Any]:
+ 
+ 
+ def _fetch(getter: Any, bundle: dict[str, Any]) -> list[Any]:
+-    async def get_bundle(token: str, resource_type: str, params: dict[str, Any]) -> dict[str, Any]:
++    async def get_bundle(
++        token: str, resource_type: str, params: dict[str, Any], **_tags: object
++    ) -> dict[str, Any]:
+         return copy.deepcopy(bundle)
+ 
+     with mock.patch.object(fhir_client, "_get_bundle", get_bundle), capture_logs():
+@@ -378,10 +380,12 @@ def _brief(allergies: list[dict[str, Any]]) -> tuple[PreVisitBriefResponse, list
+         "AllergyIntolerance": _bundle(*allergies),
+     }
+ 
+-    async def get_bundle(token: str, resource_type: str, params: dict[str, Any]) -> dict[str, Any]:
++    async def get_bundle(
++        token: str, resource_type: str, params: dict[str, Any], **_tags: object
++    ) -> dict[str, Any]:
+         return copy.deepcopy(bundles[resource_type])
+ 
+-    async def patient_exists(token: str, patient_id: str) -> None:
++    async def patient_exists(token: str, patient_id: str, **_tags: object) -> None:
+         return None
+ 
+     with (
+diff --git a/agent/tests/test_w2_documents_api.py b/agent/tests/test_w2_documents_api.py
+index 0c3e27b..dd19d45 100644
+--- a/agent/tests/test_w2_documents_api.py
++++ b/agent/tests/test_w2_documents_api.py
+@@ -46,7 +46,7 @@ PDF = pdf_bytes(SAMPLE)
+ 
+ @pytest.fixture
+ def client(monkeypatch: pytest.MonkeyPatch) -> TestClient:
+-    async def patient_exists(token: str, patient_id: str) -> None:
++    async def patient_exists(token: str, patient_id: str, **_tags: object) -> None:
+         if patient_id not in (PATIENT, OTHER_PATIENT):
+             raise PatientNotFoundError(patient_id)
+ 
+diff --git a/agent/tests/test_w2_telemetry.py b/agent/tests/test_w2_telemetry.py
+index b20c16e..d7a03c8 100644
+--- a/agent/tests/test_w2_telemetry.py
++++ b/agent/tests/test_w2_telemetry.py
+@@ -74,7 +74,7 @@ PDF = pdf_bytes(SAMPLE)
+ def client(monkeypatch: pytest.MonkeyPatch) -> TestClient:
+     """The same doubles as tests/test_w2_documents_api.py's fixture."""
+ 
+-    async def patient_exists(token: str, patient_id: str) -> None:
++    async def patient_exists(token: str, patient_id: str, **_tags: object) -> None:
+         if patient_id != PATIENT:
+             raise PatientNotFoundError(patient_id)
+ 
+@@ -345,6 +345,41 @@ class TestToolCalls:
+         (event,) = _events(logs, "tool_call_event")
+         assert (event["event_data"]["attempts"], event["event_data"]["retries"]) == (1, 0)
+ 
++    def test_a_fhir_read_carries_the_turns_use_case_and_key(
++        self, monkeypatch: pytest.MonkeyPatch
++    ) -> None:
++        """Eval I2/I11: every event of a turn is attributable, its FHIR reads included."""
++        import httpx
++
++        from app.fhir import client as fhir_client
++        from app.models.metrics_events import UseCase
++
++        real_client = httpx.AsyncClient
++
++        def handler(request: httpx.Request) -> httpx.Response:
++            if request.url.path.endswith("/Patient/p-1"):
++                return httpx.Response(200, json={"resourceType": "Patient", "id": "p-1"})
++            return httpx.Response(200, json={"resourceType": "Bundle", "entry": []})
++
++        monkeypatch.setattr(
++            fhir_client.httpx,
++            "AsyncClient",
++            lambda **_: real_client(transport=httpx.MockTransport(handler)),
++        )
++        tags = {"use_case": UseCase.FOLLOW_UP_DRILLING, "patient_session_key": "key-1"}
++
++        async def turn() -> None:
++            await fhir_client.ensure_patient_exists("token", "p-1", **tags)
++            await fhir_client.get_conditions("token", "p-1", **tags)
++
++        with capture_logs() as logs:
++            asyncio.run(turn())
++        calls = _events(logs, "tool_call_event")
++        assert [c["event_data"]["target"] for c in calls] == ["Patient", "Condition"]
++        assert {(c["use_case"], c["patient_session_key"]) for c in calls} == {
++            ("follow_up_drilling", "key-1")
++        }
++
+     def test_a_writeback_is_a_step_and_a_tool_call(self) -> None:
+         with capture_logs() as logs:
+             post_writeback(200, None)
+diff --git a/agent/tests/w2_graph_support.py b/agent/tests/w2_graph_support.py
+index 4dc0e10..20b2f5a 100644
+--- a/agent/tests/w2_graph_support.py
++++ b/agent/tests/w2_graph_support.py
+@@ -99,7 +99,7 @@ class FakeChart:
+         if self.observations is not None:
+             records[FhirResourceType.OBSERVATION] = list(self.observations)
+ 
+-        async def ensure(token: str, patient_id: str) -> None:
++        async def ensure(token: str, patient_id: str, **_tags: object) -> None:
+             from app.fhir.exceptions import PatientNotFoundError
+ 
+             self.calls.append("Patient")
+-- 
+2.50.1 (Apple Git-155)
+
