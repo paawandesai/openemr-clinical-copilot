@@ -32,6 +32,7 @@ import json
 import os
 import resource
 import sys
+import threading
 import time
 import uuid
 from concurrent.futures import ThreadPoolExecutor
@@ -65,6 +66,15 @@ def main() -> None:
     parser.add_argument("--levels", type=int, nargs="+", default=[1, 10, 50])
     parser.add_argument("--per-worker", type=int, default=4)
     parser.add_argument("--no-rerank", action="store_true")
+    parser.add_argument(
+        "--think-seconds",
+        type=float,
+        default=0.0,
+        help="pause after each retrieval, like a k6 user; 0 = back to back (a burst)",
+    )
+    parser.add_argument(
+        "--rerank-slots", type=int, default=None, help="override MAX_CONCURRENT_RERANKS"
+    )
     parser.add_argument("--events", required=True)
     args = parser.parse_args()
 
@@ -85,6 +95,31 @@ def main() -> None:
         load_started = time.perf_counter()
         retriever = preload_retrieval(with_reranker=not args.no_rerank)
         summary["preload_seconds"] = round(time.perf_counter() - load_started, 2)
+        if args.rerank_slots is not None:
+            retriever._rerank_slots = threading.BoundedSemaphore(args.rerank_slots)
+            retriever._rerank_pool = ThreadPoolExecutor(max_workers=args.rerank_slots)
+        summary["rerank_slots"] = retriever._rerank_slots._initial_value
+        summary["think_seconds"] = args.think_seconds
+
+        # Count rerank admissions turned away, per level, without touching
+        # the retriever's own code: wrap the one method that decides.
+        busy_lock = threading.Lock()
+        busy_seen = [0]
+        apply_rerank = retriever._apply_rerank
+
+        def counted_apply_rerank(query: str, results: list):  # noqa: ANN202
+            reranked, outcome = apply_rerank(query, results)
+            if outcome.busy:
+                with busy_lock:
+                    busy_seen[0] += 1
+            return reranked, outcome
+
+        retriever._apply_rerank = counted_apply_rerank
+
+        def busy_count() -> int:
+            with busy_lock:
+                count, busy_seen[0] = busy_seen[0], 0
+            return count
 
         def one(query: str) -> tuple[float, bool, int]:
             request = EvidenceRetrieverInput(
@@ -95,7 +130,10 @@ def main() -> None:
             )
             started = time.perf_counter()
             output = run_evidence_retriever(request, retriever)
-            return time.perf_counter() - started, output.reranked, len(output.chunks)
+            elapsed = time.perf_counter() - started
+            if args.think_seconds:
+                time.sleep(args.think_seconds)
+            return elapsed, output.reranked, len(output.chunks)
 
         one(queries[0])  # warm
         for level in args.levels:
@@ -119,6 +157,7 @@ def main() -> None:
                     },
                     "reranked": sum(1 for r in results if r[1]),
                     "reranked_rate": round(sum(1 for r in results if r[1]) / len(results), 3),
+                    "busy": busy_count(),
                     "circuit_open_after": retriever.rerank_circuit_open,
                     "zero_hit": sum(1 for r in results if r[2] == 0),
                     "mean_cores_busy": round(cpu / wall, 2),
