@@ -1901,131 +1901,6 @@ observability events are emitted with this branch's own names because
 
 ---
 
-## D49 — The PDF preview URL is the one the code serves: `<module>/public/document.php`
-
-**Status:** DECIDED — supersedes D28 and D30 on the preview URL only.
-**Date:** 2026-09-22
-**Decided by:** the project owner, raised by work order 16 (decision numbering).
-**Numbering:** D41-D48 are reserved for in-flight branches (see the
-Numbering note at the top), so this takes D49, the first unreserved number.
-
-**Decision:** The source-document preview route is
-**`GET <module>/public/document.php?document_id=<int>`**. The served URL is
-authoritative.
-
-**Why an entry is needed.** D28 (`feat/w2-ui`) and D30 (`feat/w2-writeback`)
-decide the same thing — the preview is served by a module route in the
-clinician's own session, not by `GET /fhir/Binary/:id` — and name different
-URLs for it. D28 says `<module>/document?document_id=<int>`; D30 says
-`<module>/public/document.php?document_id=<int>`. Neither was marked
-superseded, so the file specified two routes for one endpoint.
-
-**Why D30's URL.** It is the one that exists.
-`interface/modules/custom_modules/oe-module-clinical-copilot/public/document.php`
-is the handler, the viewer is given it as its `documentEndpoint`
-(`docs/w2/ui-integration.md`), and the API collection run in
-`docs/w2/evidence/api-collection-run.txt` calls it. D28's path was nominal:
-written on `feat/w2-ui` before the write-back branch had built the route.
-
-**Unchanged:** everything else in D28 and D30 — the ACL, the 403/404
-behaviour, PDF-only, no CSRF token, and why `Binary` cannot serve a
-physician. This entry settles the URL and nothing more.
-
-**D28's path appeared in prose only**, never in a code path: a doc comment
-in `public/assets/w2/document-viewer.mjs` and an acceptance line in
-`docs/w2/ui-integration.md`. Both were repointed to this entry and the
-served URL when it was recorded.
-
----
-
-## D-unassigned (work order 17) — The Week 2 card's module routes: the chart keeps the upload, and a citation's digest opens it
-
-**Status:** DECIDED. Item 3 widens D49's `document_id=<int>`; the project
-owner signed it off on 2026-09-23 on the condition that the digest form is
-checked exactly as the integer form, which item 3 now states and
-`tests/DocumentPreviewParityTest.php` pins.
-**Date:** 2026-09-23
-**Raised by:** work order 17 (`feat/w2-php-wiring`).
-**Numbering:** no number is claimed. This entry takes **the next free,
-unreserved number on `main` when it merges** (D41-D48 are reserved and D49
-is taken, so at `f8b16c7` that would be D50, but the merge decides). Rename
-the heading and every "D-unassigned (work order 17)" reference in the same
-change.
-
-**Decision:**
-
-1. **The module files the upload in the chart, after the agent accepts
-   it.** `public/upload.php` checks the request (ChartRequest, with
-   `patients`/`docs` at write or addonly), then asks the agent
-   (`POST /documents?kind=&patient_id=`, D40 item 8), and only on the
-   agent's 200 stores the same bytes through `\Document::createDocument()`
-   (encrypted at rest, audited) via the write-back's `DocumentStore`: a lab
-   report in *Lab Report*, an intake form in *Medical Record*. Storing first
-   would leave a document on a chart the agent refused it for. The agent
-   keeps the bytes only while it extracts, so the chart copy is what the
-   preview (D30/D49) reads.
-2. **The store is idempotent on D1's document key** (invariant 6): the
-   file's SHA3-512, which is `documents.hash`. The same bytes on the same
-   chart are the row already there, in any category. OpenEMR does not
-   constrain `documents.hash`, so a named database lock per digest
-   serialises the check and the insert.
-3. **The preview also takes the digest** (signed off, conditionally). D49 fixes the
-   URL and `document_id=<int>`. A citation carries the agent's document id,
-   which is that digest; `document.php` now accepts either form and
-   resolves the digest against `documents.hash` **on the open chart only**,
-   so it reaches nothing an integer id could not, and the browser holds no
-   id mapping (it would be lost on reload). Everything else in D30/D49 —
-   ACL, 404 for anything not on the open chart, PDF only, no CSRF — is
-   unchanged. **The condition of the sign-off:** both forms pass the same
-   guard (`DocumentReadRequest`: method, id shape, the `patients`/`docs`
-   ACL, the session's open patient — only the id parse differs) and run one
-   query (`SourceDocumentReader::rowQuery()`: one template, only the key
-   column differs, `foreign_id` bound to the session's open patient and
-   `deleted = 0` for both). A digest for another patient's document is the
-   same `DocumentFailure::NotFound`, so the same 404 and body, as the
-   integer (`tests/DocumentPreviewParityTest.php`; a mutation that let the
-   digest path resolve on a fixed patient fails three of its tests).
-   Checked live on 2026-09-23: with another chart open, `document_id=2482`
-   and its digest both answer 404 with byte-identical bodies; with its own
-   chart open, both answer 200 with the same PDF bytes.
-4. **The same bytes on another chart are refused by the module as well as
-   the agent** (D40 item 8). Before the agent is asked, the module refuses,
-   `409 document_attached_elsewhere`, a file it already filed on a different
-   patient, looking only in its own two categories. The agent's binding is
-   process memory and a restart forgets it; the chart's records do not.
-5. **One correlation id per chart open.** `Bootstrap` mints a UUID4 when it
-   renders the card; the card sends it with every upload, status poll and
-   question; `AgentClient` forwards it as `X-Correlation-ID`. The agent then
-   logs the chart open as one encounter (upload, extraction, ask).
-6. **The status poll is a GET with the full check.** `ChartRequest` takes
-   the method, so the poll gets the same five checks in the same order,
-   reading the query string. It is not written to the audit log: it repeats
-   every few seconds and reads a status, not the record.
-7. **The question needs `patients`/`med` and `patients`/`docs`.** The
-   answer is accepted only if its `patient_session_key` names the patient
-   and session the module sent (the F-62 check Week 1 makes on
-   `patient_id`); the key is then dropped, and the agent's `status` reaches
-   the card as `answer_status`.
-
-**Rationale:** each item keeps a rule the module already had — the open
-chart decides the patient, the chart is the record of what was attached,
-every write has a key — and extends it to the upload and the cited page.
-
-**Not settled here:** the agent's document and conversation stores are
-still process memory (D40), so after an agent restart a chart's upload must
-be uploaded again before it can be asked about — the chart copy survives,
-and re-uploading adds no row. Each status poll mints a token, as every
-module request does (no token reuse by design), which adds `api_token` rows
-while a document extracts.
-**Bound:** 100 results per request. Not a contract rule — a ceiling on how long
-one transaction may hold row locks across the procedure tables. A comprehensive
-metabolic panel is 14 analytes.
-
----
-
-
----
-
 ## D42 — The gate's rule order, and a Wilson floor that is a function of n
 
 **Status:** DECIDED
@@ -2348,3 +2223,128 @@ reported that only M6 and M8 moved, and failed on the mismatch. A claim about
 a fixture's behaviour is worth what the run that checks it is worth, and this
 is the second finding in this work order that came from the harness rather
 than from reading — the first two being the vacuous arms in W2-E1 and W2-K1.
+## D49 — The PDF preview URL is the one the code serves: `<module>/public/document.php`
+
+**Status:** DECIDED — supersedes D28 and D30 on the preview URL only.
+**Date:** 2026-09-22
+**Decided by:** the project owner, raised by work order 16 (decision numbering).
+**Numbering:** D41-D48 are reserved for in-flight branches (see the
+Numbering note at the top), so this takes D49, the first unreserved number.
+
+**Decision:** The source-document preview route is
+**`GET <module>/public/document.php?document_id=<int>`**. The served URL is
+authoritative.
+
+**Why an entry is needed.** D28 (`feat/w2-ui`) and D30 (`feat/w2-writeback`)
+decide the same thing — the preview is served by a module route in the
+clinician's own session, not by `GET /fhir/Binary/:id` — and name different
+URLs for it. D28 says `<module>/document?document_id=<int>`; D30 says
+`<module>/public/document.php?document_id=<int>`. Neither was marked
+superseded, so the file specified two routes for one endpoint.
+
+**Why D30's URL.** It is the one that exists.
+`interface/modules/custom_modules/oe-module-clinical-copilot/public/document.php`
+is the handler, the viewer is given it as its `documentEndpoint`
+(`docs/w2/ui-integration.md`), and the API collection run in
+`docs/w2/evidence/api-collection-run.txt` calls it. D28's path was nominal:
+written on `feat/w2-ui` before the write-back branch had built the route.
+
+**Unchanged:** everything else in D28 and D30 — the ACL, the 403/404
+behaviour, PDF-only, no CSRF token, and why `Binary` cannot serve a
+physician. This entry settles the URL and nothing more.
+
+**D28's path appeared in prose only**, never in a code path: a doc comment
+in `public/assets/w2/document-viewer.mjs` and an acceptance line in
+`docs/w2/ui-integration.md`. Both were repointed to this entry and the
+served URL when it was recorded.
+
+---
+
+## D-unassigned (work order 17) — The Week 2 card's module routes: the chart keeps the upload, and a citation's digest opens it
+
+**Status:** DECIDED. Item 3 widens D49's `document_id=<int>`; the project
+owner signed it off on 2026-09-23 on the condition that the digest form is
+checked exactly as the integer form, which item 3 now states and
+`tests/DocumentPreviewParityTest.php` pins.
+**Date:** 2026-09-23
+**Raised by:** work order 17 (`feat/w2-php-wiring`).
+**Numbering:** no number is claimed. This entry takes **the next free,
+unreserved number on `main` when it merges** (D41-D48 are reserved and D49
+is taken, so at `f8b16c7` that would be D50, but the merge decides). Rename
+the heading and every "D-unassigned (work order 17)" reference in the same
+change.
+
+**Decision:**
+
+1. **The module files the upload in the chart, after the agent accepts
+   it.** `public/upload.php` checks the request (ChartRequest, with
+   `patients`/`docs` at write or addonly), then asks the agent
+   (`POST /documents?kind=&patient_id=`, D40 item 8), and only on the
+   agent's 200 stores the same bytes through `\Document::createDocument()`
+   (encrypted at rest, audited) via the write-back's `DocumentStore`: a lab
+   report in *Lab Report*, an intake form in *Medical Record*. Storing first
+   would leave a document on a chart the agent refused it for. The agent
+   keeps the bytes only while it extracts, so the chart copy is what the
+   preview (D30/D49) reads.
+2. **The store is idempotent on D1's document key** (invariant 6): the
+   file's SHA3-512, which is `documents.hash`. The same bytes on the same
+   chart are the row already there, in any category. OpenEMR does not
+   constrain `documents.hash`, so a named database lock per digest
+   serialises the check and the insert.
+3. **The preview also takes the digest** (signed off, conditionally). D49 fixes the
+   URL and `document_id=<int>`. A citation carries the agent's document id,
+   which is that digest; `document.php` now accepts either form and
+   resolves the digest against `documents.hash` **on the open chart only**,
+   so it reaches nothing an integer id could not, and the browser holds no
+   id mapping (it would be lost on reload). Everything else in D30/D49 —
+   ACL, 404 for anything not on the open chart, PDF only, no CSRF — is
+   unchanged. **The condition of the sign-off:** both forms pass the same
+   guard (`DocumentReadRequest`: method, id shape, the `patients`/`docs`
+   ACL, the session's open patient — only the id parse differs) and run one
+   query (`SourceDocumentReader::rowQuery()`: one template, only the key
+   column differs, `foreign_id` bound to the session's open patient and
+   `deleted = 0` for both). A digest for another patient's document is the
+   same `DocumentFailure::NotFound`, so the same 404 and body, as the
+   integer (`tests/DocumentPreviewParityTest.php`; a mutation that let the
+   digest path resolve on a fixed patient fails three of its tests).
+   Checked live on 2026-09-23: with another chart open, `document_id=2482`
+   and its digest both answer 404 with byte-identical bodies; with its own
+   chart open, both answer 200 with the same PDF bytes.
+4. **The same bytes on another chart are refused by the module as well as
+   the agent** (D40 item 8). Before the agent is asked, the module refuses,
+   `409 document_attached_elsewhere`, a file it already filed on a different
+   patient, looking only in its own two categories. The agent's binding is
+   process memory and a restart forgets it; the chart's records do not.
+5. **One correlation id per chart open.** `Bootstrap` mints a UUID4 when it
+   renders the card; the card sends it with every upload, status poll and
+   question; `AgentClient` forwards it as `X-Correlation-ID`. The agent then
+   logs the chart open as one encounter (upload, extraction, ask).
+6. **The status poll is a GET with the full check.** `ChartRequest` takes
+   the method, so the poll gets the same five checks in the same order,
+   reading the query string. It is not written to the audit log: it repeats
+   every few seconds and reads a status, not the record.
+7. **The question needs `patients`/`med` and `patients`/`docs`.** The
+   answer is accepted only if its `patient_session_key` names the patient
+   and session the module sent (the F-62 check Week 1 makes on
+   `patient_id`); the key is then dropped, and the agent's `status` reaches
+   the card as `answer_status`.
+
+**Rationale:** each item keeps a rule the module already had — the open
+chart decides the patient, the chart is the record of what was attached,
+every write has a key — and extends it to the upload and the cited page.
+
+**Not settled here:** the agent's document and conversation stores are
+still process memory (D40), so after an agent restart a chart's upload must
+be uploaded again before it can be asked about — the chart copy survives,
+and re-uploading adds no row. Each status poll mints a token, as every
+module request does (no token reuse by design), which adds `api_token` rows
+while a document extracts.
+**Bound:** 100 results per request. Not a contract rule — a ceiling on how long
+one transaction may hold row locks across the procedure tables. A comprehensive
+metabolic panel is 14 analytes.
+
+---
+
+
+---
+

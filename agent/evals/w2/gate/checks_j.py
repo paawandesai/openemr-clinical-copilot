@@ -283,6 +283,12 @@ def j_real_retrieval_log_line_has_no_identifier(case: Case) -> CheckOutcome:
         "rerank_candidates",
         "rerank_over_budget",
         "rerank_unavailable",
+        # Added by feat/w2-observability's reranker budget work and admitted
+        # here on the doctrine above, not waved through: app/retrieval/worker.py
+        # emits it as bool(rerank and rerank.busy), and a bool cannot carry
+        # content whatever is on the right of it. Same shape as the three
+        # rerank_* flags above it.
+        "rerank_busy",
         "lexical_ms",
         "dense_ms",
         "fusion_ms",

@@ -1,7 +1,7 @@
 {
   "schema_version": "w2-gate/baseline/1.0.0",
-  "generated_at": "2026-09-23T16:10:39+00:00",
-  "commit": "d4aa3831f76b4ca983d2a8d9deb9acc7247b538f",
+  "generated_at": "2026-09-23T16:31:26+00:00",
+  "commit": "93741967cd2a4b40abccc1b87c2c325b0de5198e",
   "judge": {
     "model": "claude-haiku-4-5",
     "model_version": "claude-haiku-4-5-20251001",
@@ -10,8 +10,8 @@
   },
   "counts": {
     "specs": 96,
-    "active": 78,
-    "pending": 16
+    "active": 79,
+    "pending": 15
   },
   "cases": {
     "W2-A1": {
@@ -520,10 +520,10 @@
     },
     "W2-I3": {
       "category": "I",
-      "status": "pending_sut",
-      "tier": "judge",
+      "status": "active",
+      "tier": "det",
       "critical": true,
-      "verdict": "pending"
+      "verdict": "pass"
     },
     "W2-I4": {
       "category": "I",
@@ -842,12 +842,12 @@
     },
     "I": {
       "specs": 5,
-      "active": 2,
-      "pending": 3,
+      "active": 3,
+      "pending": 2,
       "delegated": 0,
       "det": {
-        "scored": 2,
-        "passed": 2,
+        "scored": 3,
+        "passed": 3,
         "skipped": 0,
         "rate": 1.0
       },
@@ -919,12 +919,12 @@
   },
   "aggregate": {
     "specs": 96,
-    "active": 78,
-    "pending": 16,
+    "active": 79,
+    "pending": 15,
     "delegated": 2,
     "det": {
-      "scored": 72,
-      "passed": 72,
+      "scored": 73,
+      "passed": 73,
       "skipped": 0,
       "rate": 1.0
     },
