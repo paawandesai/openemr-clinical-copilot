@@ -232,9 +232,21 @@ It answers `{"document_id", "kind", "status", "byte_length",
 `kind`). Raw body rather than multipart keeps `python-multipart` out of the
 agent's runtime dependencies, and the only client is a server.
 
-It is a **stub** today (`agent/app/api/documents.py`): it hashes the bytes,
-discards them, and advances a timer. It never returns a `payload` and never
-invents an `extraction_id`.
+~~It is a **stub** today~~ — **changed by work order 13 (D40 item 8,
+approved):** the route now runs the real intake-extractor at upload and
+**requires `patient_id`**, the open chart's FHIR Patient uuid, as a query
+parameter:
+
+```
+POST <agent>/documents?kind=lab_pdf&patient_id=<FHIR Patient uuid>
+```
+
+The agent makes the Patient read under the token before storing anything,
+so the failure set gains `404 patient_not_found` (unknown patient),
+`401 fhir_token_rejected` (OpenEMR refused the token), `502 fhir_unavailable`
+and `409` (these exact bytes are already attached to a *different* chart —
+never rebound). The module holds `pid`; it must send the uuid for it. The
+response shape is unchanged.
 
 ---
 
@@ -293,6 +305,33 @@ synchronous wait and never a partial extraction presented as complete").
 **The agent hop:** `GET <agent>/documents/{document_id}/extraction` with
 the bearer token. Answers the same fields with `status` in place of
 `extraction_status`; `401` without a token, `404` for an unknown document.
+
+**Changed by work order 13 (D40 item 8):** it also requires
+`?patient_id=<FHIR Patient uuid>`, makes the Patient read first, and answers
+`404` — the same body as an unknown id — for a document uploaded to another
+chart. `extraction_id` is now the real run's id once `complete`.
+`failure_reason` can also be `vision_call_failed`, `no_fields_located` or
+`internal_error` (added by the extractor, D35, in
+`app/models/w2/workers.py`); the browser has no label for those three yet.
+
+### 2.4 The ask path — `POST <agent>/w2/ask` (agent side only)
+
+Added by work order 13; no module route calls it yet. Same authorization as
+`POST /pre-visit-brief/conversation` (bearer token, Patient read first, the
+conversation keyed by the token's `sub` and shared with that route). Body:
+
+```jsonc
+{"patient_id": "<FHIR uuid>", "session_id": "<8-64 [A-Za-z0-9-]>",
+ "question": "<≤500 chars>", "document_ids": ["<id from POST /documents>"]}
+```
+
+200 for every clinical outcome — `status` is `answered | partially_answered
+| not_in_record | refused`, `reason_code` is a `RoutingReasonCode`, `message`
+is safe to show, and `answer_view` is the `AnswerView` the source card
+already renders (present when the turn reached the answer step). `routing`
+and `handoffs` are the inspectable supervisor trace. HTTP errors: `401`,
+`404 patient_not_found`, `422`, `502 fhir_unavailable` (the authorizing
+Patient read itself failed), `500`. Contract: `agent/app/models/w2/ask.py`.
 
 ## 3. Registering the card
 

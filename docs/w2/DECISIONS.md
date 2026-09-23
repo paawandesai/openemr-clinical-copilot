@@ -267,7 +267,7 @@ block case generation outright, and the pressure to relax the rule would win.
 
 **Enforcement:** `.claude/hooks/gate-guard.sh` (edit time) and
 `scripts/gate-diff.sh` (pre-merge), which reads the same glob list through
-`gate-guard.sh --check-path` rather than keeping a copy.
+`gate-cli.sh --check-path` (it shares `gate-lib.sh` with the hook) rather than keeping a copy. [Corrected 2026-09-22 on `feat/w2-graph`: was `gate-guard.sh --check-path`, which no longer takes arguments.]
 
 **Known migration:** `feat/doc-factory` writes to `agent/evals/factory/` — 40
 files, verified with `git diff --name-only main feat/doc-factory`. (The
@@ -1550,3 +1550,148 @@ pages, all on the right ink; 33.6% on the heavy scan, the recall cost D24
 recorded), discrepancy precision and recall 2/2, zero false discrepancies on
 the 25 `derived` fields, and zero fuzzy locates on numeric, unit, date or
 flag fields (`agent/tests/intake_extractor_measurement.py`).
+
+---
+
+## D40 — The Week 2 ask path: one supervisor, a closed routing table, and a verifier that builds citations from sources
+
+**Status:** DECIDED. Item 8 changes a pinned contract; it was approved by
+the human reviewer on 2026-09-22 before merge.
+**Date:** 2026-09-22
+**Raised by:** work order 13 (`feat/w2-graph`).
+**Numbering:** was D35 on `feat/w2-graph`, briefly D36 after the rebase that
+restored the intake-extractor's entry as D35, and **D40 by pre-assignment**:
+the merge order is `feat/w2-observability` (D36-D39), this branch (D40),
+`chore/w2-deploy-rehearsal` (D41), `feat/w2-eval-gate` (D42-D48). On this
+branch D36-D39 are absent until observability merges; the gap is expected.
+
+**Decision:**
+
+1. **A new graph beside Week 1's, not a rewrite of it.** `SUPERVISOR_GRAPH`
+   (`agent/app/graph/supervisor.py`): `supervisor -> {intake_extractor |
+   evidence_retriever | answer | refuse}`, workers return to the supervisor,
+   `answer` returns to it only on failure. `POST /pre-visit-brief/conversation`
+   is untouched. The new path reuses Week 1's pieces rather than copies: the
+   Patient read as the authorization step, the same process-wide
+   `ConversationStore` — so one session is bound to one patient across both
+   paths and a patient switch on either discards the other's context — the
+   same FHIR readers and lab narrowing, `checker.verify_claims` for chart
+   claims, Week 1's claim lines, and `_untraced`/`UntracedGraph`.
+
+2. **Routing uses no model.** D4 allows one small intent call; this path
+   makes none. `classify()` reads wording once per turn; `decide()` reads
+   shape only — an intent, per-document states, whether retrieval ran and how
+   many chunks it found, a worker failure code, node visit counts. Rule
+   order is the policy: another patient is always refused; a dose, a
+   diagnosis, a trend or a change over time is always refused (H1 — a quoted
+   range is not a dose for this person); guideline/recommendation wording
+   routes to retrieval **and suspends Week 1's chart-scope refusals** ("at
+   what age should screening start" is about guidance, not a read of this
+   patient's age; the tools still read only what they read); otherwise Week
+   1's chart-scope and judgment refusals apply; otherwise a record lookup,
+   which never retrieves (G2).
+
+3. **Seven new `RoutingReasonCode`s, all `refuse`:** `document_not_found`
+   (unknown id *and* another patient's document — one answer for both),
+   `document_identity_mismatch` (the extractor's wrong-patient flag: nothing
+   from that document is stated), `no_guideline_evidence` (retrieval found
+   nothing, or nothing could be searched on), `retrieval_unavailable`,
+   `chart_unavailable`, `model_unavailable`, `visit_limit_exceeded`. Every
+   outcome after authorization is HTTP 200 with a typed status and one of
+   these codes; an unexpected exception is still HTTP 500 `internal_error`
+   with fixed wording, not a typed 200 — a bug is not a clinical outcome.
+
+4. **D7 on the ask path.** Extraction runs at upload. A pending document is
+   handed to the extractor node once (`IntakeExtractorInput` ->
+   `IntakeExtractorOutput`, read from the worker's job state), which never
+   waits and never starts work; still pending -> `document_still_processing`.
+   A document already complete skips the extractor node entirely (G1).
+
+5. **Bounded visits, fail closed.** Supervisor ≤ 4 visits, every other node
+   ≤ 1. A decision that would exceed a bound becomes `refuse /
+   visit_limit_exceeded`. Under the current rules no node is entered twice;
+   the bound is a backstop.
+
+6. **Retrieval queries are built from a fixed lexicon, never from the
+   question** (D5 made structural): `routing.CONCEPT_LEXICON` maps wording to
+   concept text this code owns; when the question names no specific concept,
+   the printed names of lab rows the laboratory flagged are used. A topic
+   word alone ("screening") is not searched. `top_k=4` (D25).
+
+7. **The verifier extension builds the citation from the source, and the
+   model writes no prose.** The drafting call emits structured citations only
+   (chart claim / document field path + value / chunk id + excerpt), with ids
+   narrowed by the schema to what was provided. `w2_checker.py`: a document
+   value passes only if the field was *located* and the value equals the
+   located text after case/whitespace folding (no substring — D24); a
+   guideline excerpt passes only if it is ≥ 4 words and occurs in the chunk
+   with only whitespace differing, and is then cited as the chunk's own
+   characters (D26). Every sentence the clinician reads is rendered by code
+   from the source values, which is what makes D20 structural: a blank flag
+   is worded "no flag printed (… not a statement that the value is normal)".
+   `FinalAnswer.patient_facts` / `guideline_evidence` contain passed claims
+   only; failed claims ride in `AskResponse.unverified` and as UNVERIFIED
+   lines, never dropped. A failed guideline "quotation" is disclosed without
+   its text, because showing a non-verbatim quote attributed to a publisher
+   is what D26 forbids.
+
+   **Known limitation, stated in the code, the response and here:** the
+   verifier confirms a guideline chunk *says* X; it cannot confirm X
+   *applies to this patient*. Every answer with guideline evidence carries
+   `guideline_applicability_not_verified` and its fixed sentence.
+
+8. **Changes the pinned agent hop (needs sign-off).** `POST /documents` and
+   `GET /documents/{id}/extraction` now require `patient_id` (the FHIR
+   Patient uuid) as a query parameter and make the Patient read first.
+   `docs/w2/ui-integration.md` §2.2/§2.3 pinned both without it. The
+   extractor needs the chart (identity and discrepancy checks) and the ask
+   path needs to know which chart a document belongs to; the stub also
+   accepted any token-shaped string, which the Patient read now refuses. The
+   module must pass the open chart's FHIR uuid. Same bytes uploaded to a
+   *different* chart are refused with 409 rather than rebinding an
+   extraction to another patient.
+
+**Rationale:** each item keeps a property Week 1 already had — code decides
+what is fetched and what is said, the model only points at sources — and
+extends it to two new source kinds without giving the model a channel it
+did not have before.
+
+9. **Critical values are surfaced by a committed table, first, whatever was
+   asked (H6)** (`agent/app/supervisor/critical.py`). An analyte is matched
+   by LOINC code and an *exact* unit string (D24: a mg/dL limit never judges
+   a mmol/L number); a value is critical when it is strictly beyond a limit,
+   and a censored value only when its whole interval is (D11) — `<2.0`
+   potassium is, `<3.0` is not. Not the printed flag, not the reference
+   range, not the model. Every document row in hand is scanned; so is every
+   chart Observation the turn read, and **every critical Observation the
+   lab-result cap dropped is put back into the bounded set**
+   (`keep_critical`) — the cap bounds a prompt and is never the reason a
+   panic value is missing. Stated critical values are verified claims
+   rendered from the source and lead the answer, and ride in
+   `AskResponse.critical_values`. A document value the locate step could not
+   place is a *possible* critical value: the line names the test and page and
+   says to open the document, and never states the number (invariant 4).
+   The limits are a demo configuration typical of published hospital
+   critical-value policies, **not reviewed for any site**; a deployment
+   replaces the table, not the code. Chart Observations are scanned only on
+   turns that read lab results — a medication question does not trigger a
+   lab read to look for panic values.
+
+10. **One worker, until the stores move out of process.** The conversation
+    store, the document store (with its extraction jobs) and the rerank
+    circuit are this process's memory. With a second worker or replica an
+    upload is invisible to the other process (status `404`, question
+    `document_not_found`), a re-upload landing there is extracted and billed
+    again, and a follow-up's context is lost — all fail-safe (each process
+    checks its own patient binding), none working; a restart forgets every
+    upload. The deploy runs one uvicorn worker, which is acceptable for the
+    demo. `app/process_state.py` logs `single_process_state_warning` at
+    startup when `--workers`/`-w`, `GUNICORN_CMD_ARGS` or `WEB_CONCURRENCY`
+    configures more than one (`agent/docs/deployment.md` §7). A second
+    replica is invisible to that check.
+
+**Not settled here:** moving the two stores out of process (Redis for
+conversations, a persisted document/extraction store); `/ready` still
+reports three checks and does not report the guideline retriever; the
+observability events are emitted with this branch's own names because
+`feat/w2-observability` has not merged.

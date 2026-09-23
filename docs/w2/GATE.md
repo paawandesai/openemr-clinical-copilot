@@ -81,7 +81,7 @@ call.
 
 `scripts/gate-diff.sh <branch>` lists the gate files a branch changes and exits
 nonzero if there are any. It reads the globs from
-`.claude/hooks/gate-guard.sh --check-path`, so the merge check and the
+`.claude/hooks/gate-cli.sh --check-path` (same `gate-lib.sh` as the hook), so the merge check and the
 edit-time hook cannot drift apart. A nonzero exit is not a veto — it means
 review the gate change on its own, before looking at the code.
 

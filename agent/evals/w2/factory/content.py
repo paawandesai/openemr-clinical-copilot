@@ -436,7 +436,18 @@ def plan_lab(spec: ScenarioSpec, chart: ChartRecord) -> LabContent:
             direction_entry = forced.get(key)
             if direction_entry is not None:
                 direction = direction_entry[0]
-                value = test.draw_abnormal(value_rng, chart.sex, direction)
+                forced_value = direction_entry[1].get("value")
+                if forced_value is None:
+                    value = test.draw_abnormal(value_rng, chart.sex, direction)
+                else:
+                    # An explicit value (e.g. a critical one for the H6 case).
+                    # Must still sit on the requested side of the interval.
+                    value = round(float(forced_value), test.decimals)
+                    if test.flag(value, chart.sex) != ("H" if direction == "high" else "L"):
+                        raise SpecError(
+                            f"{spec.scenario_id}: abnormal_value {test.key!r} value {forced_value!r} "
+                            f"is not {direction} of the reference interval"
+                        )
             else:
                 value = test.draw_normal(value_rng, chart.sex)
             result = LabResult(
