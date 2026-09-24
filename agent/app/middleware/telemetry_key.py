@@ -22,6 +22,14 @@ Both replace the envelope's `patient_session_key` and the same-named
 fields inside `event_data` (`ClaimVerifiedEvent`, `ClaimDisclosureEvent`,
 and `conversation_invalidated`'s `previous_patient_session_key`).
 
+The same two exits replace `event_data.source_id` with `rid_<HMAC>` (D58).
+It is the FHIR id of the chart record a claim cites: a UUID that resolves
+to the patient as directly as the patient's own uuid does, and the one
+patient-linked UUID the production Langfuse proof found after D56. It is
+HMAC'd under the same secret with a domain tag, so a record keeps one
+value (claims about it still group) and a record id's value can never
+equal a session key's.
+
 Under one secret a key always maps to the same value, so a (user, patient,
 session) still groups: `compute_metrics.py`'s per-interaction rollup and
 Langfuse sessions work as before. Changing the secret splits a session that
@@ -71,7 +79,13 @@ UNAVAILABLE = "psk_unavailable"
 #: The names that hold a patient_session_key, on the envelope or in event_data.
 KEY_FIELDS = ("patient_session_key", "previous_patient_session_key")
 
+#: The names in event_data that hold a chart record's FHIR id (D58).
+RECORD_ID_FIELDS = ("source_id",)
+RECORD_PREFIX = "rid_"
+_RECORD_DOMAIN = b"source_id\x00"
+
 _EMITTED = re.compile(r"^psk_(dev_)?[0-9a-f]{64}$")
+_EMITTED_RECORD = re.compile(r"^rid_(dev_)?[0-9a-f]{64}$")
 
 
 class TelemetrySecretError(RuntimeError):
@@ -149,14 +163,36 @@ def emitted_key(key: str | None) -> str | None:
     return secret.prefix + digest
 
 
+def emitted_record_id(record_id: str | None) -> str | None:
+    """What telemetry carries for a cited record's FHIR id (D58). Never the id; never raises."""
+    if not record_id or _EMITTED_RECORD.fullmatch(record_id):
+        return record_id
+    try:
+        secret = _secret()
+    except TelemetrySecretError:
+        return RECORD_PREFIX + "unavailable"
+    digest = hmac.new(
+        secret.value, _RECORD_DOMAIN + record_id.encode("utf-8"), hashlib.sha256
+    ).hexdigest()
+    return RECORD_PREFIX + secret.prefix.removeprefix(PREFIX) + digest
+
+
+def _emitted_field(name: str, value: Any) -> Any:
+    if not isinstance(value, str):
+        return value
+    if name in KEY_FIELDS:
+        return emitted_key(value)
+    if name in RECORD_ID_FIELDS:
+        return emitted_record_id(value)
+    return value
+
+
 def emitted_event_data(event_data: dict[str, Any]) -> dict[str, Any]:
-    """`event_data` with its key fields replaced. A copy: the caller's dict is not touched."""
-    if not any(isinstance(event_data.get(name), str) for name in KEY_FIELDS):
+    """`event_data` with its key and record-id fields replaced. A copy: the caller's is untouched."""
+    fields = KEY_FIELDS + RECORD_ID_FIELDS
+    if not any(isinstance(event_data.get(name), str) for name in fields):
         return event_data
-    return {
-        name: emitted_key(value) if name in KEY_FIELDS and isinstance(value, str) else value
-        for name, value in event_data.items()
-    }
+    return {name: _emitted_field(name, value) for name, value in event_data.items()}
 
 
 def pseudonymize_session_keys(

@@ -1,0 +1,57 @@
+# PRODUCTION override for the self-hosted Langfuse (D58). Used together with
+# the local stack's file, which it changes as little as possible:
+#
+#   docker compose --project-directory /opt/langfuse \
+#     -f docker-compose.langfuse.yml -f docker-compose.langfuse.prod.yml up -d --wait
+#
+# On the host both files, the Caddyfile and .env sit side by side in
+# /opt/langfuse (install-host.sh copies them there). The runbook is
+# docs/w2/OBSERVABILITY.md §7.
+#
+# What this adds to the base file, and nothing else:
+#
+#   1. NEXTAUTH_URL is the public https origin, not localhost, so sign-in
+#      redirects and cookies are issued for the name browsers use.
+#   2. Caddy in front, the only service with a public port (80 for the ACME
+#      HTTP challenge and the redirect, 443 for TLS). langfuse-web keeps the
+#      base file's 127.0.0.1-only binding; Caddy reaches it over the compose
+#      network. Same Caddy image, by digest, as the agent host's proxy.
+#   3. Images are the base file's: Langfuse 4.37.0, the version the local
+#      stack runs, so the dashboard SQL written against it applies unchanged.
+#
+# Retention is not here: self-hosted OSS Langfuse has no retention job (it is
+# an Enterprise feature), so retention.sh does it from the host's cron.
+
+x-prod-url: &prod-url
+  NEXTAUTH_URL: https://${LANGFUSE_HOSTNAME:?run generate-env-prod.sh}
+
+services:
+  langfuse-web:
+    environment:
+      <<: *prod-url
+      LANGFUSE_INIT_USER_NAME: ${LANGFUSE_INIT_USER_NAME:-Clinical Co-pilot Admin}
+
+  langfuse-worker:
+    environment:
+      <<: *prod-url
+
+  caddy:
+    image: caddy:2.11.4-alpine@sha256:5f5c8640aae01df9654968d946d8f1a56c497f1dd5c5cda4cf95ab7c14d58648
+    restart: unless-stopped
+    depends_on:
+      langfuse-web:
+        condition: service_healthy
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    environment:
+      LANGFUSE_HOSTNAME: ${LANGFUSE_HOSTNAME:?run generate-env-prod.sh}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+
+volumes:
+  caddy_data:
+  caddy_config:

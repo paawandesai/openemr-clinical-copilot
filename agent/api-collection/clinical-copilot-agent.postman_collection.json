@@ -46,7 +46,7 @@
                   "  pm.expect(body.checks.fhir.status, 'fhir: ' + body.checks.fhir.detail).to.eql('healthy');",
                   "  pm.expect(body.checks.llm_provider.status, 'llm_provider: ' + body.checks.llm_provider.detail).to.eql('healthy');",
                   "  pm.response.to.have.status(200);",
-                  "  pm.expect(body.status).to.eql('ready');",
+                  "  pm.expect(body.status).to.be.oneOf(['ready', 'degraded']);",
                   "});",
                   "pm.test('observability backend is reported but not required', function () {",
                   "  pm.expect(body.checks.observability_backend.required).to.eql(false);",

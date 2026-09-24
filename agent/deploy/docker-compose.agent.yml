@@ -54,6 +54,14 @@ services:
       # fails. Keep it stable: a new secret splits every trace session in two.
       AGENT_ENV: ${AGENT_ENV:-production}
       AGENT_TELEMETRY_HMAC_SECRET: ${AGENT_TELEMETRY_HMAC_SECRET:-}
+      # Export to the self-hosted production Langfuse (D58,
+      # docs/w2/OBSERVABILITY.md §7). Empty, as they are until the env file
+      # sets them, export is off and stdout stays the only backend: an empty
+      # value counts as unset (langfuse_export.export_configured).
+      LANGFUSE_BASE_URL: ${LANGFUSE_BASE_URL:-}
+      LANGFUSE_PUBLIC_KEY: ${LANGFUSE_PUBLIC_KEY:-}
+      LANGFUSE_SECRET_KEY: ${LANGFUSE_SECRET_KEY:-}
+      LANGFUSE_TRACING_ENVIRONMENT: ${LANGFUSE_TRACING_ENVIRONMENT:-production}
     # The agent shares the host with OpenEMR and MariaDB. Measured on the
     # 7.2 GiB host (docs/w2/DEPLOY.md §8): 3.7 GiB peak at demo load (two
     # reranks and one OCR job at a time), and past 5 GiB under a heavier mix,

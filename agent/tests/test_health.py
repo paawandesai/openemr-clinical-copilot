@@ -256,6 +256,7 @@ class ReadyTest(_ReadyBase):
             status, body = self.checks()
 
         self.assertEqual(status, 200)
+        self.assertEqual(body["status"], "degraded")
         self.assertEqual(
             body["checks"]["observability_backend"],
             {
@@ -266,6 +267,40 @@ class ReadyTest(_ReadyBase):
             },
         )
 
+    def test_a_healthy_langfuse_leaves_the_service_ready_not_degraded(self) -> None:
+        """D58: the other state. A configured, reachable Langfuse is `ready`."""
+        os.environ["LANGFUSE_BASE_URL"] = "http://langfuse.test"
+        with mock.patch.object(health, "check_export_health", return_value=None):
+            status, body = self.checks()
+
+        self.assertEqual(status, 200)
+        self.assertEqual(body["status"], "ready")
+
+    def test_langfuse_rejecting_the_keys_is_degraded_too(self) -> None:
+        os.environ["LANGFUSE_BASE_URL"] = "http://langfuse.test"
+        with mock.patch.object(
+            health,
+            "check_export_health",
+            side_effect=ObservabilityExportUnavailable("Langfuse rejected the configured API keys"),
+        ):
+            status, body = self.checks()
+
+        self.assertEqual((status, body["status"]), (200, "degraded"))
+
+    def test_not_ready_wins_over_degraded(self) -> None:
+        """A required dependency down is 503 whatever Langfuse says (D58)."""
+        os.environ["LANGFUSE_BASE_URL"] = "http://langfuse.test"
+        self.fhir.side_effect = httpx.ConnectError("down")
+        with mock.patch.object(
+            health,
+            "check_export_health",
+            side_effect=ObservabilityExportUnavailable("Langfuse unreachable"),
+        ):
+            status, body = self.checks()
+
+        self.assertEqual((status, body["status"]), (503, "not_ready"))
+        self.assertEqual(body["checks"]["observability_backend"]["status"], "unhealthy")
+
     def test_stdout_is_named_as_the_backend_not_reported_disabled(self) -> None:
         """Production runs without Langfuse: stdout is its record, not an absence (D55)."""
         for name in ("LANGFUSE_BASE_URL", "LANGFUSE_PUBLIC_KEY", "LANGFUSE_SECRET_KEY"):
@@ -273,6 +308,7 @@ class ReadyTest(_ReadyBase):
         status, body = self.checks()
 
         self.assertEqual(status, 200)
+        self.assertEqual(body["status"], "ready")
         check = body["checks"]["observability_backend"]
         self.assertEqual(check["backend"], "stdout")
         self.assertEqual(check["status"], "healthy")

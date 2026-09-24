@@ -347,7 +347,10 @@ class ObservabilityCheck(DependencyCheck):
 
 
 class ReadyResponse(_Contract):
-    status: Literal["ready", "not_ready"]
+    # `degraded` (D58): every required check is healthy and a reported one
+    # is not, so the service answers (200) while its traces reach stdout
+    # only. `not_ready` (503) wins over it.
+    status: Literal["ready", "degraded", "not_ready"]
     # SerializeAsAny: `observability_backend` is an ObservabilityCheck, and its
     # `backend` must survive serialisation through the base type.
     checks: dict[str, SerializeAsAny[DependencyCheck]]

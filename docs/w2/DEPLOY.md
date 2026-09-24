@@ -556,6 +556,11 @@ Before D55 an agent without `LANGFUSE_*` reported `observability_backend`
 as `"disabled"`. The host at `ea198c8` predates D55 and still does, until
 it is redeployed.
 
+With the staged Langfuse values merged (`OBSERVABILITY.md` §7.4, D58):
+`status: "ready"` and `observability_backend` `healthy`,
+`backend: "langfuse"`. `status: "degraded"` (still 200) means the agent
+cannot reach or authenticate to Langfuse; answers still work.
+
 `/documents` goes through the proxy since `9922314` (§2.1):
 `POST https://<host>:8443/documents?kind=lab_pdf` with the PDF as the body →
 200 `pending`; the same bytes again → the same `document_id`; no bearer → 401;
@@ -837,7 +842,9 @@ the code tree (`--env-file`, interpolated by `docker-compose.agent.yml`):
 | `AGENT_RERANK_CIRCUIT_RESET_SECONDS` / `_TURNS` | no | 60 / 10 | how long an open rerank circuit stays open, or how many turns it skips (D41) |
 
 **Set in the image or the compose file, not the env file:** `OMP_THREAD_LIMIT=1` (Dockerfile), and the agent's `mem_limit` / `memswap_limit` of 4608m (compose).
-| `LANGFUSE_BASE_URL`, `LANGFUSE_PUBLIC_KEY`, `LANGFUSE_SECRET_KEY` | no | unset | unset → `/ready` reports `observability_backend` `healthy` with `backend: "stdout"`: the JSON event log is the production record (D55; `"disabled"` before it) |
+| `AGENT_TELEMETRY_HMAC_SECRET` | **yes** (the image is `AGENT_ENV=production`) | — | D56; at least 32 random characters, stable across deploys. Present on `64.177.42.210` since 2026-09-24 (`OBSERVABILITY.md` §7.4) |
+| `LANGFUSE_BASE_URL`, `LANGFUSE_PUBLIC_KEY`, `LANGFUSE_SECRET_KEY` | no | empty (compose passes them through) | empty → `/ready` reports `observability_backend` `healthy` with `backend: "stdout"`: the JSON event log is the production record (D55; `"disabled"` before it). Set → export to the self-hosted production Langfuse; staged in `/etc/clinical-copilot/agent.env.langfuse-staged`, merged at a redeploy (`OBSERVABILITY.md` §7.4, D58). Langfuse down → `status: "degraded"`, still 200 |
+| `LANGFUSE_TRACING_ENVIRONMENT` | no | `production` in compose | the Langfuse environment tag |
 | `COHERE_API_KEY` | no | unset | only for the unmeasured Cohere rerank adapter; the deployed path does not use it |
 
 **Baked into the image** (`agent/Dockerfile`; do not set them in the env file):

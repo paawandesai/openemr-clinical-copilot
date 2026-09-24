@@ -230,6 +230,58 @@ def test_every_event_of_a_turn_carries_one_hmac_so_traces_still_group(
     assert sessions == {a, b}
 
 
+def test_a_cited_record_id_leaves_as_its_hmac_on_both_exits(
+    conversation_client: TestClient,
+) -> None:
+    """
+    D58: `source_id` is the FHIR id of the chart record a claim cites, and
+    resolves to the patient as directly as the patient's uuid. Both claim
+    events carry it; neither exit may.
+    """
+    with _emitted() as out:
+        _turn(conversation_client, PATIENT_A)
+
+    raw = json.loads(DRAFT)["claims"][0]["source_id"]
+    expected = telemetry_key.emitted_record_id(raw)
+    claim_events = [
+        e
+        for e in out.events()
+        if e["event_type"] in ("claim_verified_event", "claim_disclosure_event")
+    ]
+    assert {e["event_type"] for e in claim_events} == {
+        "claim_verified_event",
+        "claim_disclosure_event",
+    }
+    assert {e["event_data"]["source_id"] for e in claim_events} == {expected}
+    exported = [
+        call["event_data"]["source_id"]
+        for call in out.langfuse.calls
+        if "source_id" in call["event_data"]
+    ]
+    assert exported and set(exported) == {expected}
+    assert raw not in out.text()
+
+
+def test_a_record_id_is_hmac_sha256_under_the_secret_with_a_domain_tag() -> None:
+    record = "a2c37439-5dd0-40b8-9916-0011fdf4c121"
+    digest = hmac.new(
+        SECRET.encode(), b"source_id\x00" + record.encode(), hashlib.sha256
+    ).hexdigest()
+    assert telemetry_key.emitted_record_id(record) == "rid_" + digest
+    # One record, one value; and never the value a session key of the same text gets.
+    assert telemetry_key.emitted_record_id(record) == telemetry_key.emitted_record_id(record)
+    assert telemetry_key.emitted_record_id(record)[4:] != telemetry_key.emitted_key(record)[4:]
+    emitted = telemetry_key.emitted_record_id(record)
+    assert telemetry_key.emitted_record_id(emitted) == emitted
+    assert telemetry_key.emitted_record_id("") == ""
+
+
+def test_the_dev_default_labels_a_record_id_too(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.delenv(telemetry_key.SECRET_ENV)
+    telemetry_key.reset_for_tests()
+    assert telemetry_key.emitted_record_id("med-1").startswith("rid_dev_")
+
+
 # --- an upload ----------------------------------------------------------------
 
 
@@ -384,3 +436,20 @@ def test_the_service_does_not_start_in_production_without_the_secret() -> None:
 def test_the_image_is_production_unless_told_otherwise() -> None:
     dockerfile = (AGENT_DIR / "Dockerfile").read_text()
     assert "ENV AGENT_ENV=production" in dockerfile
+
+
+def test_the_deploy_compose_passes_the_langfuse_config_through(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """
+    D58: the staged LANGFUSE_* values reach the container only if the compose
+    file names them. Each defaults to empty, and empty is "not configured",
+    so a host whose env file does not set them keeps stdout as its backend.
+    """
+    compose = (AGENT_DIR / "deploy" / "docker-compose.agent.yml").read_text()
+    for name in langfuse_export._REQUIRED_ENV:
+        assert f"{name}: ${{{name}:-}}" in compose, name
+    assert "LANGFUSE_TRACING_ENVIRONMENT: ${LANGFUSE_TRACING_ENVIRONMENT:-production}" in compose
+    for name in langfuse_export._REQUIRED_ENV:
+        monkeypatch.setenv(name, "")
+    assert not langfuse_export.export_configured()

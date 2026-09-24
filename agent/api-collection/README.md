@@ -4,7 +4,7 @@ A Postman v2.1 collection that runs end to end without reading the source:
 
 | Folder | Requests | Checks |
 |---|---|---|
-| 1. Liveness and readiness | `GET /health`, `GET /ready` | 200 `alive`; 200 `ready` with FHIR and LLM provider healthy |
+| 1. Liveness and readiness | `GET /health`, `GET /ready` | 200 `alive`; 200 `ready` with FHIR and LLM provider healthy (`degraded`, also 200, when only the observability backend is down, D58) |
 | 2. Get a clinician token | `POST {openemr_url}/oauth2/default/token` | OpenEMR issues a token; stored for folders 3–4 |
 | 3. Pre-Visit Brief | `POST /pre-visit-brief` for the demo patient (`patient_id`) | 200; brief rendered; every claim verified or marked unverified; `user:patient:session` key; correlation id matches header; token never echoed |
 | 4. Failure paths | no token; malformed `patient_id`; unknown patient; token OpenEMR rejects | 401 `missing_bearer_token`; 422 `invalid_request`; 404 `patient_not_found`; 401 `fhir_token_rejected` |
@@ -177,7 +177,7 @@ Langfuse (`docs/w2/OBSERVABILITY.md` §2).
 | Folder | Requests | What the tests check |
 |---|---|---|
 | 0. Setup | `POST {openemr}/oauth2/default/token` (password grant) | a token with `user/lab-writeback.c`; kept in a collection variable for this run only |
-| 1. Health | `GET /health`, `GET /ready` | `/health` 200; `/ready` names `fhir`, `llm_provider`, `observability_backend`, and is 200 exactly when ready |
+| 1. Health | `GET /health`, `GET /ready` | `/health` 200; `/ready` names `fhir`, `llm_provider`, `observability_backend`, and is 503 exactly when `not_ready` (`degraded` is 200, D58) |
 | 2. Encounter | upload → extraction status (polled until final) → Pre-Visit Brief → one conversation turn → `/w2/ask` about the uploaded document → `/w2/ask` guideline question → write-back → same write-back again → OpenEMR sign-in → open chart → document preview | upload returns a status, not a wait (D7); a completed extraction has an extraction id; the correlation id comes back on every agent response; every claim went through the verifier; each `/w2/ask` records a routing decision with its reason (D4) and a final status; write-back returns real ids, and the repeat returns `duplicate_ignored` with the **same** ids (invariant 6); the preview is the PDF |
 | 3. Refusals | upload without a token; unknown document; unknown patient; another chart's document; end the conversation | 401, 404, 404 `patient_not_found`, 404, 200 |
 
