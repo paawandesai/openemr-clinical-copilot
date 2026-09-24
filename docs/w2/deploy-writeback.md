@@ -104,6 +104,14 @@ That means the **chart-embed client** is the one that needs the two scopes
 added. The password-grant client below is a test fixture for driving the
 endpoint directly; it must not be used to write on a clinician's behalf.
 
+**Since D54 this happens on every lab report upload.** `upload.php` asks
+for `ClinicianTokenBroker::LAB_UPLOAD_SCOPES` (the read scopes plus these
+two), and the agent writes the extraction's rows once it completes. An embed
+client registered without them still uploads and extracts. Only the write
+is refused, logged by the agent as `lab_writeback_after_extraction` with
+`decision: token_refused`. Nothing reaches the chart until the client
+carries both scopes.
+
 ### Re-registering the chart-embed client
 
 Current scopes (local and Vultr both, `docs/w2/LOCAL_ENV.md` §4 and the

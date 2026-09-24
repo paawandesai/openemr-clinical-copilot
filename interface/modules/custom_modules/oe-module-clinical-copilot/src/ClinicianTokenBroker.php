@@ -58,6 +58,16 @@ final readonly class ClinicianTokenBroker
      */
     public const CONVERSATION_SCOPES = self::SCOPES . ' user/Observation.read user/Encounter.read';
 
+    /**
+     * A lab report upload: the agent writes the extraction's rows back to the
+     * chart under this token once it completes (DECISIONS.md D54), through
+     * the module's endpoint, which needs `api:oemr` and `user/lab-writeback.c`
+     * (D29). Granted the same way as above — against a client registered
+     * without them the token still reads, and only the write is refused.
+     * An intake form never asks for them: nothing from one is written (D2).
+     */
+    public const LAB_UPLOAD_SCOPES = self::SCOPES . ' api:oemr user/lab-writeback.c';
+
     /** Each of three loopback requests; they normally take well under a second. */
     private const REQUEST_SECONDS = 5.0;
 
@@ -79,7 +89,7 @@ final readonly class ClinicianTokenBroker
     }
 
     /**
-     * @param string $scopes self::SCOPES or self::CONVERSATION_SCOPES.
+     * @param string $scopes self::SCOPES, self::CONVERSATION_SCOPES or self::LAB_UPLOAD_SCOPES.
      * @throws BriefUnavailable TokenUnavailable, whatever the cause.
      */
     public function issueFor(#[\SensitiveParameter] CoreSessionId $session, PatientUuid $patient, string $scopes = self::SCOPES): AccessToken
