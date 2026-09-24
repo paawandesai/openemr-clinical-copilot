@@ -1,7 +1,8 @@
-Judge calibration
-  labels     ../docs/w2/calibration/labels-final.json  (labeller: paawandesai (LLM-drafted, human-reviewed))
+Rubric audit (labels not independent): NOT a judge calibration
+  labels     ../docs/w2/calibration/rubric-audit-labels.json  (labeller: paawandesai (bulk-confirmed LLM drafts; rubric audit, not independent))
   judge      claude-haiku-4-5-20251001, prompt w2-judge/1.0.0, best-of-3 majority 2
   agreement and kappa exclude UNSURE and unlabelled items
+  WARNING: LABELS NOT INDEPENDENT: the labels file says they are not an independent human reading. This is a rubric audit. The agreement below is not a judge calibration.
 
 factually_consistent
   items 30  labelled 30  UNSURE 0  unlabelled 0  compared 30

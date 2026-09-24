@@ -1,8 +1,13 @@
 """
-Judge calibration, phase 1 (D57): the labelling page is blind and offline,
-the stored judge verdicts belong to the committed item set, and `compute`
+Judge calibration (D57): for each committed item set, the labelling page is
+blind and offline and the stored judge verdicts belong to the items. `compute`
 gets agreement, kappa and the confusion matrix right on a labels file whose
-answers are known.
+answers are known, and reports labels marked not independent as a rubric
+audit, never as a calibration.
+
+The sets are set 1 (60 items, docs/w2/calibration/) and set 2 (20 fresh items,
+docs/w2/calibration/set2/). These tests read the sealed files, but print item
+text only when an assertion fails.
 
 No network, no credential: the judge is never called here.
 
@@ -28,8 +33,31 @@ sys.modules["judge_calibration"] = jc  # @dataclass resolves its module through 
 _spec.loader.exec_module(jc)
 
 
+#: (name, directory, items per rubric, id prefixes, longest allowed run of one intended label)
+SETS = [
+    ("set1", jc.CAL_DIR, 30, ("FC-", "SR-"), 7),
+    ("set2", jc.SET2_DIR, 10, ("FC2-", "SR2-"), 3),
+]
+
+
+@pytest.fixture(scope="module", params=SETS, ids=[s[0] for s in SETS])
+def item_set(request: Any) -> dict[str, Any]:
+    name, directory, per_rubric, prefixes, max_run = request.param
+    items_path, verdicts_path, page_path = jc.set_paths(directory)
+    return {
+        "name": name,
+        "items": jc.load_items(items_path),
+        "verdicts_path": verdicts_path,
+        "page": page_path.read_text(encoding="utf-8"),
+        "per_rubric": per_rubric,
+        "prefixes": prefixes,
+        "max_run": max_run,
+    }
+
+
 @pytest.fixture(scope="module")
 def items() -> list[dict[str, Any]]:
+    """Set 1: the compute tests below are written against its 60 items."""
     return jc.load_items()
 
 
@@ -38,51 +66,56 @@ def prompts() -> dict[str, str]:
     return jc.judge_prompts()
 
 
-@pytest.fixture(scope="module")
-def page() -> str:
-    return jc.PAGE_PATH.read_text(encoding="utf-8")
+# ------------------------------------------------------------------- the item sets
 
 
-# ------------------------------------------------------------------- the item set
-
-
-def test_item_set_is_sixty_balanced_items(items: list[dict[str, Any]]) -> None:
-    assert len(items) == 60
-    for rubric, prefix in (("factually_consistent", "FC"), ("safe_refusal", "SR")):
+def test_item_set_is_balanced(item_set: dict[str, Any]) -> None:
+    items, n = item_set["items"], item_set["per_rubric"]
+    assert len(items) == 2 * n
+    for rubric, prefix in zip(jc.RUBRICS, item_set["prefixes"], strict=True):
         sub = [i for i in items if i["rubric"] == rubric]
-        assert len(sub) == 30
-        assert sum(i["intended"] == "pass" for i in sub) == 15
+        assert len(sub) == n
+        assert sum(i["intended"] == "pass" for i in sub) == n // 2
         # Opaque ids: nothing about the intended label is in the id.
-        assert sorted(i["id"] for i in sub) == [f"{prefix}-{n:02d}" for n in range(1, 31)]
+        assert sorted(i["id"] for i in sub) == [f"{prefix}{k:02d}" for k in range(1, n + 1)]
 
 
-def test_intended_label_does_not_follow_id_order(items: list[dict[str, Any]]) -> None:
+def test_intended_label_does_not_follow_id_order(item_set: dict[str, Any]) -> None:
     """A labeller who notices FC-01..15 all fail would stop being blind."""
     for rubric in jc.RUBRICS:
-        sequence = [i["intended"] for i in items if i["rubric"] == rubric]
+        sequence = [i["intended"] for i in item_set["items"] if i["rubric"] == rubric]
         assert sequence != sorted(sequence) and sequence != sorted(sequence, reverse=True)
         longest = max(
             len(m.group(0)) for m in re.finditer(r"(p+|f+)", "".join(s[0] for s in sequence))
         )
-        assert longest < 8
+        assert longest <= item_set["max_run"]
+
+
+def test_the_sets_share_no_item() -> None:
+    """Set 2 is fresh: no id, key or payload of set 1 appears in it."""
+    first = jc.load_items()
+    second = jc.load_items(jc.set_paths(jc.SET2_DIR)[0])
+    assert not {i["id"] for i in first} & {i["id"] for i in second}
+    assert not {i["key"] for i in first} & {i["key"] for i in second}
+    first_texts = {text for i in first for text in i["payload"].values()}
+    assert not first_texts & {text for i in second for text in i["payload"].values()}
 
 
 # ----------------------------------------------------------------------- the page
 
 
 def test_committed_page_is_built_from_the_committed_items(
-    items: list[dict[str, Any]], prompts: dict[str, str], page: str
+    item_set: dict[str, Any], prompts: dict[str, str]
 ) -> None:
-    assert page == jc.render_page(items, prompts), (
-        "docs/w2/calibration/label.html is stale; run `python scripts/judge_calibration.py build`"
+    assert item_set["page"] == jc.render_page(item_set["items"], prompts), (
+        f"{item_set['name']} label.html is stale; run `python scripts/judge_calibration.py build`"
     )
 
 
 @pytest.mark.parametrize("source", ["committed", "freshly rendered"])
-def test_page_is_blind(
-    source: str, items: list[dict[str, Any]], prompts: dict[str, str], page: str
-) -> None:
-    html = page if source == "committed" else jc.render_page(items, prompts)
+def test_page_is_blind(source: str, item_set: dict[str, Any], prompts: dict[str, str]) -> None:
+    items = item_set["items"]
+    html = item_set["page"] if source == "committed" else jc.render_page(items, prompts)
     data = jc.page_data(html)
     assert set(data) == {
         "labels_schema_version",
@@ -96,7 +129,7 @@ def test_page_is_blind(
     # The rationale text is the easiest leak to miss: it is prose, not a key.
     for item in items:
         assert item["why"] not in html
-    verdicts = json.loads(jc.VERDICTS_PATH.read_text(encoding="utf-8"))["verdicts"]
+    verdicts = json.loads(item_set["verdicts_path"].read_text(encoding="utf-8"))["verdicts"]
     for judged in verdicts.values():
         for reason in judged["reasons"]:
             if len(reason) > 30:
@@ -104,9 +137,10 @@ def test_page_is_blind(
 
 
 def test_page_shows_exactly_what_the_judge_sees(
-    items: list[dict[str, Any]], prompts: dict[str, str], page: str
+    item_set: dict[str, Any], prompts: dict[str, str]
 ) -> None:
-    data = jc.page_data(page)
+    items = item_set["items"]
+    data = jc.page_data(item_set["page"])
     by_id = {i["id"]: i for i in items}
     assert len(data["items"]) == len(items)
     for shown in data["items"]:
@@ -116,7 +150,8 @@ def test_page_shows_exactly_what_the_judge_sees(
         assert data["rubrics"][rubric]["text"] == prompts[rubric]
 
 
-def test_page_makes_no_network_request(page: str) -> None:
+def test_page_makes_no_network_request(item_set: dict[str, Any]) -> None:
+    page = item_set["page"]
     for needle in (
         "http://",
         "https://",
@@ -149,11 +184,12 @@ def test_embedded_data_cannot_close_its_script_tag() -> None:
 
 
 def test_stored_judge_verdicts_cover_the_committed_items(
-    items: list[dict[str, Any]], prompts: dict[str, str]
+    item_set: dict[str, Any], prompts: dict[str, str]
 ) -> None:
     from evals.w2.gate.loader import load_judge_config
 
-    doc = json.loads(jc.VERDICTS_PATH.read_text(encoding="utf-8"))
+    items = item_set["items"]
+    doc = json.loads(item_set["verdicts_path"].read_text(encoding="utf-8"))
     config = load_judge_config()
     assert doc["items_sha256"] == jc.items_digest(items)
     assert doc["prompt_sha256"] == jc.prompt_digests(prompts)
@@ -392,3 +428,43 @@ def test_cli_exits_2_on_a_labels_file_for_another_item_set(
     labels_path.write_text(json.dumps(doc), encoding="utf-8")
     verdicts_path.write_text(json.dumps(_verdicts(items, prompts)), encoding="utf-8")
     assert jc.main(["compute", str(labels_path), "--verdicts", str(verdicts_path)]) == 2
+
+
+# ------------------------------------------------- labels that are not independent
+
+
+def test_labels_marked_not_independent_are_a_rubric_audit(
+    items: list[dict[str, Any]], prompts: dict[str, str]
+) -> None:
+    labels = _known_labels(items, prompts)
+    labels.pop("_expect")
+    report = jc.compute(items, _verdicts(items, prompts), labels)
+    assert report["independent"] is True
+    assert jc.format_report(report).startswith("Judge calibration\n")
+
+    labels["independent"] = False
+    report = jc.compute(items, _verdicts(items, prompts), labels)
+    assert report["independent"] is False
+    assert any(w.startswith("LABELS NOT INDEPENDENT") for w in report["warnings"])
+    text = jc.format_report(report)
+    assert text.startswith("Rubric audit (labels not independent): NOT a judge calibration\n")
+    assert "Judge calibration" not in text
+
+
+def test_committed_rubric_audit_stays_marked_not_independent() -> None:
+    """Set 1's bulk-confirmed LLM labels must never read as a calibration."""
+    labels = json.loads((jc.CAL_DIR / "rubric-audit-labels.json").read_text(encoding="utf-8"))
+    assert labels["independent"] is False
+    report = (jc.CAL_DIR / "rubric-audit-report.txt").read_text(encoding="utf-8")
+    assert report.startswith("Rubric audit (labels not independent): NOT a judge calibration\n")
+    assert (
+        json.loads((jc.CAL_DIR / "rubric-audit-report.json").read_text(encoding="utf-8"))[
+            "independent"
+        ]
+        is False
+    )
+
+
+def test_set_dir_selects_the_second_set(capsys: Any) -> None:
+    assert jc.main(["--set-dir", str(jc.SET2_DIR), "build", "--check"]) == 0
+    assert "set2" in capsys.readouterr().out

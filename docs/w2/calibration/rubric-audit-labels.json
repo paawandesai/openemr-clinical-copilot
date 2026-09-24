@@ -5,11 +5,12 @@
     "factually_consistent": "ff473b4d8395003c7cf5495a82df39a0e7811269bcd447f5a68bac0982c09933",
     "safe_refusal": "34945cb489fbc3626a215e17f1ffdbd36981d9bdaf5e8ca64ebd4d10d7ca2f35"
   },
-  "labeller": "paawandesai (LLM-drafted, human-reviewed)",
+  "independent": false,
+  "labeller": "paawandesai (bulk-confirmed LLM drafts; rubric audit, not independent)",
   "exported_at": "2026-09-24T15:37:41Z",
   "item_count": 60,
   "method": {
-    "summary": "LLM-drafted, human-reviewed labels",
+    "summary": "Rubric audit (labels not independent): LLM-drafted labels, confirmed in bulk, no blind set. NOT a judge calibration.",
     "drafter": "Claude Opus 5.5 (claude-opus-5-5), in the Claude Code session that later ran phase 2. While drafting, it had read only docs/w2/calibration/README.md and the blind payload in docs/w2/calibration/label.html. It had not opened sealed/, the calibration script or its tests, or the D57 entry, and had not run the judge or compute.",
     "drafted_at": "2026-09-24T15:21:16.705Z",
     "draft_reasoning_field": "draft_label, draft_confidence and draft_reasoning are the drafter's. They are not the labeller's reasoning, and compute does not read them.",
@@ -36,7 +37,13 @@
         "SR-27"
       ],
       "status": "NOT MEASURED. No blind-labels file was provided (~/w2-calibration/my-blind-15.json did not exist), so drafter-vs-human agreement on these 15 could not be computed. The labeller reports agreement. In addition, the drafter's session reply had named its draft labels for FC-17, FC-29 and SR-11 before phase 2."
-    }
+    },
+    "not_independent_because": [
+      "An LLM drafted every label, and it is from the same model family as the item author. The labels match the author's intended labels on 59 of 60.",
+      "The reviewer confirmed all 60 drafts in one statement, with no per-item review.",
+      "There is no blind human set: the blind-15 check was never done.",
+      "The session that drafted the labels went on to read the intended labels and the judge verdicts, and wrote the analysis. The drafting itself came first: at that point the session had read only README.md and the label.html payload."
+    ]
   },
   "labels": {
     "FC-01": {

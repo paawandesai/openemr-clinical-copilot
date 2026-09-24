@@ -14,6 +14,12 @@ never see each other's answers until the last one:
     python scripts/judge_calibration.py compute LABELS.json [--json OUT] [--accept-rubric-change]
     python scripts/judge_calibration.py synthetic OUT.json [--seed N]
 
+Every command works on one item set: by default the first set, in
+docs/w2/calibration/. `--set-dir DIR`, placed before the command, selects
+another set with the same layout: DIR/label.html, DIR/sealed/items.json and
+DIR/sealed/judge_verdicts.json. For example, the second set is
+`--set-dir ../docs/w2/calibration/set2`.
+
 `build` writes docs/w2/calibration/label.html: one offline file that shows each
 item exactly as the judge receives it, with the judge's own prompt as the
 rubric. It is blind by construction: the page's embedded data is the item id,
@@ -29,6 +35,11 @@ pooled: agreement with a Wilson 95% interval, Cohen's kappa, the confusion
 matrix, UNSURE and unlabelled counts, and every disagreement with both
 verdicts and the item. Running it shows the judge's verdicts, so it is run
 after labelling, never before.
+
+A labels file marked `"independent": false` (labels that are not an
+independent human reading, such as bulk-confirmed LLM drafts) is reported as a
+rubric audit, not a calibration, with a warning, in the way synthetic labels
+are.
 
 `synthetic` writes a labels file of seeded random labels, marked synthetic,
 for exercising `compute`. It is independent of the intended labels and of
@@ -61,6 +72,7 @@ ITEMS_PATH = CAL_DIR / "sealed" / "items.json"
 VERDICTS_PATH = CAL_DIR / "sealed" / "judge_verdicts.json"
 PAGE_PATH = CAL_DIR / "label.html"
 TEMPLATE_PATH = Path(__file__).resolve().with_name("judge_calibration_page.html")
+SET2_DIR = CAL_DIR / "set2"
 
 ITEMS_SCHEMA = "w2-judge-calibration/items/1"
 VERDICTS_SCHEMA = "w2-judge-calibration/verdicts/1"
@@ -85,6 +97,12 @@ class CalibrationInputError(ValueError):
 
 
 # --------------------------------------------------------------------------- items
+
+
+def set_paths(set_dir: Path) -> tuple[Path, Path, Path]:
+    """The items, verdicts and page paths of the item set kept in `set_dir`."""
+    sealed = set_dir / "sealed"
+    return sealed / "items.json", sealed / "judge_verdicts.json", set_dir / "label.html"
 
 
 def load_items(path: Path = ITEMS_PATH) -> list[dict[str, Any]]:
@@ -383,6 +401,12 @@ def compute(
         )
     if labels_doc.get("synthetic"):
         warnings.append("SYNTHETIC LABELS: random, for exercising this command. Not a measurement.")
+    independent = labels_doc.get("independent") is not False
+    if not independent:
+        warnings.append(
+            "LABELS NOT INDEPENDENT: the labels file says they are not an independent human "
+            "reading. This is a rubric audit. The agreement below is not a judge calibration."
+        )
 
     buckets: dict[str, dict[str, list[Any]]] = {
         r: {"unsure": [], "unlabelled": [], "pairs": []} for r in (*RUBRICS, "overall")
@@ -429,6 +453,7 @@ def compute(
     return {
         "labeller": labels_doc.get("labeller") or "",
         "synthetic": bool(labels_doc.get("synthetic")),
+        "independent": independent,
         "judge": {
             "model_version": verdicts_doc.get("model_version"),
             "prompt_version": verdicts_doc.get("prompt_version"),
@@ -474,8 +499,13 @@ def _tally_lines(name: str, t: Mapping[str, Any]) -> list[str]:
 
 def format_report(report: Mapping[str, Any], labels_path: str = "") -> str:
     j = report["judge"]
+    title = (
+        "Judge calibration"
+        if report.get("independent", True)
+        else "Rubric audit (labels not independent): NOT a judge calibration"
+    )
     lines = [
-        "Judge calibration",
+        title,
         f"  labels     {labels_path}  (labeller: {report['labeller'] or 'unnamed'})",
         f"  judge      {j['model_version']}, prompt {j['prompt_version']}, "
         f"best-of-{j['best_of']} majority {j['majority']}",
@@ -552,15 +582,23 @@ def _write_json(path: Path, doc: Mapping[str, Any]) -> None:
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
+    parser.add_argument(
+        "--set-dir",
+        type=Path,
+        default=CAL_DIR,
+        help="the item set's directory (default: the first set, docs/w2/calibration)",
+    )
     sub = parser.add_subparsers(dest="command", required=True)
     p_build = sub.add_parser("build", help="rebuild docs/w2/calibration/label.html")
     p_build.add_argument("--check", action="store_true", help="exit 1 if the page is stale")
     p_judge = sub.add_parser("judge", help="run the pinned judge on every item (billed)")
     p_judge.add_argument("--cache-dir", type=Path, help="judge cache (default: a fresh temp dir)")
-    p_judge.add_argument("--out", type=Path, default=VERDICTS_PATH)
+    p_judge.add_argument("--out", type=Path, help="default: the set's sealed/judge_verdicts.json")
     p_compute = sub.add_parser("compute", help="agreement between a labels file and the judge")
     p_compute.add_argument("labels", type=Path)
-    p_compute.add_argument("--verdicts", type=Path, default=VERDICTS_PATH)
+    p_compute.add_argument(
+        "--verdicts", type=Path, help="default: the set's sealed/judge_verdicts.json"
+    )
     p_compute.add_argument("--json", type=Path, help="also write the report as JSON")
     p_compute.add_argument(
         "--accept-rubric-change",
@@ -571,31 +609,33 @@ def main(argv: list[str] | None = None) -> int:
     p_synth.add_argument("out", type=Path)
     p_synth.add_argument("--seed", type=int, default=7)
     args = parser.parse_args(argv)
+    items_path, verdicts_path, page_path = set_paths(args.set_dir)
 
     try:
-        items = load_items()
+        items = load_items(items_path)
         if args.command == "build":
             rendered = render_page(items, judge_prompts())
             if args.check:
-                current = PAGE_PATH.read_text(encoding="utf-8") if PAGE_PATH.is_file() else ""
+                current = page_path.read_text(encoding="utf-8") if page_path.is_file() else ""
                 if current != rendered:
-                    print(f"{PAGE_PATH} is stale; run `python scripts/judge_calibration.py build`")
+                    print(f"{page_path} is stale; run `python scripts/judge_calibration.py build`")
                     return 1
-                print(f"{PAGE_PATH} is up to date")
+                print(f"{page_path} is up to date")
                 return 0
-            PAGE_PATH.parent.mkdir(parents=True, exist_ok=True)
-            PAGE_PATH.write_text(rendered, encoding="utf-8")
-            print(f"wrote {PAGE_PATH} ({len(items)} items)")
+            page_path.parent.mkdir(parents=True, exist_ok=True)
+            page_path.write_text(rendered, encoding="utf-8")
+            print(f"wrote {page_path} ({len(items)} items)")
             return 0
 
         if args.command == "judge":
             cache_dir = args.cache_dir or Path(tempfile.mkdtemp(prefix="w2-judge-calibration-"))
             print(f"judging {len(items)} items, best-of-3, cache {cache_dir}")
             doc = run_judge(items, cache_dir)
-            _write_json(args.out, doc)
+            out = args.out or verdicts_path
+            _write_json(out, doc)
             run = doc["run"]
             print(
-                f"wrote {args.out}: {run['calls_made']} calls, {run['cache_hits']} cache hits, "
+                f"wrote {out}: {run['calls_made']} calls, {run['cache_hits']} cache hits, "
                 f"{run['input_tokens']} input + {run['output_tokens']} output tokens, "
                 f"${run['cost_usd']:.4f}"
             )
@@ -608,7 +648,7 @@ def main(argv: list[str] | None = None) -> int:
             print(f"wrote {args.out} (synthetic, seed {args.seed})")
             return 0
 
-        verdicts_doc = json.loads(args.verdicts.read_text(encoding="utf-8"))
+        verdicts_doc = json.loads((args.verdicts or verdicts_path).read_text(encoding="utf-8"))
         report = compute(
             items,
             verdicts_doc,

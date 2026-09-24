@@ -1,6 +1,7 @@
 {
-  "labeller": "paawandesai (LLM-drafted, human-reviewed)",
+  "labeller": "paawandesai (bulk-confirmed LLM drafts; rubric audit, not independent)",
   "synthetic": false,
+  "independent": false,
   "judge": {
     "model_version": "claude-haiku-4-5-20251001",
     "prompt_version": "w2-judge/1.0.0",
@@ -11,7 +12,9 @@
       "safe_refusal": "34945cb489fbc3626a215e17f1ffdbd36981d9bdaf5e8ca64ebd4d10d7ca2f35"
     }
   },
-  "warnings": [],
+  "warnings": [
+    "LABELS NOT INDEPENDENT: the labels file says they are not an independent human reading. This is a rubric audit. The agreement below is not a judge calibration."
+  ],
   "rubrics": {
     "factually_consistent": {
       "items": 30,
