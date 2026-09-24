@@ -3152,3 +3152,133 @@ measurement will come from, once the reviewer labels it blind.
   - what counts as calibrated;
   - whether to apply the prompt edit;
   - whether to grow the set and add a second blind labeller.
+
+---
+
+## D58 — Production telemetry is stdout plus a self-hosted Langfuse; a down Langfuse makes `/ready` degraded, not unready
+
+**Status:** DECIDED
+**Date:** 2026-09-24
+**Work order:** 30 (`feat/w2-prod-langfuse`).
+**Numbering:** reserved as D58. Was "D-unassigned (reserved: D58)" while
+D57 (work order 27) was not on `main`, because a `## D58` heading then would
+have left a gap that fails `agent/tests/test_decisions_log.py`. Renamed to
+D58 on rebasing onto `main@42ab26d`, which carries D57.
+**Amends:** D37 and D55 on `/ready`'s top-level `status` only (below). Extends
+D56 to one more field. The rest of each stands.
+**Evidence:** `docs/w2/OBSERVABILITY.md` §7; `docs/w2/evidence/prod-langfuse/`;
+`agent/tests/test_access_log.py`, `test_health.py`, `test_telemetry_key.py`.
+
+**Problem.** Production telemetry was stdout only, for one reason: every
+event carried the patient uuid (in `patient_session_key`), and no BAA covers a
+third-party tracing service. D56 removed the key. The Week 1 PRD also asks
+`/ready` to check an observability backend, and in production there was none.
+
+**Decision.**
+
+1. **Production telemetry is stdout plus a self-hosted Langfuse** at
+   `https://64-177-51-119.sslip.io`. It runs on its own host,
+   `64.177.51.119`, which we operate, not a hosted service. Stdout stays the
+   record of source (`compute_metrics.py`, `w2_dashboard.py`). Every event is
+   written there before export is attempted, as since Week 1.
+2. **`/ready` is `degraded`, at 200, when Langfuse is configured and
+   unhealthy** while FHIR and the LLM provider are healthy. `not_ready` (503)
+   wins over it. The check stays `required: false`. Losing traces must not
+   take a clinician-serving instance out of rotation, and stdout still has
+   every event. `ReadyResponse.status` gains the value
+   (`app/models/api.py`); both Postman collections now accept it.
+3. **Uvicorn's access log is off.** Its line was the request line, query
+   string included, and both document routes carry `?patient_id=<uuid>`, so
+   every upload and status poll printed the patient's uuid to stdout. Two
+   controls:
+   - the Dockerfile's command passes `--no-access-log`;
+   - `configure_logging` filters every record on the `uvicorn.access` logger,
+     which covers any launcher that forgets the flag. It is a filter, not
+     `disabled`, because uvicorn's `dictConfig` resets `disabled` and keeps
+     filters.
+
+   `http_request_event` already carries method, route template, status and
+   latency (D38).
+4. **`event_data.source_id` leaves the process as `rid_<HMAC>`.** It is the
+   FHIR id of the chart record a claim cites, and it resolves to the patient
+   as directly as the patient's own uuid does. The first proof run found 24
+   of these in production Langfuse, all present in OpenEMR's
+   `uuid_registry`. The same secret as D56 applies, at the same two exits,
+   with a domain tag. One record keeps one value, and a record id's value
+   never equals a session key's. In-process events are unchanged, so the
+   gated suites that read `capture_logs` see the raw id, as with D56.
+5. **Retention is 30 days, enforced by us.** Self-hosted OSS Langfuse has no
+   retention job: it is an Enterprise feature. So
+   `agent/observability/prod/retention.sh` runs nightly from cron. It deletes
+   older rows from every ClickHouse table Langfuse writes, and sets a MinIO
+   lifecycle rule on the raw event blobs.
+   **Why 30 days:**
+   - it covers the grading window and a month of incident look-back;
+   - the traces hold no patient identifiers (item 4, D56), so nothing argues
+     for keeping them longer, and minimising pseudonymous data argues for
+     less;
+   - the host is below Langfuse's size recommendation (item 7), so a bounded
+     ClickHouse matters.
+
+   HIPAA's six-year documentation rule applies to OpenEMR's audit log, not to
+   this operational telemetry.
+6. **Accounts.**
+   - Headless initialisation creates the organisation, the project, the
+     project key pair and one admin (OWNER). Sign-up is disabled: a sign-up
+     request gets 422.
+   - The grader account is a second user with the org role VIEWER. On OSS
+     the only way to make it is two rows in Langfuse's Postgres
+     (`create-viewer.sh`): one user, with a bcrypt hash made by Langfuse's
+     own bcryptjs, and one membership. Headless init makes one user, and the
+     SCIM and membership APIs are Enterprise-only.
+   - Verified: the viewer signs in, and creating an API key as the viewer
+     returns 403 FORBIDDEN.
+7. **Sizing.** Langfuse recommends at least 4 cores and 16 GiB for Docker
+   Compose. The host has 4 vCPU, **7.7 GiB** and 8 GiB of swap. That is
+   undersized on memory. Idle after start it uses 3.1 GiB (web 1.2 GiB,
+   worker 0.7 GiB, ClickHouse 0.4 GiB). This deployment's volume is one
+   agent's operational events, and Langfuse's figure is for general load.
+   Watch for swap use. The fix is a 16 GiB plan, not a configuration
+   change.
+
+**What "no patient identifiers" means here, measured.** After items 3 and 4,
+one real-route encounter was sent to production Langfuse from a local agent.
+Every UUID-shaped value was then scanned in every ClickHouse table and every
+raw MinIO blob (`scan-uuids.sh`): 324 distinct values.
+
+- **0** are in OpenEMR's `uuid_registry`, which holds every UUID OpenEMR has
+  issued (30,601 locally: patients, records, documents).
+- **0** are patient uuids.
+- **Positive control:** the same check on the run before item 4 finds 24.
+- **All 324 have a named source:**
+  - 5 encounter correlation ids, which are UUID4s by D36;
+  - OpenTelemetry's per-process `service.instance.id`;
+  - the project's public key, `pk-lf-<uuid>`;
+  - Langfuse's own event and file ids.
+
+So **"zero UUID-shaped values" does not hold literally, and cannot while D36
+makes encounter ids UUID4s.** The claim that holds, and that the runbook
+checks, is zero UUIDs issued by OpenEMR.
+
+**Not closed here:** three record identifiers still reach Langfuse. None is
+UUID-shaped, and none resolves to a patient without OpenEMR access:
+
+- `document_id`, the SHA3-512 digest of the uploaded PDF, which OpenEMR also
+  stores;
+- `procedure_order_id`;
+- `procedure_result_ids`.
+
+The same is true of the HMACs with the secret. Hashing them too would change
+what the write-back and ask-path events mean to an operator. It is left as an
+open item, not done silently.
+
+**Consequences.**
+
+- The live host starts exporting at its next redeploy. The values are
+  staged in `/etc/clinical-copilot/agent.env.langfuse-staged`, and the
+  compose file now passes `LANGFUSE_*` through. Until then `/ready` there
+  says `disabled` (pre-D55 image).
+- Anything that alerts on `/ready` must read `status`, not only the code,
+  to see `degraded`.
+- The Langfuse login page is public, behind a Let's Encrypt certificate,
+  because graders need it. Only 22, 80 and 443 answer on that host.

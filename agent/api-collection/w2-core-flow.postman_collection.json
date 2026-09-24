@@ -143,7 +143,7 @@
             "method": "GET",
             "header": [],
             "url": "{{agent_base_url}}/ready",
-            "description": "200 only when OpenEMR's FHIR API and the LLM provider are verified healthy; 503 naming the failed dependency otherwise. The observability backend is reported, not required."
+            "description": "200 only when OpenEMR's FHIR API and the LLM provider are verified healthy; 503 naming the failed dependency otherwise. The observability backend is reported, not required: when only it is down, status is degraded at 200 (D58)."
           },
           "event": [
             {
@@ -152,11 +152,11 @@
                 "type": "text/javascript",
                 "exec": [
                   "const body = pm.response.json();",
-                  "pm.test(\"200 exactly when ready, 503 otherwise\", () => pm.expect(pm.response.code).to.eql(body.status === \"ready\" ? 200 : 503));",
+                  "pm.test(\"503 exactly when not_ready, 200 otherwise (degraded is 200, D58)\", () => pm.expect(pm.response.code).to.eql(body.status === \"not_ready\" ? 503 : 200));",
                   "pm.test(\"checks OpenEMR, the LLM provider and the observability backend\", () => {",
                   "  pm.expect(Object.keys(body.checks)).to.include.members([\"fhir\", \"llm_provider\", \"observability_backend\"]);",
                   "});",
-                  "pm.test(\"ready\", () => pm.expect(body.status).to.eql(\"ready\"));"
+                  "pm.test(\"serving: ready, or degraded when only the trace export is down (D58)\", () => pm.expect(body.status).to.be.oneOf([\"ready\", \"degraded\"]));"
                 ]
               }
             }

@@ -73,4 +73,7 @@ USER 10001
 
 EXPOSE 8000
 
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--no-server-header"]
+# No access log: its line is the request line, query string included, and the
+# document routes carry ?patient_id=<uuid>. http_request_event records method,
+# route template, status and latency instead (tests/test_access_log.py).
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--no-server-header", "--no-access-log"]

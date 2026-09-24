@@ -365,10 +365,17 @@ three rules at once. How to run the gate, read a verdict and set up CI:
   branch).
 - **On the deployed host:** [the dashboard computed from the deployed host's
   logs](docs/w2/evidence/host-dashboard.html) ([JSON](docs/w2/evidence/host-dashboard.json)),
-  beside the local Langfuse screenshots above. Production telemetry is
-  stdout by design; the host runs with Langfuse disabled. Over the `ea198c8`
-  deploy, 2026-09-23 17:12–21:00 UTC: 19 encounters with model calls, mean
-  **$0.097** and 11.8k tokens per encounter, answer-route p95 21.7 s, 0 5xx.
+  beside the local Langfuse screenshots above.
+  - Production telemetry is **stdout plus a self-hosted Langfuse inside our
+    own infrastructure** (D58, `docs/w2/OBSERVABILITY.md` §7). That is safe
+    because D56 and D58 took the patient uuid and chart-record uuids out of
+    every emitted event, so the Langfuse we host holds none; this was
+    measured (D58).
+  - The host at `ea198c8` still runs with export off until its next
+    redeploy, so the numbers here come from its stdout log.
+  - Over the `ea198c8` deploy, 2026-09-23 17:12–21:00 UTC: 19 encounters
+    with model calls, mean **$0.097** and 11.8k tokens per encounter,
+    answer-route p95 21.7 s, 0 5xx.
 - **Answer latency tracks what the model writes**
   (`docs/w2/COST_AND_LATENCY.md` §4.1a).
   - The answer step is about **4.1 s + 7.45 s per 1,000 output tokens**

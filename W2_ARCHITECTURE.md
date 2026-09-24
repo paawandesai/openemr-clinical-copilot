@@ -630,9 +630,19 @@ API-collection encounter, `07c0fd35-…`, is one Langfuse trace: 2 min 52 s,
 - 6 supervisor node steps;
 - 55 tool calls.
 
-**Two dashboards, two sources.** Production telemetry is stdout by design:
-the live host runs with Langfuse disabled (below), so its metrics come from
-its JSON event log.
+**Two dashboards, two sources.** Production telemetry is **stdout plus a
+self-hosted Langfuse inside our own infrastructure** (D58,
+`docs/w2/OBSERVABILITY.md` §7). Week 1 kept production on stdout alone for one
+reason: every event carried the patient uuid, and no BAA covers a
+third-party tracing service. D56 made telemetry carry an HMAC of the session
+key, and D58 does the same for the cited record's id. So a Langfuse we host
+ourselves stores no patient or chart-record uuid; that was measured, not
+assumed (D58). Stdout stays the record of source.
+
+The Langfuse is up at <https://64-177-51-119.sslip.io> with a read-only grader
+account. The live agent host starts exporting at its next redeploy, which
+merges values already staged on it. Until then its metrics come from its JSON
+event log alone.
 
 - **Local:** the Langfuse screenshots,
   [`langfuse-dashboard.png`](docs/w2/evidence/screenshots/langfuse-dashboard.png)
@@ -651,10 +661,13 @@ its JSON event log.
 - Write-back carries no correlation id into PHP.
 - Extraction inherits the upload's id only when that id is a UUID;
   otherwise the two traces are linked by a logged event, not merged.
-- The hosted Langfuse has no BAA, so production metrics come from stdout
-  (Week 1, `agent/docs/observability.md` §1). The live host runs with
-  Langfuse export off, so its `/ready` reports `disabled` at `ea198c8`; after
-  a redeploy of D55 it reports `backend: "stdout"` (`DEPLOY.md` §7.2).
+- The live host runs with Langfuse export off, so its `/ready` reports
+  `disabled` at `ea198c8`. The self-hosted production Langfuse is up (D58),
+  and the host's Langfuse values are staged
+  (`/etc/clinical-copilot/agent.env.langfuse-staged`). After the next
+  redeploy, `/ready` reports `backend: "langfuse"`. If Langfuse cannot be
+  reached, `status` is `degraded` at 200, never unready
+  (`OBSERVABILITY.md` §7.4).
 
 ---
 

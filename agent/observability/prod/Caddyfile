@@ -1,0 +1,20 @@
+# TLS in front of the production Langfuse (D58). A publicly trusted
+# certificate from Let's Encrypt for an sslip.io name (1-2-3-4.sslip.io
+# resolves to 1.2.3.4), so a grader's browser shows no warning.
+{
+	# No admin API listener at all.
+	admin off
+}
+
+{$LANGFUSE_HOSTNAME} {
+	encode zstd gzip
+
+	header {
+		Strict-Transport-Security "max-age=31536000"
+		X-Content-Type-Options "nosniff"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		-Server
+	}
+
+	reverse_proxy langfuse-web:3000
+}

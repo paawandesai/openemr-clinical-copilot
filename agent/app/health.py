@@ -2,7 +2,8 @@
 Health and readiness endpoints — kept deliberately separate.
 
 /health: always 200. Answers "is the process up," nothing more.
-/ready:  200 only when the service can produce a Pre-Visit Brief right now;
+/ready:  200 only when the service can produce a Pre-Visit Brief right now
+         ("ready", or "degraded" when only the trace export is down, D58);
          otherwise 503, naming the dependency that is down. Contract:
          ReadyResponse in app/models/api.py.
 
@@ -26,7 +27,10 @@ Required checks (decide readiness):
                   outage is not hidden for the cache TTL.
 
 Reported, not required:
-  observability_backend  Where telemetry goes, named in `backend`.
+  observability_backend  Where telemetry goes, named in `backend`. When it
+                is unhealthy while both required checks are healthy, `status` is
+                "degraded" at 200 (D58): answers still work, and stdout
+                still has every event; only the Langfuse copy is lost.
                 "stdout" when Langfuse export is not configured: the JSON
                 event log is then the production record, which is the
                 intended state for this submission (ARCHITECTURE.md §1:
@@ -199,8 +203,16 @@ async def ready() -> JSONResponse:
     assert observability.backend is not None  # every branch of _observability_outcome names one
 
     is_ready = fhir.status == "healthy" and llm_provider.status == "healthy"
+    if not is_ready:
+        state: Literal["ready", "degraded", "not_ready"] = "not_ready"
+    elif observability.status != "healthy":
+        # D58: a lost trace export does not stop clinical answers. 200, and
+        # the body says so; stdout still has every event.
+        state = "degraded"
+    else:
+        state = "ready"
     body = ReadyResponse(
-        status="ready" if is_ready else "not_ready",
+        status=state,
         checks={
             "fhir": DependencyCheck(status=fhir.status, required=True, detail=fhir.detail),
             "llm_provider": DependencyCheck(

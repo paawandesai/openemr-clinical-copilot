@@ -75,9 +75,32 @@ def configure_logging(level: int = logging.INFO) -> None:
         logger_factory=structlog.PrintLoggerFactory(file=sys.stdout),
         cache_logger_on_first_use=True,
     )
+    silence_access_log()
     # After structlog is configured, so the enabled/disabled line it writes
     # is rendered as JSON like every other line.
     langfuse_export.init_exporter()
+
+
+def _drop(_: logging.LogRecord) -> bool:
+    return False
+
+
+def silence_access_log() -> None:
+    """
+    Drop every record on uvicorn's access logger.
+
+    Its line is the request line with the query string, and the document
+    routes carry `?patient_id=<uuid>` (D56, "Consequences"). Method, route
+    template, status and latency are on `http_request_event` already (D38),
+    so nothing is lost. The Dockerfile also passes `--no-access-log`; this
+    holds a launcher that forgets it. A filter on the logger, not
+    `disabled`: uvicorn's `dictConfig` replaces the logger's handlers and
+    resets `disabled`, but keeps its filters, so this holds whichever of
+    the two runs first. Pinned by `tests/test_access_log.py`.
+    """
+    access = logging.getLogger("uvicorn.access")
+    if _drop not in access.filters:
+        access.addFilter(_drop)
 
 
 def log_event(

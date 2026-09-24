@@ -15,6 +15,7 @@ and alerts.
 | Langfuse scores | `agent/app/middleware/langfuse_export.py` (`_OPERATIONAL_SCORERS`) |
 | Dashboard + alert evaluator (stdout) | `agent/scripts/w2_dashboard.py` |
 | Langfuse dashboard (local) | `agent/scripts/provision_langfuse_dashboard.py` |
+| Production Langfuse (self-hosted, D58) | `agent/observability/prod/`, runbook §7 |
 | Alerts: meaning, response, thresholds | [`ALERTS.md`](ALERTS.md) |
 | Load and stress tests | [`LOAD_TEST.md`](LOAD_TEST.md) |
 | API collection | `agent/api-collection/` (README, "Week 2 core flow") |
@@ -131,9 +132,12 @@ spans now name the service, `clinical-copilot-agent` (D55).
 ## 3. Dashboard
 
 Two views of the same events. The stdout one is the record; Langfuse is the
-interactive view. That is the same split Week 1 made
-(`agent/docs/observability.md` §1: no BAA covers a hosted Langfuse, so
-production metrics come from stdout).
+interactive view. Week 1 kept production on stdout alone
+(`agent/docs/observability.md` §1), because every event carried the patient
+uuid and no BAA covers a hosted tracing service. Since D56 and D58 no emitted
+event carries a patient uuid or a chart record's uuid. Production telemetry
+is now **stdout plus a self-hosted Langfuse inside our own infrastructure**
+(§7). Stdout stays the record of source.
 
 **`scripts/w2_dashboard.py`** computes every metric the work order lists
 from the stdout log. It can run once, `--watch N` (rewrites a self-refreshing
@@ -200,7 +204,8 @@ background Langfuse auth check, never older than 60 s).
 
 - **OpenEMR and the LLM provider are required**: 503 when either is down.
 - **The observability backend is reported, not required** (D37). A down
-  Langfuse shows `unhealthy` in the body, but `/ready` stays 200.
+  Langfuse shows `unhealthy` in the body, but `/ready` stays 200, with
+  `status: "degraded"` (D58). `not_ready` (503) wins over `degraded`.
 
 Every failure mode was verified by breaking the dependency (local stack,
 `agent/load-test/w2/ready_failure_modes.sh`,
@@ -371,3 +376,186 @@ Anthropic key.
    - `docker compose -f agent/observability/docker-compose.langfuse.yml stop`
      keeps the data;
    - `down -v` deletes it; then see step 2's caveat.
+
+## 7. Production Langfuse
+
+The decision, its reasoning and its measurements are D58. This section is the
+runbook. Production telemetry is **stdout plus this self-hosted Langfuse,
+inside our own infrastructure**. Stdout is still the record of source.
+
+| | |
+|---|---|
+| URL | <https://64-177-51-119.sslip.io>: a Let's Encrypt certificate for an sslip.io name, so no browser warning |
+| Dashboard | <https://64-177-51-119.sslip.io/project/clinical-copilot-agent/dashboards/w2-operations-dashboard> |
+| Host | `root@64.177.51.119`, Ubuntu 24.04, 4 vCPU / 7.7 GiB / 150 GB, plus 8 GiB swap. Below Langfuse's 16 GiB recommendation (D58 item 7). |
+| Stack | `/opt/langfuse`: the local stack's `docker-compose.langfuse.yml` (Langfuse **4.37.0**, the same as local) and `prod/docker-compose.langfuse.prod.yml` (public https `NEXTAUTH_URL`, Caddy on 80/443) |
+| Secrets | generated on the host into `/opt/langfuse/.env` and `agent-langfuse.env` (0600) and never copied off it, except the logins and the agent's four values, which the operator keeps outside the repository |
+| Accounts | `admin@clinical-copilot.test` (OWNER); `grader@clinical-copilot.test` (org role **VIEWER**, read-only). Sign-up is disabled. |
+| Retention | 30 days: `retention.sh`, nightly at 03:17 UTC from `/etc/cron.d/langfuse-retention`, log in `/var/log/langfuse-retention.log` |
+| Exposure | ufw: inbound 22/tcp, 80/tcp, 443/tcp+udp only. Only Caddy publishes ports. `langfuse-web` is on 127.0.0.1:3000; the stores are unpublished. Unattended upgrades are on. |
+
+### 7.1 Stand it up (a fresh Ubuntu 24.04 host)
+
+Every script is in `agent/observability/prod/` and says what it does in its
+header. They are idempotent, and they print no secret.
+
+```bash
+H=<ip>; NAME=${H//./-}.sslip.io
+ssh root@$H 'install -d -m 0750 /opt/langfuse'
+scp agent/observability/docker-compose.langfuse.yml agent/observability/prod/* root@$H:/opt/langfuse/
+ssh root@$H "cd /opt/langfuse && ./install-host.sh $NAME"
+```
+
+`install-host.sh`, in order:
+
+1. apt packages;
+2. ufw (22, 80, 443);
+3. unattended upgrades;
+4. 4 GiB of swap, if the host has none;
+5. Docker from Docker's apt repository;
+6. `generate-env-prod.sh`, **only if `.env` does not exist**. The stores bake
+   their passwords into their volumes; see §6 step 2's caveat;
+7. `up -d --wait`;
+8. `create-viewer.sh`;
+9. the retention cron entry, then one retention run.
+
+Then provision the dashboard with the same script as locally. It pipes the
+SQL, rather than using `--apply`, because the database is on another host:
+
+```bash
+agent/.venv/bin/python agent/scripts/provision_langfuse_dashboard.py --print-sql \
+  | ssh root@$H 'cd /opt/langfuse && docker compose --project-directory . \
+      -f docker-compose.langfuse.yml -f docker-compose.langfuse.prod.yml \
+      exec -T postgres psql -U postgres -v ON_ERROR_STOP=1 -q'
+```
+
+Copy the logins to the operator's machine without printing them: read
+`/opt/langfuse/.env` over ssh into a 0600 file (for this deployment,
+`~/w2-secrets/langfuse-prod.txt` on the operator's Mac).
+
+### 7.2 Verify it
+
+| Check | Expected (2026-09-24) |
+|---|---|
+| `curl -sS https://$NAME/api/public/health` | `{"status":"OK","version":"4.37.0"}`, `ssl_verify_result=0`, issuer Let's Encrypt |
+| `curl -sS -o /dev/null -w '%{http_code} %{redirect_url}' http://$NAME/` | `308 https://$NAME/` |
+| `POST https://$NAME/api/auth/signup` | 422 `Sign up is disabled.` |
+| `nc -z` from outside on 3000 3030 5432 6379 8123 9000 9001 9090 | all closed; 22, 80, 443 open |
+| viewer sign-in (NextAuth credentials flow), then `projectApiKeys.create` | signed in with role VIEWER; the write is 403 `FORBIDDEN` |
+| the dashboard, signed in as the viewer | 16 widgets with data once traffic has arrived (`evidence/prod-langfuse/langfuse-dashboard.png`) |
+
+### 7.3 Prove it holds no patient identifiers
+
+Run this after any change to what the agent emits, and after each deploy.
+
+1. On the Langfuse host:
+
+   ```bash
+   ssh root@$H 'cd /opt/langfuse && ./scan-uuids.sh [environment]' > scan.tsv
+   ```
+
+   The output is every UUID-shaped value in every ClickHouse table and every
+   raw MinIO blob, with where it sits.
+2. Compare the UUIDs with **every UUID OpenEMR has issued**. That is its
+   `uuid_registry` table: patients, and every record and document. Run
+   this on the EHR's database:
+
+   ```bash
+   docker exec development-easy-mysql-1 mariadb -uroot -proot -N -e "SELECT LOWER(CONCAT_WS('-',
+     SUBSTR(HEX(uuid),1,8),SUBSTR(HEX(uuid),9,4),SUBSTR(HEX(uuid),13,4),SUBSTR(HEX(uuid),17,4),
+     SUBSTR(HEX(uuid),21))) FROM openemr.uuid_registry" | sort -u > openemr-uuids.txt
+   cut -f3 scan.tsv | sort -u | comm -12 - openemr-uuids.txt | wc -l     # must be 0
+   ```
+
+3. **Every remaining UUID must have a named source.** For each row of
+   `scan.tsv`:
+
+   | Where it sits | Source |
+   |---|---|
+   | `metadata.correlation_id` | an encounter id (UUID4, D36) |
+   | `service.instance.id` | OpenTelemetry's per-process id |
+   | `public_key` | the project key, `pk-lf-<uuid>` |
+   | `blob_storage_file_log.*`, `blob_storage_file_path` | Langfuse's own event and file ids |
+
+   Anything else is a finding.
+
+A literal "zero UUID-shaped values" cannot hold while D36 makes encounter ids
+UUID4s. What this checks, and what D58 claims, is zero OpenEMR-issued UUIDs.
+
+**Measured 2026-09-24.** A local agent on this branch ran the Week 2
+collection against production Langfuse: 44 requests, 102 assertions, 0
+failed. It used a random dev HMAC secret and `LANGFUSE_TRACING_ENVIRONMENT=local-proof`.
+
+- **What arrived:** 280 spans in 5 traces. The encounter is one trace of 276
+  spans. Turns are grouped under 2 `psk_…` sessions. Requests that open no
+  turn carry no session (D52): probes, uploads and polls, and refusals.
+- **The scan:** 324 distinct UUIDs.
+  - 0 are in OpenEMR's registry (30,601 UUIDs locally);
+  - 0 are patient UUIDs;
+  - all have a named source.
+- **Positive control:** the same check on the first run, before D58 item 4,
+  found **24**. They were the claims' `source_id`s. That run's data was
+  deleted from production Langfuse after it was measured.
+
+Evidence, taken signed in as the grader viewer:
+
+- [`evidence/prod-langfuse/langfuse-dashboard.png`](evidence/prod-langfuse/langfuse-dashboard.png)
+- [`evidence/prod-langfuse/langfuse-encounter-trace.png`](evidence/prod-langfuse/langfuse-encounter-trace.png)
+
+### 7.4 Connect the agent host (at a redeploy, never on its own)
+
+The live agent host stays exactly as deployed until it is redeployed
+(`DEPLOY.md`). The values are staged for that redeploy:
+
+- `/etc/clinical-copilot/agent.env` holds `AGENT_TELEMETRY_HMAC_SECRET`
+  (D56). It was appended on 2026-09-24 after a backup to
+  `agent.env.bak-20260924T171931Z`. A new secret splits sessions, so keep
+  it.
+- `/etc/clinical-copilot/agent.env.langfuse-staged` holds the four
+  `LANGFUSE_*` values, with `LANGFUSE_TRACING_ENVIRONMENT=production`.
+- `agent/deploy/docker-compose.agent.yml` passes all four through, and
+  defaults them to empty, which means export off.
+
+At the redeploy, after DEPLOY.md §1's snapshot and before `up`:
+
+```bash
+cd /etc/clinical-copilot
+cp -p agent.env agent.env.bak-$(date -u +%Y%m%dT%H%M%SZ)
+grep -q '^LANGFUSE_' agent.env || cat agent.env.langfuse-staged >> agent.env
+grep -o '^[A-Z_]*=' agent.env      # names only
+```
+
+Then `curl -sk https://<host>:8443/ready` must show:
+
+- `status: "ready"`;
+- `observability_backend`: `healthy`, `backend: "langfuse"`.
+
+`degraded` means the agent cannot reach or authenticate to Langfuse. Clinical
+answers still work, and stdout still has every event.
+
+**Rollback of the export alone:** remove the four `LANGFUSE_*` lines and
+re-run `up`. The agent goes back to stdout only.
+
+### 7.5 Operate it
+
+- **Status:**
+
+  ```bash
+  ssh root@$H 'cd /opt/langfuse && docker compose --project-directory . \
+    -f docker-compose.langfuse.yml -f docker-compose.langfuse.prod.yml ps'
+  ```
+
+  Memory: `docker stats --no-stream`. Watch swap (D58 item 7).
+- **Certificate:** Caddy renews it itself. Its state is in the `caddy_data`
+  volume.
+- **Retention:** check `/var/log/langfuse-retention.log`. Change
+  `LANGFUSE_RETENTION_DAYS` in `.env`; the next run applies it, minimum 3.
+- **Viewer password:** change `LANGFUSE_VIEWER_PASSWORD` in `.env`, re-run
+  `./create-viewer.sh`, and update the operator's copy.
+- **What this does not have:**
+  - backups: Langfuse's compose deployment has none, and nothing here adds
+    one;
+  - high availability.
+
+  Losing this host loses traces, never events: stdout on the agent host is
+  the record.
