@@ -43,6 +43,7 @@ from __future__ import annotations
 
 import asyncio
 import uuid
+from collections.abc import Awaitable, Callable
 from pathlib import Path
 from statistics import fmean
 
@@ -63,6 +64,9 @@ from app.workers.intake_extractor.report import (
     unsupported_fields,
 )
 from app.workers.intake_extractor.vision import VisionExtractor, extract_with_claude
+
+#: A step run on the finished report, e.g. the upload's lab write-back (D54).
+AfterExtraction = Callable[[ExtractionReport], Awaitable[object]]
 
 
 def _new_correlation_id() -> str:
@@ -298,8 +302,16 @@ class ExtractionJobs:
         document_id: str,
         chart_reader: ChartReader | None = None,
         force_reextract: bool = False,
+        after_extraction: AfterExtraction | None = None,
     ) -> IntakeExtractorOutput:
-        """Start extraction and return at once. Must be called on a running event loop."""
+        """
+        Start extraction and return at once. Must be called on a running event loop.
+
+        `after_extraction` runs once the report is stored and the status is
+        terminal, inside the same task and correlation id — the upload
+        route's lab write-back (D54). It must not raise; the status a
+        question reads is already final before it starts.
+        """
         existing = self._status.get(document_id)
         if existing is not None and not force_reextract:
             return existing
@@ -328,6 +340,9 @@ class ExtractionJobs:
             )
             self._reports[document_id] = report
             self._status[document_id] = report.output
+            if after_extraction is not None:
+                with correlation_scope(correlation_id):
+                    await after_extraction(report)
             return report
 
         self._tasks[document_id] = asyncio.get_running_loop().create_task(run())

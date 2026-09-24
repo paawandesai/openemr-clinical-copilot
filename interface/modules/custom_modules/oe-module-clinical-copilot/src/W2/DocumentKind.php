@@ -16,6 +16,8 @@ declare(strict_types=1);
 
 namespace OpenEMR\Modules\ClinicalCopilot\W2;
 
+use OpenEMR\Modules\ClinicalCopilot\ClinicianTokenBroker;
+
 enum DocumentKind: string
 {
     case LabPdf = 'lab_pdf';
@@ -33,6 +35,19 @@ enum DocumentKind: string
         return match ($this) {
             self::LabPdf => '/Categories/Lab_Report',
             self::IntakeForm => '/Categories/Medical_Record',
+        };
+    }
+
+    /**
+     * The scopes the upload's token asks for. A lab report's rows are
+     * written back after extraction (D54), so its token carries the write
+     * scopes; an intake form's never does (D2).
+     */
+    public function uploadScopes(): string
+    {
+        return match ($this) {
+            self::LabPdf => ClinicianTokenBroker::LAB_UPLOAD_SCOPES,
+            self::IntakeForm => ClinicianTokenBroker::SCOPES,
         };
     }
 }

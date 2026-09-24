@@ -42,7 +42,7 @@ from app.models.w2.writeback import document_idempotency_key
 from app.workers.intake_extractor.chart import ChartReader
 from app.workers.intake_extractor.report import ExtractionReport
 from app.workers.intake_extractor.vision import VisionExtractor
-from app.workers.intake_extractor.worker import ExtractionJobs
+from app.workers.intake_extractor.worker import AfterExtraction, ExtractionJobs
 
 #: The file name the agent records. The uploaded name is frequently the
 #: patient's name, so it is never kept (app/api/documents.py).
@@ -105,6 +105,7 @@ class DocumentStore:
         *,
         chart_reader: ChartReader | None = None,
         on_finished: Callable[[], None] | None = None,
+        after_extraction: AfterExtraction | None = None,
     ) -> tuple[StoredDocument, IntakeExtractorOutput, bool]:
         """
         Register the upload and start extracting it (D7). Returns at once,
@@ -117,10 +118,17 @@ class DocumentStore:
         The upload route passes the release of its extraction slot
         (app/api/upload_guard.py), which is what makes the concurrency cap
         cover the background job and not only the body read.
+
+        `after_extraction` runs on the finished report inside the job, only
+        for a job this call started — a duplicate upload starts none, so it
+        runs nothing. The upload route passes the lab write-back (D54);
+        nothing else does, so a store built in a test never writes.
         """
         handed_off = False
         try:
-            stored, output, duplicate, started = self._accept(patient_uuid, pdf, kind, chart_reader)
+            stored, output, duplicate, started = self._accept(
+                patient_uuid, pdf, kind, chart_reader, after_extraction
+            )
             if started and on_finished is not None:
                 self._call_when_done(stored.document.document_id, on_finished)
                 handed_off = True
@@ -135,6 +143,7 @@ class DocumentStore:
         pdf: bytes,
         kind: DocumentKind,
         chart_reader: ChartReader | None,
+        after_extraction: AfterExtraction | None = None,
     ) -> tuple[StoredDocument, IntakeExtractorOutput, bool, bool]:
         """`accept` without the callback; the last element is whether a job started."""
         digest = hashlib.sha3_512(pdf).hexdigest()
@@ -164,7 +173,12 @@ class DocumentStore:
         )
         self._documents[document_id] = stored
         output = self.jobs.submit(
-            patient_uuid, pdf, kind, document_id=document_id, chart_reader=chart_reader
+            patient_uuid,
+            pdf,
+            kind,
+            document_id=document_id,
+            chart_reader=chart_reader,
+            after_extraction=after_extraction,
         )
         return stored, output, existing is not None, True
 

@@ -2653,3 +2653,133 @@ gap is one line of arithmetic away from being seen.
 - Numbers reserved ahead of merge must merge in order, or `main` shows a gap
   until the lower range lands. That is deliberate: a gap on `main` is
   indistinguishable from a lost entry.
+
+---
+
+## D54 — A lab report's extraction ends by writing its verified rows back to the chart, under the uploader's token
+
+**Status:** DECIDED
+**Date:** 2026-09-23
+**Raised by:** work order 26 (`fix/w2-writeback-roundtrip`).
+**Numbering:** reserved. The merge order is work orders 26, 28, 29, 27, and
+this branch is 26, so D54 follows D53 with no gap.
+**Implements:** the PRD's "persist derived facts ... round-trip through
+OpenEMR without creating duplicate or untraceable records", over D1
+(superseding), D29, D31 and D2. It adds no endpoint, table or scope. Those
+exist already. D54 adds the one caller they never had.
+
+**The gap, as found.** The endpoint, ledger, planner (`plan.py`) and client
+(`client.py`) were built and tested, but nothing on the live path called
+them. `write_lab_results` and `plan_write_back` were reached only from tests,
+gate checks and `api-collection/build_fixtures.py`. The upload's token could
+not have written anyway. `upload.php` brokered it with
+`ClinicianTokenBroker::SCOPES`, four read scopes with no `api:oemr` and no
+`user/lab-writeback.c`. Checked on 2026-09-23:
+
+- **Local.** `lab-multipage-003` uploaded through `upload.php` to its own
+  chart completed extraction and filed the chart copy, but wrote no ledger
+  rows and no `procedure_*` rows.
+- **Host (SELECT only).** The four lab reports filed that day had 0 ledger
+  rows, 0 orders, and 0 results carrying a `w2x-` comment.
+
+**Decision:**
+
+1. **The trigger is the upload's own extraction job.**
+   `POST /documents` passes `after_extraction=lab_write_back(token,
+   patient, bytes)` for a `lab_pdf`, and `None` for anything else.
+   `ExtractionJobs` runs it once, inside the job's task and correlation id,
+   *after* the report is stored and the status is terminal. A question
+   asked meanwhile sees the final status. The write never delays it
+   (D7). A duplicate upload starts no job, so it runs nothing. A
+   `DocumentStore` built anywhere else, such as the gate or the ask-path
+   tests, has no step and never writes. The ask path still has no write
+   (`checks_h` holds `supervisor.py` to that).
+2. **What is written: exactly the rows `plan_write_back` accepts.** A row
+   must be located with a bbox (invariant 4), LOINC-coded (D35 item 13),
+   and dated. Its reference range must be a located fact, and its computed
+   flag must be decidable and agree with the page. The rows go in one
+   request (D31) with the bytes, unreviewed (`review_status = 'received'`,
+   D29 → **Procedures → Pending Review**). `procedure_result.comments`
+   carries the row's `w2x-` extraction id (D1, D15), and the ledger maps
+   it to the document, page and bbox (D2).
+3. **What is never written.**
+   - **An intake form (D2).** The route passes no step for one, the step
+     refuses one, and the planner raises on one.
+   - **A failed extraction.**
+   - **A document whose patient is not confirmed.** The identity check
+     must have *matched* the chart's name, with neither the name nor the
+     date of birth a `mismatch`. `not_comparable` means the name was not
+     located or the chart could not be read, and it is not written either.
+     The check exists to catch a report filed on the wrong chart, and a
+     check that could not run has not ruled that out.
+4. **The token is the uploader's own, and asks for the write scopes only
+   for a lab report.** `DocumentKind::uploadScopes()` returns
+   `ClinicianTokenBroker::LAB_UPLOAD_SCOPES` for a lab report: the read
+   scopes plus `api:oemr user/lab-writeback.c`. An intake form keeps
+   `SCOPES`. Every row is attributed to the clinician who uploaded, as
+   `deploy-writeback.md` requires, never to a service account. The
+   password-grant write-back client stays a test fixture.
+
+   OpenEMR grants only the scopes a client is registered with, as with
+   `CONVERSATION_SCOPES`. Against an embed client registered without the
+   two, the upload still works, and only the write is refused
+   (`token_refused`). The host's embed client v2 (`2ps8qgz4…`) already
+   carries both. The rollback client `AMPCwe6N…` does not.
+5. **One document, not two.** The step sends the bytes. The endpoint finds
+   `upload.php`'s chart copy by digest in `/Categories/Lab_Report`, the
+   category both sides use (`DocumentKind::categoryPath()`), and reuses it.
+   If the write ever ran first, `ChartDocuments::attach` would find the
+   endpoint's copy by digest. The endpoint's hash check does not take
+   `attach`'s named lock, so a write and an attach at the same instant
+   could still file twice. A vision call separates them in practice.
+6. **Idempotent, and retried only by re-extraction.** Each row carries
+   D1's ledger key (invariant 6). Extracting the same bytes again writes
+   nothing new: the rows come back `duplicate_ignored`. That happens on a
+   re-upload after an agent restart. The step never raises. A refused or
+   failed write leaves the extraction complete and is logged as
+   `lab_writeback_after_extraction` with a `decision`, ids and counts
+   only: skip counts by reason, never a test name, value or unit
+   (invariant 1). There is no in-process retry loop. The next extraction
+   of the same file retries under the same keys.
+7. **The unit suite stays offline.** `tests/conftest.py` replaces the
+   step's writer with a stub that records the request and answers as an
+   unreachable endpoint would. The writer's default URL is the deployed
+   host, and every lab upload a route test drives would otherwise reach it.
+
+**Verified on the local stack, 2026-09-24.** Every run went through the
+chart card's real routes (`upload.php`, then `upload-status.php`) with live
+vision, `lab-multipage-003` on its own chart unless stated:
+
+| run | what | result |
+|---|---|---|
+| A0 | embed client without the two scopes | upload 200 and extraction complete; `token_refused`; 0 rows |
+| A1 | first upload, scopes granted | one order with 43 results `created` (1 row `no_loinc_code`); the chart copy reused (`duplicate_ignored`), so one document |
+| A2 | same file, same agent process | duplicate upload, no job, 0 new rows |
+| A3 | same file after an agent restart | re-extracted; all 43 `duplicate_ignored`, same order; 0 new rows |
+| A4 | another patient's report on this chart | identity name and DOB `mismatch`; `identity_not_confirmed`; 0 rows |
+
+In A1, all 43 rows came back through `GET /fhir/Observation` with
+`note[0].text` equal to their ledger id. `review_status` was `received`,
+and 86 `lab-results-insert` audit rows were written. Afterwards the
+ledger-driven cleanup (DEPLOY.md §7.4) returned the ledger and every
+`procedure_*` table to their exact pre-run counts.
+
+**Rationale:** every rule here already existed: D1's endpoint and key, D2's
+line between lab values and intake data, D3's located-or-unsupported,
+D29's unreviewed status, D31's one request per document, D35's identity
+flag. D54 adds only the point where they are applied to a live upload. It
+takes the strict reading wherever one was open. `not_comparable` is not a
+match. A write failure does not fail an extraction. An intake upload's
+token does not carry a write scope.
+
+**Not settled here:**
+- The card does not show the write-back's outcome. The status route's
+  shape is pinned, and the clinician sees the rows in Pending Review.
+- Nothing removes rows already written if a document is later found to be
+  the wrong patient's. Removal is the ledger-driven cleanup, by hand.
+- A write that fails on a transient error is retried only by another
+  extraction of the same file.
+- The token is used after the upload request returns. An extraction longer
+  than the token's lifetime would be refused as `token_refused`. Brokered
+  tokens have been 3600 s, and extractions measured up to about 160 s per
+  page on a heavy scan (DEPLOY.md §8).

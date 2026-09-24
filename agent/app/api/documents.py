@@ -68,6 +68,15 @@ The file name is never logged and never stored. What is logged is the
 document id, the kind, the byte count and the correlation id — identifiers
 and counts, per CLAUDE.md invariant 1.
 
+WRITE-BACK — D54
+----------------
+A lab report's extraction ends by writing its located, verified,
+LOINC-coded rows to the chart through the module's write-back endpoint,
+under the uploader's token, unreviewed (`app/writeback/after_extraction.py`).
+Nothing is written for an intake form (D2), a failed extraction, or a
+document whose patient the identity check did not confirm. The status
+route is final before the write starts and never reports it.
+
 IN-PROCESS STATE
 ----------------
 The document store is this process's memory (app/workers/document_store.py):
@@ -95,6 +104,7 @@ from app.models.w2.workers import ExtractionFailureReason
 from app.workers import document_store
 from app.workers.document_store import DocumentBoundElsewhere, UnreadablePdf
 from app.workers.intake_extractor.chart import fhir_chart_reader
+from app.writeback.after_extraction import lab_write_back
 
 router = APIRouter()
 
@@ -211,6 +221,13 @@ async def upload_document(
             kind,
             chart_reader=fhir_chart_reader(caller.token),
             on_finished=release,
+            # D54: a completed lab report's located, coded rows go to the
+            # chart under the uploader's own token. Never an intake form (D2).
+            after_extraction=(
+                lab_write_back(caller.token, patient_id, body)
+                if kind is DocumentKind.LAB_PDF
+                else None
+            ),
         )
     except UnreadablePdf:
         raise ApiError(

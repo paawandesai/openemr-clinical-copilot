@@ -12,7 +12,9 @@
  *  3. A file this module already filed on another chart is refused, 409,
  *     before the agent is asked (D40 item 8; ChartDocuments).
  *  4. The agent, with the clinician's token and the open chart's Patient
- *     uuid. It decides the 409 too, and starts the extraction.
+ *     uuid. It decides the 409 too, and starts the extraction. A lab
+ *     report's token also carries the write-back scopes: the agent writes
+ *     its rows to the chart when the extraction completes (D54).
  *  5. Only after the agent accepted: the chart copy, idempotent on the
  *     SHA3-512 digest (invariant 6). Storing first would leave a document on
  *     this chart that the agent refused for it.
@@ -177,7 +179,7 @@ try {
     $documents->assertNotFiledElsewhere($chart->pid, $digest);
     $broker = CardServices::broker($config, $globals->getWebRoot(), $session->get('site_id'), $logger);
     $state = CardServices::agent($config, $logger, $correlation)
-        ->uploadDocument($broker->issueFor($coreSession, $patient), $patient, $kind, $pdf);
+        ->uploadDocument($broker->issueFor($coreSession, $patient, $kind->uploadScopes()), $patient, $kind, $pdf);
     $owner = filter_var($session->get('authUserID'), FILTER_VALIDATE_INT);
     $filed = $documents->attach(
         $chart->pid,
