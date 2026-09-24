@@ -7,7 +7,7 @@ changes nothing in OpenEMR.
 
 **Why it is built this way, the parity matrix, the tradeoffs, and how to
 deploy it:** [`../PATIENT_DASHBOARD_MIGRATION.md`](../PATIENT_DASHBOARD_MIGRATION.md).
-Decision: `docs/w2/DECISIONS.md`, "D-unassigned (reserved: D59)".
+Decision: `docs/w2/DECISIONS.md` D59.
 
 ```bash
 npm ci

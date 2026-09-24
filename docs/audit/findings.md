@@ -1127,6 +1127,75 @@ Pass-2 droplet database commands were run as
 
 ---
 
+### F-65 — A confidential client's authorization code is redeemed with no client secret and no PKCE
+- **Category:** Security
+- **Severity:** High (every confidential client; the code alone is enough to
+  get a clinician's token)
+- **Found by:** work order 31 (patient dashboard port), 2026-09-24, local stack.
+- **Claim:** For the `authorization_code` grant, OpenEMR checks a
+  confidential client's secret only when the request carries one. A token
+  request with the right `client_id` and `code` and **no `client_secret`**
+  is accepted, and so is one that also omits PKCE. A confidential client's
+  secret therefore protects nothing at the token endpoint. Whoever obtains a
+  code (a leaked redirect, a referrer, a proxy or browser-history log, a
+  malicious extension) can redeem it for the clinician's access token within
+  the code's five-minute life.
+- **Evidence:**
+  - Source (`first-hand`):
+    `src/Common/Auth/OpenIDConnect/Repositories/ClientRepository.php:198`
+    ```php
+    // Validate client if is_confidential
+    if (!empty($clientSecret) && !empty($client['is_confidential'])) {
+        ... return $secretMatches;
+    }
+    return true;   // no secret sent: validated
+    ```
+    league/oauth2-server delegates client authentication to this method, so
+    nothing upstream of it insists on a secret. PKCE is enforced only when
+    the authorize request carried a `code_challenge`; nothing requires one
+    from a confidential client.
+  - Live (`first-hand`, local stack, 2026-09-24): a confidential client
+    registered through `POST /oauth2/default/registration`
+    (`application_type: private`, `is_confidential = 1`), physician login
+    and consent in headless Chrome, then the code redeemed at
+    `/oauth2/default/token` with `client_id`, `code`, `redirect_uri` only:
+    ```
+    token status (no secret, with PKCE): 200  [id_token, scope, token_type, expires_in, access_token]
+    token status (no secret, NO PKCE):   200  [id_token, scope, token_type, expires_in, access_token]
+    ```
+    Both tokens carried the physician's `sub` and the client's user scopes.
+- **How to reproduce** (local stack only; never against a deployed host):
+  1. Register a confidential client:
+     `curl -sk -X POST https://localhost:9300/oauth2/default/registration -H 'Content-Type: application/json' --data '{"application_type":"private","client_name":"f65-repro","redirect_uris":["http://localhost:5173/callback"],"token_endpoint_auth_method":"client_secret_post","scope":"openid user/Patient.read"}'`,
+     then enable it (Admin > System > API Clients, or `is_enabled=1`).
+  2. In a browser, open
+     `https://localhost:9300/oauth2/default/authorize?response_type=code&client_id=<id>&redirect_uri=http://localhost:5173/callback&scope=openid%20user/Patient.read&state=x&aud=https://localhost:9300/apis/default/fhir`,
+     sign in as `physician` and authorize. Copy `code` from the redirect.
+  3. `curl -sk https://localhost:9300/oauth2/default/token -d grant_type=authorization_code -d client_id=<id> -d redirect_uri=http://localhost:5173/callback -d code=<code>`
+     (no `client_secret`, no `code_verifier`). Expected for a confidential
+     client: `401 invalid_client`. Observed: `200` with an access token.
+- **Affected here:** the Week 1 chart-embed client (confidential,
+  `authorization_code` only) and the dashboard BFF's client. The embed's
+  code never leaves the server (loopback broker, ARCHITECTURE.md §2), which
+  limits exposure but does not close the defect. The BFF sends its secret
+  and PKCE on every redemption and **does not rely on this behaviour**
+  (`dashboard/bff/src/oauth.ts`); a fix in OpenEMR would not break it.
+- **Remediation:** not done (OpenEMR core is out of bounds for work order
+  31). The fix is in `validateClient()`: for a confidential client, require
+  the secret (or a valid JWT client assertion) and return `false` when it is
+  missing. Requiring PKCE for every client, as OAuth 2.1 does, closes the
+  code-interception half independently.
+- **Verified:** `first-hand` (source and live, local). Not tried against the
+  deployed host.
+- **Implication:** a design must not read "confidential client" in this
+  OpenEMR as "the code is useless without the secret". The dashboard port
+  was nearly built as a browser app on this behaviour (a SPA doing
+  secretless PKCE against a confidential registration, because OpenEMR
+  refuses `user/` scopes to public clients). That design was rejected for
+  depending on a defect.
+
+---
+
 ## COMPLIANCE
 
 ### F-10 — Read/query audit logging ships disabled
@@ -2372,6 +2441,28 @@ Pass-2 droplet database commands were run as
 
 ---
 
+### F-67 — FHIR reports a first-occurrence problem as `resolved`
+- **Category:** Data Quality
+- **Severity:** Low (latent; changes which problems a FHIR client lists as active)
+- **Found by:** work order 31 parity inventory, 2026-09-24 (source reading).
+- **Claim:** `FhirConditionTrait::computeClinicalStatus()` returns
+  `resolved` when `lists.occurrence == 1` *or* `outcome == 1`. In OpenEMR's
+  `occurrence` list, `1` means "First", not "resolved". A problem recorded as
+  a first occurrence with no end date and no resolved outcome is active on
+  the PHP dashboard (`demographics.php` `filterActiveIssues`: `outcome != 1`
+  and no past end date) but `resolved` over FHIR. Any FHIR client, including
+  the dashboard port and the agent, drops it from "active problems".
+- **Evidence:** `src/Services/FHIR/Condition/Trait/FhirConditionTrait.php:110`
+  (`if ($dataRecord['occurrence'] == 1 || $dataRecord['outcome'] == 1) return 'resolved';`).
+  Live: the three patients compared in the port's inventory (pids 1, 16, 20)
+  showed the same active set on both sides, so none has such a record. The
+  population was not censused for it.
+- **Remediation:** not done (out of bounds). The port follows FHIR and
+  documents the difference (PATIENT_DASHBOARD_MIGRATION.md, parity gap G6).
+- **Verified:** `first-hand` (source) · not observed on a live record.
+
+---
+
 ## PERFORMANCE
 
 ### F-24 — FHIR Patient read baseline: 0.375s under ideal conditions
@@ -3314,6 +3405,38 @@ Pass-2 droplet database commands were run as
   itself is a positive datapoint for the case study's failure-mode
   requirement — fast, explicit, nothing partial — but it was visible only in
   the failed requests.
+
+---
+
+### F-66 — OpenEMR stores the ID-token `nonce` as a scope, so a refresh without an explicit `scope` fails
+- **Category:** Architecture
+- **Severity:** Medium (every client that sends `nonce` and relies on refresh
+  loses its session at the access token's one-hour expiry)
+- **Found by:** work order 31, 2026-09-24, local stack, by the live refresh
+  test (`dashboard/test/e2e/refresh.spec.ts`).
+- **Claim:** When the authorize request carries `nonce`, OpenEMR adds the
+  literal string `nonce` to the grant's scope list. It appears in the access
+  token's `scopes` claim and in the stored refresh token. A
+  `grant_type=refresh_token` request that omits `scope` makes league reuse
+  the stored list, and OpenEMR's scope repository then rejects its own
+  `nonce` as an unknown scope: `400 invalid_scope`.
+- **Evidence** (`first-hand`, local):
+  - Access token `scopes` claim after a login with `nonce` and all scopes granted:
+    `["openid","offline_access","user/AllergyIntolerance.read",…,"user/Practitioner.read","nonce"]`.
+  - OpenEMR log on the failed refresh:
+    `ScopeRepository->getScopeEntityByIdentifier() request access to invalid scope {"scope":"nonce"}`.
+  - The same refresh with `scope` set to the granted scopes (without
+    `nonce`) returns 200 with a new access and refresh token, and FHIR accepts
+    the new access token (`refresh.spec.ts`, passed).
+- **Remediation in the port:** the BFF records the granted scopes from the
+  access token's `scopes` claim (F-09: never from the response's `scope`
+  field), drops `nonce`, and sends exactly those on refresh
+  (`dashboard/bff/src/oauth.ts` `grantedScopes`, `refreshTokens`; unit test
+  "asks for exactly the granted scopes on refresh"). Dropping `nonce` from
+  the login would also work, at the cost of the ID token's replay binding.
+- **Remediation in OpenEMR:** not done (out of bounds). `nonce` is an
+  authorize parameter, not a scope, and should not enter the scope list.
+- **Verified:** `first-hand` (live, local). Not tried on the deployed host.
 
 ---
 

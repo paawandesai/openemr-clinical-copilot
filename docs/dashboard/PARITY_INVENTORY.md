@@ -1,5 +1,10 @@
 # Patient dashboard port: Phase 1 parity inventory
 
+> Phase 1 of work order 31, kept as written. What was built on it, the final
+> parity matrix (every element: match / partial / gap), and the defence:
+> [`PATIENT_DASHBOARD_MIGRATION.md`](../../PATIENT_DASHBOARD_MIGRATION.md).
+> §4.1's open question was settled by the project owner: a BFF (D59).
+
 Work order 31, branch `feat/w2-dashboard-port`. Written 2026-09-24 against the
 local stack (`development-easy`, OpenEMR 8.x dev, Vultr DB restore, 52
 synthetic patients). Everything here was read from the running PHP page, from

@@ -1,0 +1,231 @@
+{
+ "measuredAt": "2026-09-24T18:29:33.043Z",
+ "runs": 7,
+ "warmups": 2,
+ "environment": "MacBook, local development-easy stack (Colima), headless Chrome, warm caches",
+ "definitions": {
+  "medianServerMs": "PHP: demographics.php request start to response end. Port: the slowest of the parallel /fhir reads (BFF + OpenEMR FHIR).",
+  "medianCardsVisibleMs": "PHP: navigation start to DOMContentLoaded (cards are server-rendered). Port: navigation start to every card settled (polled every 100 ms).",
+  "medianTransferBytes": "Bytes over the wire for the page and everything it loaded (0 for a cache hit)."
+ },
+ "summary": {
+  "20": {
+   "php": {
+    "medianServerMs": 692,
+    "medianCardsVisibleMs": 702,
+    "minCardsVisibleMs": 675,
+    "maxCardsVisibleMs": 729,
+    "medianTransferBytes": 214973,
+    "medianRequests": 25
+   },
+   "port": {
+    "medianServerMs": 430,
+    "medianCardsVisibleMs": 657,
+    "minCardsVisibleMs": 550,
+    "maxCardsVisibleMs": 854,
+    "medianTransferBytes": 99065,
+    "medianRequests": 15
+   }
+  },
+  "49": {
+   "php": {
+    "medianServerMs": 638,
+    "medianCardsVisibleMs": 650,
+    "minCardsVisibleMs": 580,
+    "maxCardsVisibleMs": 765,
+    "medianTransferBytes": 200702,
+    "medianRequests": 25
+   },
+   "port": {
+    "medianServerMs": 429,
+    "medianCardsVisibleMs": 853,
+    "minCardsVisibleMs": 563,
+    "maxCardsVisibleMs": 857,
+    "medianTransferBytes": 158705,
+    "medianRequests": 12
+   }
+  }
+ },
+ "samples": {
+  "20": {
+   "php": [
+    {
+     "serverMs": 714.3000001907349,
+     "cardsVisibleMs": 724.8000001907349,
+     "bytes": 214973,
+     "requests": 25
+    },
+    {
+     "serverMs": 691.6999998092651,
+     "cardsVisibleMs": 701.9000000953674,
+     "bytes": 214973,
+     "requests": 25
+    },
+    {
+     "serverMs": 664.5999999046326,
+     "cardsVisibleMs": 674.8000001907349,
+     "bytes": 214109,
+     "requests": 24
+    },
+    {
+     "serverMs": 664.1999998092651,
+     "cardsVisibleMs": 674.6999998092651,
+     "bytes": 214109,
+     "requests": 24
+    },
+    {
+     "serverMs": 701.9000000953674,
+     "cardsVisibleMs": 712.9000000953674,
+     "bytes": 214973,
+     "requests": 25
+    },
+    {
+     "serverMs": 690,
+     "cardsVisibleMs": 700.1999998092651,
+     "bytes": 214973,
+     "requests": 25
+    },
+    {
+     "serverMs": 718.8000001907349,
+     "cardsVisibleMs": 729.2000002861023,
+     "bytes": 214125,
+     "requests": 24
+    }
+   ],
+   "port": [
+    {
+     "serverMs": 467.7000002861023,
+     "bytes": 99065,
+     "requests": 15,
+     "cardsVisibleMs": 666
+    },
+    {
+     "serverMs": 430.09999990463257,
+     "bytes": 99065,
+     "requests": 15,
+     "cardsVisibleMs": 848
+    },
+    {
+     "serverMs": 415.2999997138977,
+     "bytes": 99065,
+     "requests": 15,
+     "cardsVisibleMs": 854
+    },
+    {
+     "serverMs": 422.8999996185303,
+     "bytes": 99065,
+     "requests": 15,
+     "cardsVisibleMs": 550
+    },
+    {
+     "serverMs": 417.2000002861023,
+     "bytes": 99065,
+     "requests": 15,
+     "cardsVisibleMs": 571
+    },
+    {
+     "serverMs": 434,
+     "bytes": 99065,
+     "requests": 15,
+     "cardsVisibleMs": 563
+    },
+    {
+     "serverMs": 448,
+     "bytes": 99065,
+     "requests": 15,
+     "cardsVisibleMs": 657
+    }
+   ]
+  },
+  "49": {
+   "php": [
+    {
+     "serverMs": 753.9000000953674,
+     "cardsVisibleMs": 764.9000000953674,
+     "bytes": 201397,
+     "requests": 26
+    },
+    {
+     "serverMs": 684.9000000953674,
+     "cardsVisibleMs": 695.5999999046326,
+     "bytes": 200692,
+     "requests": 25
+    },
+    {
+     "serverMs": 632.7000002861023,
+     "cardsVisibleMs": 643.5,
+     "bytes": 200702,
+     "requests": 25
+    },
+    {
+     "serverMs": 571.0999999046326,
+     "cardsVisibleMs": 581.5999999046326,
+     "bytes": 200692,
+     "requests": 25
+    },
+    {
+     "serverMs": 645.9000000953674,
+     "cardsVisibleMs": 656.9000000953674,
+     "bytes": 200702,
+     "requests": 25
+    },
+    {
+     "serverMs": 638,
+     "cardsVisibleMs": 650,
+     "bytes": 200704,
+     "requests": 25
+    },
+    {
+     "serverMs": 569.5,
+     "cardsVisibleMs": 579.9000000953674,
+     "bytes": 199848,
+     "requests": 24
+    }
+   ],
+   "port": [
+    {
+     "serverMs": 538.8000001907349,
+     "bytes": 158705,
+     "requests": 12,
+     "cardsVisibleMs": 853
+    },
+    {
+     "serverMs": 478.2000002861023,
+     "bytes": 158705,
+     "requests": 12,
+     "cardsVisibleMs": 854
+    },
+    {
+     "serverMs": 419.2999997138977,
+     "bytes": 158705,
+     "requests": 12,
+     "cardsVisibleMs": 848
+    },
+    {
+     "serverMs": 413.2000002861023,
+     "bytes": 158705,
+     "requests": 12,
+     "cardsVisibleMs": 563
+    },
+    {
+     "serverMs": 470.5,
+     "bytes": 158705,
+     "requests": 12,
+     "cardsVisibleMs": 563
+    },
+    {
+     "serverMs": 409,
+     "bytes": 158705,
+     "requests": 12,
+     "cardsVisibleMs": 857
+    },
+    {
+     "serverMs": 429.09999990463257,
+     "bytes": 158705,
+     "requests": 12,
+     "cardsVisibleMs": 855
+    }
+   ]
+  }
+ }
+}

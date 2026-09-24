@@ -87,6 +87,7 @@ they miss, and the merge check: [`docs/w2/GATE.md`](docs/w2/GATE.md).
 | **OpenEMR platform guide** (PHP, Docker, PHPStan, `openemr-cmd`) | `docs/openemr-dev-guide.md` |
 | Week 2 decisions (read first), work orders, spikes | `docs/w2/DECISIONS.md`, `docs/w2/work-orders/`, `docs/w2/spikes/` (write-back findings in `writeback.md`) |
 | Architecture / metrics / users / audit | `docs/ARCHITECTURE.md`, `docs/KEY_METRICS.md`, `docs/USERS.md`, `docs/AUDIT.md`, `docs/audit/findings.md` |
+| **Patient dashboard port** (WO31, D59): React SPA + same-origin BFF over FHIR | `dashboard/` — defence and parity matrix in `PATIENT_DASHBOARD_MIGRATION.md`, inventory in `docs/dashboard/` |
 | **Lab write-back** (D1): endpoint, ledger, PDF preview | `interface/modules/custom_modules/oe-module-clinical-copilot/` — agent side in `agent/app/writeback/` |
 | Deployment | `agent/deploy/docker-compose.agent.yml`, `agent/deploy/Caddyfile`, `agent/docs/deployment.md`, `docs/w2/deploy-writeback.md` |
 | New worktree for a work order | `scripts/new-worktree.sh` — creates `agent/.venv` and installs requirements |

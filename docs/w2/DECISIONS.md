@@ -3282,3 +3282,93 @@ open item, not done silently.
   to see `degraded`.
 - The Langfuse login page is public, behind a Let's Encrypt certificate,
   because graders need it. Only 22, 80 and 443 answer on that host.
+
+---
+
+## D59 — The patient dashboard port is a React SPA behind a same-origin TypeScript BFF that holds the tokens
+
+**Status:** DECIDED. The framework is the work order's. The BFF was the
+project owner's choice on 2026-09-24, in the work order 31 session, after
+the Phase 1 inventory showed the work order's public client cannot exist on
+this OpenEMR.
+**Date:** 2026-09-24
+**Raised by:** work order 31 (`feat/w2-dashboard-port`).
+**Numbering:** reserved D59, and headed "D-unassigned (reserved: D59)" on
+`feat/w2-dashboard-port` while D57 and D58 were not yet on `main`. Renamed
+to D59 on the rebase onto `b7ed974` (the D58 merge), with every reference
+on the branch, in the same change.
+**Evidence:** `docs/dashboard/PARITY_INVENTORY.md` (§4),
+`PATIENT_DASHBOARD_MIGRATION.md`, audit F-65 and F-66.
+
+**Decision:**
+
+1. **What it is.** `dashboard/` at the repo root. React 18 + TypeScript +
+   Vite builds a static SPA. A Hono BFF on Node serves that SPA and is the
+   only thing that talks to OpenEMR. One container. It uses no OpenEMR code,
+   route, table or module, and changes none of them (the requirement: "do not
+   touch the backend").
+2. **Auth is a BFF, not a browser-held token.** The work order specified a
+   SMART public client with user read scopes. OpenEMR refuses that at
+   registration ("system and user scopes are only allowed for confidential
+   clients", `AuthorizationController.php`). A public client can hold only
+   `patient/` scopes, which means a patient-portal login. The BFF is a
+   confidential client. It runs authorization code + PKCE (S256) + `nonce`,
+   authenticates at the token endpoint with its secret, and keeps the tokens
+   in its own memory only. The browser holds one opaque session id in an
+   `HttpOnly; Secure; SameSite=Strict` cookie (`__Host-` on https). The SPA
+   never sees a token.
+3. **Rejected: a SPA doing secretless PKCE against a confidential
+   registration.** It works only because OpenEMR redeems a confidential
+   client's code without its secret (F-65), which is a defect to be fixed,
+   not a basis for design. Also rejected: a patient-role public client
+   (wrong user), and changing OpenEMR's registration policy (backend).
+4. **Read-only, and only what the dashboard draws.** GET only (any other
+   method on `/fhir/*` is 405). An allowlist of eight FHIR types (Patient,
+   AllergyIntolerance, Condition, MedicationRequest, CareTeam, Observation,
+   Practitioner, Organization), and of six search parameters. `_include`,
+   `_revinclude`, `_has` and chained parameters are refused, because each
+   could return types outside the list. Scopes match the list, read only,
+   plus `openid` and `offline_access`.
+5. **Same origin, strict CSP.** The BFF serves the SPA, so the browser needs
+   no CORS. The CSP is `default-src 'none'` with `'self'` for script, style,
+   font, image and connect. It has no `unsafe-inline` or `unsafe-eval` and
+   no third-party origin. Bootstrap 4.6.2 and Font Awesome Free 6.7.2 (the
+   PHP dashboard's own versions) are bundled. No web font is fetched: the
+   PHP page loads none either.
+6. **Logs carry method, route template, status and latency.** They carry no
+   path parameters, query strings, tokens, cookies or upstream bodies, and
+   the logger's closed signature makes that structural. Operational events
+   carry our own short codes, never upstream text.
+7. **Refresh asks for the granted scopes explicitly.** OpenEMR puts `nonce`
+   among a grant's scopes and then refuses it on refresh (F-66). The BFF
+   records the granted scopes from the access token's `scopes` claim (F-09),
+   drops `nonce`, and sends them. Sessions end after 30 minutes idle or 8
+   hours total, and when a refresh fails. Logout drops the server session.
+   OpenEMR has no revocation endpoint, so the BFF then sends the browser to
+   OpenEMR's RP-initiated sign-out to end the OAuth session there.
+8. **Parity is the standard, and gaps are shown, never faked.** Where FHIR
+   lacks a field the PHP page shows, the port leaves it empty or says why
+   (e.g. "Not available to your role" for care-team names, which need
+   Practitioner/Organization reads that OpenEMR allows only the admin/users
+   ACL). It never writes "No Known Allergies", because FHIR carries no
+   "list touched" flag. The full matrix is in the migration doc.
+9. **Deploy shape (proposed, not done).** One unpublished container on the
+   agent's proxy network, served by the agent's Caddy on its own origin
+   (`https://<host>:8444`), with a confidential client registered on the
+   host and its secret as a Docker secret file. OpenEMR's `CN=localhost`
+   certificate is verified for `localhost` via `OPENEMR_TLS_SERVERNAME`,
+   pinned, and never with verification turned off.
+
+**Rationale:** the requirement is parity over the existing FHIR API with no
+backend change. The one design that meets it without a browser-held
+clinician token, and without leaning on F-65, is a BFF. The IETF's browser-app
+guidance ranks it the most secure of the browser patterns. The cost is one
+more small service to run (measured at 19.5 MiB idle).
+
+**Not settled here:**
+- Whether OpenEMR fixes F-65 and F-66. The BFF works either way.
+- An ACL-aware dashboard. The BFF enforces a type allowlist, but whether a
+  clinician may read a *particular* patient is OpenEMR's scope and ACL
+  decision alone, with no per-patient boundary (F-50).
+- The CI job. The pipeline file is a gate file; the job is proposed in the
+  work order 31 report.
