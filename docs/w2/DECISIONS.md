@@ -2933,3 +2933,140 @@ default, which is in the repository, is refused in production.
     renders with structlog's default chain. So
     `docs/w2/EVAL_GATE_EVIDENCE.md` holds raw keys, all with the synthetic
     sentinel uuid.
+
+---
+
+## D-unassigned (work order 27, reserved D57) — The judge is calibrated against blind human labels, on the judge's own input, with every disagreement shown
+
+**Status:** DECIDED — the method. The results are phase 2 and are not recorded here.
+**Date:** 2026-09-23
+**Recorded from:** work order 27, phase 1, on `feat/w2-judge-calibration`.
+**Numbering:** D57 is reserved for this entry (merge order 26, 28, 29, 27).
+Until D54-D56 land on `main`, a `## D57` heading on this branch leaves a gap,
+and `agent/tests/test_decisions_log.py` fails on a gap. So the heading reads
+"D-unassigned (work order 27, reserved D57)", following the precedent of D51.
+The heading becomes `## D57` when this branch merges after 29. Every other
+reference already uses D57: `docs/w2/calibration/README.md`, and the
+docstrings of `agent/scripts/judge_calibration.py` and
+`agent/tests/test_judge_calibration.py`.
+
+**Context.** Two of the five required rubrics, `factually_consistent` and
+`safe_refusal`, are graded by the judge tier (D6, D43), and every run prints
+it as UNCALIBRATED. Category M (D46, D48) detects a judge that has *drifted*
+from frozen labels. It cannot tell whether the judge agreed with a person in
+the first place. `docs/w2/EVAL_DESIGN.md` makes calibration against human
+labels a prerequisite for the judge gating alone.
+
+**Decision:** calibrate with a fixed, synthetic item set that a human labels
+blind, graded by the unchanged gate judge. Report agreement per rubric, with
+chance correction and every disagreement shown.
+
+1. **The items.**
+   - 60 synthetic items, 30 per rubric, 15 intended pass and 15 intended fail
+     in each.
+   - They are weighted toward the boundary cases:
+     - a range bound read as the value, and the reverse;
+     - a unit mismatch;
+     - arithmetic that is right but not on the page: a unit conversion, a
+       difference, a ratio;
+     - a blank flag read as normal;
+     - guideline text used as a patient fact;
+     - a patient report used as a chart fact;
+     - a refusal that then supplies the answer: parenthetical, hypothetical,
+       "for reference", implied;
+     - an over-refusal of something the chart holds;
+     - an offer to merge intake data.
+   - Most hard cases come as a pair: the same source text, one item on each
+     side of the line.
+   - Each item's intended label, mode and rationale are in
+     `docs/w2/calibration/sealed/items.json`.
+   - **The intended label is not ground truth.** The human label is the
+     reference. The intended label is shown only beside disagreements, to help
+     read them.
+
+2. **The labeller sees exactly what the judge sees.**
+   - That is the payload fields the judge renders (`judge.py` `_render`): the
+     statement and its source text, or the request and the response.
+   - The rubric shown is the judge prompt, word for word, read through the
+     judge's own `_prompt`.
+   - There is no chart context behind an item, for the human or the judge.
+     So a `safe_refusal` item that tests over-refusal has to show, in the
+     request or the response, that the chart holds the answer.
+   - Showing the human more than the judge would measure an information gap,
+     not the judge's reading.
+
+3. **Blind by construction, and tested.**
+   - The page embeds only `{id, rubric, payload}`.
+   - Ids are opaque (`FC-nn`, `SR-nn`) and assigned after a seeded shuffle
+     within each rubric, so neither the id nor its position says anything
+     about the label.
+   - `agent/tests/test_judge_calibration.py` fails if a verdict, an intended
+     label or a rationale reaches the page, whether the page is the committed
+     one or freshly rendered.
+   - The page makes no network request and loads no external script.
+   - The `judge` command's progress output never prints a verdict.
+   - `compute` prints verdicts, so it is run after labelling and never before.
+
+4. **The judge is the gate's judge, not a copy.**
+   - `evals.w2.gate.judge.Judge`, unchanged: the pinned model and served
+     version, the committed prompts, the schema-constrained output,
+     best-of-3 and a 2-of-3 majority.
+   - It runs with a fresh cache directory, so every vote is a live call.
+   - The verdicts file records the digests the result depends on (items,
+     each prompt, `judge_config.json`) and the run's calls, tokens and cost.
+
+5. **What is reported**, per rubric and pooled:
+   - raw agreement, with a Wilson 95% interval;
+   - Cohen's kappa, reported as undefined when chance agreement is 1;
+   - the confusion matrix, human rows by judge columns;
+   - the UNSURE and unlabelled ids;
+   - every disagreement, with both verdicts, the human note, the judge's three
+     votes and reasons, the intended label and the item text.
+
+   UNSURE and unlabelled items are excluded from agreement and kappa, and
+   counted.
+
+   Kappa is reported next to raw agreement because the set is balanced by
+   construction. That balance means raw agreement can look good on a judge
+   that leans towards one verdict.
+
+6. **Inputs that do not belong together are refused.**
+   - The three inputs are the items, the verdicts and the labels. Each
+     carries the digests of the item set and the prompts.
+   - A mismatch in the item set, or in the prompt between the labels and the
+     verdicts, exits 2.
+   - After a prompt edit, comparing the new verdicts with the old labels is
+     the normal loop. `--accept-rubric-change` allows it, with a warning,
+     because it measures a rubric the labeller did not read.
+   - A committed prompt that changed after the verdicts were made produces a
+     warning, not a refusal. The number still describes the prompt that was
+     measured.
+
+**Rejected:**
+
+- **Labelling real system output.** The judge tier grades frozen fixtures, not
+  live answers (`docs/w2/evidence/prompt-change-check.md` on
+  `chore/w2-prompt-change-check`). There is no recorded pool of system answers
+  to sample from, and real output would bring chart text into a labelling
+  file. The synthetic items are written in the shapes the design doc and D46
+  name as the failures that matter.
+- **Showing the chart to the labeller.** The judge does not see it (point 2).
+- **Raw agreement alone.** It does not correct for chance (point 5).
+- **Putting the tool under `agent/evals/w2/`.** Everything there is gated
+  except `factory/` and `staging/`, and a calibration tool is neither. The
+  tool is in `agent/scripts/` and the data is in `docs/w2/calibration/`. Both
+  paths were checked with `.claude/hooks/gate-cli.sh --check-path`.
+
+**What this does not do:**
+
+- **n = 30 per rubric** is below the ~60 at which the design doc says an
+  agreement estimate can support a conclusion, and well below the 100-200 per
+  rubric it asks for before the judge gates alone.
+- **It uses one labeller**, so it measures agreement with one person.
+- **The items were written with the judge prompt in view**, by the session
+  that built the tool.
+- **It changes no gate file.** `judge_config.json` stays `UNCALIBRATED`.
+  Three things stay OPEN for phase 2, and each is a gate change:
+  - what agreement or kappa counts as calibrated;
+  - whether a disagreement leads to a prompt edit;
+  - whether the set grows to the size the design doc asks for.
