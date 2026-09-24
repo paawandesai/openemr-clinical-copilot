@@ -214,6 +214,19 @@ def _serialize_retrieved(retrieved: dict[FhirResourceType, list[Any]]) -> str:
     return json.dumps(sections, indent=2)
 
 
+def build_user_content(retrieved: dict[FhirResourceType, list[Any]], question: str) -> str:
+    """The user message. Pinned by W2-L1 (evals/w2/gate/prompt_pins.py)."""
+    return (
+        "<retrieved_records>\n"
+        f"{_serialize_retrieved(retrieved)}\n"
+        "</retrieved_records>\n\n"
+        "<physician_question>\n"
+        f"{question}\n"
+        "</physician_question>\n\n"
+        "Draft the claims that answer the physician's question from these records."
+    )
+
+
 def _parse_draft(text: str) -> FollowUpDraft:
     try:
         payload = json.loads(text)
@@ -343,18 +356,9 @@ async def draft_follow_up(
     """
     if not question.strip():
         raise ValueError("question must be a non-empty string")
-    user_content = (
-        "<retrieved_records>\n"
-        f"{_serialize_retrieved(retrieved)}\n"
-        "</retrieved_records>\n\n"
-        "<physician_question>\n"
-        f"{question}\n"
-        "</physician_question>\n\n"
-        "Draft the claims that answer the physician's question from these records."
-    )
     message = await stream_structured(
         system=SYSTEM_PROMPT,
-        user_content=user_content,
+        user_content=build_user_content(retrieved, question),
         schema=_OUTPUT_SCHEMA,
         patient_session_key=patient_session_key,
     )

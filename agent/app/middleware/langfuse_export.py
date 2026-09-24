@@ -531,9 +531,25 @@ def _build_client() -> Langfuse:
         public_key=os.environ["LANGFUSE_PUBLIC_KEY"],
         secret_key=os.environ["LANGFUSE_SECRET_KEY"],
         # Private provider: never registered globally (see module docstring).
-        tracer_provider=TracerProvider(id_generator=_PinnedTraceIdGenerator()),
+        tracer_provider=TracerProvider(
+            id_generator=_PinnedTraceIdGenerator(), resource=service_resource()
+        ),
         should_export_span=is_langfuse_span,
     )
+
+
+#: The OpenTelemetry `service.name` on every exported span. Without a
+#: resource the SDK sends `unknown_service`, which is what a trace from this
+#: agent was labelled before. OTEL_SERVICE_NAME overrides it, as the
+#: OpenTelemetry spec says it should.
+SERVICE_NAME = "clinical-copilot-agent"
+
+
+def service_resource() -> Any:
+    from opentelemetry.sdk.resources import SERVICE_NAME as SERVICE_NAME_KEY
+    from opentelemetry.sdk.resources import Resource
+
+    return Resource.create({SERVICE_NAME_KEY: os.environ.get("OTEL_SERVICE_NAME") or SERVICE_NAME})
 
 
 def init_exporter() -> None:

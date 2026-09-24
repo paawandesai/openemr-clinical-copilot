@@ -517,3 +517,184 @@ def j_graph_input_carries_nothing_worth_leaking(case: Case) -> CheckOutcome:
         f"{len(names)} graph name(s), {scanned} modules scanned, zero runs carrying "
         "anything but empty bookkeeping; scanner controls all fire"
     )
+
+
+def _capture_turn_event() -> dict[str, Any]:
+    """
+    The real `w2_ask_turn_completed` payload, captured rather than rebuilt.
+
+    Same reasoning as `samples.retrieval_log_event`: a copy written here would
+    pass for ever after somebody added a field to the real one.
+    """
+    from unittest.mock import patch
+
+    from app.graph import supervisor
+    from evals.w2.gate.checks_h import _ask_with_document, _Patcher
+    from tests.w2_graph_support import LAB_SAMPLE, FakeChart
+
+    captured: list[tuple[str, dict[str, Any]]] = []
+
+    def _capture(event_type: str, event_data: dict[str, Any] | None = None, **_: Any) -> None:
+        captured.append((event_type, dict(event_data or {})))
+
+    # FakeChart keeps the turn offline; without it the chart read goes to a real
+    # FHIR server and the deterministic tier stops being deterministic.
+    with _Patcher() as patcher:
+        FakeChart().install(patcher)
+        with patch.object(supervisor, "log_event", _capture):
+            _ask_with_document("What was her glucose on this report?", sample=LAB_SAMPLE)
+
+    for event_type, event_data in captured:
+        if event_type == supervisor.TURN_EVENT:
+            return event_data
+    raise GateError(
+        f"an ask turn emitted {[e for e, _ in captured]} and no {supervisor.TURN_EVENT}; "
+        "the line that records what a turn did is gone"
+    )
+
+
+@check("chk.j_turn_event_scope_fields_carry_no_content")
+def j_turn_event_scope_fields_carry_no_content(case: Case) -> CheckOutcome:
+    """
+    D50's two new turn-event fields say how much was answered, never what.
+
+    `answer_scope` is the interesting one. It is a dict, and a dict whose KEYS
+    come from the data is how a count field turns into a content field without
+    anyone editing a log line — `{"potassium": 1}` would be chart content
+    reported as a tally. The keys have to be derived from `RowReason`, which is
+    a closed enum, so this check computes the permitted key set from the enum
+    rather than listing it: a new RowReason is fine, a key that is not one is
+    not.
+    """
+    del case
+    from app.supervisor.scope import RowReason
+
+    event = _capture_turn_event()
+
+    for field in ("answer_scope", "output_limited"):
+        if field not in event:
+            return CheckOutcome.failed(
+                f"the turn event has no {field!r}. D50 added it; either it was removed "
+                "or this case is watching the wrong event."
+            )
+
+    limited = event["output_limited"]
+    if not isinstance(limited, bool):
+        return CheckOutcome.failed(
+            f"output_limited is {type(limited).__name__}, not a bool: {limited!r}. A "
+            "bool cannot carry content; anything else can."
+        )
+
+    scope = event["answer_scope"]
+    if not isinstance(scope, dict):
+        return CheckOutcome.failed(f"answer_scope is {type(scope).__name__}, not a dict")
+
+    permitted = {f"itemised_{reason.value}" for reason in RowReason} | {
+        "summarised",
+        "capped",
+        "capped_abnormal",
+    }
+    stray = sorted(set(scope) - permitted)
+    if stray:
+        return CheckOutcome.failed(
+            f"answer_scope has key(s) {stray}, which are not derived from RowReason. "
+            "A key taken from the data turns this tally into chart content — "
+            "'which analyte' is exactly what the critical_values counts next to it "
+            "are careful not to say."
+        )
+    bad = {k: v for k, v in scope.items() if not isinstance(v, int) or isinstance(v, bool)}
+    if bad:
+        return CheckOutcome.failed(
+            f"answer_scope values must be ints; these are not: {sorted(bad)}"
+        )
+
+    return CheckOutcome.ok(
+        f"answer_scope is {len(scope)} int-valued key(s), every one derived from "
+        f"RowReason or a fixed bucket ({sorted(scope)}); output_limited is a bool. "
+        "Neither says which analyte."
+    )
+
+
+@check("chk.j_rerank_circuit_events_carry_no_content")
+def j_rerank_circuit_events_carry_no_content(case: Case) -> CheckOutcome:
+    """
+    D41's circuit breaker opens and closes on its own and logs both.
+
+    These fire on a latency path, which is where log lines get written in a
+    hurry and reviewed least. The circuit is driven here through its own clock
+    rather than by waiting on a real slow rerank — the assertion is about the
+    payload's shape, and a check that needed a live cross-encoder could not run
+    in the deterministic tier at all.
+    """
+    del case
+    from unittest.mock import patch
+
+    from app.retrieval import retriever as retriever_module
+    from app.retrieval.retriever import (
+        RERANK_CIRCUIT_CLOSED_EVENT,
+        RERANK_CIRCUIT_OPENED_EVENT,
+        GuidelineRetriever,
+    )
+
+    now = [1000.0]
+    # load() does not forward the clock, so it is set after construction. The
+    # circuit reads self._clock on every transition, so this is the same seam
+    # the constructor parameter exposes, not a way around it.
+    retriever = GuidelineRetriever.load()
+    retriever._clock = lambda: now[0]
+    retriever.circuit_reset_seconds = 30.0
+
+    captured: list[tuple[str, dict[str, Any]]] = []
+
+    def _capture(event_type: str, event_data: dict[str, Any] | None = None, **_: Any) -> None:
+        captured.append((event_type, dict(event_data or {})))
+
+    with patch.object(retriever_module, "log_event", _capture):
+        retriever._open_circuit(4.2)
+        now[0] += 31.0
+        retriever._circuit_skips_this_turn()
+
+    events = dict(captured)
+    expected = {
+        RERANK_CIRCUIT_OPENED_EVENT: {
+            "elapsed_ms",
+            "budget_ms",
+            "reset_seconds",
+            "reset_turns",
+        },
+        RERANK_CIRCUIT_CLOSED_EVENT: {"reason", "open_seconds", "skipped_turns"},
+    }
+    for name, fields in expected.items():
+        if name not in events:
+            return CheckOutcome.failed(
+                f"driving the circuit open and shut emitted {sorted(events)} and no "
+                f"{name}. The breaker changed state and said nothing."
+            )
+        added = sorted(set(events[name]) - fields)
+        if added:
+            return CheckOutcome.failed(
+                f"{name} has grown {added}. Every field in these two is a duration, a "
+                "count or a fixed reason; a new one has to be shown to be one of those "
+                "before this case is updated."
+            )
+
+    reason = events[RERANK_CIRCUIT_CLOSED_EVENT]["reason"]
+    if reason not in {"manual", "timeout", "turns"}:
+        return CheckOutcome.failed(
+            f"the close reason is {reason!r}, which is not one of the three the code "
+            "sets. A free-string reason is a content channel."
+        )
+    for name in expected:
+        wrong = {
+            k: v
+            for k, v in events[name].items()
+            if k != "reason" and not isinstance(v, int | float)
+        }
+        if wrong:
+            return CheckOutcome.failed(f"{name} has non-numeric value(s): {sorted(wrong)}")
+
+    return CheckOutcome.ok(
+        f"{RERANK_CIRCUIT_OPENED_EVENT} and {RERANK_CIRCUIT_CLOSED_EVENT} both fired; "
+        f"every field is a duration or a count, and the close reason is the enum-ish "
+        f"{reason!r}. No query, no chunk, no patient anything."
+    )

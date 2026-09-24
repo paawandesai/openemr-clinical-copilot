@@ -33,11 +33,11 @@ baseline now fails, (e) the category regressed against the baseline.
 VERDICT: BLOCKED | specs 96 | active 79 | pending 15 | det 72/73 | judge 8/8
 ```
 
-(Recorded on that MR's pipeline, before W2-L1 existed — 96 specs then, 97 now.)
+(Recorded on that MR's pipeline, before W2-L1 and W2-J8 existed — 96 specs then, 98 now.)
 
 That MR is left open with a red pipeline on purpose. It must not be merged.
 
-All 19 planted regressions, each with the case that catches it, are in
+All 22 planted regressions, each with the case that catches it, are in
 [`docs/w2/EVAL_GATE_EVIDENCE.md`](docs/w2/EVAL_GATE_EVIDENCE.md) — regenerated
 by a harness that copies the tree, applies one defect at a time, and refuses
 to pass unless every one of them blocks.
@@ -48,7 +48,7 @@ Every path below is committed to the repository.
 
 | What | Path |
 |---|---|
-| **Golden set** — 97 case specs | `agent/evals/w2/cases/` (`W2-<category><n>.json`) |
+| **Golden set** — 98 case specs | `agent/evals/w2/cases/` (`W2-<category><n>.json`) |
 | Case schema (every case is validated against it) | `agent/evals/w2/case_schema.json` |
 | Rubric definitions and per-category thresholds | `agent/evals/w2/rubrics/{rubrics,categories}.json` |
 | Committed baseline the run is compared to | `agent/evals/w2/baseline.json` |
@@ -102,7 +102,9 @@ Verified from a cold clone on 2026-09-23: the deterministic tier scores
 **71/71** and exits 0, with the eight judge-tier cases and the two delegated
 cases reported as unscored. That clone predates W2-L1; on
 `fix/w2-prompt-pins`, with tesseract installed, the same command scores
-**72/72** (not re-verified from a cold clone).
+**72/72**, and **73/73** once W2-J8 is in (neither re-verified from a cold
+clone). With the delegated result artifact present, the deterministic tier is
+75/75.
 
 Exit codes: **0** pass · **1** blocked · **2** the gate could not run · **3**
 INCOMPLETE.
@@ -146,12 +148,52 @@ commands above.
 **Re-run the result script after any commit, rebase or branch switch.** The
 artifact records the commit it was produced for, and the gate refuses one that
 names a different commit — so a previously good artifact is correctly rejected
-as stale and those two cases go unscored until you regenerate it.
+as stale and those two cases go unscored until you regenerate it. (Locally the
+gate compares against `git rev-parse HEAD`; before work order 28 it compared
+only in CI, and a stale local artifact was silently accepted.)
+
+## Troubleshooting
+
+**`scripts/w2-writeback-result.sh` exits 127.** `vendor/` exists but is
+incomplete: `vendor/bin/phpunit` is not there, so the container cannot find
+the command (127 is the shell's "command not found"). A missing `vendor/`
+exits 2 with its own message instead; a partial one gets this far. The
+script still writes `w2-writeback-php.result.json`, with `"exit_code":127,
+"status":"failed"`, so if you run the gate now W2-K4 and W2-K6 **fail**
+rather than go unscored. Re-run the composer install, then the script:
+
+```bash
+docker run --rm -v "$PWD":/app -w /app composer:2 composer install --ignore-platform-reqs --no-scripts
+scripts/w2-writeback-result.sh
+```
+
+**W2-K4 and W2-K6 are UNSCORED with "is stale: it records commit …".** The
+result artifact was produced for an earlier commit. It names the commit it
+tested, and a result for another commit is not evidence about this one.
+**Re-run `scripts/w2-writeback-result.sh` after every commit, rebase or
+branch switch**, then run the gate. Run it on a clean tree: on a dirty one
+the script warns that the artifact names a commit that is not what it
+tested.
+
+**The judge tier is skipped, and the run exits 3 with "ANTHROPIC_API_KEY is
+not set".** The gate reads the key from the environment of the shell that
+runs it and nowhere else. It does not read `agent/.env`. Export it in that
+same shell, without printing it:
+
+```bash
+export ANTHROPIC_API_KEY=...        # in the shell you run the gate from
+python -m evals.w2.gate
+```
+
+A key exported in another terminal, or in a subshell that has exited, does
+not count. `--det-only` needs no key, but it exits 3 as well unless you pass
+`--allow-incomplete`, because the eight category-M cases go unscored.
 
 ## What runs in CI
 
-Two jobs in `.gitlab-ci.yml`, both tagged `w2-eval`, on merge requests and on
-`main`:
+Three jobs in `.gitlab-ci.yml`, all tagged `w2-eval`, on merge requests and on
+`main`. None has `allow_failure`, so any one of them failing turns the pipeline
+red:
 
 1. **`w2-writeback-php`** (stage `writeback`, `php:8.3-cli`) — the fork
    module's PHPUnit suite, 195 tests. Writes `w2-writeback-php.result.json`
@@ -161,6 +203,11 @@ Two jobs in `.gitlab-ci.yml`, both tagged `w2-eval`, on merge requests and on
    verify the delegated job actually ran and passed **for the commit under
    test**. It is `when: always`, so a red PHP suite does not skip it: the gate
    still runs and fails those cases itself.
+3. **`agent-unit-tests`** (stage `eval`, `python:3.12-slim`, `needs: []`, so it
+   runs beside the other two) — `python -m pytest tests` in `agent/`, the
+   offline unit suite, with tesseract installed so the OCR tests run rather
+   than skip. It includes `tests/test_decisions_log.py`, the DECISIONS.md
+   numbering guard (D53), and fails if that file was not collected.
 
 Repository settings a human has to make once:
 
@@ -176,14 +223,14 @@ green that scored no critical case.
 
 ## What it scores
 
-Thirteen categories, 97 specs. `n_min` is the category's spec count, checked
+Thirteen categories, 98 specs. `n_min` is the category's spec count, checked
 first — deleting a case fails the gate before any score is computed.
 
 | | Category | n_min | | | Category | n_min |
 |---|---|---|---|---|---|---|
 | A | Clean extraction & schema baseline | 6 | | H | Safe refusal & critical-value escalation | 10 |
 | B | Extraction robustness (scanned, multi-page) | 10 | | I | Prompt injection in an uploaded PDF | 5 |
-| C | Locate / bounding-box grounding | 9 | | J | PHI-in-logs (canary) | 7 |
+| C | Locate / bounding-box grounding | 9 | | J | PHI-in-logs (canary) | 8 |
 | D | Abnormal-flag computation & cross-check | 7 | | K | Write-back idempotency & provenance | 6 |
 | E | Med/allergy discrepancy surfacing | 8 | | L | Prompt pins | 1 |
 | F | Citation faithfulness & source_type separation | 10 | | M | Judge meta-check (frozen fixtures) | 8 |
@@ -219,21 +266,36 @@ Pending cases are reported separately and never count as passes.
 ## Prompt changes
 
 **Any edit to a prompt fails the gate.** W2-L1 (category L, critical,
-deterministic) imports the value of every prompt the system or the judge
-sends and compares its sha256 with `agent/evals/w2/prompt_pins.json`:
+deterministic) imports the value of everything the system or the judge
+sends a model, 19 values in all, and compares each one's sha256 with
+`agent/evals/w2/prompt_pins.json`:
 
-- the four drafting `SYSTEM_PROMPT`s under `agent/app/reasoning/` — the
+- the four drafting `SYSTEM_PROMPT`s under `agent/app/reasoning/`: the
   Pre-Visit Brief, the Week 2 answer, the follow-up and the conversation
   turn;
-- the extractor's vision `SYSTEM_PROMPT`, and its structured-output schema
-  for both document kinds (under constrained decoding the schema is part of
-  the prompt; it is hashed without sorting keys, because property order is
-  generation order);
+- the four drafters' **structured-output schemas**. The brief and follow-up
+  schemas are static (`_OUTPUT_SCHEMA`). The answer and conversation-turn
+  schemas are built per turn (`output_schema()`), so they are rendered from
+  a fixed synthetic turn;
+- the four drafters' **user-message templates** (`build_user_content()`),
+  rendered from the same synthetic turn. That turn has one source of each
+  kind, a lab scope that omits rows and a full page of encounters, so every
+  literal line of each template, including `<retrieval_scope>` and
+  `<answer_scope>`, appears in what is hashed. It holds no chart data;
+- the extractor's vision `SYSTEM_PROMPT`, its structured-output schema for
+  both document kinds, and its **user message** for both kinds: the page
+  labels and the user instruction ("Transcribe pages … Report only what is
+  drawn on these pages."). Under constrained decoding the schema is part of
+  the prompt, so it is hashed without sorting keys: property order is
+  generation order;
 - both judge prompts, as the judge loads them.
 
 It hashes the values, not the source files, so an unrelated edit in the same
 module does not trip it. It also fails when a module under `app/reasoning/`
-gains a `SYSTEM_PROMPT`, or `judge_config.json` a rubric, that is not pinned.
+gains a `SYSTEM_PROMPT`, an `_OUTPUT_SCHEMA`, an `output_schema` or a
+`build_user_content` that is not pinned, or `judge_config.json` a rubric
+that is not pinned. The pin and its checker are gate files
+(`agent/evals/w2/prompt_pins.json`, `agent/evals/w2/gate/prompt_pins.py`).
 A mismatch fails with the prompt's name and file, and says that a prompt
 change requires a gate session to re-validate the golden set and update the
 pin. It is free and offline, so it runs in the pre-push hook as well as in CI.
@@ -257,12 +319,23 @@ against. The behavioural cases stay. Which prompt edits they also catch, from
 |---|---|
 | `factually_consistent` judge, loosened | **yes** — W2-M6, 3 of 3 full runs |
 | `safe_refusal` judge, loosened | **unreliably** — W2-M5 in 1 of 3 runs; W2-M4 never moved |
-| Extractor vision prompt or schema | **as an error, not a case** — the recorded-transcription staleness check stops the run with exit 2 before any case is scored. It blocks, but names no case, and one edit to the ungated `agent/evals/w2/factory/record_transcriptions.py` switches it off, after which the edit passed |
+| Extractor vision prompt or schema | **as an error, not a case**. The recorded-transcription staleness check stopped the run with exit 2 before any case was scored. It blocked, but named no case, and one edit to the ungated `agent/evals/w2/factory/record_transcriptions.py` switched it off, after which the edit passed. **Both are fixed.** The fingerprint is now computed in gated `agent/evals/w2/gate/samples.py`, and the factory imports it from there. A stale recording now fails the category-B cases that replay it, by name, instead of stopping the run |
 | The four drafting prompts | **no** — no gate case sends them to a model, and the judge grades frozen fixtures |
 
 With the pin, every row blocks with W2-L1 named. The planted-regression
-harness proves it for the Pre-Visit Brief and Week 2 answer drafting
-prompts, the extractor prompt and schema (each planted together with the staleness-check bypass),
-and a one-line `safe_refusal` loosening, as well as the two whole-file judge
-replacements that were already there
-([`docs/w2/EVAL_GATE_EVIDENCE.md`](docs/w2/EVAL_GATE_EVIDENCE.md)).
+harness proves it
+([`docs/w2/EVAL_GATE_EVIDENCE.md`](docs/w2/EVAL_GATE_EVIDENCE.md)) for:
+
+- the Pre-Visit Brief and Week 2 answer system prompts;
+- the extractor prompt and schema. Each is planted together with the old
+  staleness-check bypass, re-aimed at the moved function. Each now blocks
+  on W2-L1 **and** on W2-B1–B7, W2-C2 and W2-C6, because the bypass no
+  longer reaches anything the gate reads;
+- a user-message template: the conversation turn's `<retrieval_scope>`
+  claims the model saw every lab result;
+- the extractor's user instruction, now asking for a best guess. This one
+  needed no bypass at all, because the staleness fingerprint does not cover
+  the user message;
+- a static schema: the brief's `field` enum dropped;
+- a one-line `safe_refusal` loosening, and the two whole-file judge
+  replacements that were already there.

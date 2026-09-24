@@ -217,8 +217,45 @@ def retrieval_log_event() -> dict[str, Any]:
 # old run. Reimplemented here rather than imported from `tests/` because
 # tests/ is not gated and this is the copy an implementation session must not
 # be able to weaken.
+#
+# The fingerprint itself is computed HERE too. It used to be imported from
+# `factory/record_transcriptions.py`, which is ungated, and a one-line edit
+# there (return the fingerprint already on record) switched this check off:
+# an extractor prompt edit then replayed old recordings and passed
+# (docs/w2/evidence/prompt-change-check.md on chore/w2-prompt-change-check,
+# row 5b). The recorder and the unit tests now import it from this file.
+#
+# A stale recording FAILS the case that replays it; it is not a GateError.
+# As a GateError it stopped the run with exit 2 before any case was scored,
+# which blocked the push but named nothing. As a failure the category-B cases
+# that replay it fail by name, and W2-L1 names the prompt that moved.
 
 TRANSCRIPTIONS_DIR = W2_ROOT / "fixtures" / "transcriptions"
+
+
+class StaleRecording(Exception):
+    """
+    A recorded transcription that no longer answers the question the worker
+    asks: made against a different PDF, prompt or output schema. Deliberately
+    not a GateError — the runner scores it as a failure of the case that
+    replayed it.
+    """
+
+
+def prompt_fingerprint(kind: Any) -> str:
+    """
+    sha256 of the extractor's vision prompt and `kind`'s output schema, the
+    value each recording carries as `prompt_fingerprint`. Keys are sorted, as
+    they were when the six committed recordings were made; W2-L1's pin, which
+    does not sort, is what catches a reordered schema.
+    """
+    import hashlib
+
+    from app.workers.intake_extractor.vision_schema import OUTPUT_SCHEMA, SYSTEM_PROMPT
+
+    material = SYSTEM_PROMPT + json.dumps(OUTPUT_SCHEMA[kind], sort_keys=True)
+    return hashlib.sha256(material.encode("utf-8")).hexdigest()
+
 
 #: Which vision source a case runs against, named in its case file.
 MODE_RECORDED = "recorded"  # real model output, replayed
@@ -267,24 +304,26 @@ def sample_kind(sample: str) -> Any:
 
 
 def recorded_vision(sample: str) -> Any:
-    """A VisionExtractor replaying `sample`'s recording, or a GateError."""
+    """
+    A VisionExtractor replaying `sample`'s recording. StaleRecording when it
+    no longer matches the PDF, prompt or schema; GateError when there is none.
+    """
     import hashlib
 
     from app.workers.intake_extractor.vision import VisionResult, VisionUsage
     from app.workers.intake_extractor.vision_schema import RAW_MODEL
-    from evals.w2.factory.record_transcriptions import prompt_fingerprint
 
     recorded = transcription(sample)
     kind = sample_kind(sample)
     digest = hashlib.sha256(sample_pdf(sample)).hexdigest()
     if recorded["document_sha256"] != digest:
-        raise GateError(
+        raise StaleRecording(
             f"{sample}: the recorded transcription was made against a different PDF "
             "(the factory regenerated the sample). Re-record it; replaying it would "
             "grade the model on a page it never saw."
         )
     if recorded["prompt_fingerprint"] != prompt_fingerprint(kind):
-        raise GateError(
+        raise StaleRecording(
             f"{sample}: the prompt or the output schema has changed since this "
             "transcription was recorded. Re-record it; the recording answers a "
             "question the worker no longer asks."

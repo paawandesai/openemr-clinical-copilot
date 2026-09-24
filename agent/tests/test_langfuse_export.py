@@ -429,5 +429,26 @@ class HealthTest(_Base):
         self.assertFalse(exporter._auth_check_running)
 
 
+class ServiceNameTest(unittest.TestCase):
+    """Exported spans name this service; without a resource the SDK says unknown_service."""
+
+    def test_the_client_built_for_export_names_the_service(self) -> None:
+        env = {
+            "LANGFUSE_BASE_URL": "http://127.0.0.1:9",
+            "LANGFUSE_PUBLIC_KEY": "pk-lf-test",
+            "LANGFUSE_SECRET_KEY": "sk-lf-test",
+        }
+        with mock.patch.dict(os.environ, env), mock.patch("langfuse.Langfuse") as built:
+            os.environ.pop("OTEL_SERVICE_NAME", None)
+            langfuse_export._build_client()
+        provider = built.call_args.kwargs["tracer_provider"]
+        self.assertEqual(provider.resource.attributes["service.name"], "clinical-copilot-agent")
+
+    def test_otel_service_name_overrides_the_default(self) -> None:
+        with mock.patch.dict(os.environ, {"OTEL_SERVICE_NAME": "copilot-staging"}):
+            resource = langfuse_export.service_resource()
+        self.assertEqual(resource.attributes["service.name"], "copilot-staging")
+
+
 if __name__ == "__main__":
     unittest.main()

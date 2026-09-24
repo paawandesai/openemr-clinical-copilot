@@ -290,7 +290,7 @@ def recorded_vision(sample: str):  # noqa: ANN201 - a VisionExtractor
     import hashlib
 
     from app.workers.intake_extractor.vision_schema import RAW_MODEL
-    from evals.w2.factory.record_transcriptions import prompt_fingerprint
+    from evals.w2.gate.samples import prompt_fingerprint
 
     recorded = recorded_transcription(sample)
     if recorded is None:

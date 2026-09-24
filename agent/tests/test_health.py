@@ -166,9 +166,13 @@ class ReadyTest(_ReadyBase):
                     "fhir": {"status": "healthy", "required": True, "detail": None},
                     "llm_provider": {"status": "healthy", "required": True, "detail": None},
                     "observability_backend": {
-                        "status": "disabled",
+                        "status": "healthy",
                         "required": False,
-                        "detail": "Langfuse export not configured",
+                        "detail": (
+                            "Events are written as JSON lines to stdout; "
+                            "Langfuse export is not configured"
+                        ),
+                        "backend": "stdout",
                     },
                 },
             },
@@ -254,8 +258,40 @@ class ReadyTest(_ReadyBase):
         self.assertEqual(status, 200)
         self.assertEqual(
             body["checks"]["observability_backend"],
-            {"status": "unhealthy", "required": False, "detail": "Langfuse unreachable"},
+            {
+                "status": "unhealthy",
+                "required": False,
+                "detail": "Langfuse unreachable",
+                "backend": "langfuse",
+            },
         )
+
+    def test_stdout_is_named_as_the_backend_not_reported_disabled(self) -> None:
+        """Production runs without Langfuse: stdout is its record, not an absence (D55)."""
+        for name in ("LANGFUSE_BASE_URL", "LANGFUSE_PUBLIC_KEY", "LANGFUSE_SECRET_KEY"):
+            os.environ.pop(name, None)
+        status, body = self.checks()
+
+        self.assertEqual(status, 200)
+        check = body["checks"]["observability_backend"]
+        self.assertEqual(check["backend"], "stdout")
+        self.assertEqual(check["status"], "healthy")
+        self.assertNotIn("disabled", str(body))
+
+    def test_a_working_langfuse_export_is_named_as_the_backend(self) -> None:
+        os.environ["LANGFUSE_BASE_URL"] = "http://langfuse.test"
+        with mock.patch.object(health, "check_export_health", return_value=None):
+            _, body = self.checks()
+
+        self.assertEqual(
+            body["checks"]["observability_backend"],
+            {"status": "healthy", "required": False, "detail": None, "backend": "langfuse"},
+        )
+
+    def test_the_other_checks_carry_no_backend(self) -> None:
+        _, body = self.checks()
+        self.assertIsNone(body["checks"]["fhir"].get("backend"))
+        self.assertIsNone(body["checks"]["llm_provider"].get("backend"))
 
     def test_probe_results_are_reused_within_the_ttl(self) -> None:
         self.checks()

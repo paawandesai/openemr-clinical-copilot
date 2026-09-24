@@ -304,6 +304,16 @@ def _serialize_retrieved(retrieved: dict[FhirResourceType, list[Any]]) -> str:
     return json.dumps(sections, indent=2)
 
 
+def build_user_content(retrieved: dict[FhirResourceType, list[Any]]) -> str:
+    """The user message. Pinned by W2-L1 (evals/w2/gate/prompt_pins.py)."""
+    return (
+        "<retrieved_fhir_data>\n"
+        f"{_serialize_retrieved(retrieved)}\n"
+        "</retrieved_fhir_data>\n\n"
+        "Draft the Pre-Visit Brief claims for this patient."
+    )
+
+
 def _final_text(message: BetaMessage) -> str:
     """
     The structured-output JSON text. After a mid-stream refusal fallback,
@@ -404,12 +414,7 @@ async def draft_pre_visit_brief(
     a caller missing a required resource type fails identically whether
     stubbed or not.
     """
-    user_content = (
-        "<retrieved_fhir_data>\n"
-        f"{_serialize_retrieved(retrieved)}\n"
-        "</retrieved_fhir_data>\n\n"
-        "Draft the Pre-Visit Brief claims for this patient."
-    )
+    user_content = build_user_content(retrieved)
     section_counts = {
         resource_type: SectionCount(
             retrieved=len(retrieved[resource_type]),

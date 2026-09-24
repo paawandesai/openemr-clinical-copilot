@@ -1604,7 +1604,7 @@ here.
 
 ## D37 — The observability backend is checked by `/ready` but does not gate it
 
-**Status:** DECIDED
+**Status:** DECIDED; its "`disabled` when export is not configured" wording SUPERSEDED by D55
 **Date:** 2026-09-22
 **Work order:** 14.
 
@@ -2783,3 +2783,55 @@ token does not carry a write scope.
   than the token's lifetime would be refused as `token_refused`. Brokered
   tokens have been 3600 s, and extractions measured up to about 160 s per
   page on a heavy scan (DEPLOY.md §8).
+
+---
+
+## D55 — `/ready` names stdout as the observability backend, and exported spans name the service
+
+**Status:** DECIDED
+**Date:** 2026-09-23
+**Work order:** 28 (`chore/w2-final-hygiene`), item 4.
+**Numbering:** reserved as D55; merge order is work orders 26, 28, 29, 27.
+Was "D-unassigned (reserved: D55)" while work order 26's D54 was not on
+this branch, because a `## D55` heading then would have left a gap at D54
+that fails `agent/tests/test_decisions_log.py`. Renamed to D55 on rebasing
+onto `main@024f8fb`, which carries D54. Other files already cited it as
+D55.
+**Amends:** D37 — its `disabled` value only. Everything else in D37 stands:
+the check is reported, `required: false`, and never gates readiness.
+
+**Problem.** With no `LANGFUSE_*` set, `/ready` reported
+`observability_backend: {"status": "disabled"}`. That is the production
+configuration (no BAA covers a hosted Langfuse, `agent/docs/observability.md`
+§1), and in it telemetry is not absent. Every event is a JSON line on
+stdout, the metrics record of source that `scripts/compute_metrics.py` and
+`scripts/w2_dashboard.py` read. "Disabled" told a reader the opposite of
+what was true. Separately, the Langfuse client's private `TracerProvider`
+had no resource, so every exported span said `service.name =
+unknown_service`.
+
+**Decision.**
+
+- `observability_backend` gains a `backend` field (`ObservabilityCheck` in
+  `app/models/api.py`), `stdout` or `langfuse`.
+- Export not configured → `{"status": "healthy", "backend": "stdout"}` with
+  a fixed detail naming the JSON event log. Nothing is probed. The log is
+  written by this process before any export is attempted, so if `/ready`
+  can answer, stdout is working.
+- Export configured → `backend: "langfuse"` with D37's auth-check status
+  and details, unchanged, including a partial configuration reported as
+  `unhealthy`.
+- `disabled` is no longer a status value: `DependencyCheck.status` is
+  `healthy | unhealthy`. The `fhir` and `llm_provider` checks are unchanged
+  and carry no `backend`.
+- Exported spans carry `service.name = clinical-copilot-agent`
+  (`langfuse_export.service_resource()`); `OTEL_SERVICE_NAME` overrides it,
+  as the OpenTelemetry spec says an operator should be able to.
+
+**Not changed:** readiness. `/ready` is 200 exactly when FHIR and the LLM
+provider are healthy, as before.
+
+**Consequence.** The live host runs `ea198c8`, which predates this, so its
+`/ready` still says `disabled` until it is redeployed. Clients: the two
+Postman collections read `required` and the key names only
+(`agent/api-collection/`), so neither changes.

@@ -17,6 +17,25 @@ sends it — never the source file. An unrelated edit elsewhere in
 draft_claims.py does not trip the pin; a one-character edit to its
 SYSTEM_PROMPT does.
 
+A prompt is everything the model is given, not just the system prompt:
+
+* each drafter's SYSTEM_PROMPT and the extractor's;
+* each structured-output schema — static ones as they stand, and the two
+  built per turn (the answer and conversation drafters) rendered from a
+  fixed synthetic turn;
+* each user-message template — the four drafters' `build_user_content` and
+  the extractor's page-labelled content blocks with its user instruction —
+  rendered from the same fixed synthetic turn;
+* both judge prompts.
+
+A template or per-turn schema is pinned by RENDERING it from fixed inputs
+(`_Canon` below: sentinel values, one of each kind of source, a lab scope
+that omits rows, a full page of encounters) so that every literal line of
+it appears in the output. The inputs are synthetic and hold no chart data.
+Change the template and the rendering changes; change the data model a
+template serialises and it changes too, which is correct — that is part of
+what the model reads.
+
     cd agent && python -m evals.w2.gate.prompt_pins          # compare, exit 1 on drift
     cd agent && python -m evals.w2.gate.prompt_pins --write  # W2_GATE_SESSION=1 only
 """
@@ -24,6 +43,7 @@ SYSTEM_PROMPT does.
 from __future__ import annotations
 
 import argparse
+import functools
 import hashlib
 import importlib
 import json
@@ -68,6 +88,151 @@ def _vision_schema(kind: str) -> Callable[[], Any]:
     return load
 
 
+class _Canon:
+    """
+    Fixed, synthetic inputs a template or a per-turn schema is rendered from.
+    Built on first use, so importing this module needs none of app/.
+    """
+
+    QUESTION = "<physician question>"
+
+    @staticmethod
+    @functools.cache
+    def turn_chart() -> dict[Any, list[Any]]:
+        from datetime import UTC, datetime
+
+        from app.conversation.routing import ENCOUNTER_COUNT
+        from app.models.fhir_resources import Encounter, FhirResourceType
+        from app.reasoning.draft_conversation_turn import TURN_RESOURCE_MODELS
+
+        chart: dict[Any, list[Any]] = {rt: [] for rt in TURN_RESOURCE_MODELS}
+        # A full page of encounters, so the "older visits were not retrieved"
+        # line of <retrieval_scope> is rendered.
+        chart[FhirResourceType.ENCOUNTER] = [
+            Encounter(source_id=f"encounter-{i}", date=datetime(2026, 1, i + 1, tzinfo=UTC))
+            for i in range(ENCOUNTER_COUNT)
+        ]
+        return chart
+
+    @staticmethod
+    def lab_scope() -> Any:
+        from app.conversation.routing import LabScope
+
+        # Every optional line of <retrieval_scope>: some omitted, one code cut.
+        return LabScope(
+            retrieved=3,
+            considered=2,
+            codes=("00000-0",),
+            omitted=1,
+            truncated_codes=(("00000-0", 1, 2),),
+        )
+
+    @staticmethod
+    def context() -> tuple[Any, ...]:
+        from app.conversation.state import VerifiedTurn
+        from app.models.claims import Claim
+        from app.models.fhir_resources import FhirResourceType
+
+        claim = Claim(
+            source_id="<source id>",
+            field="display",
+            value="<value>",
+            resource_type=FhirResourceType.CONDITION,
+        )
+        return (VerifiedTurn(turn=1, claims=(claim,)),)
+
+    @staticmethod
+    def documents() -> dict[str, list[Any]]:
+        from app.models.w2.citations import BBox, Citation
+        from app.models.w2.documents import DocumentKind
+        from app.supervisor.facts import DocumentFact
+
+        document_id = "0" * 128
+        path = "results.panel.analyte.value"
+        citation = Citation.located_document(
+            source_id=document_id,
+            field_path=path,
+            quote="<quote>",
+            bbox=BBox(page=1, x0=0, y0=0, x1=1, y1=1),
+            extraction_id="w2x-" + "0" * 32,
+        )
+        fact = DocumentFact(
+            document_id=document_id,
+            kind=DocumentKind.LAB_PDF,
+            field_path=path,
+            group="<test name>",
+            part="result",
+            quote="<quote>",
+            value="<quote>",
+            citation=citation,
+        )
+        return {document_id: [fact]}
+
+    @staticmethod
+    def chunks() -> list[Any]:
+        from app.models.w2.workers import EvidenceChunk, GuidelineSource, RetrievalMethod
+
+        return [
+            EvidenceChunk(
+                chunk_id="<chunk id>",
+                text="<guideline text>",
+                source=GuidelineSource(
+                    guideline_id="<guideline id>",
+                    title="<title>",
+                    section="<section>",
+                    publisher="<publisher>",
+                ),
+                retrieval_score=0.0,
+                method=RetrievalMethod.HYBRID,
+            )
+        ]
+
+
+def _rendered(module: str, attr: str) -> Callable[[], Any]:
+    """A template or per-turn schema, rendered from `_Canon`."""
+
+    def load() -> Any:
+        from app.reasoning import draft_conversation_turn as turn
+
+        mod = importlib.import_module(f"{_REASONING}.{module}")
+        fn = getattr(mod, attr)
+        chart = _Canon.turn_chart()
+        if module == "draft_claims":
+            return fn({rt: [] for rt in mod._BRIEF_RESOURCE_MODELS})
+        if module == "draft_follow_up":
+            return fn({rt: [] for rt in mod.BOUNDED_RESOURCE_MODELS}, _Canon.QUESTION)
+        if module == "draft_conversation_turn" and attr == "build_user_content":
+            return fn(chart, _Canon.QUESTION, _Canon.context(), _Canon.lab_scope())
+        if module == "draft_conversation_turn" and attr == "output_schema":
+            return fn(turn.turn_resource_types(chart))
+        if module == "draft_answer" and attr == "build_user_content":
+            return fn(
+                chart,
+                _Canon.documents(),
+                _Canon.chunks(),
+                _Canon.QUESTION,
+                _Canon.context(),
+                withheld_rows=1,
+            )
+        if module == "draft_answer" and attr == "output_schema":
+            return fn(turn.turn_resource_types(chart), _Canon.documents(), _Canon.chunks())
+        raise GateError(f"no canonical rendering for {module}.{attr}")
+
+    return load
+
+
+def _vision_user_content(kind: str) -> Callable[[], Any]:
+    def load() -> Any:
+        from app.models.w2.documents import DocumentKind
+        from app.workers.intake_extractor.vision import _content_blocks
+
+        # One page with an empty image: the page label, the image block's
+        # shape and the user instruction, which is all of it that is text.
+        return _content_blocks(DocumentKind(kind), [b""], 1, 1)
+
+    return load
+
+
 def _judge_prompt(rubric: str) -> Callable[[], Any]:
     def load() -> Any:
         # The judge's own loader, so the pinned text is exactly what it sends.
@@ -81,6 +246,21 @@ def _judge_prompt(rubric: str) -> Callable[[], Any]:
 _REASONING = "app.reasoning"
 _VISION = "app.workers.intake_extractor.vision_schema"
 
+_DRAFTERS = ("draft_answer", "draft_claims", "draft_conversation_turn", "draft_follow_up")
+
+#: What each drafter sends besides its SYSTEM_PROMPT: `_OUTPUT_SCHEMA` is a
+#: static schema, pinned as it stands; a name ending in "()" is a function,
+#: pinned by rendering it from `_Canon`. `unregistered()` reads this table, so
+#: a drafter that gains one of these attributes must be registered here.
+_STATIC_SCHEMA = "_OUTPUT_SCHEMA"
+_RENDERED = ("output_schema", "build_user_content")
+_SENT_BY: dict[str, tuple[str, ...]] = {
+    "draft_answer": ("output_schema()", "build_user_content()"),
+    "draft_claims": ("_OUTPUT_SCHEMA", "build_user_content()"),
+    "draft_conversation_turn": ("output_schema()", "build_user_content()"),
+    "draft_follow_up": ("_OUTPUT_SCHEMA", "build_user_content()"),
+}
+
 PROMPTS: tuple[Prompt, ...] = (
     *(
         Prompt(
@@ -88,12 +268,20 @@ PROMPTS: tuple[Prompt, ...] = (
             source=f"agent/app/reasoning/{module}.py",
             load=_attr(f"{_REASONING}.{module}", "SYSTEM_PROMPT"),
         )
-        for module in (
-            "draft_answer",
-            "draft_claims",
-            "draft_conversation_turn",
-            "draft_follow_up",
+        for module in _DRAFTERS
+    ),
+    *(
+        Prompt(
+            name=f"{_REASONING}.{module}.{sent}",
+            source=f"agent/app/reasoning/{module}.py",
+            load=(
+                _rendered(module, sent.removesuffix("()"))
+                if sent.endswith("()")
+                else _attr(f"{_REASONING}.{module}", sent)
+            ),
         )
+        for module in _DRAFTERS
+        for sent in _SENT_BY[module]
     ),
     Prompt(
         name=f"{_VISION}.SYSTEM_PROMPT",
@@ -105,6 +293,17 @@ PROMPTS: tuple[Prompt, ...] = (
             name=f"{_VISION}.OUTPUT_SCHEMA[{kind}]",
             source="agent/app/workers/intake_extractor/vision_schema.py",
             load=_vision_schema(kind),
+        )
+        for kind in ("lab_pdf", "intake_form")
+    ),
+    *(
+        Prompt(
+            name=f"app.workers.intake_extractor.vision._content_blocks()[{kind}]",
+            source=(
+                "agent/app/workers/intake_extractor/vision.py (page labels) and "
+                "vision_schema.py (user_instruction)"
+            ),
+            load=_vision_user_content(kind),
         )
         for kind in ("lab_pdf", "intake_form")
     ),
@@ -129,7 +328,7 @@ def digest(value: Any) -> str:
     """
     if isinstance(value, str):
         material = value
-    elif isinstance(value, dict):
+    elif isinstance(value, dict | list):
         material = json.dumps(value, ensure_ascii=False, separators=(",", ":"))
     else:
         raise GateError(f"cannot pin a prompt of type {type(value).__name__}")
@@ -143,8 +342,10 @@ def current() -> dict[str, str]:
 def unregistered() -> list[str]:
     """
     Prompts that exist and are not in PROMPTS, so the pin cannot silently
-    stop being a catch-all: a new module under app/reasoning/ with a
-    SYSTEM_PROMPT, or a new judge rubric in judge_config.json.
+    stop being a catch-all: a module under app/reasoning/ with a
+    SYSTEM_PROMPT, a static `_OUTPUT_SCHEMA`, or an `output_schema` or
+    `build_user_content` function that is not pinned, or a new judge rubric
+    in judge_config.json.
     """
     from evals.w2.gate import judge
 
@@ -153,8 +354,14 @@ def unregistered() -> list[str]:
     package = importlib.import_module(_REASONING)
     for info in pkgutil.iter_modules(package.__path__):
         module = importlib.import_module(f"{_REASONING}.{info.name}")
+        sent: list[str] = []
         if isinstance(getattr(module, "SYSTEM_PROMPT", None), str):
-            name = f"{_REASONING}.{info.name}.SYSTEM_PROMPT"
+            sent.append("SYSTEM_PROMPT")
+        if isinstance(getattr(module, _STATIC_SCHEMA, None), dict):
+            sent.append(_STATIC_SCHEMA)
+        sent += [f"{attr}()" for attr in _RENDERED if callable(getattr(module, attr, None))]
+        for attr in sent:
+            name = f"{_REASONING}.{info.name}.{attr}"
             if name not in known:
                 found.append(name)
     for rubric in judge.load_judge_config()["prompts"]:

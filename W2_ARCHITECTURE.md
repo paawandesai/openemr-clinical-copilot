@@ -34,8 +34,8 @@ beside chart facts without the two blurring. Nine decisions carry the weight.
    UNIQUE on document hash, test code and collection date. Results land
    unreviewed.
 9. **The measured code cannot move its own gate** (D8, D42–D48). Gated paths
-   are hook-protected. 74 deterministic checks must pass at 100%, a regressed
-   critical case blocks alone, and all 19 planted regressions block (§6).
+   are hook-protected. 75 deterministic checks must pass at 100%, a regressed
+   critical case blocks alone, and all 22 planted regressions block (§6).
 
 **Tradeoffs:**
 
@@ -81,8 +81,23 @@ architecture is unchanged and is not repeated here:
 [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) (authorization, tool scope,
 conversation state, the deterministic verifier).
 
-**Snapshot: `main@056cba9`**, which is on `origin`. Every path, number and
-decision below is on that commit. It includes these merges:
+**Snapshot: this document describes `chore/w2-final-hygiene`** (work order
+28, not merged), which is `main@c75827f` plus the commits listed last below.
+Every path and every decision cited is on that branch. Numbers are **not**
+pinned to one commit. Each is pinned to the artifact it cites, and that
+artifact names where it was measured:
+
+- host figures to `ea198c8` (`DEPLOY.md` §8.00) or `21f1053` (§8.0);
+- gate figures to `agent/evals/w2/baseline.json` and
+  `docs/w2/EVAL_GATE_EVIDENCE.md`, which record the commit they scored;
+- load and cost figures to their own `LOAD_TEST.md` and
+  `COST_AND_LATENCY.md` sections.
+
+An earlier version of this line said everything was pinned to `056cba9`.
+It then cited W2-L1 and 97 specs, which landed afterwards (`1ddcfd5`). That
+claim was wrong, and this replaces it.
+
+`main@c75827f` includes these merges:
 
 | Merge | At | What it brought |
 |---|---|---|
@@ -96,10 +111,20 @@ decision below is on that commit. It includes these merges:
 | `EVAL_GATE.md` | `0318c35` | the gate's page for reviewers |
 | the decisions guard | `c1c5e21` | D51 |
 | the event-tags fix | `056cba9` | D52 |
+| `docs/w2-submission` | `2d12333` | this document, `KEY_METRICS.md`, D53 |
+| `fix/w2-prompt-pins` | `1ddcfd5` | W2-L1, the prompt pin (97 specs) |
+| `docs/w2-final-fixes` | `c75827f` | the host dashboard evidence |
+
+On this branch, after `c75827f`: the CI unit-test job, W2-J8 (98 specs),
+W2-L1 extended to schemas and user-message templates, the gated staleness
+check, D55 (`/ready` names stdout; spans name the service) and the
+gate troubleshooting notes (work order 28).
 
 **The host runs `main@ea198c8`** since 2026-09-23 17:12 UTC (`DEPLOY.md`
-§8.00). It lacks only the event-tags telemetry fix (D52) and the
-documentation and test commits after it. Neither changes an answer.
+§8.00). It lacks the event-tags telemetry fix (D52), D55 (`/ready` names
+stdout as the backend; exported spans name the service), and the gate,
+test and documentation commits after them. None of them changes an
+answer.
 
 **Three kinds of host figure:**
 
@@ -443,6 +468,7 @@ Documents and lab values are written through a custom module endpoint.
 | Review state | `review_status = 'received'`: the result lands in *Pending Review*, not *Patient Results*, until a clinician signs it | D29 |
 | Intake guard | the write-back request type refuses any document that is not a `lab_pdf`, so an intake form has no path into the chart | `agent/app/models/w2/writeback.py`; planted regression `auto-merge-intake` |
 | Preview | `GET <module>/public/document.php`: session ACL `patients/docs`, the open patient only, PDF only. 404 is identical for missing, another patient's and deleted documents | D28, D30, D49 |
+| Deletion | not designed: what a deleted document leaves behind, and why that is a gap | §11 item 14 |
 
 **Verified on the rehearsal host, before the Week 2 deploy** (`DEPLOY.md` §7.3):
 
@@ -458,9 +484,13 @@ Documents and lab values are written through a custom module endpoint.
 Two identical requests fired together leave exactly one chain (D31, local
 stack).
 
-**Not built:** no agent route or graph calls the write-back client, and the
-chart-embed broker never requests the write scope (`DEPLOY.md` §0, §10).
-Write-back is a verified endpoint plus a library, not a user-facing feature.
+**Since D54 (work order 26, on `main` at `024f8fb`),** a lab report's
+extraction writes its verified rows back, under the uploader's token, after
+the report is stored. `upload.php` brokers `api:oemr user/lab-writeback.c`
+for a lab report only. Rows land in Pending Review, and an intake form is
+never written. Before D54, no agent route or graph called the write-back
+client (`DEPLOY.md` §0, §10). The card still does not show the write's
+outcome (D54, "Not settled here").
 
 ---
 
@@ -471,17 +501,17 @@ covers the golden set and prompts, the command and exit codes, CI and its
 settings, and the five rules. This section keeps only what the architecture
 rests on.
 
-- **What it proves.** 19 planted regressions, each applied to a copy of the
-  tree: the control run passes and all 19 block, each caught by at least the
+- **What it proves.** 22 planted regressions, each applied to a copy of the
+  tree: the control run passes and all 22 block, each caught by at least the
   case the design names (`docs/w2/EVAL_GATE_EVIDENCE.md`, "Harness verdict:
   HELD").
 - **A merge it blocked.** [MR !1](https://labs.gauntletai.com/paawandesai/openemr-clinical-copilot/-/merge_requests/1) is left open with a red pipeline. It plants
   "blank flag means normal", and W2-D2 blocks it:
   `VERDICT: BLOCKED | specs 96 | active 79 | pending 15 | det 72/73 | judge 8/8`
   (`EVAL_GATE.md`; recorded before W2-L1, when there were 96 specs).
-- **The gate at the snapshot.** 97 specs (80 active, 15 pending, 2
-  delegated), 74/74 deterministic and 8/8 judge (evidence control run,
-  re-seeded after W2-L1, the prompt pin).
+- **The gate at the snapshot.** 98 specs (81 active, 15 pending, 2
+  delegated), 75/75 deterministic and 8/8 judge (evidence control run,
+  re-seeded after W2-J8, the turn event's scope fields).
 - **The judge is UNCALIBRATED.** It is `claude-haiku-4-5-20251001`,
   best-of-3 (D43, D48). Category M detects drift, not agreement with humans.
 - **Its protection is a guard, not a boundary.** The hooks and
@@ -572,7 +602,10 @@ a run through `getattr` or from outside `app/`.
   caller's.
 - A stdout dashboard, a 16-widget local Langfuse dashboard, and five alert
   rules (`ALERTS.md`).
-- `/ready` reports the Langfuse check but does not gate on it (D37).
+- `/ready` reports the observability backend but does not gate on it
+  (D37). It names the backend: `stdout` when Langfuse export is not
+  configured, which is the production path, or `langfuse` with its auth
+  check (D55; before D55 the stdout case read `disabled`).
 
 **Alerts:**
 
@@ -619,8 +652,9 @@ its JSON event log.
 - Extraction inherits the upload's id only when that id is a UUID;
   otherwise the two traces are linked by a logged event, not merged.
 - The hosted Langfuse has no BAA, so production metrics come from stdout
-  (Week 1, `agent/docs/observability.md` §1). The live host (rehearsal host, before the Week 2 deploy) runs with
-  Langfuse `disabled` (`DEPLOY.md` §7.2).
+  (Week 1, `agent/docs/observability.md` §1). The live host runs with
+  Langfuse export off, so its `/ready` reports `disabled` at `ea198c8`; after
+  a redeploy of D55 it reports `backend: "stdout"` (`DEPLOY.md` §7.2).
 
 ---
 
@@ -695,13 +729,14 @@ The agent image grew from 360 MB to 1.18 GB, and idle memory from 50 MiB to
 | Retrieval | D25 (supersedes D5, D23), D26, D39, D41 |
 | UI | D27, D28, D30, D32, D33, D34, D49 (the preview URL; supersedes D28 and D30 on that point), D51 (the card's module routes; a citation's digest opens the preview) |
 | Write-back | D1 (superseding), D2, D15, D29, D31 |
-| Observability | D36, D37, D38, D52 (a turn's tags reach the operational events) |
+| Observability | D36, D37, D38, D52 (a turn's tags reach the operational events), D55 (`/ready` names stdout as the backend; spans name the service) |
 | Evals | D6, D8, D42–D48 |
 | The decisions log itself | D53 (no merge driver for `DECISIONS.md`; a numbering test guards it) |
 
-D1–D53 are on `main`. D53 records a decision already made in commit
-`cb99e7b`; it was appended at the owner's request, not decided here. This
-document makes no new decision.
+D1–D54 are on `main`. D53 records a decision already made in commit
+`cb99e7b`; it was appended at the owner's request, not decided here. D54
+(work order 26) makes a lab upload's extraction write its verified rows
+back. D55 is on this branch only. This document makes no new decision.
 
 ---
 
@@ -778,3 +813,41 @@ document makes no new decision.
     its routes, the guard and the scoped ask path run on the host
     (`main@ea198c8`, `DEPLOY.md` §8.00). No load test has run against them there.
 13. **No FHIR paging.** `_count` is the sharp edge (`docs/w2/WEEK1_DEBT.md` §4).
+14. **Deleting a document is a gap, not a provenance design.** Nothing was
+    decided about deletion. This is what the code does. It was read from
+    the code, not exercised end to end.
+    - **OpenEMR's delete** (`interface/patient_file/deleter.php`,
+      `delete_document`) sets `documents.deleted = 1`, keeps the row, and
+      removes its `categories_to_documents` link.
+    - **The module keeps no attachment record of its own.** Its only table
+      is the write-back ledger. Its "already filed on another chart" check
+      (`QueryUtilsChartDocumentIndex::isFiledOnAnotherPatient`) reads
+      `deleted = 0` rows joined to their category. So once a file is
+      deleted, the module **would** let the same bytes be attached to a
+      different chart. It is not true that a deleted file can never be
+      re-attached elsewhere.
+    - **The agent refuses it anyway, until it restarts.** Its binding of a
+      digest to a patient (`DocumentStore`, D40 item 8) is process memory,
+      and nothing tells it about the deletion. So the card gets 409 on
+      another chart while this agent process lives, and not after a restart.
+    - **The write-back ledger outlives the deletion, and its replay does
+      not check the patient.** Its rows stay, keyed on `<document
+      sha3-512>:<TEST CODE>:<YYYY-MM-DD>` (D1), which does not include the
+      patient. `LabWriteBackService` answers a request whose keys are all
+      in the ledger by replaying the recorded ids, before it resolves the
+      document or looks at the patient those ids belong to. So a write-back
+      for patient B, with bytes, test and date already written for
+      patient A, would return A's `procedure_order_id` and result ids as
+      `duplicate_ignored`, and write nothing for B. That needs the same
+      bytes on two charts. The card path allows that only after a deletion
+      plus an agent restart. Even then, the write the upload itself makes
+      (D54) runs only when the report's name matches B's chart and neither
+      name nor date of birth mismatches. A's report on B's chart is
+      therefore refused as `identity_not_confirmed` before any request,
+      unless the two patients share a name and date of birth. A direct call
+      to the endpoint with the write scope reaches the replay without any
+      of this.
+    - **What would close it:** a ledger replay that refuses a key recorded
+      for a different `patient_uuid`, and a decision on whether a deleted
+      document's ledger rows should block, or release, its bytes. Neither is
+      built.
