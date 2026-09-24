@@ -1,0 +1,70 @@
+# Patient dashboard BFF on the deployment host. NOT deployed by work order 31:
+# this is the proposal PATIENT_DASHBOARD_MIGRATION.md §8 describes.
+#
+#   cd dashboard/deploy
+#   docker compose --env-file /etc/patient-dashboard/dashboard.env \
+#     -f docker-compose.dashboard.yml up -d --build --wait
+#
+# No host port is published. The agent's Caddy (agent/deploy) reaches it on
+# the shared network and serves it on its own origin, https://<host>:8444
+# (a new site block there; see the migration doc). The OAuth client secret is
+# a Docker secret file, never an environment variable.
+name: patient-dashboard
+
+services:
+  bff:
+    build:
+      context: ..
+    image: patient-dashboard:local
+    restart: unless-stopped
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    environment:
+      PUBLIC_ORIGIN: ${PUBLIC_ORIGIN:?set PUBLIC_ORIGIN, e.g. https://64.177.42.210:8444}
+      # Back channel (token endpoint), from inside the container:
+      OPENEMR_OAUTH_BASE: ${OPENEMR_OAUTH_BASE:-https://host.docker.internal:9300/oauth2/default}
+      # What the clinician's browser is sent to (authorize, sign-out):
+      OPENEMR_BROWSER_OAUTH_BASE: ${OPENEMR_BROWSER_OAUTH_BASE:?set OPENEMR_BROWSER_OAUTH_BASE, e.g. https://64.177.42.210:9300/oauth2/default}
+      # The iss OpenEMR puts in its ID tokens: site_addr_oath + /oauth2/default (audit F-49).
+      OPENEMR_ISSUER: ${OPENEMR_ISSUER:?set OPENEMR_ISSUER to the issuer OpenEMR advertises}
+      OPENEMR_FHIR_BASE: ${OPENEMR_FHIR_BASE:-https://host.docker.internal:9300/apis/default/fhir}
+      # The aud OpenEMR expects: its own advertised FHIR URL (site_addr_oath-based).
+      OPENEMR_FHIR_AUDIENCE: ${OPENEMR_FHIR_AUDIENCE:?set OPENEMR_FHIR_AUDIENCE to OpenEMR's advertised FHIR base}
+      OAUTH_CLIENT_ID: ${OAUTH_CLIENT_ID:?set OAUTH_CLIENT_ID}
+      OAUTH_CLIENT_SECRET_FILE: /run/secrets/dashboard_client_secret
+      # OpenEMR's self-signed certificate says CN=localhost (F-36) but is
+      # reached here as host.docker.internal: verify it for "localhost",
+      # pinned to that one certificate. TLS verification is never turned off.
+      OPENEMR_TLS_SERVERNAME: ${OPENEMR_TLS_SERVERNAME:-localhost}
+      OPENEMR_CA_FILE: /run/secrets/openemr_ca
+    secrets:
+      - dashboard_client_secret
+      - openemr_ca
+    networks:
+      - proxy
+    # Measured locally (2026-09-24): 19.5 MiB idle, 24.4 MiB after the e2e suite. 256m is ten times that.
+    mem_limit: 256m
+    memswap_limit: 256m
+    read_only: true
+    tmpfs:
+      - /tmp
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+secrets:
+  dashboard_client_secret:
+    file: /etc/patient-dashboard/client_secret
+  openemr_ca:
+    file: /etc/patient-dashboard/openemr-ca.pem
+
+networks:
+  proxy:
+    name: clinical-copilot-agent_default
+    external: true

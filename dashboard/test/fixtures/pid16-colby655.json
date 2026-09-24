@@ -1,0 +1,3471 @@
+{
+ "capturedAt": "2026-09-24",
+ "source": "local OpenEMR dev stack, synthetic data",
+ "patient": "a2c3739a-29d3-4664-bac5-00d202aba3a5",
+ "Patient": {
+  "id": "a2c3739a-29d3-4664-bac5-00d202aba3a5",
+  "meta": {
+   "versionId": "1",
+   "lastUpdated": "2026-09-17T01:24:52+00:00",
+   "profile": [
+    "http://hl7.org/fhir/us/core/StructureDefinition/us-core-patient",
+    "http://hl7.org/fhir/us/core/StructureDefinition/us-core-patient|3.1.1",
+    "http://hl7.org/fhir/us/core/StructureDefinition/us-core-patient|8.0.0"
+   ]
+  },
+  "resourceType": "Patient",
+  "text": {
+   "status": "generated",
+   "div": "<div xmlns=\"http://www.w3.org/1999/xhtml\"> <p>Colby655 Gerlach374</p></div>"
+  },
+  "extension": [
+   {
+    "valueCode": "M",
+    "url": "http://hl7.org/fhir/us/core/StructureDefinition/us-core-birthsex"
+   },
+   {
+    "extension": [
+     {
+      "valueCoding": {
+       "system": "urn:oid:2.16.840.1.113883.6.238",
+       "code": "2028-9",
+       "display": "Asian"
+      },
+      "url": "ombCategory"
+     },
+     {
+      "valueString": "Asian",
+      "url": "text"
+     }
+    ],
+    "url": "http://hl7.org/fhir/us/core/StructureDefinition/us-core-race"
+   },
+   {
+    "extension": [
+     {
+      "valueCoding": {
+       "system": "urn:oid:2.16.840.1.113883.6.238",
+       "code": "2186-5",
+       "display": "Not Hispanic or Latino"
+      },
+      "url": "ombCategory"
+     },
+     {
+      "valueString": "Not Hispanic or Latino",
+      "url": "text"
+     }
+    ],
+    "url": "http://hl7.org/fhir/us/core/StructureDefinition/us-core-ethnicity"
+   },
+   {
+    "valueCoding": {
+     "system": "DataAbsentReason",
+     "code": "unknown",
+     "display": "Unknown"
+    },
+    "url": "http://hl7.org/fhir/us/core/StructureDefinition/us-core-sex"
+   },
+   {
+    "valueCoding": {
+     "system": "http://terminology.hl7.org/CodeSystem/data-absent-reason",
+     "code": "unknown",
+     "display": "Unknown"
+    },
+    "url": "http://hl7.org/fhir/us/core/StructureDefinition/us-core-interpreter-needed"
+   }
+  ],
+  "identifier": [
+   {
+    "use": "official",
+    "type": {
+     "coding": [
+      {
+       "system": "http://terminology.hl7.org/CodeSystem/v2-0203",
+       "code": "PT"
+      }
+     ]
+    },
+    "system": "http://terminology.hl7.org/CodeSystem/v2-0203",
+    "value": "16"
+   }
+  ],
+  "active": true,
+  "name": [
+   {
+    "use": "official",
+    "family": "Gerlach374",
+    "given": [
+     "Colby655"
+    ]
+   }
+  ],
+  "gender": "male",
+  "birthDate": "2007-11-11",
+  "deceasedBoolean": false,
+  "address": [
+   {
+    "use": "home",
+    "type": "both",
+    "line": [
+     "903 Gerhold Brook Unit 67"
+    ],
+    "city": "Brookline",
+    "state": "Massachusetts",
+    "postalCode": "02445",
+    "period": {
+     "start": "2026-09-17T00:03:38.000+00:00"
+    }
+   }
+  ],
+  "communication": [
+   {
+    "language": {
+     "coding": [
+      {
+       "system": "urn:ietf:bcp:47",
+       "code": "en",
+       "display": "English"
+      }
+     ],
+     "text": "English"
+    }
+   }
+  ]
+ },
+ "AllergyIntolerance": {
+  "meta": {
+   "lastUpdated": "2026-09-24T17:45:14"
+  },
+  "resourceType": "Bundle",
+  "type": "collection",
+  "total": 3,
+  "link": [
+   {
+    "relation": "self",
+    "url": "https://localhost:9300/apis/default/fhir/AllergyIntolerance"
+   }
+  ],
+  "entry": [
+   {
+    "fullUrl": "https://localhost:9300/apis/default/fhir/AllergyIntolerance/a2c37438-ba72-4d53-8389-83fb5a645589",
+    "resource": {
+     "id": "a2c37438-ba72-4d53-8389-83fb5a645589",
+     "meta": {
+      "versionId": "1",
+      "lastUpdated": "2026-09-17T00:05:22+00:00"
+     },
+     "resourceType": "AllergyIntolerance",
+     "text": {
+      "status": "additional",
+      "div": "<div xmlns='http://www.w3.org/1999/xhtml'>Allergic disposition (finding)</div>"
+     },
+     "clinicalStatus": {
+      "coding": [
+       {
+        "system": "http://terminology.hl7.org/CodeSystem/allergyintolerance-clinical",
+        "code": "active",
+        "display": "Active"
+       }
+      ]
+     },
+     "verificationStatus": {
+      "coding": [
+       {
+        "system": "http://terminology.hl7.org/CodeSystem/allergyintolerance-verification",
+        "code": "unconfirmed",
+        "display": "Unconfirmed"
+       }
+      ]
+     },
+     "category": [
+      "medication"
+     ],
+     "criticality": null,
+     "code": {
+      "coding": [
+       {
+        "system": "http://www.nlm.nih.gov/research/umls/rxnorm",
+        "code": "609328004",
+        "display": "Allergic disposition (finding)"
+       }
+      ]
+     },
+     "patient": {
+      "reference": "Patient/a2c3739a-29d3-4664-bac5-00d202aba3a5"
+     },
+     "reaction": [
+      {
+       "manifestation": [
+        {
+         "text": "Mild"
+        }
+       ]
+      }
+     ]
+    }
+   },
+   {
+    "fullUrl": "https://localhost:9300/apis/default/fhir/AllergyIntolerance/a2c37438-ba75-4eea-87ce-8ad759a77baa",
+    "resource": {
+     "id": "a2c37438-ba75-4eea-87ce-8ad759a77baa",
+     "meta": {
+      "versionId": "1",
+      "lastUpdated": "2026-09-17T00:05:22+00:00"
+     },
+     "resourceType": "AllergyIntolerance",
+     "text": {
+      "status": "additional",
+      "div": "<div xmlns='http://www.w3.org/1999/xhtml'>Animal dander (substance)</div>"
+     },
+     "clinicalStatus": {
+      "coding": [
+       {
+        "system": "http://terminology.hl7.org/CodeSystem/allergyintolerance-clinical",
+        "code": "active",
+        "display": "Active"
+       }
+      ]
+     },
+     "verificationStatus": {
+      "coding": [
+       {
+        "system": "http://terminology.hl7.org/CodeSystem/allergyintolerance-verification",
+        "code": "unconfirmed",
+        "display": "Unconfirmed"
+       }
+      ]
+     },
+     "category": [
+      "medication"
+     ],
+     "criticality": null,
+     "code": {
+      "coding": [
+       {
+        "system": "http://www.nlm.nih.gov/research/umls/rxnorm",
+        "code": "264287008",
+        "display": "Animal dander (substance)"
+       }
+      ]
+     },
+     "patient": {
+      "reference": "Patient/a2c3739a-29d3-4664-bac5-00d202aba3a5"
+     },
+     "reaction": [
+      {
+       "manifestation": [
+        {
+         "text": "Mild"
+        }
+       ]
+      }
+     ]
+    }
+   },
+   {
+    "fullUrl": "https://localhost:9300/apis/default/fhir/AllergyIntolerance/a2c37438-ba78-40c7-b712-b569ccd5a99b",
+    "resource": {
+     "id": "a2c37438-ba78-40c7-b712-b569ccd5a99b",
+     "meta": {
+      "versionId": "1",
+      "lastUpdated": "2026-09-17T00:05:22+00:00"
+     },
+     "resourceType": "AllergyIntolerance",
+     "text": {
+      "status": "additional",
+      "div": "<div xmlns='http://www.w3.org/1999/xhtml'>Sulfamethoxazole / Trimethoprim</div>"
+     },
+     "clinicalStatus": {
+      "coding": [
+       {
+        "system": "http://terminology.hl7.org/CodeSystem/allergyintolerance-clinical",
+        "code": "active",
+        "display": "Active"
+       }
+      ]
+     },
+     "verificationStatus": {
+      "coding": [
+       {
+        "system": "http://terminology.hl7.org/CodeSystem/allergyintolerance-verification",
+        "code": "unconfirmed",
+        "display": "Unconfirmed"
+       }
+      ]
+     },
+     "category": [
+      "medication"
+     ],
+     "criticality": null,
+     "code": {
+      "coding": [
+       {
+        "system": "http://www.nlm.nih.gov/research/umls/rxnorm",
+        "code": "10831",
+        "display": "Sulfamethoxazole / Trimethoprim"
+       }
+      ]
+     },
+     "patient": {
+      "reference": "Patient/a2c3739a-29d3-4664-bac5-00d202aba3a5"
+     },
+     "reaction": [
+      {
+       "manifestation": [
+        {
+         "text": "Moderate"
+        }
+       ]
+      }
+     ]
+    }
+   }
+  ]
+ },
+ "Condition": {
+  "meta": {
+   "lastUpdated": "2026-09-24T17:45:14"
+  },
+  "resourceType": "Bundle",
+  "type": "collection",
+  "total": 18,
+  "link": [
+   {
+    "relation": "self",
+    "url": "https://localhost:9300/apis/default/fhir/Condition"
+   }
+  ],
+  "entry": [
+   {
+    "fullUrl": "https://localhost:9300/apis/default/fhir/Condition/a2c37438-ba7a-4e73-8d0e-6cf389c8e12d",
+    "resource": {
+     "id": "a2c37438-ba7a-4e73-8d0e-6cf389c8e12d",
+     "meta": {
+      "versionId": "1",
+      "lastUpdated": "2026-09-17T00:05:22+00:00",
+      "profile": [
+       "http://hl7.org/fhir/us/core/StructureDefinition/us-core-condition",
+       "http://hl7.org/fhir/us/core/StructureDefinition/us-core-condition|3.1.1",
+       "http://hl7.org/fhir/us/core/StructureDefinition/us-core-condition-problems-health-concerns",
+       "http://hl7.org/fhir/us/core/StructureDefinition/us-core-condition-problems-health-concerns|3.1.1",
+       "http://hl7.org/fhir/us/core/StructureDefinition/us-core-condition-problems-health-concerns|6.1.0",
+       "http://hl7.org/fhir/us/core/StructureDefinition/us-core-condition-problems-health-concerns|7.0.0",
+       "http://hl7.org/fhir/us/core/StructureDefinition/us-core-condition-problems-health-concerns|8.0.0"
+      ]
+     },
+     "resourceType": "Condition",
+     "clinicalStatus": {
+      "coding": [
+       {
+        "system": "http://terminology.hl7.org/CodeSystem/condition-clinical",
+        "code": "active",
+        "display": "Active"
+       }
+      ]
+     },
+     "verificationStatus": {
+      "coding": [
+       {
+        "system": "http://terminology.hl7.org/CodeSystem/condition-ver-status",
+        "code": "unconfirmed",
+        "display": "Unconfirmed"
+       }
+      ]
+     },
+     "category": [
+      {
+       "coding": [
+        {
+         "system": "http://terminology.hl7.org/CodeSystem/condition-category",
+         "code": "problem-list-item",
+         "display": "Problem List Item"
+        }
+       ],
+       "text": "Problem List Item"
+      }
+     ],
+     "code": {
+      "text": "Seasonal allergic rhinitis (disorder)"
+     },
+     "subject": {
+      "reference": "Patient/a2c3739a-29d3-4664-bac5-00d202aba3a5"
+     },
+     "onsetDateTime": "2011-10-23T16:02:06+00:00",
+     "recordedDate": "2011-10-23T16:02:06+00:00"
+    }
+   },
+   {
+    "fullUrl": "https://localhost:9300/apis/default/fhir/Condition/a2c37438-ba7d-43d0-8a9f-c45995a98977",
+    "resource": {
+     "id": "a2c37438-ba7d-43d0-8a9f-c45995a98977",
+     "meta": {
+      "versionId": "1",
+      "lastUpdated": "2026-09-17T00:05:22+00:00",
+      "profile": [
+       "http://hl7.org/fhir/us/core/StructureDefinition/us-core-condition",
+       "http://hl7.org/fhir/us/core/StructureDefinition/us-core-condition|3.1.1",
+       "http://hl7.org/fhir/us/core/StructureDefinition/us-core-condition-problems-health-concerns",
+       "http://hl7.org/fhir/us/core/StructureDefinition/us-core-condition-problems-health-concerns|3.1.1",
+       "http://hl7.org/fhir/us/core/StructureDefinition/us-core-condition-problems-health-concerns|6.1.0",
+       "http://hl7.org/fhir/us/core/StructureDefinition/us-core-condition-problems-health-concerns|7.0.0",
+       "http://hl7.org/fhir/us/core/StructureDefinition/us-core-condition-problems-health-concerns|8.0.0"
+      ]
+     },
+     "resourceType": "Condition",
+     "clinicalStatus": {
+      "coding": [
+       {
+        "system": "http://terminology.hl7.org/CodeSystem/condition-clinical",
+        "code": "inactive",
+        "display": "Inactive"
+       }
+      ]
+     },
+     "verificationStatus": {
+      "coding": [
+       {
+        "system": "http://terminology.hl7.org/CodeSystem/condition-ver-status",
+        "code": "unconfirmed",
+        "display": "Unconfirmed"
+       }
+      ]
+     },
+     "category": [
+      {
+       "coding": [
+        {
+         "system": "http://terminology.hl7.org/CodeSystem/condition-category",
+         "code": "problem-list-item",
+         "display": "Problem List Item"
+        }
+       ],
+       "text": "Problem List Item"
+      }
+     ],
+     "code": {
+      "text": "Medication review due (situation)"
+     },
+     "subject": {
+      "reference": "Patient/a2c3739a-29d3-4664-bac5-00d202aba3a5"
+     },
+     "onsetDateTime": "2014-11-02T16:02:06+00:00",
+     "abatementDateTime": "2019-07-07T16:02:06+00:00",
+     "recordedDate": "2014-11-02T16:02:06+00:00"
+    }
+   },
+   {
+    "fullUrl": "https://localhost:9300/apis/default/fhir/Condition/a2c37438-ba80-4555-a024-b9ae5aa63887",
+    "resource": {
+     "id": "a2c37438-ba80-4555-a024-b9ae5aa63887",
+     "meta": {
+      "versionId": "1",
+      "lastUpdated": "2026-09-17T00:05:22+00:00",
+      "profile": [
+       "http://hl7.org/fhir/us/core/StructureDefinition/us-core-condition",
+       "http://hl7.org/fhir/us/core/StructureDefinition/us-core-condition|3.1.1",
+       "http://hl7.org/fhir/us/core/StructureDefinition/us-core-condition-problems-health-concerns",
+       "http://hl7.org/fhir/us/core/StructureDefinition/us-core-condition-problems-health-concerns|3.1.1",
+       "http://hl7.org/fhir/us/core/StructureDefinition/us-core-condition-problems-health-concerns|6.1.0",
+       "http://hl7.org/fhir/us/core/StructureDefinition/us-core-condition-problems-health-concerns|7.0.0",
+       "http://hl7.org/fhir/us/core/StructureDefinition/us-core-condition-problems-health-concerns|8.0.0"
+      ]
+     },
+     "resourceType": "Condition",
+     "clinicalStatus": {
+      "coding": [
+       {
+        "system": "http://terminology.hl7.org/CodeSystem/condition-clinical",
+        "code": "inactive",
+        "display": "Inactive"
+       }
+      ]
+     },
+     "verificationStatus": {
+      "coding": [
+       {
+        "system": "http://terminology.hl7.org/CodeSystem/condition-ver-status",
+        "code": "unconfirmed",
+        "display": "Unconfirmed"
+       }
+      ]
+     },
+     "category": [
+      {
+       "coding": [
+        {
+         "system": "http://terminology.hl7.org/CodeSystem/condition-category",
+         "code": "problem-list-item",
+         "display": "Problem List Item"
+        }
+       ],
+       "text": "Problem List Item"
+      }
+     ],
+     "code": {
+      "text": "Streptococcal sore throat (disorder)"
+     },
+     "subject": {
+      "reference": "Patient/a2c3739a-29d3-4664-bac5-00d202aba3a5"
+     },
+     "onsetDateTime": "2019-06-28T07:02:06+00:00",
+     "abatementDateTime": "2019-07-12T03:02:06+00:00",
+     "recordedDate": "2019-06-28T07:02:06+00:00"
+    }
+   },
+   {
+    "fullUrl": "https://localhost:9300/apis/default/fhir/Condition/a2c37438-ba82-473f-bbaf-0fb0eacade19",
+    "resource": {
+     "id": "a2c37438-ba82-473f-bbaf-0fb0eacade19",
+     "meta": {
+      "versionId": "1",
+      "lastUpdated": "2026-09-17T00:05:22+00:00",
+      "profile": [
+       "http://hl7.org/fhir/us/core/StructureDefinition/us-core-condition",
+       "http://hl7.org/fhir/us/core/StructureDefinition/us-core-condition|3.1.1",
+       "http://hl7.org/fhir/us/core/StructureDefinition/us-core-condition-problems-health-concerns",
+       "http://hl7.org/fhir/us/core/StructureDefinition/us-core-condition-problems-health-concerns|3.1.1",
+       "http://hl7.org/fhir/us/core/StructureDefinition/us-core-condition-problems-health-concerns|6.1.0",
+       "http://hl7.org/fhir/us/core/StructureDefinition/us-core-condition-problems-health-concerns|7.0.0",
+       "http://hl7.org/fhir/us/core/StructureDefinition/us-core-condition-problems-health-concerns|8.0.0"
+      ]
+     },
+     "resourceType": "Condition",
+     "clinicalStatus": {
+      "coding": [
+       {
+        "system": "http://terminology.hl7.org/CodeSystem/condition-clinical",
+        "code": "inactive",
+        "display": "Inactive"
+       }
+      ]
+     },
+     "verificationStatus": {
+      "coding": [
+       {
+        "system": "http://terminology.hl7.org/CodeSystem/condition-ver-status",
+        "code": "unconfirmed",
+        "display": "Unconfirmed"
+       }
+      ]
+     },
+     "category": [
+      {
+       "coding": [
+        {
+         "system": "http://terminology.hl7.org/CodeSystem/condition-category",
+         "code": "problem-list-item",
+         "display": "Problem List Item"
+        }
+       ],
+       "text": "Problem List Item"
+      }
+     ],
+     "code": {
+      "text": "Medication review due (situation)"
+     },
+     "subject": {
+      "reference": "Patient/a2c3739a-29d3-4664-bac5-00d202aba3a5"
+     },
+     "onsetDateTime": "2019-12-01T16:02:06+00:00",
+     "abatementDateTime": "2019-12-01T16:02:06+00:00",
+     "recordedDate": "2019-12-01T16:02:06+00:00"
+    }
+   },
+   {
+    "fullUrl": "https://localhost:9300/apis/default/fhir/Condition/a2c37438-ba85-46e4-b35b-c4f2852dffe7",
+    "resource": {
+     "id": "a2c37438-ba85-46e4-b35b-c4f2852dffe7",
+     "meta": {
+      "versionId": "1",
+      "lastUpdated": "2026-09-17T00:05:22+00:00",
+      "profile": [
+       "http://hl7.org/fhir/us/core/StructureDefinition/us-core-condition",
+       "http://hl7.org/fhir/us/core/StructureDefinition/us-core-condition|3.1.1",
+       "http://hl7.org/fhir/us/core/StructureDefinition/us-core-condition-problems-health-concerns",
+       "http://hl7.org/fhir/us/core/StructureDefinition/us-core-condition-problems-health-concerns|3.1.1",
+       "http://hl7.org/fhir/us/core/StructureDefinition/us-core-condition-problems-health-concerns|6.1.0",
+       "http://hl7.org/fhir/us/core/StructureDefinition/us-core-condition-problems-health-concerns|7.0.0",
+       "http://hl7.org/fhir/us/core/StructureDefinition/us-core-condition-problems-health-concerns|8.0.0"
+      ]
+     },
+     "resourceType": "Condition",
+     "clinicalStatus": {
+      "coding": [
+       {
+        "system": "http://terminology.hl7.org/CodeSystem/condition-clinical",
+        "code": "inactive",
+        "display": "Inactive"
+       }
+      ]
+     },
+     "verificationStatus": {
+      "coding": [
+       {
+        "system": "http://terminology.hl7.org/CodeSystem/condition-ver-status",
+        "code": "unconfirmed",
+        "display": "Unconfirmed"
+       }
+      ]
+     },
+     "category": [
+      {
+       "coding": [
+        {
+         "system": "http://terminology.hl7.org/CodeSystem/condition-category",
+         "code": "problem-list-item",
+         "display": "Problem List Item"
+        }
+       ],
+       "text": "Problem List Item"
+      }
+     ],
+     "code": {
+      "text": "Medication review due (situation)"
+     },
+     "subject": {
+      "reference": "Patient/a2c3739a-29d3-4664-bac5-00d202aba3a5"
+     },
+     "onsetDateTime": "2020-12-06T16:02:06+00:00",
+     "abatementDateTime": "2021-12-12T16:02:06+00:00",
+     "recordedDate": "2020-12-06T16:02:06+00:00"
+    }
+   },
+   {
+    "fullUrl": "https://localhost:9300/apis/default/fhir/Condition/a2c37438-ba87-4eb4-9641-f21798c5d07d",
+    "resource": {
+     "id": "a2c37438-ba87-4eb4-9641-f21798c5d07d",
+     "meta": {
+      "versionId": "1",
+      "lastUpdated": "2026-09-17T00:05:22+00:00",
+      "profile": [
+       "http://hl7.org/fhir/us/core/StructureDefinition/us-core-condition",
+       "http://hl7.org/fhir/us/core/StructureDefinition/us-core-condition|3.1.1",
+       "http://hl7.org/fhir/us/core/StructureDefinition/us-core-condition-problems-health-concerns",
+       "http://hl7.org/fhir/us/core/StructureDefinition/us-core-condition-problems-health-concerns|3.1.1",
+       "http://hl7.org/fhir/us/core/StructureDefinition/us-core-condition-problems-health-concerns|6.1.0",
+       "http://hl7.org/fhir/us/core/StructureDefinition/us-core-condition-problems-health-concerns|7.0.0",
+       "http://hl7.org/fhir/us/core/StructureDefinition/us-core-condition-problems-health-concerns|8.0.0"
+      ]
+     },
+     "resourceType": "Condition",
+     "clinicalStatus": {
+      "coding": [
+       {
+        "system": "http://terminology.hl7.org/CodeSystem/condition-clinical",
+        "code": "inactive",
+        "display": "Inactive"
+       }
+      ]
+     },
+     "verificationStatus": {
+      "coding": [
+       {
+        "system": "http://terminology.hl7.org/CodeSystem/condition-ver-status",
+        "code": "unconfirmed",
+        "display": "Unconfirmed"
+       }
+      ]
+     },
+     "category": [
+      {
+       "coding": [
+        {
+         "system": "http://terminology.hl7.org/CodeSystem/condition-category",
+         "code": "problem-list-item",
+         "display": "Problem List Item"
+        }
+       ],
+       "text": "Problem List Item"
+      }
+     ],
+     "code": {
+      "text": "Gingivitis (disorder)"
+     },
+     "subject": {
+      "reference": "Patient/a2c3739a-29d3-4664-bac5-00d202aba3a5"
+     },
+     "onsetDateTime": "2020-12-06T17:30:33+00:00",
+     "abatementDateTime": "2020-12-20T18:25:05+00:00",
+     "recordedDate": "2020-12-06T17:30:33+00:00"
+    }
+   },
+   {
+    "fullUrl": "https://localhost:9300/apis/default/fhir/Condition/a2c37438-ba8a-4c5b-80ae-661cdde9101b",
+    "resource": {
+     "id": "a2c37438-ba8a-4c5b-80ae-661cdde9101b",
+     "meta": {
+      "versionId": "1",
+      "lastUpdated": "2026-09-17T00:05:22+00:00",
+      "profile": [
+       "http://hl7.org/fhir/us/core/StructureDefinition/us-core-condition",
+       "http://hl7.org/fhir/us/core/StructureDefinition/us-core-condition|3.1.1",
+       "http://hl7.org/fhir/us/core/StructureDefinition/us-core-condition-problems-health-concerns",
+       "http://hl7.org/fhir/us/core/StructureDefinition/us-core-condition-problems-health-concerns|3.1.1",
+       "http://hl7.org/fhir/us/core/StructureDefinition/us-core-condition-problems-health-concerns|6.1.0",
+       "http://hl7.org/fhir/us/core/StructureDefinition/us-core-condition-problems-health-concerns|7.0.0",
+       "http://hl7.org/fhir/us/core/StructureDefinition/us-core-condition-problems-health-concerns|8.0.0"
+      ]
+     },
+     "resourceType": "Condition",
+     "clinicalStatus": {
+      "coding": [
+       {
+        "system": "http://terminology.hl7.org/CodeSystem/condition-clinical",
+        "code": "inactive",
+        "display": "Inactive"
+       }
+      ]
+     },
+     "verificationStatus": {
+      "coding": [
+       {
+        "system": "http://terminology.hl7.org/CodeSystem/condition-ver-status",
+        "code": "unconfirmed",
+        "display": "Unconfirmed"
+       }
+      ]
+     },
+     "category": [
+      {
+       "coding": [
+        {
+         "system": "http://terminology.hl7.org/CodeSystem/condition-category",
+         "code": "problem-list-item",
+         "display": "Problem List Item"
+        }
+       ],
+       "text": "Problem List Item"
+      }
+     ],
+     "code": {
+      "text": "Primary dental caries (disorder)"
+     },
+     "subject": {
+      "reference": "Patient/a2c3739a-29d3-4664-bac5-00d202aba3a5"
+     },
+     "onsetDateTime": "2020-12-20T18:25:05+00:00",
+     "abatementDateTime": "2020-12-20T18:56:58+00:00",
+     "recordedDate": "2020-12-20T18:25:05+00:00"
+    }
+   },
+   {
+    "fullUrl": "https://localhost:9300/apis/default/fhir/Condition/a2c37438-ba8d-4c01-8579-736d8dde4171",
+    "resource": {
+     "id": "a2c37438-ba8d-4c01-8579-736d8dde4171",
+     "meta": {
+      "versionId": "1",
+      "lastUpdated": "2026-09-17T00:05:22+00:00",
+      "profile": [
+       "http://hl7.org/fhir/us/core/StructureDefinition/us-core-condition",
+       "http://hl7.org/fhir/us/core/StructureDefinition/us-core-condition|3.1.1",
+       "http://hl7.org/fhir/us/core/StructureDefinition/us-core-condition-problems-health-concerns",
+       "http://hl7.org/fhir/us/core/StructureDefinition/us-core-condition-problems-health-concerns|3.1.1",
+       "http://hl7.org/fhir/us/core/StructureDefinition/us-core-condition-problems-health-concerns|6.1.0",
+       "http://hl7.org/fhir/us/core/StructureDefinition/us-core-condition-problems-health-concerns|7.0.0",
+       "http://hl7.org/fhir/us/core/StructureDefinition/us-core-condition-problems-health-concerns|8.0.0"
+      ]
+     },
+     "resourceType": "Condition",
+     "clinicalStatus": {
+      "coding": [
+       {
+        "system": "http://terminology.hl7.org/CodeSystem/condition-clinical",
+        "code": "inactive",
+        "display": "Inactive"
+       }
+      ]
+     },
+     "verificationStatus": {
+      "coding": [
+       {
+        "system": "http://terminology.hl7.org/CodeSystem/condition-ver-status",
+        "code": "unconfirmed",
+        "display": "Unconfirmed"
+       }
+      ]
+     },
+     "category": [
+      {
+       "coding": [
+        {
+         "system": "http://terminology.hl7.org/CodeSystem/condition-category",
+         "code": "problem-list-item",
+         "display": "Problem List Item"
+        }
+       ],
+       "text": "Problem List Item"
+      }
+     ],
+     "code": {
+      "text": "Medication review due (situation)"
+     },
+     "subject": {
+      "reference": "Patient/a2c3739a-29d3-4664-bac5-00d202aba3a5"
+     },
+     "onsetDateTime": "2022-12-18T16:02:06+00:00",
+     "abatementDateTime": "2022-12-18T16:02:06+00:00",
+     "recordedDate": "2022-12-18T16:02:06+00:00"
+    }
+   },
+   {
+    "fullUrl": "https://localhost:9300/apis/default/fhir/Condition/a2c37438-ba8f-4f14-b5a2-878ef797d086",
+    "resource": {
+     "id": "a2c37438-ba8f-4f14-b5a2-878ef797d086",
+     "meta": {
+      "versionId": "1",
+      "lastUpdated": "2026-09-17T00:05:22+00:00",
+      "profile": [
+       "http://hl7.org/fhir/us/core/StructureDefinition/us-core-condition",
+       "http://hl7.org/fhir/us/core/StructureDefinition/us-core-condition|3.1.1",
+       "http://hl7.org/fhir/us/core/StructureDefinition/us-core-condition-problems-health-concerns",
+       "http://hl7.org/fhir/us/core/StructureDefinition/us-core-condition-problems-health-concerns|3.1.1",
+       "http://hl7.org/fhir/us/core/StructureDefinition/us-core-condition-problems-health-concerns|6.1.0",
+       "http://hl7.org/fhir/us/core/StructureDefinition/us-core-condition-problems-health-concerns|7.0.0",
+       "http://hl7.org/fhir/us/core/StructureDefinition/us-core-condition-problems-health-concerns|8.0.0"
+      ]
+     },
+     "resourceType": "Condition",
+     "clinicalStatus": {
+      "coding": [
+       {
+        "system": "http://terminology.hl7.org/CodeSystem/condition-clinical",
+        "code": "inactive",
+        "display": "Inactive"
+       }
+      ]
+     },
+     "verificationStatus": {
+      "coding": [
+       {
+        "system": "http://terminology.hl7.org/CodeSystem/condition-ver-status",
+        "code": "unconfirmed",
+        "display": "Unconfirmed"
+       }
+      ]
+     },
+     "category": [
+      {
+       "coding": [
+        {
+         "system": "http://terminology.hl7.org/CodeSystem/condition-category",
+         "code": "problem-list-item",
+         "display": "Problem List Item"
+        }
+       ],
+       "text": "Problem List Item"
+      }
+     ],
+     "code": {
+      "text": "Medication review due (situation)"
+     },
+     "subject": {
+      "reference": "Patient/a2c3739a-29d3-4664-bac5-00d202aba3a5"
+     },
+     "onsetDateTime": "2023-12-24T16:02:06+00:00",
+     "abatementDateTime": "2023-12-24T16:02:06+00:00",
+     "recordedDate": "2023-12-24T16:02:06+00:00"
+    }
+   },
+   {
+    "fullUrl": "https://localhost:9300/apis/default/fhir/Condition/a2c37438-ba92-4bb9-bef1-714962d4ef3c",
+    "resource": {
+     "id": "a2c37438-ba92-4bb9-bef1-714962d4ef3c",
+     "meta": {
+      "versionId": "1",
+      "lastUpdated": "2026-09-17T00:05:22+00:00",
+      "profile": [
+       "http://hl7.org/fhir/us/core/StructureDefinition/us-core-condition",
+       "http://hl7.org/fhir/us/core/StructureDefinition/us-core-condition|3.1.1",
+       "http://hl7.org/fhir/us/core/StructureDefinition/us-core-condition-problems-health-concerns",
+       "http://hl7.org/fhir/us/core/StructureDefinition/us-core-condition-problems-health-concerns|3.1.1",
+       "http://hl7.org/fhir/us/core/StructureDefinition/us-core-condition-problems-health-concerns|6.1.0",
+       "http://hl7.org/fhir/us/core/StructureDefinition/us-core-condition-problems-health-concerns|7.0.0",
+       "http://hl7.org/fhir/us/core/StructureDefinition/us-core-condition-problems-health-concerns|8.0.0"
+      ]
+     },
+     "resourceType": "Condition",
+     "clinicalStatus": {
+      "coding": [
+       {
+        "system": "http://terminology.hl7.org/CodeSystem/condition-clinical",
+        "code": "active",
+        "display": "Active"
+       }
+      ]
+     },
+     "verificationStatus": {
+      "coding": [
+       {
+        "system": "http://terminology.hl7.org/CodeSystem/condition-ver-status",
+        "code": "unconfirmed",
+        "display": "Unconfirmed"
+       }
+      ]
+     },
+     "category": [
+      {
+       "coding": [
+        {
+         "system": "http://terminology.hl7.org/CodeSystem/condition-category",
+         "code": "problem-list-item",
+         "display": "Problem List Item"
+        }
+       ],
+       "text": "Problem List Item"
+      }
+     ],
+     "code": {
+      "text": "Risk activity involvement (finding)"
+     },
+     "subject": {
+      "reference": "Patient/a2c3739a-29d3-4664-bac5-00d202aba3a5"
+     },
+     "onsetDateTime": "2023-12-24T17:07:18+00:00",
+     "recordedDate": "2023-12-24T17:07:18+00:00"
+    }
+   },
+   {
+    "fullUrl": "https://localhost:9300/apis/default/fhir/Condition/a2c37438-ba95-4b27-8cf1-32e015209394",
+    "resource": {
+     "id": "a2c37438-ba95-4b27-8cf1-32e015209394",
+     "meta": {
+      "versionId": "1",
+      "lastUpdated": "2026-09-17T00:05:22+00:00",
+      "profile": [
+       "http://hl7.org/fhir/us/core/StructureDefinition/us-core-condition",
+       "http://hl7.org/fhir/us/core/StructureDefinition/us-core-condition|3.1.1",
+       "http://hl7.org/fhir/us/core/StructureDefinition/us-core-condition-problems-health-concerns",
+       "http://hl7.org/fhir/us/core/StructureDefinition/us-core-condition-problems-health-concerns|3.1.1",
+       "http://hl7.org/fhir/us/core/StructureDefinition/us-core-condition-problems-health-concerns|6.1.0",
+       "http://hl7.org/fhir/us/core/StructureDefinition/us-core-condition-problems-health-concerns|7.0.0",
+       "http://hl7.org/fhir/us/core/StructureDefinition/us-core-condition-problems-health-concerns|8.0.0"
+      ]
+     },
+     "resourceType": "Condition",
+     "clinicalStatus": {
+      "coding": [
+       {
+        "system": "http://terminology.hl7.org/CodeSystem/condition-clinical",
+        "code": "inactive",
+        "display": "Inactive"
+       }
+      ]
+     },
+     "verificationStatus": {
+      "coding": [
+       {
+        "system": "http://terminology.hl7.org/CodeSystem/condition-ver-status",
+        "code": "unconfirmed",
+        "display": "Unconfirmed"
+       }
+      ]
+     },
+     "category": [
+      {
+       "coding": [
+        {
+         "system": "http://terminology.hl7.org/CodeSystem/condition-category",
+         "code": "problem-list-item",
+         "display": "Problem List Item"
+        }
+       ],
+       "text": "Problem List Item"
+      }
+     ],
+     "code": {
+      "text": "Medication review due (situation)"
+     },
+     "subject": {
+      "reference": "Patient/a2c3739a-29d3-4664-bac5-00d202aba3a5"
+     },
+     "onsetDateTime": "2024-12-29T16:02:06+00:00",
+     "abatementDateTime": "2024-12-29T16:02:06+00:00",
+     "recordedDate": "2024-12-29T16:02:06+00:00"
+    }
+   },
+   {
+    "fullUrl": "https://localhost:9300/apis/default/fhir/Condition/a2c37438-ba97-4d4d-93e6-034c441996d1",
+    "resource": {
+     "id": "a2c37438-ba97-4d4d-93e6-034c441996d1",
+     "meta": {
+      "versionId": "1",
+      "lastUpdated": "2026-09-17T00:05:22+00:00",
+      "profile": [
+       "http://hl7.org/fhir/us/core/StructureDefinition/us-core-condition",
+       "http://hl7.org/fhir/us/core/StructureDefinition/us-core-condition|3.1.1",
+       "http://hl7.org/fhir/us/core/StructureDefinition/us-core-condition-problems-health-concerns",
+       "http://hl7.org/fhir/us/core/StructureDefinition/us-core-condition-problems-health-concerns|3.1.1",
+       "http://hl7.org/fhir/us/core/StructureDefinition/us-core-condition-problems-health-concerns|6.1.0",
+       "http://hl7.org/fhir/us/core/StructureDefinition/us-core-condition-problems-health-concerns|7.0.0",
+       "http://hl7.org/fhir/us/core/StructureDefinition/us-core-condition-problems-health-concerns|8.0.0"
+      ]
+     },
+     "resourceType": "Condition",
+     "clinicalStatus": {
+      "coding": [
+       {
+        "system": "http://terminology.hl7.org/CodeSystem/condition-clinical",
+        "code": "inactive",
+        "display": "Inactive"
+       }
+      ]
+     },
+     "verificationStatus": {
+      "coding": [
+       {
+        "system": "http://terminology.hl7.org/CodeSystem/condition-ver-status",
+        "code": "unconfirmed",
+        "display": "Unconfirmed"
+       }
+      ]
+     },
+     "category": [
+      {
+       "coding": [
+        {
+         "system": "http://terminology.hl7.org/CodeSystem/condition-category",
+         "code": "problem-list-item",
+         "display": "Problem List Item"
+        }
+       ],
+       "text": "Problem List Item"
+      }
+     ],
+     "code": {
+      "text": "Gingivitis (disorder)"
+     },
+     "subject": {
+      "reference": "Patient/a2c3739a-29d3-4664-bac5-00d202aba3a5"
+     },
+     "onsetDateTime": "2024-12-29T16:42:31+00:00",
+     "abatementDateTime": "2025-01-12T21:15:21+00:00",
+     "recordedDate": "2024-12-29T16:42:31+00:00"
+    }
+   },
+   {
+    "fullUrl": "https://localhost:9300/apis/default/fhir/Condition/a2c37438-ba9a-4fb0-a029-a04460ed739c",
+    "resource": {
+     "id": "a2c37438-ba9a-4fb0-a029-a04460ed739c",
+     "meta": {
+      "versionId": "1",
+      "lastUpdated": "2026-09-17T00:05:22+00:00",
+      "profile": [
+       "http://hl7.org/fhir/us/core/StructureDefinition/us-core-condition",
+       "http://hl7.org/fhir/us/core/StructureDefinition/us-core-condition|3.1.1",
+       "http://hl7.org/fhir/us/core/StructureDefinition/us-core-condition-problems-health-concerns",
+       "http://hl7.org/fhir/us/core/StructureDefinition/us-core-condition-problems-health-concerns|3.1.1",
+       "http://hl7.org/fhir/us/core/StructureDefinition/us-core-condition-problems-health-concerns|6.1.0",
+       "http://hl7.org/fhir/us/core/StructureDefinition/us-core-condition-problems-health-concerns|7.0.0",
+       "http://hl7.org/fhir/us/core/StructureDefinition/us-core-condition-problems-health-concerns|8.0.0"
+      ]
+     },
+     "resourceType": "Condition",
+     "clinicalStatus": {
+      "coding": [
+       {
+        "system": "http://terminology.hl7.org/CodeSystem/condition-clinical",
+        "code": "inactive",
+        "display": "Inactive"
+       }
+      ]
+     },
+     "verificationStatus": {
+      "coding": [
+       {
+        "system": "http://terminology.hl7.org/CodeSystem/condition-ver-status",
+        "code": "unconfirmed",
+        "display": "Unconfirmed"
+       }
+      ]
+     },
+     "category": [
+      {
+       "coding": [
+        {
+         "system": "http://terminology.hl7.org/CodeSystem/condition-category",
+         "code": "problem-list-item",
+         "display": "Problem List Item"
+        }
+       ],
+       "text": "Problem List Item"
+      }
+     ],
+     "code": {
+      "text": "Gingival disease (disorder)"
+     },
+     "subject": {
+      "reference": "Patient/a2c3739a-29d3-4664-bac5-00d202aba3a5"
+     },
+     "onsetDateTime": "2025-01-12T18:49:29+00:00",
+     "abatementDateTime": "2025-01-12T20:31:00+00:00",
+     "recordedDate": "2025-01-12T18:49:29+00:00"
+    }
+   },
+   {
+    "fullUrl": "https://localhost:9300/apis/default/fhir/Condition/a2c37438-ba9c-47b1-a2c2-2e15926fb1fb",
+    "resource": {
+     "id": "a2c37438-ba9c-47b1-a2c2-2e15926fb1fb",
+     "meta": {
+      "versionId": "1",
+      "lastUpdated": "2026-09-17T00:05:22+00:00",
+      "profile": [
+       "http://hl7.org/fhir/us/core/StructureDefinition/us-core-condition",
+       "http://hl7.org/fhir/us/core/StructureDefinition/us-core-condition|3.1.1",
+       "http://hl7.org/fhir/us/core/StructureDefinition/us-core-condition-problems-health-concerns",
+       "http://hl7.org/fhir/us/core/StructureDefinition/us-core-condition-problems-health-concerns|3.1.1",
+       "http://hl7.org/fhir/us/core/StructureDefinition/us-core-condition-problems-health-concerns|6.1.0",
+       "http://hl7.org/fhir/us/core/StructureDefinition/us-core-condition-problems-health-concerns|7.0.0",
+       "http://hl7.org/fhir/us/core/StructureDefinition/us-core-condition-problems-health-concerns|8.0.0"
+      ]
+     },
+     "resourceType": "Condition",
+     "clinicalStatus": {
+      "coding": [
+       {
+        "system": "http://terminology.hl7.org/CodeSystem/condition-clinical",
+        "code": "active",
+        "display": "Active"
+       }
+      ]
+     },
+     "verificationStatus": {
+      "coding": [
+       {
+        "system": "http://terminology.hl7.org/CodeSystem/condition-ver-status",
+        "code": "unconfirmed",
+        "display": "Unconfirmed"
+       }
+      ]
+     },
+     "category": [
+      {
+       "coding": [
+        {
+         "system": "http://terminology.hl7.org/CodeSystem/condition-category",
+         "code": "problem-list-item",
+         "display": "Problem List Item"
+        }
+       ],
+       "text": "Problem List Item"
+      }
+     ],
+     "code": {
+      "text": "Chronic pain (finding)"
+     },
+     "subject": {
+      "reference": "Patient/a2c3739a-29d3-4664-bac5-00d202aba3a5"
+     },
+     "onsetDateTime": "2025-12-16T16:02:06+00:00",
+     "recordedDate": "2025-12-16T16:02:06+00:00"
+    }
+   },
+   {
+    "fullUrl": "https://localhost:9300/apis/default/fhir/Condition/a2c37438-ba9f-4feb-a715-fe97cef96805",
+    "resource": {
+     "id": "a2c37438-ba9f-4feb-a715-fe97cef96805",
+     "meta": {
+      "versionId": "1",
+      "lastUpdated": "2026-09-17T00:05:22+00:00",
+      "profile": [
+       "http://hl7.org/fhir/us/core/StructureDefinition/us-core-condition",
+       "http://hl7.org/fhir/us/core/StructureDefinition/us-core-condition|3.1.1",
+       "http://hl7.org/fhir/us/core/StructureDefinition/us-core-condition-problems-health-concerns",
+       "http://hl7.org/fhir/us/core/StructureDefinition/us-core-condition-problems-health-concerns|3.1.1",
+       "http://hl7.org/fhir/us/core/StructureDefinition/us-core-condition-problems-health-concerns|6.1.0",
+       "http://hl7.org/fhir/us/core/StructureDefinition/us-core-condition-problems-health-concerns|7.0.0",
+       "http://hl7.org/fhir/us/core/StructureDefinition/us-core-condition-problems-health-concerns|8.0.0"
+      ]
+     },
+     "resourceType": "Condition",
+     "clinicalStatus": {
+      "coding": [
+       {
+        "system": "http://terminology.hl7.org/CodeSystem/condition-clinical",
+        "code": "active",
+        "display": "Active"
+       }
+      ]
+     },
+     "verificationStatus": {
+      "coding": [
+       {
+        "system": "http://terminology.hl7.org/CodeSystem/condition-ver-status",
+        "code": "unconfirmed",
+        "display": "Unconfirmed"
+       }
+      ]
+     },
+     "category": [
+      {
+       "coding": [
+        {
+         "system": "http://terminology.hl7.org/CodeSystem/condition-category",
+         "code": "problem-list-item",
+         "display": "Problem List Item"
+        }
+       ],
+       "text": "Problem List Item"
+      }
+     ],
+     "code": {
+      "text": "Chronic low back pain (finding)"
+     },
+     "subject": {
+      "reference": "Patient/a2c3739a-29d3-4664-bac5-00d202aba3a5"
+     },
+     "onsetDateTime": "2025-12-16T16:02:06+00:00",
+     "recordedDate": "2025-12-16T16:02:06+00:00"
+    }
+   },
+   {
+    "fullUrl": "https://localhost:9300/apis/default/fhir/Condition/a2c37438-baa2-471a-89f0-3f6551bd44dc",
+    "resource": {
+     "id": "a2c37438-baa2-471a-89f0-3f6551bd44dc",
+     "meta": {
+      "versionId": "1",
+      "lastUpdated": "2026-09-17T00:05:22+00:00",
+      "profile": [
+       "http://hl7.org/fhir/us/core/StructureDefinition/us-core-condition",
+       "http://hl7.org/fhir/us/core/StructureDefinition/us-core-condition|3.1.1",
+       "http://hl7.org/fhir/us/core/StructureDefinition/us-core-condition-problems-health-concerns",
+       "http://hl7.org/fhir/us/core/StructureDefinition/us-core-condition-problems-health-concerns|3.1.1",
+       "http://hl7.org/fhir/us/core/StructureDefinition/us-core-condition-problems-health-concerns|6.1.0",
+       "http://hl7.org/fhir/us/core/StructureDefinition/us-core-condition-problems-health-concerns|7.0.0",
+       "http://hl7.org/fhir/us/core/StructureDefinition/us-core-condition-problems-health-concerns|8.0.0"
+      ]
+     },
+     "resourceType": "Condition",
+     "clinicalStatus": {
+      "coding": [
+       {
+        "system": "http://terminology.hl7.org/CodeSystem/condition-clinical",
+        "code": "active",
+        "display": "Active"
+       }
+      ]
+     },
+     "verificationStatus": {
+      "coding": [
+       {
+        "system": "http://terminology.hl7.org/CodeSystem/condition-ver-status",
+        "code": "unconfirmed",
+        "display": "Unconfirmed"
+       }
+      ]
+     },
+     "category": [
+      {
+       "coding": [
+        {
+         "system": "http://terminology.hl7.org/CodeSystem/condition-category",
+         "code": "problem-list-item",
+         "display": "Problem List Item"
+        }
+       ],
+       "text": "Problem List Item"
+      }
+     ],
+     "code": {
+      "text": "Medication review due (situation)"
+     },
+     "subject": {
+      "reference": "Patient/a2c3739a-29d3-4664-bac5-00d202aba3a5"
+     },
+     "onsetDateTime": "2026-01-04T16:02:06+00:00",
+     "recordedDate": "2026-01-04T16:02:06+00:00"
+    }
+   },
+   {
+    "fullUrl": "https://localhost:9300/apis/default/fhir/Condition/a2c37438-baa5-449f-b67e-48084b248704",
+    "resource": {
+     "id": "a2c37438-baa5-449f-b67e-48084b248704",
+     "meta": {
+      "versionId": "1",
+      "lastUpdated": "2026-09-17T00:05:22+00:00",
+      "profile": [
+       "http://hl7.org/fhir/us/core/StructureDefinition/us-core-condition",
+       "http://hl7.org/fhir/us/core/StructureDefinition/us-core-condition|3.1.1",
+       "http://hl7.org/fhir/us/core/StructureDefinition/us-core-condition-problems-health-concerns",
+       "http://hl7.org/fhir/us/core/StructureDefinition/us-core-condition-problems-health-concerns|3.1.1",
+       "http://hl7.org/fhir/us/core/StructureDefinition/us-core-condition-problems-health-concerns|6.1.0",
+       "http://hl7.org/fhir/us/core/StructureDefinition/us-core-condition-problems-health-concerns|7.0.0",
+       "http://hl7.org/fhir/us/core/StructureDefinition/us-core-condition-problems-health-concerns|8.0.0"
+      ]
+     },
+     "resourceType": "Condition",
+     "clinicalStatus": {
+      "coding": [
+       {
+        "system": "http://terminology.hl7.org/CodeSystem/condition-clinical",
+        "code": "active",
+        "display": "Active"
+       }
+      ]
+     },
+     "verificationStatus": {
+      "coding": [
+       {
+        "system": "http://terminology.hl7.org/CodeSystem/condition-ver-status",
+        "code": "unconfirmed",
+        "display": "Unconfirmed"
+       }
+      ]
+     },
+     "category": [
+      {
+       "coding": [
+        {
+         "system": "http://terminology.hl7.org/CodeSystem/condition-category",
+         "code": "problem-list-item",
+         "display": "Problem List Item"
+        }
+       ],
+       "text": "Problem List Item"
+      }
+     ],
+     "code": {
+      "text": "Received higher education (finding)"
+     },
+     "subject": {
+      "reference": "Patient/a2c3739a-29d3-4664-bac5-00d202aba3a5"
+     },
+     "onsetDateTime": "2026-01-04T16:59:29+00:00",
+     "recordedDate": "2026-01-04T16:59:29+00:00"
+    }
+   },
+   {
+    "fullUrl": "https://localhost:9300/apis/default/fhir/Condition/a2c37438-baa8-4c2e-9574-c9ab48198ba1",
+    "resource": {
+     "id": "a2c37438-baa8-4c2e-9574-c9ab48198ba1",
+     "meta": {
+      "versionId": "1",
+      "lastUpdated": "2026-09-17T00:05:22+00:00",
+      "profile": [
+       "http://hl7.org/fhir/us/core/StructureDefinition/us-core-condition",
+       "http://hl7.org/fhir/us/core/StructureDefinition/us-core-condition|3.1.1",
+       "http://hl7.org/fhir/us/core/StructureDefinition/us-core-condition-problems-health-concerns",
+       "http://hl7.org/fhir/us/core/StructureDefinition/us-core-condition-problems-health-concerns|3.1.1",
+       "http://hl7.org/fhir/us/core/StructureDefinition/us-core-condition-problems-health-concerns|6.1.0",
+       "http://hl7.org/fhir/us/core/StructureDefinition/us-core-condition-problems-health-concerns|7.0.0",
+       "http://hl7.org/fhir/us/core/StructureDefinition/us-core-condition-problems-health-concerns|8.0.0"
+      ]
+     },
+     "resourceType": "Condition",
+     "clinicalStatus": {
+      "coding": [
+       {
+        "system": "http://terminology.hl7.org/CodeSystem/condition-clinical",
+        "code": "active",
+        "display": "Active"
+       }
+      ]
+     },
+     "verificationStatus": {
+      "coding": [
+       {
+        "system": "http://terminology.hl7.org/CodeSystem/condition-ver-status",
+        "code": "unconfirmed",
+        "display": "Unconfirmed"
+       }
+      ]
+     },
+     "category": [
+      {
+       "coding": [
+        {
+         "system": "http://terminology.hl7.org/CodeSystem/condition-category",
+         "code": "problem-list-item",
+         "display": "Problem List Item"
+        }
+       ],
+       "text": "Problem List Item"
+      }
+     ],
+     "code": {
+      "text": "Part-time employment (finding)"
+     },
+     "subject": {
+      "reference": "Patient/a2c3739a-29d3-4664-bac5-00d202aba3a5"
+     },
+     "onsetDateTime": "2026-01-04T16:59:29+00:00",
+     "recordedDate": "2026-01-04T16:59:29+00:00"
+    }
+   }
+  ]
+ },
+ "MedicationRequest": {
+  "meta": {
+   "lastUpdated": "2026-09-24T17:45:14"
+  },
+  "resourceType": "Bundle",
+  "type": "collection",
+  "total": 10,
+  "link": [
+   {
+    "relation": "self",
+    "url": "https://localhost:9300/apis/default/fhir/MedicationRequest"
+   }
+  ],
+  "entry": [
+   {
+    "fullUrl": "https://localhost:9300/apis/default/fhir/MedicationRequest/a2c3743a-0733-49f8-ab4f-cedaeba25df3",
+    "resource": {
+     "id": "a2c3743a-0733-49f8-ab4f-cedaeba25df3",
+     "meta": {
+      "versionId": "1",
+      "lastUpdated": "2026-09-24T17:45:14+00:00"
+     },
+     "resourceType": "MedicationRequest",
+     "status": "active",
+     "intent": "order",
+     "category": [
+      {
+       "coding": [
+        {
+         "system": "http://terminology.hl7.org/CodeSystem/medicationrequest-category",
+         "code": "community",
+         "display": "Home/Community"
+        }
+       ]
+      }
+     ],
+     "reportedBoolean": false,
+     "medicationCodeableConcept": {
+      "coding": [
+       {
+        "system": "http://www.nlm.nih.gov/research/umls/rxnorm",
+        "code": "665078",
+        "display": "Loratadine 5 MG Chewable Tablet"
+       }
+      ]
+     },
+     "subject": {
+      "reference": "Patient/a2c3739a-29d3-4664-bac5-00d202aba3a5",
+      "type": "Patient"
+     },
+     "authoredOn": "2011-10-23T16:02:06+00:00",
+     "dosageInstruction": [
+      []
+     ],
+     "dispenseRequest": {
+      "numberOfRepeatsAllowed": 0
+     }
+    }
+   },
+   {
+    "fullUrl": "https://localhost:9300/apis/default/fhir/MedicationRequest/a2c3743a-0735-4e50-90e0-712cb08794aa",
+    "resource": {
+     "id": "a2c3743a-0735-4e50-90e0-712cb08794aa",
+     "meta": {
+      "versionId": "1",
+      "lastUpdated": "2026-09-24T17:45:14+00:00"
+     },
+     "resourceType": "MedicationRequest",
+     "status": "active",
+     "intent": "order",
+     "category": [
+      {
+       "coding": [
+        {
+         "system": "http://terminology.hl7.org/CodeSystem/medicationrequest-category",
+         "code": "community",
+         "display": "Home/Community"
+        }
+       ]
+      }
+     ],
+     "reportedBoolean": false,
+     "medicationCodeableConcept": {
+      "coding": [
+       {
+        "system": "http://www.nlm.nih.gov/research/umls/rxnorm",
+        "code": "1870230",
+        "display": "NDA020800 0.3 ML Epinephrine 1 MG/ML Auto-Injector"
+       }
+      ]
+     },
+     "subject": {
+      "reference": "Patient/a2c3739a-29d3-4664-bac5-00d202aba3a5",
+      "type": "Patient"
+     },
+     "authoredOn": "2011-11-06T16:25:04+00:00",
+     "dosageInstruction": [
+      []
+     ],
+     "dispenseRequest": {
+      "numberOfRepeatsAllowed": 0
+     }
+    }
+   },
+   {
+    "fullUrl": "https://localhost:9300/apis/default/fhir/MedicationRequest/a2c3743a-0738-4331-a8c5-d41b4f7bb85c",
+    "resource": {
+     "id": "a2c3743a-0738-4331-a8c5-d41b4f7bb85c",
+     "meta": {
+      "versionId": "1",
+      "lastUpdated": "2026-09-24T17:45:14+00:00"
+     },
+     "resourceType": "MedicationRequest",
+     "status": "completed",
+     "intent": "order",
+     "category": [
+      {
+       "coding": [
+        {
+         "system": "http://terminology.hl7.org/CodeSystem/medicationrequest-category",
+         "code": "community",
+         "display": "Home/Community"
+        }
+       ]
+      }
+     ],
+     "reportedBoolean": false,
+     "medicationCodeableConcept": {
+      "coding": [
+       {
+        "system": "http://www.nlm.nih.gov/research/umls/rxnorm",
+        "code": "1535362",
+        "display": "sodium fluoride 0.0272 MG/MG Oral Gel"
+       }
+      ]
+     },
+     "subject": {
+      "reference": "Patient/a2c3739a-29d3-4664-bac5-00d202aba3a5",
+      "type": "Patient"
+     },
+     "authoredOn": "2018-12-02T18:59:08+00:00",
+     "dosageInstruction": [
+      []
+     ],
+     "dispenseRequest": {
+      "numberOfRepeatsAllowed": 0
+     }
+    }
+   },
+   {
+    "fullUrl": "https://localhost:9300/apis/default/fhir/MedicationRequest/a2c3743a-073b-4fa8-84cf-b542250a2ce1",
+    "resource": {
+     "id": "a2c3743a-073b-4fa8-84cf-b542250a2ce1",
+     "meta": {
+      "versionId": "1",
+      "lastUpdated": "2026-09-24T17:45:14+00:00"
+     },
+     "resourceType": "MedicationRequest",
+     "status": "completed",
+     "intent": "order",
+     "category": [
+      {
+       "coding": [
+        {
+         "system": "http://terminology.hl7.org/CodeSystem/medicationrequest-category",
+         "code": "community",
+         "display": "Home/Community"
+        }
+       ]
+      }
+     ],
+     "reportedBoolean": false,
+     "medicationCodeableConcept": {
+      "coding": [
+       {
+        "system": "http://www.nlm.nih.gov/research/umls/rxnorm",
+        "code": "834061",
+        "display": "Penicillin V Potassium 250 MG Oral Tablet"
+       }
+      ]
+     },
+     "subject": {
+      "reference": "Patient/a2c3739a-29d3-4664-bac5-00d202aba3a5",
+      "type": "Patient"
+     },
+     "authoredOn": "2019-06-28T07:02:06+00:00",
+     "dosageInstruction": [
+      []
+     ],
+     "dispenseRequest": {
+      "numberOfRepeatsAllowed": 0
+     }
+    }
+   },
+   {
+    "fullUrl": "https://localhost:9300/apis/default/fhir/MedicationRequest/a2c3743a-073d-49fe-ba0a-0c61bac5cb0d",
+    "resource": {
+     "id": "a2c3743a-073d-49fe-ba0a-0c61bac5cb0d",
+     "meta": {
+      "versionId": "1",
+      "lastUpdated": "2026-09-24T17:45:14+00:00"
+     },
+     "resourceType": "MedicationRequest",
+     "status": "completed",
+     "intent": "order",
+     "category": [
+      {
+       "coding": [
+        {
+         "system": "http://terminology.hl7.org/CodeSystem/medicationrequest-category",
+         "code": "community",
+         "display": "Home/Community"
+        }
+       ]
+      }
+     ],
+     "reportedBoolean": false,
+     "medicationCodeableConcept": {
+      "coding": [
+       {
+        "system": "http://www.nlm.nih.gov/research/umls/rxnorm",
+        "code": "206905",
+        "display": "Ibuprofen 400 MG Oral Tablet [Ibu]"
+       }
+      ]
+     },
+     "subject": {
+      "reference": "Patient/a2c3739a-29d3-4664-bac5-00d202aba3a5",
+      "type": "Patient"
+     },
+     "authoredOn": "2025-12-16T16:02:06+00:00",
+     "dosageInstruction": [
+      []
+     ],
+     "dispenseRequest": {
+      "numberOfRepeatsAllowed": 0
+     }
+    }
+   },
+   {
+    "fullUrl": "https://localhost:9300/apis/default/fhir/MedicationRequest/a2c37438-ba65-4528-a7e3-0acdcf5406dc",
+    "resource": {
+     "id": "a2c37438-ba65-4528-a7e3-0acdcf5406dc",
+     "meta": {
+      "versionId": "1",
+      "lastUpdated": "2026-09-17T00:05:22+00:00"
+     },
+     "resourceType": "MedicationRequest",
+     "status": "active",
+     "intent": "plan",
+     "category": [
+      {
+       "coding": [
+        {
+         "system": "http://terminology.hl7.org/CodeSystem/medicationrequest-category",
+         "code": "community",
+         "display": "Home/Community"
+        }
+       ]
+      }
+     ],
+     "reportedBoolean": false,
+     "medicationCodeableConcept": {
+      "text": "Loratadine 5 MG Chewable Tablet"
+     },
+     "subject": {
+      "reference": "Patient/a2c3739a-29d3-4664-bac5-00d202aba3a5",
+      "type": "Patient"
+     },
+     "authoredOn": "2026-09-17T00:03:38+00:00",
+     "reasonCode": [
+      {
+       "coding": [
+        {
+         "system": "http://snomed.info/sct",
+         "code": "665078"
+        }
+       ]
+      }
+     ],
+     "dispenseRequest": {
+      "numberOfRepeatsAllowed": 0
+     }
+    }
+   },
+   {
+    "fullUrl": "https://localhost:9300/apis/default/fhir/MedicationRequest/a2c37438-ba68-4968-a210-d18dbfcbe617",
+    "resource": {
+     "id": "a2c37438-ba68-4968-a210-d18dbfcbe617",
+     "meta": {
+      "versionId": "1",
+      "lastUpdated": "2026-09-17T00:05:22+00:00"
+     },
+     "resourceType": "MedicationRequest",
+     "status": "active",
+     "intent": "plan",
+     "category": [
+      {
+       "coding": [
+        {
+         "system": "http://terminology.hl7.org/CodeSystem/medicationrequest-category",
+         "code": "community",
+         "display": "Home/Community"
+        }
+       ]
+      }
+     ],
+     "reportedBoolean": false,
+     "medicationCodeableConcept": {
+      "text": "NDA020800 0.3 ML Epinephrine 1 MG/ML Auto-Injector"
+     },
+     "subject": {
+      "reference": "Patient/a2c3739a-29d3-4664-bac5-00d202aba3a5",
+      "type": "Patient"
+     },
+     "authoredOn": "2026-09-17T00:03:38+00:00",
+     "reasonCode": [
+      {
+       "coding": [
+        {
+         "system": "http://snomed.info/sct",
+         "code": "1870230"
+        }
+       ]
+      }
+     ],
+     "dispenseRequest": {
+      "numberOfRepeatsAllowed": 0
+     }
+    }
+   },
+   {
+    "fullUrl": "https://localhost:9300/apis/default/fhir/MedicationRequest/a2c37438-ba6a-4e78-850e-15d35c94c742",
+    "resource": {
+     "id": "a2c37438-ba6a-4e78-850e-15d35c94c742",
+     "meta": {
+      "versionId": "1",
+      "lastUpdated": "2026-09-17T00:05:22+00:00"
+     },
+     "resourceType": "MedicationRequest",
+     "status": "completed",
+     "intent": "plan",
+     "category": [
+      {
+       "coding": [
+        {
+         "system": "http://terminology.hl7.org/CodeSystem/medicationrequest-category",
+         "code": "community",
+         "display": "Home/Community"
+        }
+       ]
+      }
+     ],
+     "reportedBoolean": false,
+     "medicationCodeableConcept": {
+      "text": "sodium fluoride 0.0272 MG/MG Oral Gel"
+     },
+     "subject": {
+      "reference": "Patient/a2c3739a-29d3-4664-bac5-00d202aba3a5",
+      "type": "Patient"
+     },
+     "authoredOn": "2026-09-17T00:03:38+00:00",
+     "reasonCode": [
+      {
+       "coding": [
+        {
+         "system": "http://snomed.info/sct",
+         "code": "1535362"
+        }
+       ]
+      }
+     ],
+     "dispenseRequest": {
+      "numberOfRepeatsAllowed": 0
+     }
+    }
+   },
+   {
+    "fullUrl": "https://localhost:9300/apis/default/fhir/MedicationRequest/a2c37438-ba6d-451e-ab22-df49b1d899cc",
+    "resource": {
+     "id": "a2c37438-ba6d-451e-ab22-df49b1d899cc",
+     "meta": {
+      "versionId": "1",
+      "lastUpdated": "2026-09-17T00:05:22+00:00"
+     },
+     "resourceType": "MedicationRequest",
+     "status": "completed",
+     "intent": "plan",
+     "category": [
+      {
+       "coding": [
+        {
+         "system": "http://terminology.hl7.org/CodeSystem/medicationrequest-category",
+         "code": "community",
+         "display": "Home/Community"
+        }
+       ]
+      }
+     ],
+     "reportedBoolean": false,
+     "medicationCodeableConcept": {
+      "text": "Penicillin V Potassium 250 MG Oral Tablet"
+     },
+     "subject": {
+      "reference": "Patient/a2c3739a-29d3-4664-bac5-00d202aba3a5",
+      "type": "Patient"
+     },
+     "authoredOn": "2026-09-17T00:03:38+00:00",
+     "reasonCode": [
+      {
+       "coding": [
+        {
+         "system": "http://snomed.info/sct",
+         "code": "834061"
+        }
+       ]
+      }
+     ],
+     "dispenseRequest": {
+      "numberOfRepeatsAllowed": 0
+     }
+    }
+   },
+   {
+    "fullUrl": "https://localhost:9300/apis/default/fhir/MedicationRequest/a2c37438-ba70-42a0-825e-d936c63f08b9",
+    "resource": {
+     "id": "a2c37438-ba70-42a0-825e-d936c63f08b9",
+     "meta": {
+      "versionId": "1",
+      "lastUpdated": "2026-09-17T00:05:22+00:00"
+     },
+     "resourceType": "MedicationRequest",
+     "status": "completed",
+     "intent": "plan",
+     "category": [
+      {
+       "coding": [
+        {
+         "system": "http://terminology.hl7.org/CodeSystem/medicationrequest-category",
+         "code": "community",
+         "display": "Home/Community"
+        }
+       ]
+      }
+     ],
+     "reportedBoolean": false,
+     "medicationCodeableConcept": {
+      "text": "Ibuprofen 400 MG Oral Tablet [Ibu]"
+     },
+     "subject": {
+      "reference": "Patient/a2c3739a-29d3-4664-bac5-00d202aba3a5",
+      "type": "Patient"
+     },
+     "authoredOn": "2026-09-17T00:03:38+00:00",
+     "reasonCode": [
+      {
+       "coding": [
+        {
+         "system": "http://snomed.info/sct",
+         "code": "206905"
+        }
+       ]
+      }
+     ],
+     "dispenseRequest": {
+      "numberOfRepeatsAllowed": 0
+     }
+    }
+   }
+  ]
+ },
+ "CareTeam": {
+  "meta": {
+   "lastUpdated": "2026-09-24T17:45:14"
+  },
+  "resourceType": "Bundle",
+  "type": "collection",
+  "total": 0,
+  "link": [
+   {
+    "relation": "self",
+    "url": "https://localhost:9300/apis/default/fhir/CareTeam"
+   }
+  ]
+ },
+ "Observation": {
+  "meta": {
+   "lastUpdated": "2026-09-24T17:45:15"
+  },
+  "resourceType": "Bundle",
+  "type": "collection",
+  "total": 30,
+  "link": [
+   {
+    "relation": "self",
+    "url": "https://localhost:9300/apis/default/fhir/Observation"
+   }
+  ],
+  "entry": [
+   {
+    "fullUrl": "https://localhost:9300/apis/default/fhir/Observation/a2c37440-cd0a-4fb1-8f5f-199362b46d26",
+    "resource": {
+     "id": "a2c37440-cd0a-4fb1-8f5f-199362b46d26",
+     "meta": {
+      "versionId": "1",
+      "lastUpdated": "2018-11-25T00:00:00+00:00",
+      "profile": [
+       "http://hl7.org/fhir/us/core/StructureDefinition/us-core-observation-lab",
+       "http://hl7.org/fhir/us/core/StructureDefinition/us-core-observation-lab|3.1.1",
+       "http://hl7.org/fhir/us/core/StructureDefinition/us-core-observation-lab|7.0.0",
+       "http://hl7.org/fhir/us/core/StructureDefinition/us-core-observation-lab|8.0.0"
+      ]
+     },
+     "resourceType": "Observation",
+     "status": "final",
+     "category": [
+      {
+       "coding": [
+        {
+         "system": "http://terminology.hl7.org/CodeSystem/observation-category",
+         "code": "laboratory",
+         "display": "Laboratory"
+        }
+       ]
+      }
+     ],
+     "code": {
+      "coding": [
+       {
+        "system": "http://loinc.org",
+        "code": "6690-2",
+        "display": "Leukocytes [#/volume] in Blood by Automated count"
+       }
+      ]
+     },
+     "subject": {
+      "reference": "Patient/a2c3739a-29d3-4664-bac5-00d202aba3a5",
+      "type": "Patient"
+     },
+     "encounter": {
+      "reference": "Encounter/a2c37437-2109-45ce-ad9b-95650b2b36da",
+      "type": "Encounter"
+     },
+     "effectiveDateTime": "2018-11-25T00:00:00+00:00",
+     "valueQuantity": {
+      "value": 7.347796166722235,
+      "unit": "10*3/uL",
+      "system": "http://unitsofmeasure.org",
+      "code": "10*3/uL"
+     }
+    }
+   },
+   {
+    "fullUrl": "https://localhost:9300/apis/default/fhir/Observation/a2c37440-cd0d-4003-a2c2-7220c0e4df17",
+    "resource": {
+     "id": "a2c37440-cd0d-4003-a2c2-7220c0e4df17",
+     "meta": {
+      "versionId": "1",
+      "lastUpdated": "2018-11-25T00:00:00+00:00",
+      "profile": [
+       "http://hl7.org/fhir/us/core/StructureDefinition/us-core-observation-lab",
+       "http://hl7.org/fhir/us/core/StructureDefinition/us-core-observation-lab|3.1.1",
+       "http://hl7.org/fhir/us/core/StructureDefinition/us-core-observation-lab|7.0.0",
+       "http://hl7.org/fhir/us/core/StructureDefinition/us-core-observation-lab|8.0.0"
+      ]
+     },
+     "resourceType": "Observation",
+     "status": "final",
+     "category": [
+      {
+       "coding": [
+        {
+         "system": "http://terminology.hl7.org/CodeSystem/observation-category",
+         "code": "laboratory",
+         "display": "Laboratory"
+        }
+       ]
+      }
+     ],
+     "code": {
+      "coding": [
+       {
+        "system": "http://loinc.org",
+        "code": "789-8",
+        "display": "Erythrocytes [#/volume] in Blood by Automated count"
+       }
+      ]
+     },
+     "subject": {
+      "reference": "Patient/a2c3739a-29d3-4664-bac5-00d202aba3a5",
+      "type": "Patient"
+     },
+     "encounter": {
+      "reference": "Encounter/a2c37437-2109-45ce-ad9b-95650b2b36da",
+      "type": "Encounter"
+     },
+     "effectiveDateTime": "2018-11-25T00:00:00+00:00",
+     "valueQuantity": {
+      "value": 4.516497551861552,
+      "unit": "10*6/uL",
+      "system": "http://unitsofmeasure.org",
+      "code": "10*6/uL"
+     }
+    }
+   },
+   {
+    "fullUrl": "https://localhost:9300/apis/default/fhir/Observation/a2c37440-cd10-45bb-acae-46106f147604",
+    "resource": {
+     "id": "a2c37440-cd10-45bb-acae-46106f147604",
+     "meta": {
+      "versionId": "1",
+      "lastUpdated": "2018-11-25T00:00:00+00:00",
+      "profile": [
+       "http://hl7.org/fhir/us/core/StructureDefinition/us-core-observation-lab",
+       "http://hl7.org/fhir/us/core/StructureDefinition/us-core-observation-lab|3.1.1",
+       "http://hl7.org/fhir/us/core/StructureDefinition/us-core-observation-lab|7.0.0",
+       "http://hl7.org/fhir/us/core/StructureDefinition/us-core-observation-lab|8.0.0"
+      ]
+     },
+     "resourceType": "Observation",
+     "status": "final",
+     "category": [
+      {
+       "coding": [
+        {
+         "system": "http://terminology.hl7.org/CodeSystem/observation-category",
+         "code": "laboratory",
+         "display": "Laboratory"
+        }
+       ]
+      }
+     ],
+     "code": {
+      "coding": [
+       {
+        "system": "http://loinc.org",
+        "code": "718-7",
+        "display": "Hemoglobin [Mass/volume] in Blood"
+       }
+      ]
+     },
+     "subject": {
+      "reference": "Patient/a2c3739a-29d3-4664-bac5-00d202aba3a5",
+      "type": "Patient"
+     },
+     "encounter": {
+      "reference": "Encounter/a2c37437-2109-45ce-ad9b-95650b2b36da",
+      "type": "Encounter"
+     },
+     "effectiveDateTime": "2018-11-25T00:00:00+00:00",
+     "valueQuantity": {
+      "value": 15.588815408597066,
+      "unit": "g/dL",
+      "system": "http://unitsofmeasure.org",
+      "code": "g/dL"
+     }
+    }
+   },
+   {
+    "fullUrl": "https://localhost:9300/apis/default/fhir/Observation/a2c37440-cd13-4702-ba9c-0b5b5046e433",
+    "resource": {
+     "id": "a2c37440-cd13-4702-ba9c-0b5b5046e433",
+     "meta": {
+      "versionId": "1",
+      "lastUpdated": "2018-11-25T00:00:00+00:00",
+      "profile": [
+       "http://hl7.org/fhir/us/core/StructureDefinition/us-core-observation-lab",
+       "http://hl7.org/fhir/us/core/StructureDefinition/us-core-observation-lab|3.1.1",
+       "http://hl7.org/fhir/us/core/StructureDefinition/us-core-observation-lab|7.0.0",
+       "http://hl7.org/fhir/us/core/StructureDefinition/us-core-observation-lab|8.0.0"
+      ]
+     },
+     "resourceType": "Observation",
+     "status": "final",
+     "category": [
+      {
+       "coding": [
+        {
+         "system": "http://terminology.hl7.org/CodeSystem/observation-category",
+         "code": "laboratory",
+         "display": "Laboratory"
+        }
+       ]
+      }
+     ],
+     "code": {
+      "coding": [
+       {
+        "system": "http://loinc.org",
+        "code": "4544-3",
+        "display": "Hematocrit [Volume Fraction] of Blood by Automated count"
+       }
+      ]
+     },
+     "subject": {
+      "reference": "Patient/a2c3739a-29d3-4664-bac5-00d202aba3a5",
+      "type": "Patient"
+     },
+     "encounter": {
+      "reference": "Encounter/a2c37437-2109-45ce-ad9b-95650b2b36da",
+      "type": "Encounter"
+     },
+     "effectiveDateTime": "2018-11-25T00:00:00+00:00",
+     "valueQuantity": {
+      "value": 43.407894965605124,
+      "unit": "%",
+      "system": "http://unitsofmeasure.org",
+      "code": "%"
+     }
+    }
+   },
+   {
+    "fullUrl": "https://localhost:9300/apis/default/fhir/Observation/a2c37440-cd16-4d72-a06d-cdcf7da86697",
+    "resource": {
+     "id": "a2c37440-cd16-4d72-a06d-cdcf7da86697",
+     "meta": {
+      "versionId": "1",
+      "lastUpdated": "2018-11-25T00:00:00+00:00",
+      "profile": [
+       "http://hl7.org/fhir/us/core/StructureDefinition/us-core-observation-lab",
+       "http://hl7.org/fhir/us/core/StructureDefinition/us-core-observation-lab|3.1.1",
+       "http://hl7.org/fhir/us/core/StructureDefinition/us-core-observation-lab|7.0.0",
+       "http://hl7.org/fhir/us/core/StructureDefinition/us-core-observation-lab|8.0.0"
+      ]
+     },
+     "resourceType": "Observation",
+     "status": "final",
+     "category": [
+      {
+       "coding": [
+        {
+         "system": "http://terminology.hl7.org/CodeSystem/observation-category",
+         "code": "laboratory",
+         "display": "Laboratory"
+        }
+       ]
+      }
+     ],
+     "code": {
+      "coding": [
+       {
+        "system": "http://loinc.org",
+        "code": "787-2",
+        "display": "MCV [Entitic mean volume] in Red Blood Cells by Automated count"
+       }
+      ]
+     },
+     "subject": {
+      "reference": "Patient/a2c3739a-29d3-4664-bac5-00d202aba3a5",
+      "type": "Patient"
+     },
+     "encounter": {
+      "reference": "Encounter/a2c37437-2109-45ce-ad9b-95650b2b36da",
+      "type": "Encounter"
+     },
+     "effectiveDateTime": "2018-11-25T00:00:00+00:00",
+     "valueQuantity": {
+      "value": 87.84823787024295,
+      "unit": "fL",
+      "system": "http://unitsofmeasure.org",
+      "code": "fL"
+     }
+    }
+   },
+   {
+    "fullUrl": "https://localhost:9300/apis/default/fhir/Observation/a2c37440-cd1a-447e-b8c2-bd4569bddc5f",
+    "resource": {
+     "id": "a2c37440-cd1a-447e-b8c2-bd4569bddc5f",
+     "meta": {
+      "versionId": "1",
+      "lastUpdated": "2018-11-25T00:00:00+00:00",
+      "profile": [
+       "http://hl7.org/fhir/us/core/StructureDefinition/us-core-observation-lab",
+       "http://hl7.org/fhir/us/core/StructureDefinition/us-core-observation-lab|3.1.1",
+       "http://hl7.org/fhir/us/core/StructureDefinition/us-core-observation-lab|7.0.0",
+       "http://hl7.org/fhir/us/core/StructureDefinition/us-core-observation-lab|8.0.0"
+      ]
+     },
+     "resourceType": "Observation",
+     "status": "final",
+     "category": [
+      {
+       "coding": [
+        {
+         "system": "http://terminology.hl7.org/CodeSystem/observation-category",
+         "code": "laboratory",
+         "display": "Laboratory"
+        }
+       ]
+      }
+     ],
+     "code": {
+      "coding": [
+       {
+        "system": "http://loinc.org",
+        "code": "785-6",
+        "display": "MCH [Entitic mass] by Automated count"
+       }
+      ]
+     },
+     "subject": {
+      "reference": "Patient/a2c3739a-29d3-4664-bac5-00d202aba3a5",
+      "type": "Patient"
+     },
+     "encounter": {
+      "reference": "Encounter/a2c37437-2109-45ce-ad9b-95650b2b36da",
+      "type": "Encounter"
+     },
+     "effectiveDateTime": "2018-11-25T00:00:00+00:00",
+     "valueQuantity": {
+      "value": 30.94900461441611,
+      "unit": "pg",
+      "system": "http://unitsofmeasure.org",
+      "code": "pg"
+     }
+    }
+   },
+   {
+    "fullUrl": "https://localhost:9300/apis/default/fhir/Observation/a2c37440-cd1d-49d2-bd56-d20dbbee4a91",
+    "resource": {
+     "id": "a2c37440-cd1d-49d2-bd56-d20dbbee4a91",
+     "meta": {
+      "versionId": "1",
+      "lastUpdated": "2018-11-25T00:00:00+00:00",
+      "profile": [
+       "http://hl7.org/fhir/us/core/StructureDefinition/us-core-observation-lab",
+       "http://hl7.org/fhir/us/core/StructureDefinition/us-core-observation-lab|3.1.1",
+       "http://hl7.org/fhir/us/core/StructureDefinition/us-core-observation-lab|7.0.0",
+       "http://hl7.org/fhir/us/core/StructureDefinition/us-core-observation-lab|8.0.0"
+      ]
+     },
+     "resourceType": "Observation",
+     "status": "final",
+     "category": [
+      {
+       "coding": [
+        {
+         "system": "http://terminology.hl7.org/CodeSystem/observation-category",
+         "code": "laboratory",
+         "display": "Laboratory"
+        }
+       ]
+      }
+     ],
+     "code": {
+      "coding": [
+       {
+        "system": "http://loinc.org",
+        "code": "786-4",
+        "display": "MCHC [Entitic Mass/volume] in Red Blood Cells by Automated count"
+       }
+      ]
+     },
+     "subject": {
+      "reference": "Patient/a2c3739a-29d3-4664-bac5-00d202aba3a5",
+      "type": "Patient"
+     },
+     "encounter": {
+      "reference": "Encounter/a2c37437-2109-45ce-ad9b-95650b2b36da",
+      "type": "Encounter"
+     },
+     "effectiveDateTime": "2018-11-25T00:00:00+00:00",
+     "valueQuantity": {
+      "value": 35.07086652856057,
+      "unit": "g/dL",
+      "system": "http://unitsofmeasure.org",
+      "code": "g/dL"
+     }
+    }
+   },
+   {
+    "fullUrl": "https://localhost:9300/apis/default/fhir/Observation/a2c37440-cd1f-4bf7-b282-89c7bec0c46c",
+    "resource": {
+     "id": "a2c37440-cd1f-4bf7-b282-89c7bec0c46c",
+     "meta": {
+      "versionId": "1",
+      "lastUpdated": "2018-11-25T00:00:00+00:00",
+      "profile": [
+       "http://hl7.org/fhir/us/core/StructureDefinition/us-core-observation-lab",
+       "http://hl7.org/fhir/us/core/StructureDefinition/us-core-observation-lab|3.1.1",
+       "http://hl7.org/fhir/us/core/StructureDefinition/us-core-observation-lab|7.0.0",
+       "http://hl7.org/fhir/us/core/StructureDefinition/us-core-observation-lab|8.0.0"
+      ]
+     },
+     "resourceType": "Observation",
+     "status": "final",
+     "category": [
+      {
+       "coding": [
+        {
+         "system": "http://terminology.hl7.org/CodeSystem/observation-category",
+         "code": "laboratory",
+         "display": "Laboratory"
+        }
+       ]
+      }
+     ],
+     "code": {
+      "coding": [
+       {
+        "system": "http://loinc.org",
+        "code": "788-0",
+        "display": "Erythrocyte [DistWidth] in Blood by Automated count"
+       }
+      ]
+     },
+     "subject": {
+      "reference": "Patient/a2c3739a-29d3-4664-bac5-00d202aba3a5",
+      "type": "Patient"
+     },
+     "encounter": {
+      "reference": "Encounter/a2c37437-2109-45ce-ad9b-95650b2b36da",
+      "type": "Encounter"
+     },
+     "effectiveDateTime": "2018-11-25T00:00:00+00:00",
+     "valueQuantity": {
+      "value": 39.90740122701357,
+      "unit": "fL",
+      "system": "http://unitsofmeasure.org",
+      "code": "fL"
+     }
+    }
+   },
+   {
+    "fullUrl": "https://localhost:9300/apis/default/fhir/Observation/a2c37440-cd22-423d-9ebf-0606ed35febf",
+    "resource": {
+     "id": "a2c37440-cd22-423d-9ebf-0606ed35febf",
+     "meta": {
+      "versionId": "1",
+      "lastUpdated": "2018-11-25T00:00:00+00:00",
+      "profile": [
+       "http://hl7.org/fhir/us/core/StructureDefinition/us-core-observation-lab",
+       "http://hl7.org/fhir/us/core/StructureDefinition/us-core-observation-lab|3.1.1",
+       "http://hl7.org/fhir/us/core/StructureDefinition/us-core-observation-lab|7.0.0",
+       "http://hl7.org/fhir/us/core/StructureDefinition/us-core-observation-lab|8.0.0"
+      ]
+     },
+     "resourceType": "Observation",
+     "status": "final",
+     "category": [
+      {
+       "coding": [
+        {
+         "system": "http://terminology.hl7.org/CodeSystem/observation-category",
+         "code": "laboratory",
+         "display": "Laboratory"
+        }
+       ]
+      }
+     ],
+     "code": {
+      "coding": [
+       {
+        "system": "http://loinc.org",
+        "code": "777-3",
+        "display": "Platelets [#/volume] in Blood by Automated count"
+       }
+      ]
+     },
+     "subject": {
+      "reference": "Patient/a2c3739a-29d3-4664-bac5-00d202aba3a5",
+      "type": "Patient"
+     },
+     "encounter": {
+      "reference": "Encounter/a2c37437-2109-45ce-ad9b-95650b2b36da",
+      "type": "Encounter"
+     },
+     "effectiveDateTime": "2018-11-25T00:00:00+00:00",
+     "valueQuantity": {
+      "value": 242.65167995638467,
+      "unit": "10*3/uL",
+      "system": "http://unitsofmeasure.org",
+      "code": "10*3/uL"
+     }
+    }
+   },
+   {
+    "fullUrl": "https://localhost:9300/apis/default/fhir/Observation/a2c37440-cd25-4b52-bb76-3acdfc8ef5ae",
+    "resource": {
+     "id": "a2c37440-cd25-4b52-bb76-3acdfc8ef5ae",
+     "meta": {
+      "versionId": "1",
+      "lastUpdated": "2018-11-25T00:00:00+00:00",
+      "profile": [
+       "http://hl7.org/fhir/us/core/StructureDefinition/us-core-observation-lab",
+       "http://hl7.org/fhir/us/core/StructureDefinition/us-core-observation-lab|3.1.1",
+       "http://hl7.org/fhir/us/core/StructureDefinition/us-core-observation-lab|7.0.0",
+       "http://hl7.org/fhir/us/core/StructureDefinition/us-core-observation-lab|8.0.0"
+      ]
+     },
+     "resourceType": "Observation",
+     "status": "final",
+     "category": [
+      {
+       "coding": [
+        {
+         "system": "http://terminology.hl7.org/CodeSystem/observation-category",
+         "code": "laboratory",
+         "display": "Laboratory"
+        }
+       ]
+      }
+     ],
+     "code": {
+      "coding": [
+       {
+        "system": "http://loinc.org",
+        "code": "32207-3",
+        "display": "Platelet distribution width [Entitic volume] in Blood by Automated count"
+       }
+      ]
+     },
+     "subject": {
+      "reference": "Patient/a2c3739a-29d3-4664-bac5-00d202aba3a5",
+      "type": "Patient"
+     },
+     "encounter": {
+      "reference": "Encounter/a2c37437-2109-45ce-ad9b-95650b2b36da",
+      "type": "Encounter"
+     },
+     "effectiveDateTime": "2018-11-25T00:00:00+00:00",
+     "valueQuantity": {
+      "value": 13.28242066570228,
+      "unit": "fL",
+      "system": "http://unitsofmeasure.org",
+      "code": "fL"
+     }
+    }
+   },
+   {
+    "fullUrl": "https://localhost:9300/apis/default/fhir/Observation/a2c37440-cd28-44a5-b719-d255072cd03c",
+    "resource": {
+     "id": "a2c37440-cd28-44a5-b719-d255072cd03c",
+     "meta": {
+      "versionId": "1",
+      "lastUpdated": "2018-11-25T00:00:00+00:00",
+      "profile": [
+       "http://hl7.org/fhir/us/core/StructureDefinition/us-core-observation-lab",
+       "http://hl7.org/fhir/us/core/StructureDefinition/us-core-observation-lab|3.1.1",
+       "http://hl7.org/fhir/us/core/StructureDefinition/us-core-observation-lab|7.0.0",
+       "http://hl7.org/fhir/us/core/StructureDefinition/us-core-observation-lab|8.0.0"
+      ]
+     },
+     "resourceType": "Observation",
+     "status": "final",
+     "category": [
+      {
+       "coding": [
+        {
+         "system": "http://terminology.hl7.org/CodeSystem/observation-category",
+         "code": "laboratory",
+         "display": "Laboratory"
+        }
+       ]
+      }
+     ],
+     "code": {
+      "coding": [
+       {
+        "system": "http://loinc.org",
+        "code": "32623-1",
+        "display": "Platelet [Entitic mean volume] in Blood by Automated count"
+       }
+      ]
+     },
+     "subject": {
+      "reference": "Patient/a2c3739a-29d3-4664-bac5-00d202aba3a5",
+      "type": "Patient"
+     },
+     "encounter": {
+      "reference": "Encounter/a2c37437-2109-45ce-ad9b-95650b2b36da",
+      "type": "Encounter"
+     },
+     "effectiveDateTime": "2018-11-25T00:00:00+00:00",
+     "valueQuantity": {
+      "value": 11.708531315555732,
+      "unit": "fL",
+      "system": "http://unitsofmeasure.org",
+      "code": "fL"
+     }
+    }
+   },
+   {
+    "fullUrl": "https://localhost:9300/apis/default/fhir/Observation/a2c37440-cd2a-4950-a521-4d21c576008e",
+    "resource": {
+     "id": "a2c37440-cd2a-4950-a521-4d21c576008e",
+     "meta": {
+      "versionId": "1",
+      "lastUpdated": "2020-12-06T00:00:00+00:00",
+      "profile": [
+       "http://hl7.org/fhir/us/core/StructureDefinition/us-core-observation-lab",
+       "http://hl7.org/fhir/us/core/StructureDefinition/us-core-observation-lab|3.1.1",
+       "http://hl7.org/fhir/us/core/StructureDefinition/us-core-observation-lab|7.0.0",
+       "http://hl7.org/fhir/us/core/StructureDefinition/us-core-observation-lab|8.0.0"
+      ]
+     },
+     "resourceType": "Observation",
+     "status": "final",
+     "category": [
+      {
+       "coding": [
+        {
+         "system": "http://terminology.hl7.org/CodeSystem/observation-category",
+         "code": "laboratory",
+         "display": "Laboratory"
+        }
+       ]
+      }
+     ],
+     "code": {
+      "coding": [
+       {
+        "system": "http://loinc.org",
+        "code": "89204-2",
+        "display": "Patient Health Questionnaire-9: Modified for Teens total score [Reported.PHQ.Teen]"
+       }
+      ]
+     },
+     "subject": {
+      "reference": "Patient/a2c3739a-29d3-4664-bac5-00d202aba3a5",
+      "type": "Patient"
+     },
+     "encounter": {
+      "reference": "Encounter/a2c37437-211c-4c94-8788-7adf0b9422c6",
+      "type": "Encounter"
+     },
+     "effectiveDateTime": "2020-12-06T00:00:00+00:00",
+     "valueQuantity": {
+      "value": 8,
+      "unit": "{score}"
+     }
+    }
+   },
+   {
+    "fullUrl": "https://localhost:9300/apis/default/fhir/Observation/a2c37440-cd2d-49e1-a9ab-50cc1f017a0c",
+    "resource": {
+     "id": "a2c37440-cd2d-49e1-a9ab-50cc1f017a0c",
+     "meta": {
+      "versionId": "1",
+      "lastUpdated": "2021-12-12T00:00:00+00:00",
+      "profile": [
+       "http://hl7.org/fhir/us/core/StructureDefinition/us-core-observation-lab",
+       "http://hl7.org/fhir/us/core/StructureDefinition/us-core-observation-lab|3.1.1",
+       "http://hl7.org/fhir/us/core/StructureDefinition/us-core-observation-lab|7.0.0",
+       "http://hl7.org/fhir/us/core/StructureDefinition/us-core-observation-lab|8.0.0"
+      ]
+     },
+     "resourceType": "Observation",
+     "status": "final",
+     "category": [
+      {
+       "coding": [
+        {
+         "system": "http://terminology.hl7.org/CodeSystem/observation-category",
+         "code": "laboratory",
+         "display": "Laboratory"
+        }
+       ]
+      }
+     ],
+     "code": {
+      "coding": [
+       {
+        "system": "http://loinc.org",
+        "code": "70274-6",
+        "display": "Generalized anxiety disorder 7 item (GAD-7) total score [Reported.PHQ]"
+       }
+      ]
+     },
+     "subject": {
+      "reference": "Patient/a2c3739a-29d3-4664-bac5-00d202aba3a5",
+      "type": "Patient"
+     },
+     "encounter": {
+      "reference": "Encounter/a2c37437-214a-4ca1-bf81-ee3628f3c288",
+      "type": "Encounter"
+     },
+     "effectiveDateTime": "2021-12-12T00:00:00+00:00",
+     "valueQuantity": {
+      "value": 3,
+      "unit": "{score}"
+     }
+    }
+   },
+   {
+    "fullUrl": "https://localhost:9300/apis/default/fhir/Observation/a2c37440-cd30-49d5-8ed9-69bad899ddf7",
+    "resource": {
+     "id": "a2c37440-cd30-49d5-8ed9-69bad899ddf7",
+     "meta": {
+      "versionId": "1",
+      "lastUpdated": "2021-12-12T00:00:00+00:00",
+      "profile": [
+       "http://hl7.org/fhir/us/core/StructureDefinition/us-core-observation-lab",
+       "http://hl7.org/fhir/us/core/StructureDefinition/us-core-observation-lab|3.1.1",
+       "http://hl7.org/fhir/us/core/StructureDefinition/us-core-observation-lab|7.0.0",
+       "http://hl7.org/fhir/us/core/StructureDefinition/us-core-observation-lab|8.0.0"
+      ]
+     },
+     "resourceType": "Observation",
+     "status": "final",
+     "category": [
+      {
+       "coding": [
+        {
+         "system": "http://terminology.hl7.org/CodeSystem/observation-category",
+         "code": "laboratory",
+         "display": "Laboratory"
+        }
+       ]
+      }
+     ],
+     "code": {
+      "coding": [
+       {
+        "system": "http://loinc.org",
+        "code": "89204-2",
+        "display": "Patient Health Questionnaire-9: Modified for Teens total score [Reported.PHQ.Teen]"
+       }
+      ]
+     },
+     "subject": {
+      "reference": "Patient/a2c3739a-29d3-4664-bac5-00d202aba3a5",
+      "type": "Patient"
+     },
+     "encounter": {
+      "reference": "Encounter/a2c37437-214a-4ca1-bf81-ee3628f3c288",
+      "type": "Encounter"
+     },
+     "effectiveDateTime": "2021-12-12T00:00:00+00:00",
+     "valueQuantity": {
+      "value": 2,
+      "unit": "{score}"
+     }
+    }
+   },
+   {
+    "fullUrl": "https://localhost:9300/apis/default/fhir/Observation/a2c37440-cd34-4fe9-b91c-88c2f3774338",
+    "resource": {
+     "id": "a2c37440-cd34-4fe9-b91c-88c2f3774338",
+     "meta": {
+      "versionId": "1",
+      "lastUpdated": "2022-12-18T00:00:00+00:00",
+      "profile": [
+       "http://hl7.org/fhir/us/core/StructureDefinition/us-core-observation-lab",
+       "http://hl7.org/fhir/us/core/StructureDefinition/us-core-observation-lab|3.1.1",
+       "http://hl7.org/fhir/us/core/StructureDefinition/us-core-observation-lab|7.0.0",
+       "http://hl7.org/fhir/us/core/StructureDefinition/us-core-observation-lab|8.0.0"
+      ]
+     },
+     "resourceType": "Observation",
+     "status": "final",
+     "category": [
+      {
+       "coding": [
+        {
+         "system": "http://terminology.hl7.org/CodeSystem/observation-category",
+         "code": "laboratory",
+         "display": "Laboratory"
+        }
+       ]
+      }
+     ],
+     "code": {
+      "coding": [
+       {
+        "system": "http://loinc.org",
+        "code": "89204-2",
+        "display": "Patient Health Questionnaire-9: Modified for Teens total score [Reported.PHQ.Teen]"
+       }
+      ]
+     },
+     "subject": {
+      "reference": "Patient/a2c3739a-29d3-4664-bac5-00d202aba3a5",
+      "type": "Patient"
+     },
+     "encounter": {
+      "reference": "Encounter/a2c37437-217b-4e5c-8a67-1695ae159293",
+      "type": "Encounter"
+     },
+     "effectiveDateTime": "2022-12-18T00:00:00+00:00",
+     "valueQuantity": {
+      "value": 3,
+      "unit": "{score}"
+     }
+    }
+   },
+   {
+    "fullUrl": "https://localhost:9300/apis/default/fhir/Observation/a2c37440-cd37-449b-8818-badc1e17ee2f",
+    "resource": {
+     "id": "a2c37440-cd37-449b-8818-badc1e17ee2f",
+     "meta": {
+      "versionId": "1",
+      "lastUpdated": "2023-12-24T00:00:00+00:00",
+      "profile": [
+       "http://hl7.org/fhir/us/core/StructureDefinition/us-core-observation-lab",
+       "http://hl7.org/fhir/us/core/StructureDefinition/us-core-observation-lab|3.1.1",
+       "http://hl7.org/fhir/us/core/StructureDefinition/us-core-observation-lab|7.0.0",
+       "http://hl7.org/fhir/us/core/StructureDefinition/us-core-observation-lab|8.0.0"
+      ]
+     },
+     "resourceType": "Observation",
+     "status": "final",
+     "category": [
+      {
+       "coding": [
+        {
+         "system": "http://terminology.hl7.org/CodeSystem/observation-category",
+         "code": "laboratory",
+         "display": "Laboratory"
+        }
+       ]
+      }
+     ],
+     "code": {
+      "coding": [
+       {
+        "system": "http://loinc.org",
+        "code": "6690-2",
+        "display": "Leukocytes [#/volume] in Blood by Automated count"
+       }
+      ]
+     },
+     "subject": {
+      "reference": "Patient/a2c3739a-29d3-4664-bac5-00d202aba3a5",
+      "type": "Patient"
+     },
+     "encounter": {
+      "reference": "Encounter/a2c37437-21ac-4660-874c-cd9c2b35ea00",
+      "type": "Encounter"
+     },
+     "effectiveDateTime": "2023-12-24T00:00:00+00:00",
+     "valueQuantity": {
+      "value": 9.728640676631688,
+      "unit": "10*3/uL",
+      "system": "http://unitsofmeasure.org",
+      "code": "10*3/uL"
+     }
+    }
+   },
+   {
+    "fullUrl": "https://localhost:9300/apis/default/fhir/Observation/a2c37440-cd39-43d1-ba3d-b8856d7e255a",
+    "resource": {
+     "id": "a2c37440-cd39-43d1-ba3d-b8856d7e255a",
+     "meta": {
+      "versionId": "1",
+      "lastUpdated": "2023-12-24T00:00:00+00:00",
+      "profile": [
+       "http://hl7.org/fhir/us/core/StructureDefinition/us-core-observation-lab",
+       "http://hl7.org/fhir/us/core/StructureDefinition/us-core-observation-lab|3.1.1",
+       "http://hl7.org/fhir/us/core/StructureDefinition/us-core-observation-lab|7.0.0",
+       "http://hl7.org/fhir/us/core/StructureDefinition/us-core-observation-lab|8.0.0"
+      ]
+     },
+     "resourceType": "Observation",
+     "status": "final",
+     "category": [
+      {
+       "coding": [
+        {
+         "system": "http://terminology.hl7.org/CodeSystem/observation-category",
+         "code": "laboratory",
+         "display": "Laboratory"
+        }
+       ]
+      }
+     ],
+     "code": {
+      "coding": [
+       {
+        "system": "http://loinc.org",
+        "code": "789-8",
+        "display": "Erythrocytes [#/volume] in Blood by Automated count"
+       }
+      ]
+     },
+     "subject": {
+      "reference": "Patient/a2c3739a-29d3-4664-bac5-00d202aba3a5",
+      "type": "Patient"
+     },
+     "encounter": {
+      "reference": "Encounter/a2c37437-21ac-4660-874c-cd9c2b35ea00",
+      "type": "Encounter"
+     },
+     "effectiveDateTime": "2023-12-24T00:00:00+00:00",
+     "valueQuantity": {
+      "value": 4.778241077741363,
+      "unit": "10*6/uL",
+      "system": "http://unitsofmeasure.org",
+      "code": "10*6/uL"
+     }
+    }
+   },
+   {
+    "fullUrl": "https://localhost:9300/apis/default/fhir/Observation/a2c37440-cd3c-495e-99f9-2da26764bf01",
+    "resource": {
+     "id": "a2c37440-cd3c-495e-99f9-2da26764bf01",
+     "meta": {
+      "versionId": "1",
+      "lastUpdated": "2023-12-24T00:00:00+00:00",
+      "profile": [
+       "http://hl7.org/fhir/us/core/StructureDefinition/us-core-observation-lab",
+       "http://hl7.org/fhir/us/core/StructureDefinition/us-core-observation-lab|3.1.1",
+       "http://hl7.org/fhir/us/core/StructureDefinition/us-core-observation-lab|7.0.0",
+       "http://hl7.org/fhir/us/core/StructureDefinition/us-core-observation-lab|8.0.0"
+      ]
+     },
+     "resourceType": "Observation",
+     "status": "final",
+     "category": [
+      {
+       "coding": [
+        {
+         "system": "http://terminology.hl7.org/CodeSystem/observation-category",
+         "code": "laboratory",
+         "display": "Laboratory"
+        }
+       ]
+      }
+     ],
+     "code": {
+      "coding": [
+       {
+        "system": "http://loinc.org",
+        "code": "718-7",
+        "display": "Hemoglobin [Mass/volume] in Blood"
+       }
+      ]
+     },
+     "subject": {
+      "reference": "Patient/a2c3739a-29d3-4664-bac5-00d202aba3a5",
+      "type": "Patient"
+     },
+     "encounter": {
+      "reference": "Encounter/a2c37437-21ac-4660-874c-cd9c2b35ea00",
+      "type": "Encounter"
+     },
+     "effectiveDateTime": "2023-12-24T00:00:00+00:00",
+     "valueQuantity": {
+      "value": 16.691574221532864,
+      "unit": "g/dL",
+      "system": "http://unitsofmeasure.org",
+      "code": "g/dL"
+     }
+    }
+   },
+   {
+    "fullUrl": "https://localhost:9300/apis/default/fhir/Observation/a2c37440-cd3f-4d54-a4f0-0b0563036281",
+    "resource": {
+     "id": "a2c37440-cd3f-4d54-a4f0-0b0563036281",
+     "meta": {
+      "versionId": "1",
+      "lastUpdated": "2023-12-24T00:00:00+00:00",
+      "profile": [
+       "http://hl7.org/fhir/us/core/StructureDefinition/us-core-observation-lab",
+       "http://hl7.org/fhir/us/core/StructureDefinition/us-core-observation-lab|3.1.1",
+       "http://hl7.org/fhir/us/core/StructureDefinition/us-core-observation-lab|7.0.0",
+       "http://hl7.org/fhir/us/core/StructureDefinition/us-core-observation-lab|8.0.0"
+      ]
+     },
+     "resourceType": "Observation",
+     "status": "final",
+     "category": [
+      {
+       "coding": [
+        {
+         "system": "http://terminology.hl7.org/CodeSystem/observation-category",
+         "code": "laboratory",
+         "display": "Laboratory"
+        }
+       ]
+      }
+     ],
+     "code": {
+      "coding": [
+       {
+        "system": "http://loinc.org",
+        "code": "4544-3",
+        "display": "Hematocrit [Volume Fraction] of Blood by Automated count"
+       }
+      ]
+     },
+     "subject": {
+      "reference": "Patient/a2c3739a-29d3-4664-bac5-00d202aba3a5",
+      "type": "Patient"
+     },
+     "encounter": {
+      "reference": "Encounter/a2c37437-21ac-4660-874c-cd9c2b35ea00",
+      "type": "Encounter"
+     },
+     "effectiveDateTime": "2023-12-24T00:00:00+00:00",
+     "valueQuantity": {
+      "value": 46.30667551740575,
+      "unit": "%",
+      "system": "http://unitsofmeasure.org",
+      "code": "%"
+     }
+    }
+   },
+   {
+    "fullUrl": "https://localhost:9300/apis/default/fhir/Observation/a2c37440-cd41-4ff0-8f7f-36857b7c6f67",
+    "resource": {
+     "id": "a2c37440-cd41-4ff0-8f7f-36857b7c6f67",
+     "meta": {
+      "versionId": "1",
+      "lastUpdated": "2023-12-24T00:00:00+00:00",
+      "profile": [
+       "http://hl7.org/fhir/us/core/StructureDefinition/us-core-observation-lab",
+       "http://hl7.org/fhir/us/core/StructureDefinition/us-core-observation-lab|3.1.1",
+       "http://hl7.org/fhir/us/core/StructureDefinition/us-core-observation-lab|7.0.0",
+       "http://hl7.org/fhir/us/core/StructureDefinition/us-core-observation-lab|8.0.0"
+      ]
+     },
+     "resourceType": "Observation",
+     "status": "final",
+     "category": [
+      {
+       "coding": [
+        {
+         "system": "http://terminology.hl7.org/CodeSystem/observation-category",
+         "code": "laboratory",
+         "display": "Laboratory"
+        }
+       ]
+      }
+     ],
+     "code": {
+      "coding": [
+       {
+        "system": "http://loinc.org",
+        "code": "787-2",
+        "display": "MCV [Entitic mean volume] in Red Blood Cells by Automated count"
+       }
+      ]
+     },
+     "subject": {
+      "reference": "Patient/a2c3739a-29d3-4664-bac5-00d202aba3a5",
+      "type": "Patient"
+     },
+     "encounter": {
+      "reference": "Encounter/a2c37437-21ac-4660-874c-cd9c2b35ea00",
+      "type": "Encounter"
+     },
+     "effectiveDateTime": "2023-12-24T00:00:00+00:00",
+     "valueQuantity": {
+      "value": 89.43752048742216,
+      "unit": "fL",
+      "system": "http://unitsofmeasure.org",
+      "code": "fL"
+     }
+    }
+   },
+   {
+    "fullUrl": "https://localhost:9300/apis/default/fhir/Observation/a2c37440-cd44-41e7-bf05-aa3352ffaa78",
+    "resource": {
+     "id": "a2c37440-cd44-41e7-bf05-aa3352ffaa78",
+     "meta": {
+      "versionId": "1",
+      "lastUpdated": "2023-12-24T00:00:00+00:00",
+      "profile": [
+       "http://hl7.org/fhir/us/core/StructureDefinition/us-core-observation-lab",
+       "http://hl7.org/fhir/us/core/StructureDefinition/us-core-observation-lab|3.1.1",
+       "http://hl7.org/fhir/us/core/StructureDefinition/us-core-observation-lab|7.0.0",
+       "http://hl7.org/fhir/us/core/StructureDefinition/us-core-observation-lab|8.0.0"
+      ]
+     },
+     "resourceType": "Observation",
+     "status": "final",
+     "category": [
+      {
+       "coding": [
+        {
+         "system": "http://terminology.hl7.org/CodeSystem/observation-category",
+         "code": "laboratory",
+         "display": "Laboratory"
+        }
+       ]
+      }
+     ],
+     "code": {
+      "coding": [
+       {
+        "system": "http://loinc.org",
+        "code": "785-6",
+        "display": "MCH [Entitic mass] by Automated count"
+       }
+      ]
+     },
+     "subject": {
+      "reference": "Patient/a2c3739a-29d3-4664-bac5-00d202aba3a5",
+      "type": "Patient"
+     },
+     "encounter": {
+      "reference": "Encounter/a2c37437-21ac-4660-874c-cd9c2b35ea00",
+      "type": "Encounter"
+     },
+     "effectiveDateTime": "2023-12-24T00:00:00+00:00",
+     "valueQuantity": {
+      "value": 30.44752592320983,
+      "unit": "pg",
+      "system": "http://unitsofmeasure.org",
+      "code": "pg"
+     }
+    }
+   },
+   {
+    "fullUrl": "https://localhost:9300/apis/default/fhir/Observation/a2c37440-cd47-47a1-a503-247dfebd7d26",
+    "resource": {
+     "id": "a2c37440-cd47-47a1-a503-247dfebd7d26",
+     "meta": {
+      "versionId": "1",
+      "lastUpdated": "2023-12-24T00:00:00+00:00",
+      "profile": [
+       "http://hl7.org/fhir/us/core/StructureDefinition/us-core-observation-lab",
+       "http://hl7.org/fhir/us/core/StructureDefinition/us-core-observation-lab|3.1.1",
+       "http://hl7.org/fhir/us/core/StructureDefinition/us-core-observation-lab|7.0.0",
+       "http://hl7.org/fhir/us/core/StructureDefinition/us-core-observation-lab|8.0.0"
+      ]
+     },
+     "resourceType": "Observation",
+     "status": "final",
+     "category": [
+      {
+       "coding": [
+        {
+         "system": "http://terminology.hl7.org/CodeSystem/observation-category",
+         "code": "laboratory",
+         "display": "Laboratory"
+        }
+       ]
+      }
+     ],
+     "code": {
+      "coding": [
+       {
+        "system": "http://loinc.org",
+        "code": "786-4",
+        "display": "MCHC [Entitic Mass/volume] in Red Blood Cells by Automated count"
+       }
+      ]
+     },
+     "subject": {
+      "reference": "Patient/a2c3739a-29d3-4664-bac5-00d202aba3a5",
+      "type": "Patient"
+     },
+     "encounter": {
+      "reference": "Encounter/a2c37437-21ac-4660-874c-cd9c2b35ea00",
+      "type": "Encounter"
+     },
+     "effectiveDateTime": "2023-12-24T00:00:00+00:00",
+     "valueQuantity": {
+      "value": 35.93123583415937,
+      "unit": "g/dL",
+      "system": "http://unitsofmeasure.org",
+      "code": "g/dL"
+     }
+    }
+   },
+   {
+    "fullUrl": "https://localhost:9300/apis/default/fhir/Observation/a2c37440-cd49-455e-aac3-6e334bbf621a",
+    "resource": {
+     "id": "a2c37440-cd49-455e-aac3-6e334bbf621a",
+     "meta": {
+      "versionId": "1",
+      "lastUpdated": "2023-12-24T00:00:00+00:00",
+      "profile": [
+       "http://hl7.org/fhir/us/core/StructureDefinition/us-core-observation-lab",
+       "http://hl7.org/fhir/us/core/StructureDefinition/us-core-observation-lab|3.1.1",
+       "http://hl7.org/fhir/us/core/StructureDefinition/us-core-observation-lab|7.0.0",
+       "http://hl7.org/fhir/us/core/StructureDefinition/us-core-observation-lab|8.0.0"
+      ]
+     },
+     "resourceType": "Observation",
+     "status": "final",
+     "category": [
+      {
+       "coding": [
+        {
+         "system": "http://terminology.hl7.org/CodeSystem/observation-category",
+         "code": "laboratory",
+         "display": "Laboratory"
+        }
+       ]
+      }
+     ],
+     "code": {
+      "coding": [
+       {
+        "system": "http://loinc.org",
+        "code": "788-0",
+        "display": "Erythrocyte [DistWidth] in Blood by Automated count"
+       }
+      ]
+     },
+     "subject": {
+      "reference": "Patient/a2c3739a-29d3-4664-bac5-00d202aba3a5",
+      "type": "Patient"
+     },
+     "encounter": {
+      "reference": "Encounter/a2c37437-21ac-4660-874c-cd9c2b35ea00",
+      "type": "Encounter"
+     },
+     "effectiveDateTime": "2023-12-24T00:00:00+00:00",
+     "valueQuantity": {
+      "value": 41.025777207737484,
+      "unit": "fL",
+      "system": "http://unitsofmeasure.org",
+      "code": "fL"
+     }
+    }
+   },
+   {
+    "fullUrl": "https://localhost:9300/apis/default/fhir/Observation/a2c37440-cd4c-4e73-bf46-8ae5aa0980d2",
+    "resource": {
+     "id": "a2c37440-cd4c-4e73-bf46-8ae5aa0980d2",
+     "meta": {
+      "versionId": "1",
+      "lastUpdated": "2023-12-24T00:00:00+00:00",
+      "profile": [
+       "http://hl7.org/fhir/us/core/StructureDefinition/us-core-observation-lab",
+       "http://hl7.org/fhir/us/core/StructureDefinition/us-core-observation-lab|3.1.1",
+       "http://hl7.org/fhir/us/core/StructureDefinition/us-core-observation-lab|7.0.0",
+       "http://hl7.org/fhir/us/core/StructureDefinition/us-core-observation-lab|8.0.0"
+      ]
+     },
+     "resourceType": "Observation",
+     "status": "final",
+     "category": [
+      {
+       "coding": [
+        {
+         "system": "http://terminology.hl7.org/CodeSystem/observation-category",
+         "code": "laboratory",
+         "display": "Laboratory"
+        }
+       ]
+      }
+     ],
+     "code": {
+      "coding": [
+       {
+        "system": "http://loinc.org",
+        "code": "777-3",
+        "display": "Platelets [#/volume] in Blood by Automated count"
+       }
+      ]
+     },
+     "subject": {
+      "reference": "Patient/a2c3739a-29d3-4664-bac5-00d202aba3a5",
+      "type": "Patient"
+     },
+     "encounter": {
+      "reference": "Encounter/a2c37437-21ac-4660-874c-cd9c2b35ea00",
+      "type": "Encounter"
+     },
+     "effectiveDateTime": "2023-12-24T00:00:00+00:00",
+     "valueQuantity": {
+      "value": 371.71409388504287,
+      "unit": "10*3/uL",
+      "system": "http://unitsofmeasure.org",
+      "code": "10*3/uL"
+     }
+    }
+   },
+   {
+    "fullUrl": "https://localhost:9300/apis/default/fhir/Observation/a2c37440-cd4f-487a-9a24-55ce6b72e539",
+    "resource": {
+     "id": "a2c37440-cd4f-487a-9a24-55ce6b72e539",
+     "meta": {
+      "versionId": "1",
+      "lastUpdated": "2023-12-24T00:00:00+00:00",
+      "profile": [
+       "http://hl7.org/fhir/us/core/StructureDefinition/us-core-observation-lab",
+       "http://hl7.org/fhir/us/core/StructureDefinition/us-core-observation-lab|3.1.1",
+       "http://hl7.org/fhir/us/core/StructureDefinition/us-core-observation-lab|7.0.0",
+       "http://hl7.org/fhir/us/core/StructureDefinition/us-core-observation-lab|8.0.0"
+      ]
+     },
+     "resourceType": "Observation",
+     "status": "final",
+     "category": [
+      {
+       "coding": [
+        {
+         "system": "http://terminology.hl7.org/CodeSystem/observation-category",
+         "code": "laboratory",
+         "display": "Laboratory"
+        }
+       ]
+      }
+     ],
+     "code": {
+      "coding": [
+       {
+        "system": "http://loinc.org",
+        "code": "32207-3",
+        "display": "Platelet distribution width [Entitic volume] in Blood by Automated count"
+       }
+      ]
+     },
+     "subject": {
+      "reference": "Patient/a2c3739a-29d3-4664-bac5-00d202aba3a5",
+      "type": "Patient"
+     },
+     "encounter": {
+      "reference": "Encounter/a2c37437-21ac-4660-874c-cd9c2b35ea00",
+      "type": "Encounter"
+     },
+     "effectiveDateTime": "2023-12-24T00:00:00+00:00",
+     "valueQuantity": {
+      "value": 9.785956429440779,
+      "unit": "fL",
+      "system": "http://unitsofmeasure.org",
+      "code": "fL"
+     }
+    }
+   },
+   {
+    "fullUrl": "https://localhost:9300/apis/default/fhir/Observation/a2c37440-cd51-4b68-a830-dd6c9375009d",
+    "resource": {
+     "id": "a2c37440-cd51-4b68-a830-dd6c9375009d",
+     "meta": {
+      "versionId": "1",
+      "lastUpdated": "2023-12-24T00:00:00+00:00",
+      "profile": [
+       "http://hl7.org/fhir/us/core/StructureDefinition/us-core-observation-lab",
+       "http://hl7.org/fhir/us/core/StructureDefinition/us-core-observation-lab|3.1.1",
+       "http://hl7.org/fhir/us/core/StructureDefinition/us-core-observation-lab|7.0.0",
+       "http://hl7.org/fhir/us/core/StructureDefinition/us-core-observation-lab|8.0.0"
+      ]
+     },
+     "resourceType": "Observation",
+     "status": "final",
+     "category": [
+      {
+       "coding": [
+        {
+         "system": "http://terminology.hl7.org/CodeSystem/observation-category",
+         "code": "laboratory",
+         "display": "Laboratory"
+        }
+       ]
+      }
+     ],
+     "code": {
+      "coding": [
+       {
+        "system": "http://loinc.org",
+        "code": "32623-1",
+        "display": "Platelet [Entitic mean volume] in Blood by Automated count"
+       }
+      ]
+     },
+     "subject": {
+      "reference": "Patient/a2c3739a-29d3-4664-bac5-00d202aba3a5",
+      "type": "Patient"
+     },
+     "encounter": {
+      "reference": "Encounter/a2c37437-21ac-4660-874c-cd9c2b35ea00",
+      "type": "Encounter"
+     },
+     "effectiveDateTime": "2023-12-24T00:00:00+00:00",
+     "valueQuantity": {
+      "value": 11.39299469332445,
+      "unit": "fL",
+      "system": "http://unitsofmeasure.org",
+      "code": "fL"
+     }
+    }
+   },
+   {
+    "fullUrl": "https://localhost:9300/apis/default/fhir/Observation/a2c37440-cd54-48c9-91de-9e77abce8f34",
+    "resource": {
+     "id": "a2c37440-cd54-48c9-91de-9e77abce8f34",
+     "meta": {
+      "versionId": "1",
+      "lastUpdated": "2023-12-24T00:00:00+00:00",
+      "profile": [
+       "http://hl7.org/fhir/us/core/StructureDefinition/us-core-observation-lab",
+       "http://hl7.org/fhir/us/core/StructureDefinition/us-core-observation-lab|3.1.1",
+       "http://hl7.org/fhir/us/core/StructureDefinition/us-core-observation-lab|7.0.0",
+       "http://hl7.org/fhir/us/core/StructureDefinition/us-core-observation-lab|8.0.0"
+      ]
+     },
+     "resourceType": "Observation",
+     "status": "final",
+     "category": [
+      {
+       "coding": [
+        {
+         "system": "http://terminology.hl7.org/CodeSystem/observation-category",
+         "code": "laboratory",
+         "display": "Laboratory"
+        }
+       ]
+      }
+     ],
+     "code": {
+      "coding": [
+       {
+        "system": "http://loinc.org",
+        "code": "89204-2",
+        "display": "Patient Health Questionnaire-9: Modified for Teens total score [Reported.PHQ.Teen]"
+       }
+      ]
+     },
+     "subject": {
+      "reference": "Patient/a2c3739a-29d3-4664-bac5-00d202aba3a5",
+      "type": "Patient"
+     },
+     "encounter": {
+      "reference": "Encounter/a2c37437-21ac-4660-874c-cd9c2b35ea00",
+      "type": "Encounter"
+     },
+     "effectiveDateTime": "2023-12-24T00:00:00+00:00",
+     "valueQuantity": {
+      "value": 4,
+      "unit": "{score}"
+     }
+    }
+   },
+   {
+    "fullUrl": "https://localhost:9300/apis/default/fhir/Observation/a2c37440-cd57-4aa6-9088-c5e338890dc9",
+    "resource": {
+     "id": "a2c37440-cd57-4aa6-9088-c5e338890dc9",
+     "meta": {
+      "versionId": "1",
+      "lastUpdated": "2024-12-29T00:00:00+00:00",
+      "profile": [
+       "http://hl7.org/fhir/us/core/StructureDefinition/us-core-observation-lab",
+       "http://hl7.org/fhir/us/core/StructureDefinition/us-core-observation-lab|3.1.1",
+       "http://hl7.org/fhir/us/core/StructureDefinition/us-core-observation-lab|7.0.0",
+       "http://hl7.org/fhir/us/core/StructureDefinition/us-core-observation-lab|8.0.0"
+      ]
+     },
+     "resourceType": "Observation",
+     "status": "final",
+     "category": [
+      {
+       "coding": [
+        {
+         "system": "http://terminology.hl7.org/CodeSystem/observation-category",
+         "code": "laboratory",
+         "display": "Laboratory"
+        }
+       ]
+      }
+     ],
+     "code": {
+      "coding": [
+       {
+        "system": "http://loinc.org",
+        "code": "89204-2",
+        "display": "Patient Health Questionnaire-9: Modified for Teens total score [Reported.PHQ.Teen]"
+       }
+      ]
+     },
+     "subject": {
+      "reference": "Patient/a2c3739a-29d3-4664-bac5-00d202aba3a5",
+      "type": "Patient"
+     },
+     "encounter": {
+      "reference": "Encounter/a2c37437-21d7-48c7-a2d1-73923f27e031",
+      "type": "Encounter"
+     },
+     "effectiveDateTime": "2024-12-29T00:00:00+00:00",
+     "valueQuantity": {
+      "value": 3,
+      "unit": "{score}"
+     }
+    }
+   },
+   {
+    "fullUrl": "https://localhost:9300/apis/default/fhir/Observation/a2c37440-cd59-4af1-ae25-ddf1e7abeb87",
+    "resource": {
+     "id": "a2c37440-cd59-4af1-ae25-ddf1e7abeb87",
+     "meta": {
+      "versionId": "1",
+      "lastUpdated": "2026-01-04T00:00:00+00:00",
+      "profile": [
+       "http://hl7.org/fhir/us/core/StructureDefinition/us-core-observation-lab",
+       "http://hl7.org/fhir/us/core/StructureDefinition/us-core-observation-lab|3.1.1",
+       "http://hl7.org/fhir/us/core/StructureDefinition/us-core-observation-lab|7.0.0",
+       "http://hl7.org/fhir/us/core/StructureDefinition/us-core-observation-lab|8.0.0"
+      ]
+     },
+     "resourceType": "Observation",
+     "status": "final",
+     "category": [
+      {
+       "coding": [
+        {
+         "system": "http://terminology.hl7.org/CodeSystem/observation-category",
+         "code": "laboratory",
+         "display": "Laboratory"
+        }
+       ]
+      }
+     ],
+     "code": {
+      "coding": [
+       {
+        "system": "http://loinc.org",
+        "code": "70274-6",
+        "display": "Generalized anxiety disorder 7 item (GAD-7) total score [Reported.PHQ]"
+       }
+      ]
+     },
+     "subject": {
+      "reference": "Patient/a2c3739a-29d3-4664-bac5-00d202aba3a5",
+      "type": "Patient"
+     },
+     "encounter": {
+      "reference": "Encounter/a2c37437-21df-491e-a5b6-99e8b9dd0217",
+      "type": "Encounter"
+     },
+     "effectiveDateTime": "2026-01-04T00:00:00+00:00",
+     "valueQuantity": {
+      "value": 4,
+      "unit": "{score}"
+     }
+    }
+   },
+   {
+    "fullUrl": "https://localhost:9300/apis/default/fhir/Observation/a2c37440-cd5c-4d66-86a4-078e7d79a3f1",
+    "resource": {
+     "id": "a2c37440-cd5c-4d66-86a4-078e7d79a3f1",
+     "meta": {
+      "versionId": "1",
+      "lastUpdated": "2026-01-04T00:00:00+00:00",
+      "profile": [
+       "http://hl7.org/fhir/us/core/StructureDefinition/us-core-observation-lab",
+       "http://hl7.org/fhir/us/core/StructureDefinition/us-core-observation-lab|3.1.1",
+       "http://hl7.org/fhir/us/core/StructureDefinition/us-core-observation-lab|7.0.0",
+       "http://hl7.org/fhir/us/core/StructureDefinition/us-core-observation-lab|8.0.0"
+      ]
+     },
+     "resourceType": "Observation",
+     "status": "final",
+     "category": [
+      {
+       "coding": [
+        {
+         "system": "http://terminology.hl7.org/CodeSystem/observation-category",
+         "code": "laboratory",
+         "display": "Laboratory"
+        }
+       ]
+      }
+     ],
+     "code": {
+      "coding": [
+       {
+        "system": "http://loinc.org",
+        "code": "55758-7",
+        "display": "Patient Health Questionnaire 2 item (PHQ-2) total score [Reported]"
+       }
+      ]
+     },
+     "subject": {
+      "reference": "Patient/a2c3739a-29d3-4664-bac5-00d202aba3a5",
+      "type": "Patient"
+     },
+     "encounter": {
+      "reference": "Encounter/a2c37437-21df-491e-a5b6-99e8b9dd0217",
+      "type": "Encounter"
+     },
+     "effectiveDateTime": "2026-01-04T00:00:00+00:00",
+     "valueQuantity": {
+      "value": 1,
+      "unit": "{score}"
+     }
+    }
+   }
+  ]
+ }
+}
