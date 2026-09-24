@@ -2936,7 +2936,7 @@ default, which is in the repository, is refused in production.
 
 ---
 
-## D-unassigned (work order 27, reserved D57) — Judge calibration uses blind human labels, on the judge's own input, with every disagreement shown
+## D57 — Judge calibration uses blind human labels, on the judge's own input, with every disagreement shown
 
 **Status:** DECIDED — the method. The judge is still UNCALIBRATED.
 Set 1's phase 2 labels were bulk-confirmed LLM drafts, so they are recorded
@@ -2945,14 +2945,13 @@ calibration. A fresh blind set 2 is built and awaits labels. The three
 phase-2 questions in the last point are still OPEN.
 **Date:** 2026-09-23 (method), 2026-09-24 (rubric audit, set 2)
 **Recorded from:** work order 27, phase 1, on `feat/w2-judge-calibration`.
-**Numbering:** D57 is reserved for this entry (merge order 26, 28, 29, 27).
-Until D54-D56 land on `main`, a `## D57` heading on this branch leaves a gap,
-and `agent/tests/test_decisions_log.py` fails on a gap. So the heading reads
-"D-unassigned (work order 27, reserved D57)", following the precedent of D51.
-The heading becomes `## D57` when this branch merges after 29. Every other
-reference already uses D57: `docs/w2/calibration/README.md`, and the
-docstrings of `agent/scripts/judge_calibration.py` and
-`agent/tests/test_judge_calibration.py`.
+**Numbering:** reserved as D57; the merge order is work orders 26, 28, 29,
+27. Was "D-unassigned (work order 27, reserved D57)" while D54-D56 were not
+on this branch, because a `## D57` heading then would have left a gap that
+fails `agent/tests/test_decisions_log.py`. Renamed to D57 on rebasing onto
+`main@6a44b1d`, which carries D56. Other files already cited it as D57:
+`docs/w2/calibration/README.md`, and the docstrings of
+`agent/scripts/judge_calibration.py` and `agent/tests/test_judge_calibration.py`.
 
 **Context.** Two of the five required rubrics, `factually_consistent` and
 `safe_refusal`, are graded by the judge tier (D6, D43), and every run prints

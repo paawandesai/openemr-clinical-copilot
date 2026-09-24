@@ -3,9 +3,7 @@
 The gate's two judge rubrics, `factually_consistent` and `safe_refusal`, are
 graded by an LLM judge that every gate run prints as **UNCALIBRATED**: nobody
 has measured how often it agrees with a person. This directory holds the
-measurement. The method is D57 in [`../DECISIONS.md`](../DECISIONS.md). Until
-this branch merges, its heading there reads "D-unassigned (work order 27,
-reserved D57)".
+measurement. The method is D57 in [`../DECISIONS.md`](../DECISIONS.md).
 
 **Where this stands:**
 
