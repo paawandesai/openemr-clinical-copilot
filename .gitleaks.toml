@@ -38,3 +38,23 @@ paths = [
 ]
 regexTarget = "line"
 regexes = ['''^\s*"test_key": "[a-z0-9_]+",?\s*$''']
+
+# The judge-calibration item sets (D57) give every item a `"key"` handle, a
+# lower-case slug such as `"key": "fc2-<slug>"`. The default `generic-api-key`
+# rule reads "key" followed by a long-enough token as a credential. It is an
+# item handle, not a secret.
+#
+# Scoped three ways, all required:
+#   - rule:  generic-api-key only;
+#   - path:  the sealed item files of the calibration sets only;
+#   - line:  a whole line that is exactly a `key` field with an fc/sr slug.
+# A real key anywhere else, or any other line in these files, is still caught.
+[[allowlists]]
+description = "calibration item `key` slugs are item handles, not credentials"
+targetRules = ["generic-api-key"]
+condition = "AND"
+paths = [
+    '''^docs/w2/calibration/(set2/)?sealed/items\.json$''',
+]
+regexTarget = "line"
+regexes = ['''^\s*"key": "(fc|sr)2?-[a-z0-9-]+",?\s*$''']

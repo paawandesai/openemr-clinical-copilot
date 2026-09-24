@@ -1,0 +1,399 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Judge Calibration Labels</title>
+<!--
+  Built by agent/scripts/judge_calibration.py build — do not edit the built copy
+  (docs/w2/calibration/label.html); edit this template and rebuild.
+
+  Offline and blind by construction: no network, no external script, and the
+  embedded data carries each item's id, rubric and the text the judge sees —
+  never the judge's verdict and never the item's intended label.
+-->
+<style>
+:root {
+  --bg: #f6f5f1; --panel: #ffffff; --ink: #1d1d1b; --muted: #66645e; --line: #dcd9d0;
+  --accent: #2c5d8f; --pass: #2f7a4b; --fail: #a23b2f; --unsure: #8a6d1d;
+  --chip: #eceae3; --focus: #2c5d8f55; --mono-bg: #f1efe8;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #161615; --panel: #1f1f1d; --ink: #ecebe6; --muted: #a09e96; --line: #3a3935;
+    --accent: #7fb0e0; --pass: #6cc08c; --fail: #e3857a; --unsure: #d8b45a;
+    --chip: #2a2a27; --focus: #7fb0e055; --mono-bg: #262623;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #161615; --panel: #1f1f1d; --ink: #ecebe6; --muted: #a09e96; --line: #3a3935;
+  --accent: #7fb0e0; --pass: #6cc08c; --fail: #e3857a; --unsure: #d8b45a;
+  --chip: #2a2a27; --focus: #7fb0e055; --mono-bg: #262623;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0; background: var(--bg); color: var(--ink);
+  font: 15px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+}
+.wrap { max-width: 1180px; margin: 0 auto; padding: 16px; }
+header { display: flex; flex-wrap: wrap; gap: 12px 20px; align-items: baseline; margin-bottom: 12px; }
+h1 { font-size: 20px; margin: 0; }
+.muted { color: var(--muted); }
+.small { font-size: 13px; }
+.bar { height: 6px; background: var(--chip); border-radius: 3px; overflow: hidden; flex: 1 1 200px; min-width: 120px; }
+.bar > div { height: 100%; background: var(--accent); width: 0; transition: width .15s; }
+.toolbar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 8px 0 14px; }
+input[type=text] {
+  font: inherit; padding: 5px 8px; border: 1px solid var(--line); border-radius: 6px;
+  background: var(--panel); color: var(--ink); min-width: 0;
+}
+button, .filebtn {
+  font: inherit; font-size: 14px; padding: 6px 12px; border-radius: 6px; cursor: pointer;
+  border: 1px solid var(--line); background: var(--panel); color: var(--ink);
+}
+button:hover, .filebtn:hover { border-color: var(--accent); }
+button:focus-visible, textarea:focus-visible, input:focus-visible { outline: 3px solid var(--focus); outline-offset: 1px; }
+.filebtn input { display: none; }
+.grid { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 14px; }
+.grid button { padding: 2px 6px; font-size: 12px; font-variant-numeric: tabular-nums; background: var(--chip); border-color: transparent; }
+.grid button.done { background: var(--panel); border-color: var(--line); }
+.grid button.done::after { content: " \2713"; color: var(--muted); }
+.grid button.current { border-color: var(--accent); box-shadow: 0 0 0 2px var(--focus); }
+.layout { display: grid; grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); gap: 16px; align-items: start; }
+@media (max-width: 860px) { .layout { grid-template-columns: minmax(0, 1fr); } }
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 16px; }
+.itemhead { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: baseline; margin-bottom: 10px; }
+.itemid { font-weight: 650; font-size: 18px; font-variant-numeric: tabular-nums; }
+.tag { font-size: 12px; padding: 2px 8px; border-radius: 999px; background: var(--chip); }
+.field { margin: 12px 0; }
+.field h3 { font-size: 12px; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); margin: 0 0 4px; }
+.field pre, .field .text {
+  margin: 0; padding: 10px 12px; border-radius: 6px; background: var(--mono-bg);
+  white-space: pre-wrap; overflow-wrap: anywhere;
+}
+.field pre { font: 13px/1.45 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; overflow-x: auto; }
+.verdicts { display: flex; flex-wrap: wrap; gap: 8px; margin: 16px 0 10px; }
+.verdicts button { flex: 1 1 110px; font-weight: 650; padding: 10px; }
+.verdicts button[data-v=pass][aria-pressed=true] { background: var(--pass); color: var(--panel); border-color: var(--pass); }
+.verdicts button[data-v=fail][aria-pressed=true] { background: var(--fail); color: var(--panel); border-color: var(--fail); }
+.verdicts button[data-v=unsure][aria-pressed=true] { background: var(--unsure); color: var(--panel); border-color: var(--unsure); }
+textarea {
+  width: 100%; min-height: 64px; font: inherit; font-size: 14px; padding: 8px; border-radius: 6px;
+  border: 1px solid var(--line); background: var(--panel); color: var(--ink); resize: vertical;
+}
+.nav { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+.rubric .rtext { font-size: 14px; white-space: pre-wrap; margin: 0; overflow-wrap: anywhere; }
+.rubric .rtext .li { display: block; padding-left: 1.6em; text-indent: -1.2em; }
+.rubric h2 { font-size: 15px; margin: 0 0 8px; }
+.notice { padding: 8px 12px; border-radius: 6px; border: 1px solid var(--unsure); margin-bottom: 12px; display: none; }
+.keys { margin-top: 12px; }
+kbd { font: 12px ui-monospace, monospace; border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; background: var(--chip); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Judge calibration: labelling</h1>
+    <span class="muted small" id="progressText"></span>
+    <div class="bar" aria-hidden="true"><div id="progressBar"></div></div>
+  </header>
+
+  <div class="notice" id="storageNotice">This browser is not keeping a saved copy (storage is blocked here). Download your labels before closing the page.</div>
+
+  <div class="toolbar">
+    <label class="small" for="labeller">Labeller</label>
+    <input type="text" id="labeller" placeholder="your name or initials" autocomplete="off">
+    <button id="download" type="button">Download labels</button>
+    <label class="filebtn">Resume from a labels file<input type="file" id="resume" accept="application/json,.json"></label>
+    <button id="nextOpen" type="button">Next unlabelled</button>
+    <span class="muted small" id="status" role="status"></span>
+  </div>
+
+  <nav class="grid" id="grid" aria-label="Items"></nav>
+
+  <div class="layout">
+    <main class="card" id="item">
+      <div class="itemhead">
+        <span class="itemid" id="itemId"></span>
+        <span class="tag" id="itemRubric"></span>
+        <span class="muted small" id="itemPos"></span>
+      </div>
+      <div id="fields"></div>
+
+      <div class="verdicts" role="group" aria-label="Your verdict">
+        <button type="button" data-v="pass" aria-pressed="false">PASS</button>
+        <button type="button" data-v="fail" aria-pressed="false">FAIL</button>
+        <button type="button" data-v="unsure" aria-pressed="false">UNSURE</button>
+      </div>
+      <label class="small muted" for="note">Note (optional): why, especially for FAIL and UNSURE</label>
+      <textarea id="note"></textarea>
+
+      <div class="nav">
+        <button id="prev" type="button">&larr; Previous</button>
+        <button id="next" type="button">Next &rarr;</button>
+      </div>
+      <p class="keys muted small">
+        Keys: <kbd>P</kbd> pass, <kbd>F</kbd> fail, <kbd>U</kbd> unsure, <kbd>&larr;</kbd> <kbd>&rarr;</kbd> move.
+        Keys are off while you type a note.
+      </p>
+    </main>
+
+    <aside class="card rubric">
+      <h2 id="rubricTitle"></h2>
+      <p class="muted small">This is the judge's own instruction, word for word (line breaks reflowed to fit). Apply it the way you would want a careful reviewer to, to exactly the text on the left and nothing else.</p>
+      <div class="rtext" id="rubricText"></div>
+    </aside>
+  </div>
+</div>
+
+<script type="application/json" id="calibration-data">__CALIBRATION_DATA__</script>
+<script>
+(function () {
+  "use strict";
+  var DATA = JSON.parse(document.getElementById("calibration-data").textContent);
+  var ITEMS = DATA.items;
+  var STORE_KEY = "w2-judge-calibration:" + DATA.items_sha256;
+  var FIELDS = {
+    factually_consistent: [["statement", "Statement", false], ["source_text", "Source text it cites", true]],
+    safe_refusal: [["request", "Request", false], ["response", "Response", false]]
+  };
+
+  var state = { labels: {}, labeller: "", index: 0 };
+  var storageOk = true;
+
+  function load() {
+    try {
+      var raw = window.localStorage.getItem(STORE_KEY);
+      if (raw) {
+        var saved = JSON.parse(raw);
+        if (saved && typeof saved === "object") {
+          state.labels = saved.labels || {};
+          state.labeller = saved.labeller || "";
+          state.index = Math.min(Math.max(0, saved.index | 0), ITEMS.length - 1);
+        }
+      }
+    } catch (e) { storageOk = false; }
+  }
+  function save() {
+    try {
+      window.localStorage.setItem(STORE_KEY, JSON.stringify(state));
+    } catch (e) { storageOk = false; showStorage(); }
+  }
+  function showStorage() {
+    document.getElementById("storageNotice").style.display = storageOk ? "none" : "block";
+  }
+
+  function el(tag, cls, text) {
+    var n = document.createElement(tag);
+    if (cls) n.className = cls;
+    if (text !== undefined) n.textContent = text;
+    return n;
+  }
+
+  function labelledCount() {
+    var n = 0;
+    ITEMS.forEach(function (it) { if (state.labels[it.id] && state.labels[it.id].label) n++; });
+    return n;
+  }
+
+  function renderGrid() {
+    var grid = document.getElementById("grid");
+    grid.textContent = "";
+    ITEMS.forEach(function (it, i) {
+      var b = el("button", "", it.id);
+      b.type = "button";
+      if (state.labels[it.id] && state.labels[it.id].label) b.classList.add("done");
+      if (i === state.index) { b.classList.add("current"); b.setAttribute("aria-current", "true"); }
+      b.addEventListener("click", function () { go(i); });
+      grid.appendChild(b);
+    });
+  }
+
+  function renderProgress() {
+    var n = labelledCount();
+    document.getElementById("progressText").textContent = n + " of " + ITEMS.length + " labelled";
+    document.getElementById("progressBar").style.width = (100 * n / ITEMS.length) + "%";
+  }
+
+  function renderItem() {
+    var it = ITEMS[state.index];
+    document.getElementById("itemId").textContent = it.id;
+    document.getElementById("itemRubric").textContent = it.rubric;
+    document.getElementById("itemPos").textContent = "item " + (state.index + 1) + " of " + ITEMS.length;
+    var fields = document.getElementById("fields");
+    fields.textContent = "";
+    FIELDS[it.rubric].forEach(function (f) {
+      var box = el("section", "field");
+      box.appendChild(el("h3", "", f[1]));
+      box.appendChild(el(f[2] ? "pre" : "div", f[2] ? "" : "text", it.payload[f[0]]));
+      fields.appendChild(box);
+    });
+    var mine = state.labels[it.id] || {};
+    document.querySelectorAll(".verdicts button").forEach(function (b) {
+      b.setAttribute("aria-pressed", String(mine.label === b.getAttribute("data-v")));
+    });
+    document.getElementById("note").value = mine.note || "";
+    document.getElementById("rubricTitle").textContent = "Rubric: " + it.rubric;
+    renderRubric(DATA.rubrics[it.rubric].text);
+    document.getElementById("prev").disabled = state.index === 0;
+    document.getElementById("next").disabled = state.index === ITEMS.length - 1;
+  }
+
+  // The prompt is hard-wrapped at ~80 columns. Reflow it for display only:
+  // paragraphs stay paragraphs, each "1." / "a." rule starts its own line,
+  // and every other line break inside a paragraph becomes a space.
+  function renderRubric(text) {
+    var box = document.getElementById("rubricText");
+    box.textContent = "";
+    text.trim().split(/\n\s*\n/).forEach(function (para, i) {
+      var p = el("p");
+      p.style.margin = i ? "12px 0 0" : "0";
+      var cur = null;
+      para.split("\n").forEach(function (line) {
+        var isItem = /^\s*([0-9]+|[a-z])\.\s/.test(line);
+        if (isItem || cur === null) {
+          cur = el("span", isItem ? "li" : "", line.trim());
+          p.appendChild(cur);
+        } else {
+          cur.textContent += " " + line.trim();
+        }
+      });
+      box.appendChild(p);
+    });
+  }
+
+  function renderAll() { renderProgress(); renderGrid(); renderItem(); }
+
+  function go(i) {
+    if (i < 0 || i >= ITEMS.length) return;
+    state.index = i;
+    save();
+    renderAll();
+    window.scrollTo(0, 0);
+  }
+
+  function setLabel(v) {
+    var it = ITEMS[state.index];
+    state.labels[it.id] = { label: v, note: document.getElementById("note").value, labelled_at: new Date().toISOString() };
+    save();
+    renderAll();
+  }
+
+  function nextOpen() {
+    for (var k = 1; k <= ITEMS.length; k++) {
+      var i = (state.index + k) % ITEMS.length;
+      var l = state.labels[ITEMS[i].id];
+      if (!l || !l.label) { go(i); return; }
+    }
+    flash("Every item is labelled. Download your labels.");
+  }
+
+  function flash(msg) {
+    var s = document.getElementById("status");
+    s.textContent = msg;
+    setTimeout(function () { if (s.textContent === msg) s.textContent = ""; }, 4000);
+  }
+
+  function exportLabels() {
+    var out = {};
+    ITEMS.forEach(function (it) {
+      var l = state.labels[it.id];
+      if (l && (l.label || l.note)) out[it.id] = { label: l.label || null, note: l.note || "", labelled_at: l.labelled_at || null };
+    });
+    return {
+      schema_version: DATA.labels_schema_version,
+      items_sha256: DATA.items_sha256,
+      prompt_sha256: DATA.prompt_sha256,
+      labeller: state.labeller,
+      exported_at: new Date().toISOString(),
+      item_count: ITEMS.length,
+      labels: out
+    };
+  }
+
+  function download() {
+    var missing = ITEMS.length - labelledCount();
+    if (missing > 0 && !window.confirm(missing + " item(s) have no label yet. Download anyway? (You can resume from the file later.)")) return;
+    var blob = new Blob([JSON.stringify(exportLabels(), null, 2) + "\n"], { type: "application/json" });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement("a");
+    var who = (state.labeller || "labeller").replace(/[^A-Za-z0-9_-]+/g, "-");
+    a.href = url;
+    a.download = "judge-calibration-labels-" + who + ".json";
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(function () { URL.revokeObjectURL(url); a.remove(); }, 1000);
+    flash("Downloaded.");
+  }
+
+  function resume(file) {
+    var reader = new FileReader();
+    reader.onload = function () {
+      try {
+        var doc = JSON.parse(reader.result);
+        if (doc.items_sha256 !== DATA.items_sha256) {
+          flash("That file was made for a different item set; not loaded.");
+          return;
+        }
+        var known = {};
+        ITEMS.forEach(function (it) { known[it.id] = true; });
+        var n = 0;
+        Object.keys(doc.labels || {}).forEach(function (id) {
+          var l = doc.labels[id];
+          if (!known[id] || !l) return;
+          if (l.label !== null && ["pass", "fail", "unsure"].indexOf(l.label) < 0) return;
+          state.labels[id] = { label: l.label, note: l.note || "", labelled_at: l.labelled_at || null };
+          n++;
+        });
+        if (doc.labeller) { state.labeller = doc.labeller; document.getElementById("labeller").value = doc.labeller; }
+        save();
+        renderAll();
+        flash("Loaded " + n + " label(s).");
+      } catch (e) {
+        flash("Could not read that file as labels JSON.");
+      }
+    };
+    reader.readAsText(file);
+  }
+
+  document.querySelectorAll(".verdicts button").forEach(function (b) {
+    b.addEventListener("click", function () { setLabel(b.getAttribute("data-v")); });
+  });
+  document.getElementById("note").addEventListener("input", function (e) {
+    var it = ITEMS[state.index];
+    var cur = state.labels[it.id] || { label: null, labelled_at: null };
+    cur.note = e.target.value;
+    state.labels[it.id] = cur;
+    save();
+  });
+  document.getElementById("labeller").addEventListener("input", function (e) { state.labeller = e.target.value; save(); });
+  document.getElementById("prev").addEventListener("click", function () { go(state.index - 1); });
+  document.getElementById("next").addEventListener("click", function () { go(state.index + 1); });
+  document.getElementById("nextOpen").addEventListener("click", nextOpen);
+  document.getElementById("download").addEventListener("click", download);
+  document.getElementById("resume").addEventListener("change", function (e) {
+    if (e.target.files && e.target.files[0]) resume(e.target.files[0]);
+    e.target.value = "";
+  });
+  document.addEventListener("keydown", function (e) {
+    var t = e.target;
+    if (t && (t.tagName === "TEXTAREA" || t.tagName === "INPUT")) return;
+    if (e.metaKey || e.ctrlKey || e.altKey) return;
+    var k = e.key.toLowerCase();
+    if (k === "p") setLabel("pass");
+    else if (k === "f") setLabel("fail");
+    else if (k === "u") setLabel("unsure");
+    else if (e.key === "ArrowRight") go(state.index + 1);
+    else if (e.key === "ArrowLeft") go(state.index - 1);
+    else return;
+    e.preventDefault();
+  });
+
+  load();
+  showStorage();
+  document.getElementById("labeller").value = state.labeller;
+  renderAll();
+})();
+</script>
+</body>
+</html>
