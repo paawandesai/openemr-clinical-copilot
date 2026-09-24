@@ -110,6 +110,14 @@ API collection, the smoke tests), never by the agent.
   instead.
 - `docker compose config` prints resolved environment values, including the
   key. Use the filtered command in §4.
+- `AGENT_TELEMETRY_HMAC_SECRET` (D56) is the key telemetry's
+  `patient_session_key` is HMAC'd under, so no log line or Langfuse event
+  carries a patient uuid. The image runs with `AGENT_ENV=production`, and
+  in production the agent **refuses to start** without it (at least 32
+  characters, not the dev default): the container exits and
+  `up --wait` fails. Keep it stable: a new value starts new trace sessions.
+  Before deploying D56 or later to a host whose env file predates it, add
+  it (§4).
 
 ## 4. Deploy (operator commands)
 
@@ -132,6 +140,15 @@ install -d -m 700 /etc/clinical-copilot
 read -rsp 'ANTHROPIC_API_KEY: ' KEY; echo
 ( umask 077; printf 'ANTHROPIC_API_KEY=%s\nAGENT_PUBLIC_HOST=64.177.42.210\n' "$KEY" > /etc/clinical-copilot/agent.env )
 unset KEY
+```
+
+On any host whose env file has no telemetry secret yet, before the first
+deploy of D56 or later, on the host (appends a fresh 64-character secret;
+run it once, since a new value splits trace sessions):
+
+```bash
+grep -q '^AGENT_TELEMETRY_HMAC_SECRET=.' /etc/clinical-copilot/agent.env \
+  || ( umask 077; printf 'AGENT_TELEMETRY_HMAC_SECRET=%s\n' "$(python3 -c 'import secrets; print(secrets.token_hex(32))')" >> /etc/clinical-copilot/agent.env )
 ```
 
 Start (and, after later deploys, rebuild) — on the host:
@@ -179,9 +196,10 @@ curl --cacert agent-root.crt https://64.177.42.210:8443/health
 The root persists in the `caddy_data` volume, so it survives restarts.
 
 **Metrics (KEY_METRICS.md) from the live service:** the agent logs to stdout,
-which Docker keeps (10 MB × 5 files). The log lines carry
-`patient_session_key` and FHIR source ids, so they stay on the host or the
-operator's machine:
+which Docker keeps (10 MB × 5 files). The log lines carry FHIR source ids,
+and the `patient_session_key` only as its HMAC (D56). Uvicorn's access
+lines still print `?patient_id=` for the document routes. So the logs stay
+on the host or the operator's machine:
 
 ```bash
 ssh root@64.177.42.210 'docker logs clinical-copilot-agent-agent-1 2>&1' \

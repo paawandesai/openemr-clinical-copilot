@@ -48,11 +48,16 @@ from app.graph.supervisor import set_retriever
 from app.health import router as health_router
 from app.middleware.correlation import CorrelationIdMiddleware, get_correlation_id
 from app.middleware.logging import configure_logging, log_event
+from app.middleware.telemetry_key import require_secret
 from app.models.api import ErrorCode, ErrorResponse
 from app.process_state import warn_if_multi_process
 from app.retrieval.preload import preload_enabled, preload_retrieval
 
 configure_logging()
+# At import, not in the lifespan, so `--lifespan off` cannot skip it: with
+# AGENT_ENV=production and no usable AGENT_TELEMETRY_HMAC_SECRET the service
+# does not start (D56, app/middleware/telemetry_key.py).
+require_secret()
 
 
 @asynccontextmanager

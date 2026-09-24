@@ -20,9 +20,10 @@ How one `log_event(...)` call maps onto Langfuse
               were verified to drop out of every per-use-case score query
               (server 4.37.0). `_PinnedTraceIdGenerator` below is how a
               parentless span still gets the correlation-derived trace id.
-  session     patient_session_key — Langfuse sessions group traces, which is
-              exactly the (user, patient, session) rollup KEY_METRICS.md
-              specifies for Metrics 1, 2, 4, 5, 6.
+  session     patient_session_key's HMAC (D56, telemetry_key.py), never the
+              key: Langfuse sessions group traces, which is exactly the
+              (user, patient, session) rollup KEY_METRICS.md specifies for
+              Metrics 1, 2, 4, 5, 6, and one key always yields one HMAC.
   trace name  The use_case value (pre_visit_brief / change_detection /
               follow_up_drilling), when the event carries one.
   tags        use_case:<value>, and retrieved:<ResourceType> per
@@ -87,6 +88,7 @@ from typing import TYPE_CHECKING, Any, Literal
 import structlog
 from pydantic import BaseModel, NonNegativeInt, ValidationError
 
+from app.middleware import telemetry_key
 from app.models.metrics_events import (
     AuthorizationCheckEvent,
     ClaimVerifiedEvent,
@@ -604,16 +606,22 @@ def export_event(
     use_case: UseCase | None,
     patient_session_key: str | None,
 ) -> None:
-    """Called by log_event after the stdout line is written. Never raises."""
+    """
+    Called by log_event after the stdout line is written. Never raises.
+
+    The Langfuse exit for a patient_session_key: the session id and every
+    key field in the metadata are its HMAC, never the key (D56,
+    app/middleware/telemetry_key.py).
+    """
     if _exporter is None:
         return
     correlation_id = structlog.contextvars.get_contextvars().get("correlation_id")
     try:
         _exporter.export(
             event_type=event_type,
-            event_data=event_data,
+            event_data=telemetry_key.emitted_event_data(event_data),
             use_case=use_case,
-            patient_session_key=patient_session_key,
+            patient_session_key=telemetry_key.emitted_key(patient_session_key),
             correlation_id=correlation_id if isinstance(correlation_id, str) else None,
         )
     except Exception:

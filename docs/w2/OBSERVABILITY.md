@@ -182,10 +182,12 @@ v2. Scores behind it, per event:
 | `ready-failure-modes.txt` | `/ready` with each dependency broken (§4) |
 | `load/` | Raw k6 summaries, resource samples, bench JSON ([`LOAD_TEST.md`](LOAD_TEST.md)) |
 
-**Neither event log behind these is committed.** Local logs carry
-`patient_session_key`, which holds (synthetic) patient UUIDs, and a log with
-patient identifiers is the wrong thing to put in a repository even when the
-patients are fake. What is committed is aggregates: the dashboard exports
+**Neither event log behind these is committed.** Those local logs were
+written before D56 and carry `patient_session_key` raw, which holds
+(synthetic) patient UUIDs. Since D56 the key is emitted as its HMAC. But
+uvicorn's access lines still print `?patient_id=` for the document routes,
+and a log with patient identifiers is the wrong thing to put in a
+repository even when the patients are fake. What is committed is aggregates: the dashboard exports
 contain no session key or patient id (`test_rendered_output_never_carries_the_session_key`).
 To see the widgets populated, generate traffic (§6 step 5).
 
