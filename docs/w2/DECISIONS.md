@@ -2835,3 +2835,101 @@ provider are healthy, as before.
 `/ready` still says `disabled` until it is redeployed. Clients: the two
 Postman collections read `required` and the key names only
 (`agent/api-collection/`), so neither changes.
+
+---
+
+## D56 — Telemetry carries an HMAC of the patient_session_key, never the key
+
+**Status:** DECIDED
+**Date:** 2026-09-23
+**Work order:** 29 (`fix/w2-session-key-hmac`).
+**Numbering:** reserved. The merge order is work orders 26, 28, 29, 27,
+holding D54, D55, D56 and D57. Rebased onto `cfe8b46` after D54 and D55
+merged, so D56 follows D55 with no gap.
+**Evidence:** `agent/tests/test_telemetry_key.py`.
+
+**Problem.** `patient_session_key` is `<sub>:<patient uuid>:<session id>`
+(ARCHITECTURE.md §4), and every event carries it. So every stdout line and
+every Langfuse session held the patient's uuid. That made self-hosting
+Langfuse a decision to store patient identifiers in its database. The
+defect predates Week 2.
+
+**Decision.**
+
+- **The emitted value.** What leaves the process is
+  `psk_` + hex(HMAC-SHA256(`AGENT_TELEMETRY_HMAC_SECRET`, key)).
+- **Where it applies.** Only at the process's two exits
+  (`app/middleware/telemetry_key.py`):
+  - **stdout:** a structlog processor in `configure_logging`, ahead of
+    the JSON renderer;
+  - **Langfuse:** `langfuse_export.export_event`, which covers the
+    session id and the metadata.
+- **Which fields.** Both exits replace the envelope's
+  `patient_session_key` and the same field inside `event_data`:
+  - `ClaimVerifiedEvent`;
+  - `ClaimDisclosureEvent`;
+  - `previous_patient_session_key` on `conversation_invalidated`.
+- **Unchanged inside the process.** Nothing else moves:
+  - how the key is built;
+  - the conversation store, which keys on `(user, session_id)` and
+    binds the patient, not on this string;
+  - invalidation on a patient switch;
+  - response bodies;
+  - the event dicts that `structlog.testing.capture_logs` sees.
+- **Grouping still works.** One secret maps a key to one value, so traces
+  still group. That covers `compute_metrics.py`'s per-interaction rollup,
+  Langfuse sessions, and the `event_data` copies, which still agree with
+  the envelope.
+- **Production refuses a bad secret.** With `AGENT_ENV=production`, the
+  service refuses to start at `app.main` import if the secret is:
+  - missing;
+  - shorter than 32 characters;
+  - the published dev default.
+
+  The Dockerfile sets `AGENT_ENV=production`, and the compose file passes
+  it through.
+- **Outside production.** An unset secret falls back to the dev default.
+  The values it produces start with `psk_dev_`, and startup logs
+  `telemetry_hmac_secret_dev_default`.
+- **What the deploy must set.** `AGENT_TELEMETRY_HMAC_SECRET` goes in
+  `/etc/clinical-copilot/agent.env`. Generate it with
+  `python -c 'import secrets; print(secrets.token_hex(32))'`, and keep it
+  stable across deploys.
+
+**Why at the exits, not in `log_event`.** The gated Week 1 I-suite reads
+events through `capture_logs` and holds them to the raw key in two places:
+
+- I2 and I11 (`_check_events`) compare every event's key with the
+  response body's.
+- I1 compares `previous_patient_session_key` with
+  `f"{user}:{patient}:{session}"`.
+
+Hashing inside `log_event` would fail both, and neither can be edited from
+an implementation session. The exits are also where "emitted" is decided.
+A processor covers every rendered line, not only `log_event`'s.
+
+The trade-off, stated plainly: the I-suite's attribution check now checks
+the tags *before* emission. That the emitted values still group is pinned
+by `test_every_event_of_a_turn_carries_one_hmac_so_traces_still_group`.
+
+**Why a keyed HMAC and not SHA-256.** Patient uuids can be enumerated from
+the EHR: the deployment has 52. The user `sub` is known to anyone holding
+a token. An unkeyed hash is one dictionary away from the uuid. With a key,
+recomputing the value needs the secret. For the same reason the dev
+default, which is in the repository, is refused in production.
+
+**Consequences.**
+
+- **Rotating the secret splits sessions.** Any session that spans the
+  rotation groups as two.
+- **Not changed here, and still able to carry a patient uuid on stdout:**
+  - **uvicorn's access log.** It is on by default and prints the query
+    string, so `POST /documents` and every extraction poll write
+    `patient_id=<uuid>`. `http_request_event` already records method,
+    route template, status and latency. `--no-access-log` would close it.
+  - **A caller-supplied `X-Correlation-ID`.** D36's alphabet admits a
+    uuid, so a caller could send a patient's.
+  - **Processes that never call `configure_logging`.** The W2 gate runner
+    renders with structlog's default chain. So
+    `docs/w2/EVAL_GATE_EVIDENCE.md` holds raw keys, all with the synthetic
+    sentinel uuid.

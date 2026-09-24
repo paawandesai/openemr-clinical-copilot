@@ -60,6 +60,13 @@ RUN python -c "from fastembed import TextEmbedding; from fastembed.rerank.cross_
 
 ENV HF_HUB_OFFLINE=1
 
+# The image is production unless told otherwise. In production the service
+# refuses to start without AGENT_TELEMETRY_HMAC_SECRET, the key telemetry's
+# patient_session_key is HMAC'd under so no emitted event carries a patient
+# uuid (D56, app/middleware/telemetry_key.py). Set here, not in the compose
+# file alone, so a bare `docker run` of the image is held to it too.
+ENV AGENT_ENV=production
+
 # Unprivileged, and the compose file also mounts the root filesystem read-only.
 RUN useradd --system --uid 10001 --no-create-home --shell /usr/sbin/nologin agent
 USER 10001

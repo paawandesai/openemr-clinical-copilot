@@ -47,6 +47,13 @@ services:
       # image, so this loads from disk and never fetches
       # (docs/w2/retrieval-deploy.md).
       AGENT_PRELOAD_RETRIEVAL: ${AGENT_PRELOAD_RETRIEVAL:-true}
+      # Telemetry carries HMAC-SHA256(secret, patient_session_key), never the
+      # key, which holds the patient uuid (D56). With AGENT_ENV=production
+      # (the image's default) the agent refuses to start unless the secret is
+      # set to at least 32 characters: the container exits and `up --wait`
+      # fails. Keep it stable: a new secret splits every trace session in two.
+      AGENT_ENV: ${AGENT_ENV:-production}
+      AGENT_TELEMETRY_HMAC_SECRET: ${AGENT_TELEMETRY_HMAC_SECRET:-}
     # The agent shares the host with OpenEMR and MariaDB. Measured on the
     # 7.2 GiB host (docs/w2/DEPLOY.md §8): 3.7 GiB peak at demo load (two
     # reranks and one OCR job at a time), and past 5 GiB under a heavier mix,

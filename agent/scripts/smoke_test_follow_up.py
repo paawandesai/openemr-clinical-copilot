@@ -63,6 +63,7 @@ import httpx  # noqa: E402
 from app.fhir import client as fhir_client  # noqa: E402
 from app.graph import follow_up as follow_up_graph  # noqa: E402
 from app.main import app  # noqa: E402
+from app.middleware.telemetry_key import emitted_key  # noqa: E402
 from app.models.api import FollowUpResponse, PreVisitBriefResponse  # noqa: E402
 from app.models.claims import Claim  # noqa: E402
 from app.models.fhir_resources import FhirResourceType as R  # noqa: E402
@@ -214,7 +215,8 @@ def _check_common(
     ok &= _report(types == expected, f"run {tag}: event types {dict(sorted(types.items()))}")
     ok &= _report(
         {e.get("use_case") for e in mine} == {"follow_up_drilling"}
-        and {e.get("patient_session_key") for e in mine} == {key},
+        # The lines carry the key's HMAC, never the key itself (D56).
+        and {e.get("patient_session_key") for e in mine} == {emitted_key(key)},
         f"run {tag}: all {len(mine)} events tagged follow_up_drilling and the brief's key",
     )
     claim_events = [e["event_data"] for e in mine if e["event_type"] == "claim_verified_event"]

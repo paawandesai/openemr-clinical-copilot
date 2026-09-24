@@ -60,6 +60,7 @@ from app.graph.pre_visit_brief import (  # noqa: E402
     run_pre_visit_brief,
 )
 from app.middleware.logging import configure_logging  # noqa: E402
+from app.middleware.telemetry_key import emitted_key  # noqa: E402
 from scripts.smoke_test_claims import _find_empty_allergy_patient  # noqa: E402
 from scripts.smoke_test_fhir import (  # noqa: E402
     _discover_a_patient_id,
@@ -114,7 +115,8 @@ def _print_run(run: _Run) -> None:
     failed = len(result.verification_results) - passed
     print(f"\n{'=' * 72}\n{run.label}")
     print(f"patient:             {run.patient_id}")
-    print(f"patient_session_key: {run.key}")
+    # What the log lines carry for it (D56), not the key: stdout is the log.
+    print(f"emitted session key: {emitted_key(run.key)}")
     print(f"correlation_id:      {result.correlation_id}")
     print(f"{'=' * 72}")
     print(result.text)
@@ -157,6 +159,8 @@ def _check_attribution(runs: list[_Run], events: list[dict[str, Any]]) -> bool:
 
     for run in runs:
         cid = run.result.correlation_id
+        # The lines carry the key's HMAC, never the key itself (D56).
+        emitted = emitted_key(run.key)
         mine = [e for e in events if e.get("correlation_id") == cid]
         keys = Counter(e.get("patient_session_key") for e in mine)
         types = Counter(e["event_type"] for e in mine)
@@ -168,7 +172,7 @@ def _check_attribution(runs: list[_Run], events: list[dict[str, Any]]) -> bool:
             latency_event=1,
         )
         ok &= _report(
-            set(keys) == {run.key},
+            set(keys) == {emitted},
             f"run {run.label[:1]}: all {len(mine)} events carry its own key "
             f"(keys seen: {dict(keys)})",
         )
@@ -180,7 +184,7 @@ def _check_attribution(runs: list[_Run], events: list[dict[str, Any]]) -> bool:
             e
             for e in mine
             if e["event_data"].get("correlation_id", cid) != cid
-            or e["event_data"].get("patient_session_key", run.key) != run.key
+            or e["event_data"].get("patient_session_key", emitted) != emitted
         ]
         ok &= _report(
             not body_mismatch,
@@ -190,7 +194,7 @@ def _check_attribution(runs: list[_Run], events: list[dict[str, Any]]) -> bool:
         elsewhere = [
             e
             for e in events
-            if e.get("patient_session_key") == run.key and e.get("correlation_id") != cid
+            if e.get("patient_session_key") == emitted and e.get("correlation_id") != cid
         ]
         ok &= _report(
             not elsewhere,

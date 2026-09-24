@@ -14,7 +14,11 @@ without this shape existing first. Every log line emitted through
                           follow_up_drilling).
   - patient_session_key   The (user, patient, session) triple
                           ARCHITECTURE.md §4 defines for conversation
-                          state.
+                          state. Emitted as its HMAC, never raw (D56,
+                          app/middleware/telemetry_key.py): the rendered
+                          line and the Langfuse export carry
+                          `psk_<hex>`, so no emitted line holds a patient
+                          uuid. Call sites pass the raw key as before.
   - event_type/event_data Free-form payload — see
                           app/models/metrics_events.py for the concrete
                           shapes KEY_METRICS.md's metrics are computed
@@ -40,6 +44,7 @@ from typing import Any
 import structlog
 
 from app.middleware import langfuse_export
+from app.middleware.telemetry_key import pseudonymize_session_keys
 from app.models.metrics_events import UseCase
 
 
@@ -56,6 +61,10 @@ def configure_logging(level: int = logging.INFO) -> None:
             # structlog.contextvars) into every log line for the current
             # request — see CorrelationIdMiddleware.
             structlog.contextvars.merge_contextvars,
+            # The stdout exit for a patient_session_key: the line carries
+            # its HMAC, never the key (D56). Before the renderer, and after
+            # merge_contextvars so a key bound there is replaced too.
+            pseudonymize_session_keys,
             structlog.processors.add_log_level,
             structlog.processors.TimeStamper(fmt="iso", utc=True),
             structlog.processors.StackInfoRenderer(),

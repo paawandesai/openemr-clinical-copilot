@@ -34,7 +34,8 @@ separate from the OpenEMR + agent host.
 
 - **Self-hosted, never Langfuse Cloud.** Every event carries
   `patient_session_key` (a `(user, patient, session)` triple — ARCHITECTURE.md
-  §4) and FHIR `source_id`s. That is PHI-adjacent data. It must stay on
+  §4), exported as its HMAC-SHA256 since D56 so no patient uuid is sent, and
+  FHIR `source_id`s. That is PHI-adjacent data. It must stay on
   infrastructure under this project's own BAA analysis (AUDIT.md F-41),
   which is the same reasoning that kept MySQL off DigitalOcean Managed
   Databases.
@@ -152,7 +153,7 @@ What happens with each configuration state:
 |---|---|
 | Trace | one per `correlation_id` (deterministic trace id) |
 | Trace name | `use_case` (`pre_visit_brief` / `change_detection` / `follow_up_drilling`) |
-| Session | `patient_session_key` — so the Sessions page *is* the `(user, patient, session)` rollup |
+| Session | `patient_session_key`'s HMAC (`psk_…`, D56), never the key — one key, one value, so the Sessions page *is* the `(user, patient, session)` rollup |
 | Tags | `use_case:<value>`; plus `retrieved:<ResourceType>` on `retrieval_event` |
 | Observation | EVENT named `event_type`, metadata = `event_data` + envelope fields; `llm_usage_event` becomes a GENERATION |
 | Scores | derived per event type, each parsed through the existing `app/models/metrics_events.py` model (§6) |
@@ -560,7 +561,8 @@ Facts from DigitalOcean's docs (checked 2026-09-16) that the steps rely on:
 
 - [ ] Confirm an **executed BAA** with DigitalOcean covers this account.
       AUDIT.md F-41 records this as *not confirmed*. Droplet 2 will store
-      session ids containing patient identifiers.
+      FHIR source ids and pseudonymous session ids (HMACs of the
+      patient_session_key since D56, no patient uuid).
 - [ ] **Decide transit protection** between the droplets and record the
       decision in ARCHITECTURE.md:
   - **Option A:** bind Langfuse to droplet 2's VPC private IP, plus a Cloud
