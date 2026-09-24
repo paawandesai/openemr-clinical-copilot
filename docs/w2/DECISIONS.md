@@ -2786,17 +2786,17 @@ token does not carry a write scope.
 
 ---
 
-## D-unassigned (reserved: D55) — `/ready` names stdout as the observability backend, and exported spans name the service
+## D55 — `/ready` names stdout as the observability backend, and exported spans name the service
 
 **Status:** DECIDED
 **Date:** 2026-09-23
 **Work order:** 28 (`chore/w2-final-hygiene`), item 4.
 **Numbering:** reserved as D55; merge order is work orders 26, 28, 29, 27.
-Written under the log's not-yet-numbered form because work order 26's D54
-is not on this branch, and a `## D55` heading here would leave a gap at D54
-that fails `agent/tests/test_decisions_log.py` until 26 merges. The
-heading becomes `## D55` when this branch is rebased onto 26. Other files
-cite it as D55 already.
+Was "D-unassigned (reserved: D55)" while work order 26's D54 was not on
+this branch, because a `## D55` heading then would have left a gap at D54
+that fails `agent/tests/test_decisions_log.py`. Renamed to D55 on rebasing
+onto `main@024f8fb`, which carries D54. Other files already cited it as
+D55.
 **Amends:** D37 — its `disabled` value only. Everything else in D37 stands:
 the check is reported, `required: false`, and never gates readiness.
 

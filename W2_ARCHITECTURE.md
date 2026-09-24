@@ -484,9 +484,13 @@ Documents and lab values are written through a custom module endpoint.
 Two identical requests fired together leave exactly one chain (D31, local
 stack).
 
-**Not built:** no agent route or graph calls the write-back client, and the
-chart-embed broker never requests the write scope (`DEPLOY.md` §0, §10).
-Write-back is a verified endpoint plus a library, not a user-facing feature.
+**Since D54 (work order 26, on `main` at `024f8fb`),** a lab report's
+extraction writes its verified rows back, under the uploader's token, after
+the report is stored. `upload.php` brokers `api:oemr user/lab-writeback.c`
+for a lab report only. Rows land in Pending Review, and an intake form is
+never written. Before D54, no agent route or graph called the write-back
+client (`DEPLOY.md` §0, §10). The card still does not show the write's
+outcome (D54, "Not settled here").
 
 ---
 
@@ -729,11 +733,10 @@ The agent image grew from 360 MB to 1.18 GB, and idle memory from 50 MiB to
 | Evals | D6, D8, D42–D48 |
 | The decisions log itself | D53 (no merge driver for `DECISIONS.md`; a numbering test guards it) |
 
-D1–D53 are on `main`. D53 records a decision already made in commit
-`cb99e7b`; it was appended at the owner's request, not decided here. D55
-is on this branch only, under the log's not-yet-numbered heading until work
-order 26's D54 lands (its own **Numbering** line says why). This document
-makes no new decision.
+D1–D54 are on `main`. D53 records a decision already made in commit
+`cb99e7b`; it was appended at the owner's request, not decided here. D54
+(work order 26) makes a lab upload's extraction write its verified rows
+back. D55 is on this branch only. This document makes no new decision.
 
 ---
 
@@ -837,8 +840,13 @@ makes no new decision.
       patient A, would return A's `procedure_order_id` and result ids as
       `duplicate_ignored`, and write nothing for B. That needs the same
       bytes on two charts. The card path allows that only after a deletion
-      plus an agent restart. A direct call to the endpoint allows it
-      without either, since no agent route calls write-back today (§5).
+      plus an agent restart. Even then, the write the upload itself makes
+      (D54) runs only when the report's name matches B's chart and neither
+      name nor date of birth mismatches. A's report on B's chart is
+      therefore refused as `identity_not_confirmed` before any request,
+      unless the two patients share a name and date of birth. A direct call
+      to the endpoint with the write scope reaches the replay without any
+      of this.
     - **What would close it:** a ledger replay that refuses a key recorded
       for a different `patient_uuid`, and a decision on whether a deleted
       document's ledger rows should block, or release, its bytes. Neither is
