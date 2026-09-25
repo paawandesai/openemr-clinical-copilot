@@ -45,7 +45,8 @@ from app.workers.extraction_store import (
     ExtractionStoreConfigError,
     open_from_env,
 )
-from tests.intake_extractor_support import chart_for, ground_truth_vision, pdf_bytes
+from app.writeback.after_extraction import WriteBackDecision
+from tests.intake_extractor_support import chart_for, ground_truth_vision, patient_uuid, pdf_bytes
 from tests.w2_graph_support import (
     LAB_SAMPLE,
     OTHER_PATIENT,
@@ -74,6 +75,13 @@ class CountingVision:
     async def __call__(self, kind, pdf, page_count):  # noqa: ANN001, ANN204
         self.calls += 1
         return await self._inner(kind, pdf, page_count)
+
+
+def chart_reader(sample: str = LAB_SAMPLE):  # noqa: ANN201 - a ChartReader
+    async def read(uuid: str):  # noqa: ANN202
+        return chart_for(sample)
+
+    return read
 
 
 def open_store(path: Path, key: bytes = KEY, vision: CountingVision | None = None) -> DocumentStore:
@@ -235,7 +243,23 @@ def test_the_409_holds_on_a_fresh_process_before_anything_else_asked(tmp_path: P
 
 def test_a_re_upload_after_a_restart_is_a_duplicate_and_starts_no_job(tmp_path: Path) -> None:
     path = tmp_path / "x.sqlite3"
-    asyncio.run(stored_document(open_store(path)))
+
+    async def first() -> None:
+        async def wrote(report):  # noqa: ANN001, ANN202
+            return WriteBackDecision.WRITTEN
+
+        documents = open_store(path)
+        stored, _, _ = documents.accept(
+            PATIENT,
+            pdf_bytes(LAB_SAMPLE),
+            DocumentKind.LAB_PDF,
+            chart_reader=chart_reader(),
+            after_extraction=wrote,
+        )
+        await documents.wait(stored.document.document_id)
+        await asyncio.sleep(0.05)  # the write-back step runs after the report
+
+    asyncio.run(first())
     vision = CountingVision()
     after = open_store(path, vision=vision)
     written: list[object] = []
@@ -326,7 +350,12 @@ def test_a_failed_save_does_not_fail_the_upload(tmp_path: Path) -> None:
 
 @pytest.fixture
 def env(monkeypatch: pytest.MonkeyPatch):  # noqa: ANN201
-    for name in (extraction_store.PATH_ENV, extraction_store.KEY_ENV, "AGENT_ENV"):
+    for name in (
+        extraction_store.PATH_ENV,
+        extraction_store.KEY_ENV,
+        extraction_store.RETENTION_ENV,
+        "AGENT_ENV",
+    ):
         monkeypatch.delenv(name, raising=False)
     return monkeypatch
 
@@ -385,3 +414,92 @@ def test_the_image_and_the_compose_file_put_the_store_on_a_volume() -> None:
     assert "ENV AGENT_EXTRACTION_STORE_PATH=/var/lib/clinical-copilot/" in dockerfile
     assert "extraction_data:/var/lib/clinical-copilot" in compose
     assert "AGENT_EXTRACTION_STORE_KEY: ${AGENT_EXTRACTION_STORE_KEY:-}" in compose
+
+
+# --------------------------------------------------------------------------
+# retention
+# --------------------------------------------------------------------------
+
+
+def age_rows(path: Path, days: float) -> None:
+    """Backdate every row's saved_at, as if written `days` ago."""
+    from datetime import UTC, datetime, timedelta
+
+    then = (datetime.now(UTC) - timedelta(days=days)).strftime("%Y-%m-%dT%H:%M:%SZ")
+    with sqlite3.connect(path) as db:
+        db.execute("UPDATE extraction SET saved_at = ?", (then,))
+
+
+def test_the_default_retention_is_30_days() -> None:
+    assert extraction_store.DEFAULT_RETENTION_DAYS == 30
+
+
+def test_a_row_inside_retention_is_read_and_one_past_it_is_absent_and_deleted(
+    tmp_path: Path,
+) -> None:
+    path = tmp_path / "x.sqlite3"
+    document_id = asyncio.run(stored_document(open_store(path)))
+
+    age_rows(path, 29.9)
+    assert ExtractionStore(path, KEY).load(document_id) is not None
+
+    age_rows(path, 30.1)
+    with sqlite3.connect(path) as db:
+        assert db.execute("SELECT COUNT(*) FROM extraction").fetchone()[0] == 1
+    with capture_logs() as logs:
+        assert open_store(path).lookup(document_id, PATIENT) is None
+    with sqlite3.connect(path) as db:
+        assert db.execute("SELECT COUNT(*) FROM extraction").fetchone()[0] == 0
+    (expired,) = [e for e in logs if e.get("event_type") == "extraction_store_rows_expired"]
+    assert expired["event_data"] == {"rows": 1}
+
+
+def test_a_row_that_expires_while_the_process_runs_is_not_read(tmp_path: Path) -> None:
+    """No restart and no save in between: the read itself refuses it."""
+    path = tmp_path / "x.sqlite3"
+    document_id = asyncio.run(stored_document(open_store(path)))
+    store = ExtractionStore(path, KEY)  # opened while the row is fresh
+    age_rows(path, 30.1)
+    assert store.load(document_id) is None
+
+
+def test_an_expired_document_is_unknown_so_a_re_upload_extracts_it_again(
+    tmp_path: Path,
+) -> None:
+    path = tmp_path / "x.sqlite3"
+    asyncio.run(stored_document(open_store(path)))
+    age_rows(path, 31)
+    vision = CountingVision()
+    asyncio.run(stored_document(open_store(path, vision=vision)))
+    assert vision.calls == 1
+
+
+def test_a_save_purges_rows_that_expired_while_the_process_ran(tmp_path: Path) -> None:
+    path = tmp_path / "x.sqlite3"
+    store = ExtractionStore(path, KEY)
+    documents = DocumentStore(vision=CountingVision(), persistence=store)
+    old_id = asyncio.run(stored_document(documents))
+    age_rows(path, 31)
+    # The same process, no restart: the next upload's save removes the old row.
+    asyncio.run(stored_document(documents, "intake-clean-004", patient_uuid("intake-clean-004")))
+    with sqlite3.connect(path) as db:
+        ids = [row[0] for row in db.execute("SELECT document_id FROM extraction")]
+    assert old_id not in ids and len(ids) == 1
+
+
+def test_deleted_rows_are_overwritten_not_left_in_free_pages(tmp_path: Path) -> None:
+    store = ExtractionStore(tmp_path / "x.sqlite3", KEY)
+    assert store._db.execute("PRAGMA secure_delete").fetchone()[0] == 1
+
+
+def test_the_retention_is_configurable_and_refused_when_malformed(
+    env: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    env.setenv(extraction_store.PATH_ENV, str(tmp_path / "x.sqlite3"))
+    env.setenv(extraction_store.RETENTION_ENV, "7")
+    store = open_from_env()
+    assert store is not None and store.retention.days == 7
+    for bad in ("0", "-1", "30d", "3651"):
+        env.setenv(extraction_store.RETENTION_ENV, bad)
+        with pytest.raises(ExtractionStoreConfigError, match="RETENTION_DAYS"):
+            open_from_env()

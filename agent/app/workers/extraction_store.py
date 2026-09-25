@@ -34,6 +34,32 @@ id and error type and treated as absent. The document is then unknown to
 the agent, exactly as it was after a restart before D60, and re-uploading
 it extracts it again.
 
+The record also holds the outcome of the document's lab write-back (D54),
+so a re-upload after a restart knows whether one is still owed.
+
+RETENTION — 30 DAYS FROM THE LAST WRITE
+---------------------------------------
+A row is deleted 30 days after it was last written
+(`AGENT_EXTRACTION_STORE_RETENTION_DAYS`): at startup, on every save, and
+when a read meets one, which then counts as absent. `secure_delete` is on,
+so a deleted row's pages are overwritten rather than left free. Why 30:
+
+- **It is a copy, and expiry loses nothing.** The document itself is in
+  OpenEMR, encrypted and audited, for as long as the chart keeps it. An
+  expired document is unknown to the agent, as every one was after a
+  restart before D60: re-uploading it extracts it again (one vision call,
+  $0.10–$0.23), the write-back ledger makes that write idempotent (D1), and
+  the module's own chart records still refuse the bytes on another chart.
+- **Patient data outside the EHR should last as long as its use.** A
+  document is uploaded for a visit; 30 days covers the visit and the
+  questions that follow it. Longer adds at-rest exposure for documents no
+  one is asking about.
+- **It matches the other at-rest store the agent writes to.** D58 keeps
+  production telemetry 30 days, so both age out on one schedule.
+- **From the last write, not the last read.** Asking about a document does
+  not extend it. Writes are the upload, the end of the extraction and the
+  write-back's outcome.
+
 CONFIGURATION (`open_from_env`)
 -------------------------------
 - With `AGENT_ENV=production` (the image's default) the service refuses to
@@ -41,6 +67,8 @@ CONFIGURATION (`open_from_env`)
   not the published dev default — the same rule as D56's telemetry secret.
 - Outside production an unset path keeps the store in memory, as before
   D60, and an unset key falls back to `DEV_DEFAULT_KEY`, said at startup.
+- `AGENT_EXTRACTION_STORE_RETENTION_DAYS` defaults to 30; anything but a
+  whole number of days from 1 to 3650 is refused at startup, in any mode.
 
 NO PHI IN LOGS. Every line here carries a document id, a count or an error
 type. Never a value from a record, never the patient uuid (invariant 1).
@@ -53,7 +81,7 @@ import os
 import secrets
 import sqlite3
 from dataclasses import dataclass
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Any, NoReturn
 
@@ -71,6 +99,11 @@ from app.workers.intake_extractor.report import ExtractionReport
 
 PATH_ENV = "AGENT_EXTRACTION_STORE_PATH"
 KEY_ENV = "AGENT_EXTRACTION_STORE_KEY"
+RETENTION_ENV = "AGENT_EXTRACTION_STORE_RETENTION_DAYS"
+
+#: See "RETENTION" above.
+DEFAULT_RETENTION_DAYS = 30
+MAX_RETENTION_DAYS = 3650
 
 #: Public, in the repository, and therefore no key at all. Refused in
 #: production; outside it, said at startup.
@@ -110,6 +143,9 @@ class SavedExtraction:
     #: pending/in-progress status of a job this process never finished.
     output: IntakeExtractorOutput
     report: ExtractionReport | None
+    #: The lab write-back's outcome (`WriteBackDecision` value), None when
+    #: none has finished: not run yet, or interrupted.
+    writeback: str | None = None
 
 
 def parse_key(value: str) -> bytes:
@@ -121,8 +157,11 @@ def parse_key(value: str) -> bytes:
 
 
 class ExtractionStore:
-    def __init__(self, path: str | Path, key: bytes) -> None:
+    def __init__(
+        self, path: str | Path, key: bytes, *, retention_days: int = DEFAULT_RETENTION_DAYS
+    ) -> None:
         self.path = Path(path)
+        self.retention = timedelta(days=retention_days)
         self._aead = AESGCM(key)
         if not self.path.exists():
             # Created owner-only before SQLite opens it; SQLite keeps the mode.
@@ -133,7 +172,10 @@ class ExtractionStore:
         self._db = sqlite3.connect(self.path, isolation_level=None, check_same_thread=False)
         self._db.execute("PRAGMA journal_mode=WAL")
         self._db.execute("PRAGMA synchronous=FULL")
+        # Deleted rows (retention) are overwritten, not left in free pages.
+        self._db.execute("PRAGMA secure_delete=ON")
         self._db.execute(_SCHEMA)
+        self.purge_expired()
 
     def close(self) -> None:
         self._db.close()
@@ -148,8 +190,9 @@ class ExtractionStore:
         pages: tuple[PageGeometry, ...],
         output: IntakeExtractorOutput,
         report: ExtractionReport | None = None,
+        writeback: str | None = None,
     ) -> None:
-        """Insert or replace the document's row. Raises on an I/O failure."""
+        """Insert or replace the document's row, then drop expired ones. Raises on I/O failure."""
         record = {
             "patient_uuid": patient_uuid,
             # Each model as its own JSON text: read back through
@@ -158,6 +201,7 @@ class ExtractionStore:
             "pages": [page.model_dump_json() for page in pages],
             "output": output.model_dump_json(),
             "report": report.model_dump_json() if report is not None else None,
+            "writeback": writeback,
         }
         nonce = secrets.token_bytes(_NONCE_BYTES)
         plaintext = json.dumps(record, separators=(",", ":")).encode("utf-8")
@@ -173,20 +217,37 @@ class ExtractionStore:
                 RECORD_FORMAT,
                 nonce,
                 sealed,
-                datetime.now(UTC).isoformat(timespec="seconds"),
+                _stamp(datetime.now(UTC)),
             ),
         )
+        self.purge_expired()
+
+    def purge_expired(self) -> int:
+        """Delete every row older than the retention period. Returns how many."""
+        deleted = self._db.execute(
+            "DELETE FROM extraction WHERE saved_at < ?", (self._cutoff(),)
+        ).rowcount
+        if deleted:
+            log_event("extraction_store_rows_expired", event_data={"rows": deleted})
+        return deleted
+
+    def _cutoff(self) -> str:
+        return _stamp(datetime.now(UTC) - self.retention)
 
     # -- reading ---------------------------------------------------------------
 
     def load(self, document_id: str) -> SavedExtraction | None:
         """The saved document, or None when there is none or it cannot be opened."""
         row = self._db.execute(
-            "SELECT format, nonce, sealed FROM extraction WHERE document_id = ?", (document_id,)
+            "SELECT format, nonce, sealed, saved_at FROM extraction WHERE document_id = ?",
+            (document_id,),
         ).fetchone()
         if row is None:
             return None
-        record_format, nonce, sealed = row
+        record_format, nonce, sealed, saved_at = row
+        if saved_at < self._cutoff():
+            self.purge_expired()
+            return None
         try:
             if record_format != RECORD_FORMAT:
                 raise ValueError("unknown record format")
@@ -203,6 +264,11 @@ class ExtractionStore:
         return int(self._db.execute("SELECT COUNT(*) FROM extraction").fetchone()[0])
 
 
+def _stamp(moment: datetime) -> str:
+    """UTC, to the second, in one fixed format, so text order is time order."""
+    return moment.astimezone(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
+
+
 def _associated(document_id: str) -> bytes:
     return f"extraction:{RECORD_FORMAT}:{document_id}".encode("ascii")
 
@@ -215,6 +281,7 @@ def _parse(record: dict[str, Any]) -> SavedExtraction:
         pages=tuple(PageGeometry.model_validate_json(page) for page in record["pages"]),
         output=IntakeExtractorOutput.model_validate_json(record["output"]),
         report=ExtractionReport.model_validate_json(report) if report is not None else None,
+        writeback=record.get("writeback"),
     )
 
 
@@ -260,15 +327,22 @@ def open_from_env() -> ExtractionStore | None:
     except ValueError:
         _refuse(f"{KEY_ENV} is not 64 hex characters", "key_malformed")
 
+    retention = os.environ.get(RETENTION_ENV, "").strip() or str(DEFAULT_RETENTION_DAYS)
+    if not retention.isdigit() or not 1 <= int(retention) <= MAX_RETENTION_DAYS:
+        _refuse(
+            f"{RETENTION_ENV} is not a whole number of days from 1 to {MAX_RETENTION_DAYS}",
+            "retention_invalid",
+        )
+
     try:
-        store = ExtractionStore(path, key)
+        store = ExtractionStore(path, key, retention_days=int(retention))
     except (OSError, sqlite3.Error) as error:
         log.error("startup_refused", reason="extraction_store_unopenable", env_var=PATH_ENV)
         raise ExtractionStoreConfigError(
             f"{PATH_ENV} names a file that cannot be opened ({type(error).__name__}). In the "
             "container it must be on the writable volume the compose file mounts."
         ) from error
-    log.info("extraction_store_opened", documents=store.count())
+    log.info("extraction_store_opened", documents=store.count(), retention_days=int(retention))
     return store
 
 

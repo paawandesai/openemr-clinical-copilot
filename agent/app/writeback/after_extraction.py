@@ -72,6 +72,27 @@ class WriteBackDecision(StrEnum):
     ENDPOINT_UNAVAILABLE = "endpoint_unavailable"
 
 
+#: Outcomes after which the rows the report can support are not known to be
+#: in the chart: the write did not go through. A re-upload retries these
+#: (D60); every other outcome either wrote or had a reason not to.
+INCOMPLETE = frozenset(
+    {
+        WriteBackDecision.TOKEN_REFUSED,
+        WriteBackDecision.REQUEST_REFUSED,
+        WriteBackDecision.ENDPOINT_UNAVAILABLE,
+    }
+)
+
+
+def write_back_owed(decision: str | None) -> bool:
+    """
+    Whether a re-upload should run the write-back again. None — no outcome
+    recorded: never finished, or saved before outcomes were — counts as owed;
+    the ledger makes a repeat idempotent.
+    """
+    return decision is None or decision in INCOMPLETE
+
+
 def identity_confirmed(report: ExtractionReport) -> bool:
     """The document names this chart's patient, and nothing on it says otherwise."""
     identity = report.identity

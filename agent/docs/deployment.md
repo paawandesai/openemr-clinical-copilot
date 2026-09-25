@@ -291,8 +291,12 @@ do not work.
 same document answers the same way, stays bound to its chart, and the same
 bytes for another chart are still `409`, with no second vision call. An
 extraction that was running when the process stopped reports `failed` /
-`interrupted`; uploading the file again starts it afresh. Conversations are
-still forgotten: a follow-up after a restart starts a new conversation.
+`interrupted`; uploading the file again starts it afresh. A lab report's
+write-back that did not complete is retried by uploading the same file to
+the same chart. Saved rows are deleted 30 days after their last write
+(`AGENT_EXTRACTION_STORE_RETENTION_DAYS`); an expired document is uploaded
+again. Conversations are still forgotten: a follow-up after a restart starts
+a new conversation.
 
 **For Wednesday this is acceptable because the deploy runs one worker**: the
 `Dockerfile` `CMD` starts a single `uvicorn` process and the compose file

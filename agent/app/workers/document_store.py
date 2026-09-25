@@ -37,13 +37,31 @@ in-process memory, as before D60.
 Not shared between workers either way: a job running in one process is
 invisible to another (D40 item 10). The bytes are held by the extraction
 task until it finishes and nowhere else — never saved.
+
+**A document ruled another patient's releases its binding (D60, amending
+D40 item 8).** When a finished extraction's identity check found a name or
+date of birth that contradicts the chart it was uploaded to (the hard flag
+the module quarantines on), that chart's claim on the bytes is released:
+the same bytes uploaded to another chart are accepted and extracted afresh
+for that chart, whose own identity check then decides whether anything is
+stated or written. A binding whose extraction matched, could not compare,
+failed or is still running still refuses another chart.
+
+**A write-back that did not complete is retried by a re-upload (D60).** The
+lab write-back's outcome (D54) is kept with the document, on disk too. A
+re-upload of the same bytes to the same chart, when the extraction is
+complete and its write-back ended short of `written` or of a reason not to
+write (the endpoint unavailable, the token or request refused, or never
+finished), runs the write-back again on the saved report under the new
+upload's token. The ledger's keys (D1) make a repeat write idempotent. One
+write-back per document runs at a time.
 """
 
 from __future__ import annotations
 
 import asyncio
 import hashlib
-from collections.abc import Callable
+from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
 
 import pymupdf
@@ -63,6 +81,7 @@ from app.workers.intake_extractor.chart import ChartReader
 from app.workers.intake_extractor.report import ExtractionReport
 from app.workers.intake_extractor.vision import VisionExtractor
 from app.workers.intake_extractor.worker import AfterExtraction, ExtractionJobs
+from app.writeback.after_extraction import write_back_owed
 
 #: The file name the agent records. The uploaded name is frequently the
 #: patient's name, so it is never kept (app/api/documents.py).
@@ -118,6 +137,11 @@ class DocumentStore:
         self._documents: dict[str, StoredDocument] = {}
         # asyncio holds tasks weakly; these must outlive the request.
         self._watchers: set[asyncio.Task[object]] = set()
+        #: Each document's last write-back outcome (a WriteBackDecision
+        #: value), None when none has finished.
+        self._writeback: dict[str, str | None] = {}
+        #: Documents whose write-back is running now, first run or retry.
+        self._writing: set[str] = set()
 
     def accept(
         self,
@@ -141,18 +165,20 @@ class DocumentStore:
         (app/api/upload_guard.py), which is what makes the concurrency cap
         cover the background job and not only the body read.
 
-        `after_extraction` runs on the finished report inside the job, only
-        for a job this call started — a duplicate upload starts none, so it
-        runs nothing. The upload route passes the lab write-back (D54);
-        nothing else does, so a store built in a test never writes.
+        `after_extraction` runs on the finished report inside the job this
+        call started. A duplicate upload starts no job; it runs
+        `after_extraction` only to retry a write-back that did not complete
+        (D60), and `on_finished` then waits for that retry. The upload route
+        passes the lab write-back (D54); nothing else does, so a store built
+        in a test never writes.
         """
         handed_off = False
         try:
-            stored, output, duplicate, started = self._accept(
+            stored, output, duplicate, pending = self._accept(
                 patient_uuid, pdf, kind, chart_reader, after_extraction
             )
-            if started and on_finished is not None:
-                self._call_when_done(stored.document.document_id, on_finished)
+            if pending is not None and on_finished is not None:
+                self._call_when_done(pending, on_finished)
                 handed_off = True
             return stored, output, duplicate
         finally:
@@ -166,20 +192,31 @@ class DocumentStore:
         kind: DocumentKind,
         chart_reader: ChartReader | None,
         after_extraction: AfterExtraction | None = None,
-    ) -> tuple[StoredDocument, IntakeExtractorOutput, bool, bool]:
-        """`accept` without the callback; the last element is whether a job started."""
+    ) -> tuple[StoredDocument, IntakeExtractorOutput, bool, Callable[[], Awaitable[object]] | None]:
+        """
+        `accept` without the callback. The last element waits for whatever
+        this call started — a job or a write-back retry — or is None.
+        """
         digest = hashlib.sha3_512(pdf).hexdigest()
         document_id = document_idempotency_key(digest)
         existing = self._known(document_id)
         restart = False
+        rebind = False
         if existing is not None:
             if existing.patient_uuid != patient_uuid:
-                raise DocumentBoundElsewhere("this file is attached to a different chart")
-            status = self.jobs.status(document_id)
-            if status is not None and not _interrupted(status):
-                return existing, status, True, False
-            # A job a restart cut short is started again by the re-upload.
-            restart = status is not None
+                if not self._ruled_another_patients(document_id):
+                    raise DocumentBoundElsewhere("this file is attached to a different chart")
+                # D60: the first chart's claim is released; this chart's own
+                # extraction and identity check decide from here.
+                rebind = True
+                log_event("w2_document_binding_released", {"document_id": document_id})
+            else:
+                status = self.jobs.status(document_id)
+                if status is not None and not _interrupted(status):
+                    retry = self._retry_write_back(existing, after_extraction)
+                    return existing, status, True, retry
+                # A job a restart cut short is started again by the re-upload.
+                restart = status is not None
 
         page_count, pages, has_text = read_geometry(pdf)
         stored = StoredDocument(
@@ -197,20 +234,86 @@ class DocumentStore:
             pages=pages,
         )
         self._documents[document_id] = stored
+        self._writeback.pop(document_id, None)
         output = self.jobs.submit(
             patient_uuid,
             pdf,
             kind,
             document_id=document_id,
             chart_reader=chart_reader,
-            force_reextract=restart,
-            after_extraction=after_extraction,
+            force_reextract=restart or rebind,
+            after_extraction=(
+                self._tracked(stored, after_extraction) if after_extraction is not None else None
+            ),
             on_report=lambda report: self._save(stored, report.output, report),
         )
         # Saved before the job's first step can run: the binding is on disk
         # from the moment the upload is accepted (the 409 rule, D40 item 8).
         self._save(stored, output, None)
-        return stored, output, existing is not None, True
+        return (
+            stored,
+            output,
+            existing is not None and not rebind,
+            lambda: self.jobs.wait(document_id),
+        )
+
+    def _ruled_another_patients(self, document_id: str) -> bool:
+        """The finished extraction's identity check contradicts its chart: the hard flag."""
+        report = self.jobs.report(document_id)
+        return (
+            report is not None
+            and report.is_complete
+            and report.identity is not None
+            and report.identity.hard_flag
+        )
+
+    def _tracked(self, stored: StoredDocument, step: AfterExtraction) -> AfterExtraction:
+        """`step`, recording its outcome with the document, in memory and on disk."""
+        document_id = stored.document.document_id
+
+        async def run(report: ExtractionReport) -> object:
+            self._writing.add(document_id)
+            try:
+                decision = await step(report)
+            finally:
+                self._writing.discard(document_id)
+            value = None if decision is None else str(getattr(decision, "value", decision))
+            # Only while the document is still bound as it was: a binding
+            # released meanwhile belongs to another chart's extraction now.
+            if self._documents.get(document_id) is stored:
+                self._writeback[document_id] = value
+                self._save(stored, report.output, report, writeback=value)
+            return decision
+
+        return run
+
+    def _retry_write_back(
+        self, stored: StoredDocument, after_extraction: AfterExtraction | None
+    ) -> Callable[[], Awaitable[object]] | None:
+        """Start the write-back again on the saved report, when one is owed (D60)."""
+        document_id = stored.document.document_id
+        report = self.jobs.report(document_id)
+        previous = self._writeback.get(document_id)
+        if (
+            after_extraction is None
+            or report is None
+            or not report.is_complete
+            or document_id in self._writing
+            or not write_back_owed(previous)
+        ):
+            return None
+        log_event("w2_writeback_retry_started", {"document_id": document_id, "previous": previous})
+        self._writing.add(document_id)  # held until the tracked step takes over
+        step = self._tracked(stored, after_extraction)
+
+        async def retry() -> object:
+            self._writing.discard(document_id)
+            return await step(report)
+
+        task: asyncio.Task[object] = asyncio.get_running_loop().create_task(retry())
+        self._watchers.add(task)
+        task.add_done_callback(self._watchers.discard)
+        return lambda: task
 
     def _known(self, document_id: str) -> StoredDocument | None:
         """
@@ -228,6 +331,7 @@ class DocumentStore:
         )
         self._documents[document_id] = stored
         self.jobs.restore(document_id, _as_restored(saved), saved.report)
+        self._writeback[document_id] = saved.writeback
         log_event(
             "w2_document_restored",
             {
@@ -243,6 +347,7 @@ class DocumentStore:
         stored: StoredDocument,
         output: IntakeExtractorOutput,
         report: ExtractionReport | None,
+        writeback: str | None = None,
     ) -> None:
         """
         Write the document's row. Never raises: a failed write leaves this
@@ -258,6 +363,7 @@ class DocumentStore:
                 pages=stored.pages,
                 output=output,
                 report=report,
+                writeback=writeback,
             )
         except Exception as error:  # noqa: BLE001 - the upload and the job carry on
             log_event(
@@ -269,14 +375,19 @@ class DocumentStore:
                 },
             )
 
-    def _call_when_done(self, document_id: str, callback: Callable[[], None]) -> None:
+    def _call_when_done(
+        self, pending: Callable[[], Awaitable[object]], callback: Callable[[], None]
+    ) -> None:
         """
-        Run `callback` once the job for `document_id` has ended, however it
-        ended. Watches through the public `jobs.wait`, so the job itself is
-        not changed; a done-callback fires on cancellation too, which a
-        `finally` inside the job would not if it were cancelled before it
-        first ran.
+        Run `callback` once what `pending` waits for has ended, however it
+        ended: the job (through the public `jobs.wait`, so the job itself is
+        not changed) or a write-back retry. A done-callback fires on
+        cancellation too, which a `finally` inside the job would not if it
+        were cancelled before it first ran.
         """
+
+        async def watch() -> object:
+            return await pending()
 
         def finished(watcher: asyncio.Task[object]) -> None:
             self._watchers.discard(watcher)
@@ -286,9 +397,7 @@ class DocumentStore:
                 watcher.exception()
             callback()
 
-        watcher: asyncio.Task[object] = asyncio.get_running_loop().create_task(
-            self.jobs.wait(document_id)
-        )
+        watcher: asyncio.Task[object] = asyncio.get_running_loop().create_task(watch())
         self._watchers.add(watcher)
         watcher.add_done_callback(finished)
 
@@ -314,6 +423,8 @@ class DocumentStore:
     def clear(self) -> None:
         """Tests only. Forgets this process's memory; a store's rows stay on disk."""
         self._documents.clear()
+        self._writeback.clear()
+        self._writing.clear()
         self.jobs = ExtractionJobs(vision=self.jobs._vision)
 
 

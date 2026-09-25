@@ -143,3 +143,42 @@ def test_identity_check_is_null_until_complete_then_says_which(
         # A re-upload of a finished mismatch says so at once: the module
         # quarantines on the upload's answer too.
         assert upload(client).json()["identity_check"] == "mismatch"
+
+
+@pytest.mark.usefixtures("openemr")
+def test_through_the_routes_wrong_chart_then_right_chart_is_accepted_and_extracted(
+    monkeypatch: pytest.MonkeyPatch, path: Path, offline_writeback
+) -> None:
+    """
+    D60's amendment to D40 item 8, end to end on the agent: the mismatch the
+    module quarantines on releases the first chart's binding, across a restart.
+    """
+    restart(monkeypatch, path)
+    with serve(monkeypatch, chart_sample=WRONG_CHART) as client:
+        document_id = upload(client, patient=OTHER_PATIENT).json()["document_id"]
+        wrong = wait_for_terminal_for(client, document_id, OTHER_PATIENT)
+    assert (wrong["status"], wrong["identity_check"]) == ("complete", "mismatch")
+    assert offline_writeback.requests == []  # nothing written for the wrong chart
+
+    restart(monkeypatch, path)
+    with serve(monkeypatch) as client:
+        accepted = upload(client)
+        assert accepted.status_code == 200 and accepted.json()["status"] == "pending"
+        right = wait_for_terminal(client, document_id)
+        assert (right["status"], right["identity_check"]) == ("complete", "confirmed")
+        assert status(client, document_id, patient=OTHER_PATIENT).status_code == 404
+        assert upload(client, patient=OTHER_PATIENT).status_code == 409
+    # The right chart's write-back ran, for the right patient.
+    assert [request.patient_uuid for _, request in offline_writeback.requests] == [PATIENT]
+
+
+def wait_for_terminal_for(client: TestClient, document_id: str, patient: str) -> dict:
+    import time
+
+    deadline = time.monotonic() + 60
+    while time.monotonic() < deadline:
+        body = status(client, document_id, patient=patient).json()
+        if body["status"] in ("complete", "failed"):
+            return body
+        time.sleep(0.1)
+    raise AssertionError("extraction did not finish")
