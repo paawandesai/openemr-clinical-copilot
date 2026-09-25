@@ -1,7 +1,8 @@
-# GitLab CI — the Week 2 eval gate, and the agent's unit suite.
+# GitLab CI — the Week 2 eval gate, the agent's unit suite, and the dashboard.
 #
-# Three jobs: `w2-writeback-php` (the module's PHPUnit suite, below),
-# `agent-unit-tests` (agent/tests/, at the end of this file), and the gate.
+# Four jobs: `w2-writeback-php` (the module's PHPUnit suite, below),
+# `agent-unit-tests` (agent/tests/), `dashboard-tests` (dashboard/, only when
+# it changes; both at the end of this file), and the gate.
 # The gate job runs `python -m evals.w2.gate`, whose exit code IS the verdict, so
 # nothing here parses output to decide anything:
 #
@@ -278,3 +279,63 @@ agent-unit-tests:
       junit: agent-unit-tests.xml
     paths:
       - agent-unit-tests.xml
+
+
+# ---------------------------------------------------------------------------
+# The patient dashboard port, `dashboard/` (work order 31, D59; job added by
+# work order 33, D61).
+#
+# Strict typecheck of the SPA and the BFF, the unit suite, and the production
+# build: `npm ci && npm run typecheck && npm test && npm run build`, as
+# PATIENT_DASHBOARD_MIGRATION.md §8 proposed. No credential, no network
+# beyond the npm registry, and about 40 s from a cold image. The e2e suite is
+# not here: it drives the real OpenEMR stack and stays a local, pre-merge
+# step.
+#
+# Created only when the pipeline's changes touch `dashboard/`, or this file,
+# so an edit that breaks the job's own definition is seen by the job.
+# `rules: changes` compares an MR pipeline with its target branch; on the
+# first push of a new branch GitLab has no base and always creates the job.
+# `needs: []` and no `allow_failure`, as with `agent-unit-tests`: it runs at
+# once, beside the others, and a red suite is a red pipeline.
+#
+# node:24 because the Dockerfile builds on Node 24 and package.json asks for
+# >= 22. `npm ci` installs from the committed lock file and fails if it is out
+# of step with package.json. @playwright/test installs no browser on its own,
+# so nothing here downloads Chrome.
+dashboard-tests:
+  stage: eval
+  image: node:24
+  needs: []
+  tags:
+    - w2-eval
+  interruptible: true
+  timeout: 15m
+  rules:
+    - changes:
+        - dashboard/**/*
+        - .gitlab-ci.yml
+  variables:
+    npm_config_cache: "$CI_PROJECT_DIR/.cache/npm"
+  cache:
+    key:
+      files:
+        - dashboard/package-lock.json
+    paths:
+      - .cache/npm
+  script:
+    - node -v
+    - npm -v
+    - cd dashboard
+    - npm ci --no-audit --no-fund
+    - npm run typecheck
+    - npm test -- --reporter=default --reporter=junit --outputFile.junit="$CI_PROJECT_DIR/dashboard-tests.xml"
+    - npm run build
+  artifacts:
+    when: always
+    expire_in: 30 days
+    name: "dashboard-tests-$CI_COMMIT_SHORT_SHA"
+    reports:
+      junit: dashboard-tests.xml
+    paths:
+      - dashboard-tests.xml
