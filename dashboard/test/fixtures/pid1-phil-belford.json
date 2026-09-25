@@ -1,0 +1,479 @@
+{
+ "capturedAt": "2026-09-24",
+ "source": "local OpenEMR dev stack, synthetic data",
+ "patient": "a2c36e54-af42-4c38-b86e-ade616ed5494",
+ "Patient": {
+  "id": "a2c36e54-af42-4c38-b86e-ade616ed5494",
+  "meta": {
+   "versionId": "1",
+   "lastUpdated": "2026-09-16T23:48:53+00:00",
+   "profile": [
+    "http://hl7.org/fhir/us/core/StructureDefinition/us-core-patient",
+    "http://hl7.org/fhir/us/core/StructureDefinition/us-core-patient|3.1.1",
+    "http://hl7.org/fhir/us/core/StructureDefinition/us-core-patient|8.0.0"
+   ]
+  },
+  "resourceType": "Patient",
+  "text": {
+   "status": "generated",
+   "div": "<div xmlns=\"http://www.w3.org/1999/xhtml\"> <p>Phil Belford</p></div>"
+  },
+  "extension": [
+   {
+    "valueCode": "M",
+    "url": "http://hl7.org/fhir/us/core/StructureDefinition/us-core-birthsex"
+   },
+   {
+    "extension": [
+     {
+      "valueCoding": {
+       "system": "urn:oid:2.16.840.1.113883.6.238",
+       "code": "2106-3",
+       "display": "White"
+      },
+      "url": "ombCategory"
+     },
+     {
+      "valueString": "White",
+      "url": "text"
+     }
+    ],
+    "url": "http://hl7.org/fhir/us/core/StructureDefinition/us-core-race"
+   },
+   {
+    "extension": [
+     {
+      "valueCoding": {
+       "system": "urn:oid:2.16.840.1.113883.6.238",
+       "code": "2186-5",
+       "display": "Not Hispanic or Latino"
+      },
+      "url": "ombCategory"
+     },
+     {
+      "valueString": "Not Hispanic or Latino",
+      "url": "text"
+     }
+    ],
+    "url": "http://hl7.org/fhir/us/core/StructureDefinition/us-core-ethnicity"
+   },
+   {
+    "valueCoding": {
+     "system": "http://snomed.info/sct",
+     "code": "248152002",
+     "display": "Male"
+    },
+    "url": "http://hl7.org/fhir/us/core/StructureDefinition/us-core-sex"
+   },
+   {
+    "valueCoding": {
+     "system": "http://terminology.hl7.org/CodeSystem/data-absent-reason",
+     "code": "unknown",
+     "display": "Unknown"
+    },
+    "url": "http://hl7.org/fhir/us/core/StructureDefinition/us-core-interpreter-needed"
+   }
+  ],
+  "identifier": [
+   {
+    "use": "official",
+    "type": {
+     "coding": [
+      {
+       "system": "http://terminology.hl7.org/CodeSystem/v2-0203",
+       "code": "SS"
+      }
+     ]
+    },
+    "system": "http://hl7.org/fhir/sid/us-ssn",
+    "value": "999-99-9999"
+   },
+   {
+    "use": "official",
+    "type": {
+     "coding": [
+      {
+       "system": "http://terminology.hl7.org/CodeSystem/v2-0203",
+       "code": "PT"
+      }
+     ]
+    },
+    "system": "http://terminology.hl7.org/CodeSystem/v2-0203",
+    "value": "1"
+   }
+  ],
+  "active": true,
+  "name": [
+   {
+    "use": "official",
+    "family": "Belford",
+    "given": [
+     "Phil"
+    ]
+   }
+  ],
+  "telecom": [
+   {
+    "system": "phone",
+    "value": "333-444-2222",
+    "use": "home"
+   },
+   {
+    "system": "phone",
+    "value": "555-444-3333",
+    "use": "work"
+   },
+   {
+    "system": "phone",
+    "value": "222-444-2222",
+    "use": "mobile"
+   },
+   {
+    "system": "email",
+    "value": "heya@invalid.email.com",
+    "use": "home"
+   }
+  ],
+  "gender": "male",
+  "birthDate": "1972-02-09",
+  "deceasedBoolean": false,
+  "address": [
+   {
+    "use": "home",
+    "type": "both",
+    "line": [
+     "6666 String Street"
+    ],
+    "city": "Longview",
+    "state": "FL",
+    "postalCode": "44433",
+    "country": "USA",
+    "period": {
+     "start": "2014-02-01T18:41:55.000+00:00"
+    }
+   }
+  ],
+  "communication": [
+   {
+    "language": {
+     "coding": [
+      {
+       "system": "urn:ietf:bcp:47",
+       "code": "en",
+       "display": "English"
+      }
+     ],
+     "text": "English"
+    }
+   }
+  ]
+ },
+ "AllergyIntolerance": {
+  "meta": {
+   "lastUpdated": "2026-09-24T17:45:13"
+  },
+  "resourceType": "Bundle",
+  "type": "collection",
+  "total": 1,
+  "link": [
+   {
+    "relation": "self",
+    "url": "https://localhost:9300/apis/default/fhir/AllergyIntolerance"
+   }
+  ],
+  "entry": [
+   {
+    "fullUrl": "https://localhost:9300/apis/default/fhir/AllergyIntolerance/a2c36e54-abdd-4e69-911c-11516235801e",
+    "resource": {
+     "id": "a2c36e54-abdd-4e69-911c-11516235801e",
+     "meta": {
+      "versionId": "1",
+      "lastUpdated": "2026-09-16T23:48:53+00:00"
+     },
+     "resourceType": "AllergyIntolerance",
+     "text": {
+      "status": "additional",
+      "div": "<div xmlns='http://www.w3.org/1999/xhtml'>penicillin</div>"
+     },
+     "clinicalStatus": {
+      "coding": [
+       {
+        "system": "http://terminology.hl7.org/CodeSystem/allergyintolerance-clinical",
+        "code": "active",
+        "display": "Active"
+       }
+      ]
+     },
+     "verificationStatus": {
+      "coding": [
+       {
+        "system": "http://terminology.hl7.org/CodeSystem/allergyintolerance-verification",
+        "code": "unconfirmed",
+        "display": "Unconfirmed"
+       }
+      ]
+     },
+     "category": [
+      "medication"
+     ],
+     "code": {
+      "coding": [
+       {
+        "system": "http://terminology.hl7.org/CodeSystem/data-absent-reason",
+        "code": "unknown",
+        "display": "Unknown"
+       }
+      ]
+     },
+     "patient": {
+      "reference": "Patient/a2c36e54-af42-4c38-b86e-ade616ed5494"
+     }
+    }
+   }
+  ]
+ },
+ "Condition": {
+  "meta": {
+   "lastUpdated": "2026-09-24T17:45:13"
+  },
+  "resourceType": "Bundle",
+  "type": "collection",
+  "total": 2,
+  "link": [
+   {
+    "relation": "self",
+    "url": "https://localhost:9300/apis/default/fhir/Condition"
+   }
+  ],
+  "entry": [
+   {
+    "fullUrl": "https://localhost:9300/apis/default/fhir/Condition/a2c36e54-abd3-4415-9df5-bdeeda59f5c9",
+    "resource": {
+     "id": "a2c36e54-abd3-4415-9df5-bdeeda59f5c9",
+     "meta": {
+      "versionId": "1",
+      "lastUpdated": "2026-09-16T23:48:53+00:00",
+      "profile": [
+       "http://hl7.org/fhir/us/core/StructureDefinition/us-core-condition",
+       "http://hl7.org/fhir/us/core/StructureDefinition/us-core-condition|3.1.1",
+       "http://hl7.org/fhir/us/core/StructureDefinition/us-core-condition-problems-health-concerns",
+       "http://hl7.org/fhir/us/core/StructureDefinition/us-core-condition-problems-health-concerns|3.1.1",
+       "http://hl7.org/fhir/us/core/StructureDefinition/us-core-condition-problems-health-concerns|6.1.0",
+       "http://hl7.org/fhir/us/core/StructureDefinition/us-core-condition-problems-health-concerns|7.0.0",
+       "http://hl7.org/fhir/us/core/StructureDefinition/us-core-condition-problems-health-concerns|8.0.0"
+      ]
+     },
+     "resourceType": "Condition",
+     "clinicalStatus": {
+      "coding": [
+       {
+        "system": "http://terminology.hl7.org/CodeSystem/condition-clinical",
+        "code": "active",
+        "display": "Active"
+       }
+      ]
+     },
+     "verificationStatus": {
+      "coding": [
+       {
+        "system": "http://terminology.hl7.org/CodeSystem/condition-ver-status",
+        "code": "unconfirmed",
+        "display": "Unconfirmed"
+       }
+      ]
+     },
+     "category": [
+      {
+       "coding": [
+        {
+         "system": "http://terminology.hl7.org/CodeSystem/condition-category",
+         "code": "problem-list-item",
+         "display": "Problem List Item"
+        }
+       ],
+       "text": "Problem List Item"
+      }
+     ],
+     "code": {
+      "text": "HTN"
+     },
+     "subject": {
+      "reference": "Patient/a2c36e54-af42-4c38-b86e-ade616ed5494"
+     }
+    }
+   },
+   {
+    "fullUrl": "https://localhost:9300/apis/default/fhir/Condition/a2c36e54-abda-455f-9681-b74f692f301d",
+    "resource": {
+     "id": "a2c36e54-abda-455f-9681-b74f692f301d",
+     "meta": {
+      "versionId": "1",
+      "lastUpdated": "2026-09-16T23:48:53+00:00",
+      "profile": [
+       "http://hl7.org/fhir/us/core/StructureDefinition/us-core-condition",
+       "http://hl7.org/fhir/us/core/StructureDefinition/us-core-condition|3.1.1",
+       "http://hl7.org/fhir/us/core/StructureDefinition/us-core-condition-problems-health-concerns",
+       "http://hl7.org/fhir/us/core/StructureDefinition/us-core-condition-problems-health-concerns|3.1.1",
+       "http://hl7.org/fhir/us/core/StructureDefinition/us-core-condition-problems-health-concerns|6.1.0",
+       "http://hl7.org/fhir/us/core/StructureDefinition/us-core-condition-problems-health-concerns|7.0.0",
+       "http://hl7.org/fhir/us/core/StructureDefinition/us-core-condition-problems-health-concerns|8.0.0"
+      ]
+     },
+     "resourceType": "Condition",
+     "clinicalStatus": {
+      "coding": [
+       {
+        "system": "http://terminology.hl7.org/CodeSystem/condition-clinical",
+        "code": "active",
+        "display": "Active"
+       }
+      ]
+     },
+     "verificationStatus": {
+      "coding": [
+       {
+        "system": "http://terminology.hl7.org/CodeSystem/condition-ver-status",
+        "code": "unconfirmed",
+        "display": "Unconfirmed"
+       }
+      ]
+     },
+     "category": [
+      {
+       "coding": [
+        {
+         "system": "http://terminology.hl7.org/CodeSystem/condition-category",
+         "code": "problem-list-item",
+         "display": "Problem List Item"
+        }
+       ],
+       "text": "Problem List Item"
+      }
+     ],
+     "code": {
+      "text": "Chronic Renal Insuficiency"
+     },
+     "subject": {
+      "reference": "Patient/a2c36e54-af42-4c38-b86e-ade616ed5494"
+     }
+    }
+   }
+  ]
+ },
+ "MedicationRequest": {
+  "meta": {
+   "lastUpdated": "2026-09-24T17:45:13"
+  },
+  "resourceType": "Bundle",
+  "type": "collection",
+  "total": 2,
+  "link": [
+   {
+    "relation": "self",
+    "url": "https://localhost:9300/apis/default/fhir/MedicationRequest"
+   }
+  ],
+  "entry": [
+   {
+    "fullUrl": "https://localhost:9300/apis/default/fhir/MedicationRequest/a2c36e54-abe0-41e5-993f-775c51e0b2ad",
+    "resource": {
+     "id": "a2c36e54-abe0-41e5-993f-775c51e0b2ad",
+     "meta": {
+      "versionId": "1",
+      "lastUpdated": "2026-09-16T23:48:53+00:00"
+     },
+     "resourceType": "MedicationRequest",
+     "status": "active",
+     "intent": "plan",
+     "category": [
+      {
+       "coding": [
+        {
+         "system": "http://terminology.hl7.org/CodeSystem/medicationrequest-category",
+         "code": "community",
+         "display": "Home/Community"
+        }
+       ]
+      }
+     ],
+     "reportedBoolean": false,
+     "medicationCodeableConcept": {
+      "text": "Norvasc"
+     },
+     "subject": {
+      "reference": "Patient/a2c36e54-af42-4c38-b86e-ade616ed5494",
+      "type": "Patient"
+     },
+     "authoredOn": "2014-02-01T19:44:08+00:00",
+     "dispenseRequest": {
+      "numberOfRepeatsAllowed": 0
+     }
+    }
+   },
+   {
+    "fullUrl": "https://localhost:9300/apis/default/fhir/MedicationRequest/a2c36e54-abe3-4cd7-8db9-8b4bf50931f0",
+    "resource": {
+     "id": "a2c36e54-abe3-4cd7-8db9-8b4bf50931f0",
+     "meta": {
+      "versionId": "1",
+      "lastUpdated": "2026-09-16T23:48:53+00:00"
+     },
+     "resourceType": "MedicationRequest",
+     "status": "active",
+     "intent": "plan",
+     "category": [
+      {
+       "coding": [
+        {
+         "system": "http://terminology.hl7.org/CodeSystem/medicationrequest-category",
+         "code": "community",
+         "display": "Home/Community"
+        }
+       ]
+      }
+     ],
+     "reportedBoolean": false,
+     "medicationCodeableConcept": {
+      "text": "Lisinopril"
+     },
+     "subject": {
+      "reference": "Patient/a2c36e54-af42-4c38-b86e-ade616ed5494",
+      "type": "Patient"
+     },
+     "authoredOn": "2014-02-01T19:44:16+00:00",
+     "dispenseRequest": {
+      "numberOfRepeatsAllowed": 0
+     }
+    }
+   }
+  ]
+ },
+ "CareTeam": {
+  "meta": {
+   "lastUpdated": "2026-09-24T17:45:13"
+  },
+  "resourceType": "Bundle",
+  "type": "collection",
+  "total": 0,
+  "link": [
+   {
+    "relation": "self",
+    "url": "https://localhost:9300/apis/default/fhir/CareTeam"
+   }
+  ]
+ },
+ "Observation": {
+  "meta": {
+   "lastUpdated": "2026-09-24T17:45:13"
+  },
+  "resourceType": "Bundle",
+  "type": "collection",
+  "total": 0,
+  "link": [
+   {
+    "relation": "self",
+    "url": "https://localhost:9300/apis/default/fhir/Observation"
+   }
+  ]
+ }
+}

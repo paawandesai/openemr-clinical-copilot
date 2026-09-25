@@ -1,0 +1,130 @@
+// The PHP dashboard is Bootstrap 4.6.2 compiled with OpenEMR's light theme
+// (public/themes/style_light.css). Parity comes from the same design system:
+// the same Bootstrap release, with the variables OpenEMR's theme overrides,
+// and the few page-level rules demographics.php adds inline. Nothing here is
+// a new visual design.
+
+// ---- interface/themes/oe-styles/style_light.scss (palette overrides) -----
+$white: #ffffff;
+$gray-100: #f3f4f6;
+$gray-200: #e5e7eb;
+$gray-300: #d1d5db;
+$gray-400: #9ca3af;
+$gray-500: #6b7280;
+$gray-600: #4b5563;
+$gray-700: #374151;
+$gray-800: #1f2937;
+$gray-900: #111827;
+$black: #111827;
+$light: $white;
+$dark: $gray-900;
+$link-color: #1d4ed8;
+$body-bg: #f9fafb;
+$body-color: $gray-900;
+
+// ---- interface/themes/default-variables.scss --------------------------------
+// The font stack only. OpenEMR loads no web font: Lato is used if the machine
+// has it, Helvetica otherwise. The port does the same, so no font is fetched.
+$font-family-sans-serif: "Lato", "Helvetica", sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+$secondary: $gray-800;
+
+@import "bootstrap/scss/bootstrap";
+
+// ---- style_light.scss rules that reach the dashboard --------------------------
+html,
+body {
+  background-color: $body-bg;
+  color: $body-color;
+}
+
+.card {
+  background-color: #ffffff;
+  color: $body-color;
+}
+
+.table {
+  color: $body-color;
+  background-color: #ffffff;
+}
+
+.table-striped > tbody > tr:nth-of-type(odd) {
+  background-color: $gray-100;
+}
+
+.text-muted {
+  color: $gray-500 !important;
+}
+
+// ---- demographics.php's inline <style> and the measured card chrome ----------
+// The dashboard frame's body carries `bg-light` (white in this theme).
+body.patient-demographic {
+  background-color: $white;
+}
+
+section {
+  background: $white;
+  margin-top: 0.25em;
+  padding: 0.25em;
+}
+
+section.card {
+  box-shadow: 1px 1px 1px 0 rgba(0, 0, 0, 0.2);
+}
+
+// ---- The patient bar (interface/main/tabs, default patient_name_display) -----
+.pt-bar {
+  padding-top: 10px;
+  background-color: $white;
+}
+
+.pt-bar .patientPicture img {
+  width: 75px;
+  height: 75px;
+}
+
+.pt-bar .ptName {
+  color: $link-color; // the PHP name is a link (".ptName" anchor)
+  font-size: 1.75rem;
+  font-weight: 500;
+  line-height: 1.2;
+}
+
+.pt-bar .ptName .text-muted {
+  font-size: 0.875em;
+  font-weight: 400;
+}
+
+// Care Team table header, as the PHP card's `thead-light bg-light text-dark`.
+.care-team thead th {
+  color: $gray-700;
+  background-color: $gray-200;
+}
+
+// ---- Additions the PHP page has no equivalent for ---------------------------
+// The lab trend sparkline and the source badge. Kept to Bootstrap's palette.
+.lab-trend {
+  display: block;
+  overflow: visible;
+}
+
+.lab-trend .band {
+  fill: $gray-200;
+}
+
+.lab-trend .line {
+  fill: none;
+  stroke: $link-color;
+  stroke-width: 1.5;
+}
+
+.lab-trend .dot {
+  fill: $link-color;
+}
+
+.lab-trend .dot.out {
+  fill: $danger;
+}
+
+.app-bar {
+  border-bottom: 1px solid $gray-300;
+}
