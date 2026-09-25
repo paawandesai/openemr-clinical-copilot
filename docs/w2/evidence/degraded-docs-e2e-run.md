@@ -186,10 +186,80 @@ Not in the sources read for this question:
 Sources read for this question: the chart (Condition, MedicationRequest, AllergyIntolerance, Observation), 1 uploaded document(s), 0 guideline passage(s).
 ```
 
+(Answer order changed afterwards: the notice now sits directly below the
+critical block, which leads. This scan has no critical value, so the notice
+is still the first line.)
+
 **11 of 107, not the 36 of 107 measured before** (the committed real-vision
 transcription, and replay). Same bytes. This run's vision call and the
 container's OCR both differ from the recorded run's; which one moved the
 count was not investigated. Both are far below the 75% threshold.
+
+## Follow-ups (same day, the revised branch)
+
+Runs 6-8 ran after the owner's follow-ups, on an agent rebuilt from the
+revised tree (same env file, same volume: `extraction_store_opened` with
+`documents: 3, retention_days: 30`). File: intake-clean-004 (the patient of
+pid 31) plus 24 trailing bytes (124,606 → 124,630), SHA3-512 `719d3456e83d9c8b…`. An intake form
+has no write-back, so the right-chart step writes nothing to the chart.
+
+### Run 6 — another patient's intake form on pid 49, page closed before any poll
+
+```
+card pid 49 correlation_id cfb570dd-00a0-4322-803a-af4b0cce9aa9
+upload 200 {"status": "ok", "document_id": "719d3456e83d9c8b…", "kind": "intake_form", "extraction_status": "pending", "byte_length": 124630, "correlation_id": "cfb570dd-00a0-4322-803a-af4b0cce9aa9", "identity_check": null, "quarantine": null}
+upload to terminal 1.2s
+```
+
+No poll. The agent's status route, read directly (it never quarantines):
+
+```
+agent status after 0s: 200 {'status': 'complete', 'failure_reason': None, 'identity_check': 'mismatch', 'message': None}
+id	pid	deleted	category
+2493	49	0	Medical Record
+```
+
+### Run 7 — the card loads on pid 49 (reconciliation)
+
+```
+card data-reconcile-endpoint: /interface/modules/custom_modules/oe-module-clinical-copilot/public/reconcile.php
+reconcile 200 {"status": "ok", "checked": 2, "quarantined": 1, "failed": 0, "skipped": null, "correlation_id": "80b7b0a2-b943-439e-8b35-f19e0ddff01d"}
+id	pid	deleted	category
+2493	49	0	Quarantine - Patient Mismatch
+foreign_id	note
+2493	Quarantined by Clinical Co-Pilot: the name or date of birth printed on this document does not match this chart. Nothing from it was used or written to the chart. Kept, not deleted. Reference: 80b7b0a2-b943-439e-8b35-f19e0ddff01d
+date	patient_id	comment
+2026-09-25 22:55:14	49	Clinical Co-Pilot document quarantined on card load: identity mismatch (documents.id 2493, correlation_id 80b7b0a2-b943-439e-8b35-f19e0ddff01d)
+--- second card load:
+reconcile 200 {"status": "ok", "checked": 1, "quarantined": 0, "failed": 0, "skipped": null, "correlation_id": "86c3d06c-9f35-474a-a487-38e4a8d7d206"}
+--- a chart with nothing to check (pid 38):
+reconcile 200 {"status": "ok", "checked": 1, "quarantined": 0, "failed": 0, "skipped": null, "correlation_id": "2009b074-6ecd-49cc-b35e-bde49ffcd69f"}
+```
+
+`checked` counts pid 49's other unquarantined filing-category copy, and pid
+38's lab-clean-001 copy (`confirmed`): asked about, not moved.
+
+### Run 8 — the same bytes on the chart they name (pid 31)
+
+```
+card pid 31 correlation_id c82d369b-f57c-441c-9c72-802d29fcbda4
+upload 200 {"status": "ok", "document_id": "719d3456e83d9c8b…", "kind": "intake_form", "extraction_status": "pending", "byte_length": 124630, "correlation_id": "c82d369b-f57c-441c-9c72-802d29fcbda4", "identity_check": null, "quarantine": null}
+  poll 4: 200 complete failure=None identity=confirmed quarantine=None
+upload to terminal 16.6s
+id	pid	deleted	category
+2493	49	0	Quarantine - Patient Mismatch
+2495	31	0	Medical Record
+{"event_type": "w2_document_binding_released", "event_data": {"document_id": "719d3456e83d9c8b…"}, ...}
+--- asking about it on the wrong chart now:
+ask 200 in 0.8s refused document_not_found
+--- and a third chart:
+upload 409 {"status": "error", "error": "document_attached_elsewhere", "message": "This file is already attached to a different chart, so it cannot be attached to this one.", "correlation_id": "933d201f-93c5-426f-8d4f-ccf7a8d96667"}
+```
+
+Not run end to end here: the notice-below-criticals order (no local sample
+has a located critical value on a degraded page; unit-tested with the
+potassium sample), the write-back retry (unit-tested with a scripted
+transient failure) and an expiry (unit-tested by backdating rows).
 
 ## No patient identifier in the agent's log
 
@@ -204,6 +274,18 @@ Merlyn225: 0
 Mueller846: 0
 Glucose: 0
 Potassium: 0
+```
+
+The rebuilt container's log after runs 6-8 (93 lines), the same way:
+
+```
+a2c373ec-57bf-41cb-8767-94410dcf663d: 0
+a2c37430-0a29-4c57-8195-2c924c2b654a: 0
+a2c373d1-c8c6-47f3-b566-e4ceaacdb1c7: 0
+Merlyn225: 0
+Mueller846: 0
+Jae222: 0
+Dach178: 0
 ```
 
 ## Left on the local stack

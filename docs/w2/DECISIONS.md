@@ -3375,22 +3375,34 @@ more small service to run (measured at 19.5 MiB idle).
 
 ---
 
-## D-unassigned (reserved: D60) — Degraded documents: extractions are kept on disk, a wrong-patient upload is quarantined in the chart, and a degraded scan says so first
+## D-unassigned (reserved: D60) — Degraded documents: extractions are kept on disk, a wrong-patient upload is quarantined and releases its bytes, and a degraded scan says so
 
 **Status:** DECIDED
 **Date:** 2026-09-25
 **Work order:** 32 (`feat/w2-degraded-docs`), from the early-submission
-review's request to strengthen degraded document handling.
+review's request to strengthen degraded document handling, and the owner's
+follow-ups on the same branch.
 **Numbering:** reserved D60. Headed "D-unassigned (reserved: D60)" until it
 merges; at merge only the heading changes, since code, tests and docs on
 this branch already say D60.
-**Amends:** D40 item 9 on order only (item 3 below); D40 item 10 and D51's
-"Not settled" on restarts (item 1); D54 item 6 and its run A3 (item 1,
-"Consequences").
-**Evidence:** `docs/w2/evidence/degraded-docs-e2e-run.md`;
+**Amends:** D40 item 8 (item 2: a quarantined document's binding is
+released); D40 item 10 and D51's "Not settled" on restarts (item 1); D54
+item 6 and its run A3 (item 4: a re-upload retries a write-back that did
+not complete). **It does not amend D40 item 9:** critical values still lead
+every answer (item 3).
+**Revised on the branch before merge (2026-09-25), at the owner's
+direction:** the degraded notice moved from above the critical block to
+directly below it; a quarantined document's binding is released; a re-upload
+retries an incomplete write-back; the card reconciles quarantine when it
+loads; the store has a 30-day retention. The first version of this entry
+said D60 amended D40 item 9 and left the other four open. It does not
+amend D40 item 9 now, and the other four are settled here.
+**Evidence:** `docs/w2/evidence/degraded-docs-e2e-run.md` (runs 1–8);
 `agent/tests/test_extraction_store.py`, `test_w2_documents_restart.py`,
-`test_degraded_notice.py`; the module's `ChartDocumentsTest`,
-`AgentClientW2Test` and `tests/js/upload.test.mjs`.
+`test_degraded_notice.py`, `test_document_rebinding_and_retry.py`; the
+module's `ChartDocumentsTest`, `AgentClientW2Test` and
+`tests/js/upload.test.mjs`. 34 of 34 mutations killed (the work order 32
+report lists them).
 
 **Problem.** Three gaps, one of which hit the demo host: it rebooted and the
 agent forgot every uploaded document, because extraction state lived only in
@@ -3405,13 +3417,13 @@ values it could verify without saying they were a small part of the page.
    volume (option a), not rebuilt by re-extracting the chart copy (option b).**
    `app/workers/extraction_store.py`, used by `DocumentStore`.
    - **What is saved.** One row per document, written when the upload is
-     accepted and again when its extraction ends. In the clear: the document
-     id (the file's SHA3-512, which OpenEMR also stores), kind, status and
-     time. Everything else is one JSON record sealed with AES-256-GCM: the
-     patient uuid it is bound to, the page geometry, and the status and
-     `ExtractionReport`. The document id and record format are the
-     associated data, so a record moved onto another row does not open. The
-     PDF's bytes are never saved.
+     accepted, when its extraction ends, and when its write-back ends. In the
+     clear: the document id (the file's SHA3-512, which OpenEMR also stores),
+     kind, status and time. Everything else is one JSON record sealed with
+     AES-256-GCM: the patient uuid it is bound to, the page geometry, the
+     status and `ExtractionReport`, and the write-back's outcome. The
+     document id and record format are the associated data, so a record
+     moved onto another row does not open. The PDF's bytes are never saved.
    - **The key** is `AGENT_EXTRACTION_STORE_KEY`, in the env file, not on the
      volume. With `AGENT_ENV=production` the service refuses to start without
      the path, or without a 64-hex key that is not the dev default, as D56
@@ -3421,17 +3433,31 @@ values it could verify without saying they were a small part of the page.
      700 directory owned by the agent's uid.
    - **After a restart** a document is read back the first time anything
      asks about it: `accept`, `lookup`, `status` or `report`. It answers with
-     the same report, is bound to the same chart, and the same bytes for
-     another chart are still refused (409, D40 item 8). No vision call is
-     repeated.
+     the same report and the same chart binding. No vision call is repeated.
    - **An extraction the restart interrupted** comes back `failed` with the
      new `ExtractionFailureReason.INTERRUPTED`, not `pending`, which would
-     have the card poll forever. Re-uploading the file starts it again. It
-     is the one failure a re-upload retries.
+     have the card poll forever. Re-uploading the file starts it again.
    - **A row that does not open** (a changed key, a damaged file, a record
      that no longer validates) is logged by id and error type and treated as
      absent. The document is then unknown, as every document was after a
      restart before D60.
+   - **Retention: 30 days from the row's last write**
+     (`AGENT_EXTRACTION_STORE_RETENTION_DAYS`, 1–3650, invalid values refused
+     at startup). Expired rows are deleted at startup and on every save. A
+     read that meets one treats it as absent and deletes it.
+     `secure_delete` overwrites the freed pages. Why 30:
+     - **Expiry loses nothing.** The store is a copy. The document stays in
+       OpenEMR, encrypted and audited. An expired document is uploaded again
+       to be asked about: one vision call, and the ledger keeps its
+       write-back idempotent. The module's chart records still refuse the
+       bytes on another chart.
+     - **Patient data outside the EHR should last as long as its use.** A
+       document is uploaded for a visit, and 30 days covers the visit and the
+       questions after it.
+     - **It matches D58's 30-day telemetry retention**, so the agent's two
+       at-rest stores age out together.
+     - **It runs from the last write, not the last read**, so questions
+       cannot keep a document alive indefinitely.
 
    **Why (a).**
    - **(b) cannot meet the requirement.** "A restart must not change what a
@@ -3449,19 +3475,26 @@ values it could verify without saying they were a small part of the page.
    - **(a)'s cost is a new place holding patient data at rest.** It is
      limited as far as it can be here: sealed records, a key kept off the
      volume, no PDF bytes, no identifier in the clear except a digest
-     OpenEMR also holds, owner-only permissions, and a production start
-     that refuses to run unkeyed. Someone with both the env file and the
-     volume can read it, as someone with OpenEMR's site key and disk can
-     read OpenEMR's documents on the same host.
+     OpenEMR also holds, owner-only permissions, a production start that
+     refuses to run unkeyed, and 30-day retention. Someone with both the env
+     file and the volume can read it, as someone with OpenEMR's site key and
+     disk can read OpenEMR's documents on the same host.
 
-2. **A wrong-patient document is quarantined in the chart, never deleted.**
-   - **The trigger.** The agent's two document routes now report
+2. **A wrong-patient document is quarantined in the chart, never deleted,
+   and its bytes are released to the chart they name (amends D40 item 8).**
+   - **The trigger.** The agent's two document routes report
      `identity_check`: null until complete, then `mismatch` (the
      extractor's hard flag, D35 item 10), `confirmed` (D54's rule) or
      `not_confirmed`. On `mismatch` the module moves the chart copy with
-     `ChartDocuments::quarantine`. The status poll does this, because it
-     is where the card learns the extraction ended. `upload.php` does it
-     for a re-upload that is already complete.
+     `ChartDocuments::quarantine`, from three places:
+     - the status poll, which sees the extraction end;
+     - `upload.php`, for a re-upload that is already complete;
+     - **`reconcile.php` when the card loads**, for a mismatch no poll saw
+       because the page was closed first. It lists the chart's newest 10
+       unquarantined copies in the two filing categories. Only if there are
+       any, it mints one token and asks the agent's status route about each,
+       then quarantines every one reported `mismatch`. A chart with nothing
+       to check costs no token and no agent call.
    - **The move.** The copy goes to the document category "Quarantine -
      Patient Mismatch", which the install SQL creates with the stock
      `patients|docs` ACL. The move is OpenEMR's own: a
@@ -3470,28 +3503,49 @@ values it could verify without saying they were a small part of the page.
      note saying why, which names no value, and writes an audit row. The
      `documents` row is not deleted, renamed or re-owned.
    - **Idempotency (invariant 6).** The move is keyed on the digest, under
-     the same named lock as the attach: a document already in quarantine is
-     left alone, so repeated polls add no second note or audit row. Moving
-     it needs `patients`/`docs` at write level, as the upload did.
-   - **The card.** It says "Not used: …" and where the document went. If
-     the move failed, it says the document could NOT be moved. It never
-     offers the document for a question. The module's "filed on another
-     chart" check now includes the quarantine category, so a quarantined
-     copy still makes the same bytes a 409 elsewhere.
+     the attach's named lock, so a document already in quarantine is left
+     alone. Moving needs `patients`/`docs` at write level, as the upload does.
+   - **The binding is released (D40 item 8, amended).** A document whose
+     finished extraction was ruled another patient's by the identity check no
+     longer binds its bytes to that chart. The agent accepts the same bytes
+     for another chart and extracts them afresh for it; that chart's own
+     identity check then decides what is stated and written. The module's
+     "filed on another chart" check reads only the two filing categories,
+     so a quarantined copy does not refuse them either. D40 item 8 exists
+     so an extraction and its citations cannot move to another patient.
+     Nothing moves here: the old extraction is discarded, nothing from it
+     was ever stated or written, and the identity check stays the safeguard
+     on the new chart. A binding whose extraction matched, could not
+     compare, failed or is still running still refuses another chart. The
+     wrong chart's quarantined copy stays as the record of what was
+     uploaded there. A question naming it on that chart is now
+     `document_not_found`.
+   - **The card** says "Not used: …" and where the document went, or that it
+     could NOT be moved. It never offers the document for a question, and
+     shows a line on load when reconciliation moved or failed to move one.
    - **Write-back** is unchanged: an identity mismatch writes nothing
      (D54 item 3).
 
-3. **A degraded document is said to be so, first.**
+3. **A degraded document is said to be so, directly below the critical
+   values.**
    - **The measure** is D24's located rate: located / (located +
      unlocated) over the values the model read. `missing` and `illegible`
      describe the document and are not counted.
-   - **The notice.** Below **75%** the answer's first line is "This scan
-     is heavily degraded: N of M values read from it could be located on the
-     page and verified; the other M−N are listed as unsupported and are not
-     stated." It says "document" for a text layer, and names the upload
-     when a turn reads more than one. The notice states counts only, so it
-     cannot state an unverified value. `AnswerLimitation.DEGRADED_DOCUMENT`
-     carries the same fact.
+   - **The notice.** Below **75%** the answer says: "This scan is heavily
+     degraded: N of M values read from it could be located on the page and
+     verified; the other M−N are listed as unsupported and are not stated."
+     It says "document" for a text layer, and names the upload when a turn
+     reads more than one. The notice states counts only, so it cannot state
+     an unverified value. `AnswerLimitation.DEGRADED_DOCUMENT` carries the
+     same fact.
+   - **Order (D40 item 9 unchanged).** The critical-value block leads, and
+     the notice comes directly after it, above everything else. With no
+     critical value the notice is the answer's first line. When the block
+     holds values from the same document, the notice adds that each one
+     stated "was located on the page and verified". A possible critical
+     value "could not be located, so its number is not stated". The
+     degradation is about the rest of the page, not the critical values
+     shown.
    - **Why 75%.** The measured rates fall in two clusters: text layers
      91.8–99.5% (92% and 98% with real vision) and the light scan 87.5%;
      then the heavy scan at 33.6%, 34% with real vision and 10.3% in this
@@ -3503,14 +3557,29 @@ values it could verify without saying they were a small part of the page.
      under the light scan, which has no real-vision measurement.
      `test_only_the_heavy_scan_of_the_six_samples_is_degraded` fails if the
      threshold leaves that gap.
-   - **Order (amends D40 item 9).** The notice comes before the
-     critical-value block, one line above it. It says how far every
-     document value below can be relied on, a critical one included.
-     Critical values still come before everything else.
+
+4. **A re-upload retries a write-back that did not complete (amends D54
+   item 6).** The write-back's outcome is saved with the document. A
+   re-upload of the same bytes to the same chart retries it when all of
+   these hold:
+   - the extraction is complete;
+   - the outcome was `endpoint_unavailable`, `token_refused` or
+     `request_refused`, or none was recorded (never finished);
+   - no write-back for that document is running.
+
+   The retry uses the saved report and the re-upload's token and bytes,
+   without extracting again. The ledger's keys (D1) make a repeat
+   idempotent: rows already written come back `duplicate_ignored`. An
+   outcome that wrote, or had a reason not to write
+   (`identity_not_confirmed`, `nothing_writable`, `not_lab_report`,
+   `extraction_not_complete`), is not retried. The upload's extraction slot
+   is held until the retry ends. An intake form's upload passes no step, so
+   it retries nothing (D2).
 
 **Verified on the local stack, 2026-09-25**
 (`docs/w2/evidence/degraded-docs-e2e-run.md`). Every run went through the
-card's real routes, with live vision and a live drafting call:
+card's real routes. Runs 1–5 ran on the first version of this branch and
+runs 6–8 on the revised one:
 
 | run | what | result |
 |---|---|---|
@@ -3519,10 +3588,13 @@ card's real routes, with live vision and a live drafting call:
 | 2 | status and the same question | same `extraction_id`; `w2_document_restored`; the only model call is the drafting call; 53 of 53 citations, 24 of 24 unsupported values, status and limitations identical; one chart line in a different position (the live draft's ordering) |
 | 3 | the same bytes for another chart | 409 from the module; 409 and 404 from the agent's own binding, called directly |
 | 4 | another patient's report on pid 49 | `mismatch`; moved to "Quarantine - Patient Mismatch" with a note, `deleted = 0`, one category link, two audit rows, 0 ledger rows; a second poll added nothing; a question naming it is refused `document_identity_mismatch` |
-| 5 | the heavy scan on its own chart | 11 of 107 located; the answer's first line is the notice; limitation `degraded_document` |
+| 5 | the heavy scan on its own chart | 11 of 107 located; the notice is the answer's first line (no critical value); limitation `degraded_document` |
+| 6 | another patient's intake form on pid 49, page closed before any poll | extraction `mismatch`; the chart copy still in Medical Record |
+| 7 | the card loads on pid 49 | `reconcile.php`: checked 2, quarantined 1; the copy moved with its note and a "quarantined on card load" audit row; a second load moved nothing |
+| 8 | the same bytes on the chart they name (pid 31) | accepted, `pending`, not a duplicate; `w2_document_binding_released`; complete in 16.6 s, `confirmed`; filed in Medical Record on pid 31 while pid 49's copy stays in quarantine; a question on pid 49 is `document_not_found`; a third chart gets 409 |
 
-The agent's log after the restart held none of the three patient uuids,
-none of the report's name parts and no test name.
+The agent's log after each set of runs held none of the patient uuids or
+name parts involved, and no test name.
 
 **Consequences.**
 - The next deploy needs `AGENT_EXTRACTION_STORE_KEY` in the host's env file
@@ -3531,32 +3603,28 @@ none of the report's name parts and no test name.
 - The module's install SQL must be run again on an existing install to
   create the category (the module README). Until then a mismatch is
   reported to the card as NOT moved.
-- **D54 run A3 no longer happens.** A re-upload after a restart is now a
-  duplicate: no extraction, and so no write-back. That re-extraction was
-  also the only retry for a write-back that failed on a transient error.
-  Such a write is now retried only if the document is extracted again,
-  which happens only when the saved row is lost.
-- The agent's 409 for the same bytes on another chart outlives restarts,
-  and so outlives a deletion in OpenEMR (W2_ARCHITECTURE.md §11 item 14).
+- **D54 run A3 no longer re-extracts.** A re-upload after a restart is a
+  duplicate. It still retries a write-back that did not complete (item 4),
+  now without the vision call.
+- The agent's 409 outlives restarts, and so outlives a deletion in OpenEMR
+  (W2_ARCHITECTURE.md §11 item 14), except for a mismatch, which releases.
+- Each card load runs one reconcile query. It reaches the agent only when
+  the chart has an unquarantined copy in a filing category.
 
 **Not settled here.**
-- **Retention.** Rows stay until the volume is deleted. No expiry was
-  chosen: it is a policy for the owner.
-- **Releasing a binding.** A quarantined or deleted document cannot be
-  attached to its right chart: the module and the agent both refuse the
-  bytes. Whether a quarantine should release them is a change to D40
-  item 8. It is not made here.
-- **A quarantine that never ran.** Quarantine needs the status poll (or a
-  re-upload) to see the finished extraction. If the page is closed before
-  the extraction ends, the copy stays in Lab Report or Medical Record
-  until the same file is uploaded again or a poll reaches it. Asking
-  about it is still refused.
+- **A deleted document's binding.** A document deleted in OpenEMR, rather
+  than quarantined, still binds its bytes to its chart in the agent until
+  its row expires (30 days). Whether deletion should release it is not
+  decided.
+- **A mismatch copy the module cannot see yet.** A copy not yet quarantined
+  still refuses the bytes on another chart through the module's check, until
+  a status poll, re-upload or card load of its own chart quarantines it.
 - **Several workers.** A running job is still one process's memory
-  (D40 item 10). The store is not a queue and is not built for writers
-  in two processes.
+  (D40 item 10). The store is not a queue and is not built for writers in
+  two processes.
 - **SQLite on the event loop.** Each statement is one short row read or
   write. They are not moved to a thread.
 - **The heavy scan's 11 vs 36 of 107.** Not investigated. It could be the
   vision call or the container's OCR.
-- **The gate does not cover any of this yet.** The behaviours a gate
-  session should add are listed in the work order 32 report.
+- **The gate does not cover any of this yet.** The behaviours a gate session
+  should add are listed in the work order 32 report.

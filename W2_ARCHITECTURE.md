@@ -772,8 +772,8 @@ back. D55 is on this branch only. This document makes no new decision.
    vision, and 33.6% (36/107) in replay (§1.4). D24 chose exact-only matching
    for numbers, units, dates and flags over recall. On that scan the flag
    cross-check compares nothing: 0 comparable flags, 6 `not_reported`.
-   Since D60 (reserved) an answer about a document under 75% located leads
-   with a notice giving the counts. A live run on the local stack on
+   Since D60 (reserved) an answer about a document under 75% located says so
+   with the counts, directly below any critical values, which still lead. A live run on the local stack on
    2026-09-25 located 11 of 107 on this scan; the cause of the difference
    from 36 was not investigated.
 4. **Single worker, in-memory state.** See §9, row 2. Since D60 (reserved) a
@@ -849,10 +849,11 @@ back. D55 is on this branch only. This document makes no new decision.
       and nothing tells it about the deletion. So the card gets 409 on
       another chart while this agent process lives, and not after a restart.
       **Changed by D60 (reserved):** the binding is now saved to disk and
-      survives restarts, so the agent refuses the deleted document's bytes
-      on another chart indefinitely. That is the fail-safe direction, and
-      it means a deleted, or quarantined, document can never be attached to
-      its right chart. Releasing a binding is not built (D60, "Not settled").
+      survives restarts, so the agent refuses a deleted document's bytes on
+      another chart until its row expires (30 days). A document the identity
+      check ruled another patient's (quarantined) releases its binding, so
+      its bytes can be attached to the chart they name. Deletion releases
+      nothing (D60, "Not settled").
     - **The write-back ledger outlives the deletion, and its replay does
       not check the patient.** Its rows stay, keyed on `<document
       sha3-512>:<TEST CODE>:<YYYY-MM-DD>` (D1), which does not include the
