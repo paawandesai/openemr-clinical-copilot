@@ -371,8 +371,9 @@ three rules at once. How to run the gate, read a verdict and set up CI:
     because D56 and D58 took the patient uuid and chart-record uuids out of
     every emitted event, so the Langfuse we host holds none; this was
     measured (D58).
-  - The host at `ea198c8` still runs with export off until its next
-    redeploy, so the numbers here come from its stdout log.
+  - The numbers here come from the `ea198c8` host's stdout log, before
+    export was on. The host has exported to the self-hosted Langfuse since
+    the 2026-09-25 redeploy (`docs/w2/evidence/prod-langfuse/deploy-2026-09-25/`).
   - Over the `ea198c8` deploy, 2026-09-23 17:12–21:00 UTC: 19 encounters
     with model calls, mean **$0.097** and 11.8k tokens per encounter,
     answer-route p95 21.7 s, 0 5xx.

@@ -20,9 +20,17 @@ string. It was denied at the proxy (`22585d2`, 503 from Caddy), the agent
 gained an upload guard (`98f1758`, §2.2), and the route was reopened behind
 it with `/w2/ask` forwarded too (`a78ba51`).
 
-**What the host runs now:** the agent image from **`main@ea198c8`** (the eval
-gate and D50's answer scope), deployed 2026-09-23 17:12 UTC; the Caddyfile is
-still `a78ba51`'s. See §8.00 for that deploy and its measurements.
+**What the host runs now:** the agent image and module files from
+**`main@06f0d45`**, deployed 2026-09-25 14:44 UTC.
+
+- **What it adds:** D54's upload scopes, D56, and D58. Export to the
+  self-hosted Langfuse is on (`OBSERVABILITY.md` §7).
+- **Unchanged:** the Caddyfile is still `a78ba51`'s.
+- **Evidence and rollback:**
+  [`evidence/prod-langfuse/deploy-2026-09-25/README.md`](evidence/prod-langfuse/deploy-2026-09-25/README.md).
+- **§2's cold start** now needs `-e AGENT_TELEMETRY_HMAC_SECRET=<throwaway>`,
+  because the image refuses to start in production without it (D56).
+- **Previous:** `main@ea198c8` (§8.00).
 
 Background, not repeated here: [`deploy-writeback.md`](deploy-writeback.md)
 (why the ledger and the client re-registration), [`retrieval-deploy.md`](retrieval-deploy.md)
