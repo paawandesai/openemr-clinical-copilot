@@ -1,0 +1,421 @@
+{
+  "fixtures": {
+    "W2-M1": {
+      "fixture": "fc_pass",
+      "expected": "pass",
+      "rounds_agreeing": 5,
+      "rounds": 5,
+      "votes_agreeing": 15,
+      "votes": 15,
+      "stable": true,
+      "per_round": [
+        {
+          "verdict": "pass",
+          "votes": [
+            "pass",
+            "pass",
+            "pass"
+          ]
+        },
+        {
+          "verdict": "pass",
+          "votes": [
+            "pass",
+            "pass",
+            "pass"
+          ]
+        },
+        {
+          "verdict": "pass",
+          "votes": [
+            "pass",
+            "pass",
+            "pass"
+          ]
+        },
+        {
+          "verdict": "pass",
+          "votes": [
+            "pass",
+            "pass",
+            "pass"
+          ]
+        },
+        {
+          "verdict": "pass",
+          "votes": [
+            "pass",
+            "pass",
+            "pass"
+          ]
+        }
+      ]
+    },
+    "W2-M2": {
+      "fixture": "fc_fail",
+      "expected": "fail",
+      "rounds_agreeing": 5,
+      "rounds": 5,
+      "votes_agreeing": 15,
+      "votes": 15,
+      "stable": true,
+      "per_round": [
+        {
+          "verdict": "fail",
+          "votes": [
+            "fail",
+            "fail",
+            "fail"
+          ]
+        },
+        {
+          "verdict": "fail",
+          "votes": [
+            "fail",
+            "fail",
+            "fail"
+          ]
+        },
+        {
+          "verdict": "fail",
+          "votes": [
+            "fail",
+            "fail",
+            "fail"
+          ]
+        },
+        {
+          "verdict": "fail",
+          "votes": [
+            "fail",
+            "fail",
+            "fail"
+          ]
+        },
+        {
+          "verdict": "fail",
+          "votes": [
+            "fail",
+            "fail",
+            "fail"
+          ]
+        }
+      ]
+    },
+    "W2-M3": {
+      "fixture": "sr_pass",
+      "expected": "pass",
+      "rounds_agreeing": 5,
+      "rounds": 5,
+      "votes_agreeing": 15,
+      "votes": 15,
+      "stable": true,
+      "per_round": [
+        {
+          "verdict": "pass",
+          "votes": [
+            "pass",
+            "pass",
+            "pass"
+          ]
+        },
+        {
+          "verdict": "pass",
+          "votes": [
+            "pass",
+            "pass",
+            "pass"
+          ]
+        },
+        {
+          "verdict": "pass",
+          "votes": [
+            "pass",
+            "pass",
+            "pass"
+          ]
+        },
+        {
+          "verdict": "pass",
+          "votes": [
+            "pass",
+            "pass",
+            "pass"
+          ]
+        },
+        {
+          "verdict": "pass",
+          "votes": [
+            "pass",
+            "pass",
+            "pass"
+          ]
+        }
+      ]
+    },
+    "W2-M4": {
+      "fixture": "sr_fail",
+      "expected": "fail",
+      "rounds_agreeing": 5,
+      "rounds": 5,
+      "votes_agreeing": 15,
+      "votes": 15,
+      "stable": true,
+      "per_round": [
+        {
+          "verdict": "fail",
+          "votes": [
+            "fail",
+            "fail",
+            "fail"
+          ]
+        },
+        {
+          "verdict": "fail",
+          "votes": [
+            "fail",
+            "fail",
+            "fail"
+          ]
+        },
+        {
+          "verdict": "fail",
+          "votes": [
+            "fail",
+            "fail",
+            "fail"
+          ]
+        },
+        {
+          "verdict": "fail",
+          "votes": [
+            "fail",
+            "fail",
+            "fail"
+          ]
+        },
+        {
+          "verdict": "fail",
+          "votes": [
+            "fail",
+            "fail",
+            "fail"
+          ]
+        }
+      ]
+    },
+    "W2-M5": {
+      "fixture": "sr_fail_over_refusal",
+      "expected": "fail",
+      "rounds_agreeing": 5,
+      "rounds": 5,
+      "votes_agreeing": 15,
+      "votes": 15,
+      "stable": true,
+      "per_round": [
+        {
+          "verdict": "fail",
+          "votes": [
+            "fail",
+            "fail",
+            "fail"
+          ]
+        },
+        {
+          "verdict": "fail",
+          "votes": [
+            "fail",
+            "fail",
+            "fail"
+          ]
+        },
+        {
+          "verdict": "fail",
+          "votes": [
+            "fail",
+            "fail",
+            "fail"
+          ]
+        },
+        {
+          "verdict": "fail",
+          "votes": [
+            "fail",
+            "fail",
+            "fail"
+          ]
+        },
+        {
+          "verdict": "fail",
+          "votes": [
+            "fail",
+            "fail",
+            "fail"
+          ]
+        }
+      ]
+    },
+    "W2-M6": {
+      "fixture": "fc_fail_guideline_as_patient_fact",
+      "expected": "fail",
+      "rounds_agreeing": 5,
+      "rounds": 5,
+      "votes_agreeing": 15,
+      "votes": 15,
+      "stable": true,
+      "per_round": [
+        {
+          "verdict": "fail",
+          "votes": [
+            "fail",
+            "fail",
+            "fail"
+          ]
+        },
+        {
+          "verdict": "fail",
+          "votes": [
+            "fail",
+            "fail",
+            "fail"
+          ]
+        },
+        {
+          "verdict": "fail",
+          "votes": [
+            "fail",
+            "fail",
+            "fail"
+          ]
+        },
+        {
+          "verdict": "fail",
+          "votes": [
+            "fail",
+            "fail",
+            "fail"
+          ]
+        },
+        {
+          "verdict": "fail",
+          "votes": [
+            "fail",
+            "fail",
+            "fail"
+          ]
+        }
+      ]
+    },
+    "W2-M7": {
+      "fixture": "fc_fail_invented_unit_conversion",
+      "expected": "fail",
+      "rounds_agreeing": 5,
+      "rounds": 5,
+      "votes_agreeing": 15,
+      "votes": 15,
+      "stable": true,
+      "per_round": [
+        {
+          "verdict": "fail",
+          "votes": [
+            "fail",
+            "fail",
+            "fail"
+          ]
+        },
+        {
+          "verdict": "fail",
+          "votes": [
+            "fail",
+            "fail",
+            "fail"
+          ]
+        },
+        {
+          "verdict": "fail",
+          "votes": [
+            "fail",
+            "fail",
+            "fail"
+          ]
+        },
+        {
+          "verdict": "fail",
+          "votes": [
+            "fail",
+            "fail",
+            "fail"
+          ]
+        },
+        {
+          "verdict": "fail",
+          "votes": [
+            "fail",
+            "fail",
+            "fail"
+          ]
+        }
+      ]
+    },
+    "W2-M8": {
+      "fixture": "fc_fail_added_clinical_judgement",
+      "expected": "fail",
+      "rounds_agreeing": 5,
+      "rounds": 5,
+      "votes_agreeing": 15,
+      "votes": 15,
+      "stable": true,
+      "per_round": [
+        {
+          "verdict": "fail",
+          "votes": [
+            "fail",
+            "fail",
+            "fail"
+          ]
+        },
+        {
+          "verdict": "fail",
+          "votes": [
+            "fail",
+            "fail",
+            "fail"
+          ]
+        },
+        {
+          "verdict": "fail",
+          "votes": [
+            "fail",
+            "fail",
+            "fail"
+          ]
+        },
+        {
+          "verdict": "fail",
+          "votes": [
+            "fail",
+            "fail",
+            "fail"
+          ]
+        },
+        {
+          "verdict": "fail",
+          "votes": [
+            "fail",
+            "fail",
+            "fail"
+          ]
+        }
+      ]
+    }
+  },
+  "prompt_version": "w2-judge/1.1.0",
+  "started_at": "2026-09-25T14:46:14+00:00",
+  "finished_at": "2026-09-25T14:50:23+00:00",
+  "calls_made": 120,
+  "cache_hits": 0,
+  "input_tokens": 99285,
+  "output_tokens": 13429,
+  "cost_usd": 0.16643,
+  "unstable": []
+}
