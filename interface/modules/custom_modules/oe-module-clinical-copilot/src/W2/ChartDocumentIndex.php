@@ -43,4 +43,13 @@ interface ChartDocumentIndex
 
     /** Adds a note to the document, shown with it in the chart's Documents. */
     public function addNote(int $documentId, int $ownerId, string $note): void;
+
+    /**
+     * This patient's undeleted documents filed in one of these categories
+     * and not in `$exceptCategoryId`, newest first, at most `$limit`.
+     *
+     * @param list<int> $categoryIds
+     * @return list<array{id: int, hash: string}>
+     */
+    public function filedNotIn(int $pid, array $categoryIds, int $exceptCategoryId, int $limit): array;
 }

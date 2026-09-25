@@ -33,8 +33,12 @@ final class FakeChartDocumentIndex implements ChartDocumentIndex
     /** @var list<array{int, list<int>}> pid, categoryIds */
     public array $elsewhereQueries = [];
 
+    /** @var list<array{int, list<int>, int, int}> pid, categoryIds, except, limit */
+    public array $filedQueries = [];
+
     /**
      * @param list<int> $categoriesOfExisting Categories the existing document is filed in.
+     * @param list<array{id: int, hash: string}> $filed What filedNotIn() answers.
      */
     public function __construct(
         private ?int $existing = null,
@@ -42,8 +46,15 @@ final class FakeChartDocumentIndex implements ChartDocumentIndex
         private bool $lockable = true,
         private array $categoriesOfExisting = [2],
         private bool $moveFails = false,
+        private array $filed = [],
     ) {
+        if ($existing !== null) {
+            $this->categoriesOf[$existing] = $categoriesOfExisting;
+        }
     }
+
+    /** @var array<int, list<int>> documents.id => the categories it is filed in */
+    private array $categoriesOf = [];
 
     public function lock(string $name): bool
     {
@@ -60,6 +71,12 @@ final class FakeChartDocumentIndex implements ChartDocumentIndex
 
     public function findForPatient(int $pid, string $sha3512): ?int
     {
+        // With a `filed` list, each digest is its own document.
+        foreach ($this->filed as $document) {
+            if ($document['hash'] === $sha3512) {
+                return $document['id'];
+            }
+        }
         return $this->existing;
     }
 
@@ -71,7 +88,7 @@ final class FakeChartDocumentIndex implements ChartDocumentIndex
 
     public function isInCategory(int $documentId, int $categoryId): bool
     {
-        return $documentId === $this->existing && in_array($categoryId, $this->categoriesOfExisting, true);
+        return in_array($categoryId, $this->categoriesOf[$documentId] ?? [2], true);
     }
 
     public function moveToCategory(int $documentId, int $categoryId): void
@@ -80,11 +97,17 @@ final class FakeChartDocumentIndex implements ChartDocumentIndex
             throw new SqlQueryException('REPLACE INTO categories_to_documents', 'database unavailable');
         }
         $this->moves[] = [$documentId, $categoryId];
-        $this->categoriesOfExisting = [$categoryId];
+        $this->categoriesOf[$documentId] = [$categoryId];
     }
 
     public function addNote(int $documentId, int $ownerId, string $note): void
     {
         $this->notes[] = [$documentId, $ownerId, $note];
+    }
+
+    public function filedNotIn(int $pid, array $categoryIds, int $exceptCategoryId, int $limit): array
+    {
+        $this->filedQueries[] = [$pid, $categoryIds, $exceptCategoryId, $limit];
+        return $this->filed;
     }
 }

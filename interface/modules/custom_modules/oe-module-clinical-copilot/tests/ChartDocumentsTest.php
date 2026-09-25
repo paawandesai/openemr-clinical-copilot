@@ -23,6 +23,7 @@ use OpenEMR\Modules\ClinicalCopilot\Tests\Fakes\RecordingDocumentStorage;
 use OpenEMR\Modules\ClinicalCopilot\W2\AgentDocumentId;
 use OpenEMR\Modules\ClinicalCopilot\W2\ChartDocuments;
 use OpenEMR\Modules\ClinicalCopilot\W2\DocumentKind;
+use OpenEMR\Modules\ClinicalCopilot\W2\ExtractionState;
 use OpenEMR\Modules\ClinicalCopilot\W2\QuarantineOutcome;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
@@ -102,12 +103,96 @@ final class ChartDocumentsTest extends TestCase
             ->attach(self::PID, DocumentKind::LabPdf, new AgentDocumentId(str_repeat('0', 128)), 'report.pdf', self::PDF, 7);
     }
 
-    public function testTheElsewhereCheckCoversTheQuarantineCategory(): void
+    public function testAQuarantinedCopyDoesNotBindItsBytesToThatChart(): void
     {
-        // A quarantined document is still filed on its chart (D60).
+        // D60, amending D40 item 8: only the two filing categories count, so
+        // bytes quarantined on the wrong chart can be attached to the right one.
         $index = new FakeIndex();
         self::documents(new RecordingDocumentStorage(), $index)->assertNotFiledElsewhere(self::PID, self::digest());
-        $this->assertSame([[self::PID, [2, 3, 34]]], $index->elsewhereQueries);
+        $this->assertSame([[self::PID, [2, 3]]], $index->elsewhereQueries);
+    }
+
+    public function testReconcileQuarantinesOnlyWhatTheAgentReportsAsAMismatch(): void
+    {
+        $mismatch = self::digest();
+        $matched = str_repeat('a', 128);
+        $unknown = str_repeat('b', 128);
+        $index = new FakeIndex(existing: 1812, filed: [
+            ['id' => 1812, 'hash' => $mismatch->value],
+            ['id' => 1813, 'hash' => $matched],
+            ['id' => 1814, 'hash' => $unknown],
+            ['id' => 1815, 'hash' => 'not-a-digest'],
+        ]);
+        $asked = [];
+        $agent = static function () use (&$asked): \Closure {
+            return static function (AgentDocumentId $document) use (&$asked): ?ExtractionState {
+                $asked[] = $document->value;
+                return match ($document->value) {
+                    str_repeat('a', 128) => self::state($document, 'confirmed'),
+                    str_repeat('b', 128) => null,
+                    default => self::state($document, 'mismatch'),
+                };
+            };
+        };
+
+        $result = self::documents(new RecordingDocumentStorage(), $index)->reconcile(self::PID, $agent, self::TRACE, 7);
+
+        $this->assertSame(['checked' => 3, 'quarantined' => 1, 'failed' => 0], $result->toPayload());
+        $this->assertSame([1812], $result->movedDocumentIds);
+        $this->assertSame([[1812, 34]], $index->moves);
+        $this->assertCount(1, $index->notes);
+        $this->assertSame([$mismatch->value, $matched, $unknown], $asked);
+        // Asked about this chart's two filing categories, minus quarantine, newest ten.
+        $this->assertSame([[self::PID, [2, 3], 34, 10]], $index->filedQueries);
+    }
+
+    public function testReconcileWithNothingToCheckNeverBuildsTheAgentLookup(): void
+    {
+        $built = false;
+        $agent = static function () use (&$built): \Closure {
+            $built = true;
+            return static fn (AgentDocumentId $document): ?ExtractionState => null;
+        };
+
+        $result = self::documents(new RecordingDocumentStorage(), new FakeIndex())->reconcile(self::PID, $agent, self::TRACE, 7);
+
+        $this->assertFalse($built, 'no token is minted and the agent is not called');
+        $this->assertSame(['checked' => 0, 'quarantined' => 0, 'failed' => 0], $result->toPayload());
+    }
+
+    public function testReconcileCountsAMoveThatFailed(): void
+    {
+        $index = new FakeIndex(existing: 1812, moveFails: true, filed: [['id' => 1812, 'hash' => self::digest()->value]]);
+        $agent = static fn (): \Closure => static fn (AgentDocumentId $document): ExtractionState => self::state($document, 'mismatch');
+
+        $result = self::documents(new RecordingDocumentStorage(), $index)->reconcile(self::PID, $agent, self::TRACE, 7);
+
+        $this->assertSame(['checked' => 1, 'quarantined' => 0, 'failed' => 1], $result->toPayload());
+    }
+
+    public function testReconcileWithoutTheQuarantineCategoryChecksNothing(): void
+    {
+        $index = new FakeIndex(existing: 1812, filed: [['id' => 1812, 'hash' => self::digest()->value]]);
+        $agent = static fn (): \Closure => static fn (AgentDocumentId $document): ExtractionState => self::state($document, 'mismatch');
+
+        $result = self::documents(new RecordingDocumentStorage(categories: ['/Categories/Lab_Report' => 2]), $index)
+            ->reconcile(self::PID, $agent, self::TRACE, 7);
+
+        $this->assertSame(0, $result->checked);
+        $this->assertSame([], $index->moves);
+    }
+
+    private static function state(AgentDocumentId $document, string $identity): ExtractionState
+    {
+        return ExtractionState::fromStatus([
+            'document_id' => $document->value,
+            'kind' => 'lab_pdf',
+            'status' => 'complete',
+            'extraction_id' => 'w2x-0123456789abcdef0123456789abcdef',
+            'failure_reason' => null,
+            'correlation_id' => self::TRACE,
+            'identity_check' => $identity,
+        ], $document);
     }
 
     public function testAMismatchedDocumentIsMovedToQuarantineWithANoteAndNotDeleted(): void

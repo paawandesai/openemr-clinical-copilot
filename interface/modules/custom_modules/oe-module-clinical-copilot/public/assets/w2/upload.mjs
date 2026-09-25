@@ -105,6 +105,9 @@ const DEFAULT_STRINGS = {
     quarantineQuarantined: 'It was moved to the “Quarantine - Patient Mismatch” category of this chart\'s Documents, with a note; it was not deleted.',
     quarantineNotOnChart: 'No copy of it is filed on this chart.',
     quarantineFailed: 'It could NOT be moved to quarantine and is still filed as a normal document: move it by hand.',
+    reconciledOne: '1 document on this chart was moved to the “Quarantine - Patient Mismatch” category: the name or date of birth printed on it does not match this chart. It was not deleted.',
+    reconciledMany: '%count% documents on this chart were moved to the “Quarantine - Patient Mismatch” category: the name or date of birth printed on them does not match this chart. They were not deleted.',
+    reconcileFailed: 'A document on this chart whose name or date of birth does not match it could NOT be moved to quarantine: check this chart\'s Documents.',
 };
 
 const STATUS_STRINGS = {
@@ -228,6 +231,52 @@ export function rejectFile(file) {
     }
     const looksPdf = file.type === 'application/pdf' || /\.pdf$/i.test(file.name);
     return looksPdf ? null : 'notPdf';
+}
+
+/**
+ * What the card says after reconciling on load (D60), or null for nothing.
+ * Counts only: which documents is in the chart's Documents, with a note.
+ *
+ * @param {{quarantined?: number, failed?: number}} result The route's payload.
+ * @param {object} [given] Translated strings.
+ * @returns {{text: string, isError: boolean}|null}
+ */
+export function reconcileMessage(result, given = {}) {
+    const strings = {...DEFAULT_STRINGS, ...given};
+    const moved = Number(result && result.quarantined) || 0;
+    const failed = Number(result && result.failed) || 0;
+    const parts = [];
+    if (moved === 1) {
+        parts.push(strings.reconciledOne);
+    } else if (moved > 1) {
+        parts.push(strings.reconciledMany.replace('%count%', String(moved)));
+    }
+    if (failed > 0) {
+        parts.push(strings.reconcileFailed);
+    }
+    return parts.length ? {text: parts.join(' '), isError: failed > 0} : null;
+}
+
+/**
+ * The reconcile route (D60): called once when the card loads.
+ *
+ * @param {object} options
+ * @param {string} options.endpoint
+ * @param {() => Record<string, string>} options.fields pid, csrf, correlation id.
+ * @returns {{reconcile: () => Promise<object>}}
+ */
+export function moduleReconcileSource({endpoint, fields}) {
+    return {
+        async reconcile() {
+            const body = new URLSearchParams(fields());
+            const response = await fetch(endpoint, {method: 'POST', credentials: 'same-origin', body});
+            const payload = await response.json().catch(() => null);
+            if (!response.ok || !payload) {
+                throw new UploadError('reconcile_unavailable', payload);
+            }
+            return payload;
+        },
+    };
 }
 
 /**

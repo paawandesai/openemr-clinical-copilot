@@ -24,6 +24,7 @@ import {
     isTerminal,
     isUsable,
     pollDelay,
+    reconcileMessage,
     rejectFile,
 } from '../../public/assets/w2/upload.mjs';
 
@@ -161,5 +162,27 @@ describe('an interrupted extraction — D60', () => {
     it('tells the reader to upload again', () => {
         const text = describeStatus({extraction_status: 'failed', failure_reason: 'interrupted'});
         assert.match(text, /restarted before it finished; upload the file again/);
+    });
+});
+
+describe('reconciling on card load — D60', () => {
+    it('says nothing when nothing was moved and nothing failed', () => {
+        assert.equal(reconcileMessage({checked: 3, quarantined: 0, failed: 0}), null);
+        assert.equal(reconcileMessage(null), null);
+    });
+
+    it('says how many documents were moved, and that none was deleted', () => {
+        const one = reconcileMessage({quarantined: 1, failed: 0});
+        assert.match(one.text, /^1 document on this chart was moved to the “Quarantine - Patient Mismatch” category/);
+        assert.match(one.text, /It was not deleted\.$/);
+        assert.equal(one.isError, false);
+        const three = reconcileMessage({quarantined: 3, failed: 0});
+        assert.match(three.text, /^3 documents on this chart were moved/);
+    });
+
+    it('says so, as an error, when a mismatched document could not be moved', () => {
+        const message = reconcileMessage({quarantined: 0, failed: 1});
+        assert.match(message.text, /could NOT be moved to quarantine/);
+        assert.equal(message.isError, true);
     });
 });

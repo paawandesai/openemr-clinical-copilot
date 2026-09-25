@@ -96,4 +96,30 @@ final class QueryUtilsChartDocumentIndex implements ChartDocumentIndex
         $record->set_note($note);
         $record->persist();
     }
+
+    public function filedNotIn(int $pid, array $categoryIds, int $exceptCategoryId, int $limit): array
+    {
+        if ($categoryIds === [] || $limit < 1) {
+            return [];
+        }
+        $placeholders = implode(', ', array_fill(0, count($categoryIds), '?'));
+        $rows = QueryUtils::fetchRecords(
+            'SELECT DISTINCT d.`id`, d.`hash` FROM `documents` d'
+            . ' JOIN `categories_to_documents` ctd ON ctd.`document_id` = d.`id`'
+            . ' WHERE d.`foreign_id` = ? AND d.`deleted` = 0'
+            . ' AND ctd.`category_id` IN (' . $placeholders . ')'
+            . ' AND NOT EXISTS (SELECT 1 FROM `categories_to_documents` q'
+            . ' WHERE q.`document_id` = d.`id` AND q.`category_id` = ?)'
+            // An int the caller controls, not input: LIMIT takes no bound string.
+            . ' ORDER BY d.`id` DESC LIMIT ' . $limit,
+            array_merge([$pid], $categoryIds, [$exceptCategoryId])
+        );
+        $documents = [];
+        foreach ($rows as $row) {
+            if (isset($row['hash']) && is_string($row['hash'])) {
+                $documents[] = ['id' => Row::int($row, 'id'), 'hash' => strtolower($row['hash'])];
+            }
+        }
+        return $documents;
+    }
 }

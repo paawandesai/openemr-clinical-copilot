@@ -22,9 +22,11 @@
  * THE SAME BYTES ON ANOTHER CHART (D40 item 8) are refused, 409, never
  * rebound. The agent refuses them first; this refuses them again from the
  * chart's own records, so the rule holds whatever the agent remembers.
- * Only the categories this module files into are consulted — its two, and
- * the quarantine below — so a file filed elsewhere by other means is not
- * affected.
+ * Only the two categories this module files into are consulted, so a file
+ * filed elsewhere by other means is not affected. **A quarantined copy does
+ * not count (D60, amending D40 item 8):** it was ruled not that chart's
+ * patient's, so its bytes may be attached to the chart whose identity check
+ * they pass, and that chart's extraction decides from there.
  *
  * QUARANTINE (D60). The upload is filed before its extraction finishes, so
  * a document whose printed name or date of birth contradicts this chart is
@@ -34,6 +36,11 @@
  * to this chart, by whom, and why nothing from it was used. The move is
  * keyed on the digest like the attach (invariant 6): a document already in
  * quarantine is left alone, so repeating the call changes nothing.
+ *
+ * RECONCILIATION (D60). The status poll can miss the moment an extraction
+ * finishes: the page was closed first. `reconcile()` runs when the card
+ * loads: it asks the agent about this chart's newest filed, unquarantined
+ * copies, and quarantines each one the agent reports as a mismatch.
  *
  * @package   OpenEMR
  * @link      https://www.open-emr.org
@@ -67,6 +74,12 @@ final readonly class ChartDocuments
      * DocumentService resolves (underscores for spaces).
      */
     public const QUARANTINE_CATEGORY_PATH = '/Categories/Quarantine_-_Patient_Mismatch';
+
+    /**
+     * How many of a chart's newest unquarantined copies `reconcile()` asks
+     * the agent about per card load: one status call each.
+     */
+    public const RECONCILE_LIMIT = 10;
 
     /** At most 255 characters: `notes.note` is a VARCHAR(255). */
     public const QUARANTINE_NOTE = 'Quarantined by Clinical Co-Pilot: the name or date of birth printed on this'
@@ -177,6 +190,54 @@ final readonly class ChartDocuments
         }
     }
 
+    /**
+     * Quarantines every copy on this chart whose extraction the agent reports
+     * as an identity mismatch and that is not yet quarantined (D60). Never
+     * throws. With no candidate copies, `$stateOf` is never called, so a
+     * chart with nothing to check costs no token and no agent call.
+     *
+     * @param \Closure(): (\Closure(AgentDocumentId): ?ExtractionState) $agent
+     *     Builds the agent lookup once, only when there is something to look
+     *     up. The lookup answers null for a document the agent does not know
+     *     under this chart, or could not be asked about.
+     */
+    public function reconcile(int $pid, \Closure $agent, string $reference, int $ownerId): ReconcileResult
+    {
+        try {
+            $quarantine = $this->storage->resolveCategoryId(self::QUARANTINE_CATEGORY_PATH);
+            $candidates = $this->index->filedNotIn($pid, $this->moduleCategoryIds(), $quarantine, self::RECONCILE_LIMIT);
+        } catch (InvalidWriteBackRequest | SqlQueryException) {
+            $this->logger->error('Clinical Co-Pilot could not list documents to reconcile');
+            return new ReconcileResult();
+        }
+        if ($candidates === []) {
+            return new ReconcileResult();
+        }
+        $stateOf = $agent();
+        $checked = 0;
+        $moved = [];
+        $failed = 0;
+        foreach ($candidates as $candidate) {
+            try {
+                $document = new AgentDocumentId($candidate['hash']);
+            } catch (\DomainException) {
+                continue; // not a SHA3-512 digest: not a file this module filed
+            }
+            $checked++;
+            $state = $stateOf($document);
+            if ($state === null || !$state->isIdentityMismatch()) {
+                continue;
+            }
+            $result = $this->quarantine($pid, $document, $reference, $ownerId);
+            if ($result->outcome === QuarantineOutcome::Failed) {
+                $failed++;
+            } elseif ($result->moved && $result->documentId !== null) {
+                $moved[] = $result->documentId;
+            }
+        }
+        return new ReconcileResult($checked, $moved, $failed);
+    }
+
     private static function lockName(AgentDocumentId $document): string
     {
         return 'ccw2-doc-' . substr($document->value, 0, 40);
@@ -188,13 +249,11 @@ final readonly class ChartDocuments
     private function moduleCategoryIds(): array
     {
         $ids = [];
-        $paths = array_map(static fn (DocumentKind $kind): string => $kind->categoryPath(), DocumentKind::cases());
-        // A quarantined document is still filed on its chart: the same bytes
-        // on another chart are refused while it is there.
-        $paths[] = self::QUARANTINE_CATEGORY_PATH;
-        foreach ($paths as $path) {
+        // Not the quarantine category (D60): a quarantined copy was ruled
+        // another patient's and binds its bytes to no chart.
+        foreach (DocumentKind::cases() as $kind) {
             try {
-                $ids[] = $this->storage->resolveCategoryId($path);
+                $ids[] = $this->storage->resolveCategoryId($kind->categoryPath());
             } catch (InvalidWriteBackRequest) {
                 // A category deleted on this instance has nothing filed in it.
             }

@@ -382,6 +382,26 @@ order 17.
   reports `failed` and moves nothing.
 - **The browser** shows a mismatch as "Not used: …" with where the document
   went, or that it could NOT be moved, and never offers it for a question.
+- **A quarantined copy no longer binds its bytes (D60, amending D40 item
+  8).** The module's "filed on another chart" check reads only the two
+  filing categories, and the agent releases a binding whose extraction was
+  a `mismatch`. The same file uploaded to the chart it names is therefore
+  accepted (`200`, `pending`, not a duplicate) and extracted for that chart,
+  whose own identity check decides. Any other binding still gets `409`.
+- **A re-upload retries a write-back that did not complete.** Same bytes,
+  same chart, extraction complete, the lab write-back ended `endpoint_unavailable`,
+  `token_refused` or `request_refused` or never finished: the agent runs it
+  again under the new upload's token. The response is the usual duplicate
+  `200`; the upload's extraction slot is held until the retry ends.
+- **`POST <module>/reconcile.php`, once when the card loads.** Form fields
+  `pid`, `csrf_token_form`, `correlation_id`. It lists this chart's newest
+  10 unquarantined copies in the two filing categories. Only if there are
+  any, it mints one token and asks the agent's status route about each.
+  Every one reported `mismatch` is quarantined as above, with a
+  "quarantined on card load" audit row. Answers `{"status": "ok", checked,
+  quarantined, failed, skipped, correlation_id}`: `skipped` is
+  `no_write_acl` without the documents ACL at write level. The browser shows
+  a line only when something was moved or could not be.
 
 ### 2.4 The ask path — `POST <agent>/w2/ask`
 
