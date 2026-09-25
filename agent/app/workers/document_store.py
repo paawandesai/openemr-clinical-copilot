@@ -21,9 +21,22 @@ its current status. Uploading them to a different patient is refused with
 `DocumentBoundElsewhere`: rebinding would move an extraction — and every
 citation into it — from one chart to another.
 
-**In-process memory, like `ExtractionJobs`.** Lost on restart and not shared
-between workers; recorded as an open item rather than hidden. The bytes are
-held by the extraction task until it finishes and nowhere else.
+**Saved to disk, so a restart forgets nothing (D60).** With an
+`ExtractionStore` (app/workers/extraction_store.py, configured by
+`configure_from_env` at service start) every accepted upload is saved with
+its patient binding, and saved again with its report when the extraction
+ends. A document this process does not hold is read back from the store
+the first time anything asks about it — `accept`, `lookup`, `status`,
+`report` — so after a restart the same document answers with the same
+report, stays bound to the same chart, and the same bytes for another
+chart are still refused. An extraction the restart cut short comes back
+`failed` / `interrupted`; uploading the file again starts it afresh.
+Without a store (tests, scripts, a dev process with no path set) this is
+in-process memory, as before D60.
+
+Not shared between workers either way: a job running in one process is
+invisible to another (D40 item 10). The bytes are held by the extraction
+task until it finishes and nowhere else — never saved.
 """
 
 from __future__ import annotations
@@ -35,10 +48,17 @@ from dataclasses import dataclass
 
 import pymupdf
 
+from app.middleware.logging import log_event
 from app.models.w2.answer_view import PageGeometry
-from app.models.w2.documents import DocumentChecksums, DocumentKind, SourceDocument
-from app.models.w2.workers import IntakeExtractorOutput
+from app.models.w2.documents import (
+    DocumentChecksums,
+    DocumentKind,
+    ExtractionStatus,
+    SourceDocument,
+)
+from app.models.w2.workers import ExtractionFailureReason, IntakeExtractorOutput
 from app.models.w2.writeback import document_idempotency_key
+from app.workers.extraction_store import ExtractionStore, SavedExtraction, open_from_env
 from app.workers.intake_extractor.chart import ChartReader
 from app.workers.intake_extractor.report import ExtractionReport
 from app.workers.intake_extractor.vision import VisionExtractor
@@ -91,8 +111,10 @@ class DocumentStore:
         *,
         vision: VisionExtractor | None = None,
         jobs: ExtractionJobs | None = None,
+        persistence: ExtractionStore | None = None,
     ) -> None:
         self.jobs = jobs if jobs is not None else ExtractionJobs(vision=vision)
+        self.persistence = persistence
         self._documents: dict[str, StoredDocument] = {}
         # asyncio holds tasks weakly; these must outlive the request.
         self._watchers: set[asyncio.Task[object]] = set()
@@ -148,13 +170,16 @@ class DocumentStore:
         """`accept` without the callback; the last element is whether a job started."""
         digest = hashlib.sha3_512(pdf).hexdigest()
         document_id = document_idempotency_key(digest)
-        existing = self._documents.get(document_id)
+        existing = self._known(document_id)
+        restart = False
         if existing is not None:
             if existing.patient_uuid != patient_uuid:
                 raise DocumentBoundElsewhere("this file is attached to a different chart")
             status = self.jobs.status(document_id)
-            if status is not None:
+            if status is not None and not _interrupted(status):
                 return existing, status, True, False
+            # A job a restart cut short is started again by the re-upload.
+            restart = status is not None
 
         page_count, pages, has_text = read_geometry(pdf)
         stored = StoredDocument(
@@ -178,9 +203,71 @@ class DocumentStore:
             kind,
             document_id=document_id,
             chart_reader=chart_reader,
+            force_reextract=restart,
             after_extraction=after_extraction,
+            on_report=lambda report: self._save(stored, report.output, report),
         )
+        # Saved before the job's first step can run: the binding is on disk
+        # from the moment the upload is accepted (the 409 rule, D40 item 8).
+        self._save(stored, output, None)
         return stored, output, existing is not None, True
+
+    def _known(self, document_id: str) -> StoredDocument | None:
+        """
+        The document, from memory or else from the store (D60). A saved one
+        is put back in memory, with its status and report, the first time.
+        """
+        stored = self._documents.get(document_id)
+        if stored is not None or self.persistence is None:
+            return stored
+        saved = self.persistence.load(document_id)
+        if saved is None:
+            return None
+        stored = StoredDocument(
+            document=saved.document, patient_uuid=saved.patient_uuid, pages=saved.pages
+        )
+        self._documents[document_id] = stored
+        self.jobs.restore(document_id, _as_restored(saved), saved.report)
+        log_event(
+            "w2_document_restored",
+            {
+                "document_id": document_id,
+                "status": self.jobs.status(document_id).status.value,  # type: ignore[union-attr]
+                "has_report": saved.report is not None,
+            },
+        )
+        return stored
+
+    def _save(
+        self,
+        stored: StoredDocument,
+        output: IntakeExtractorOutput,
+        report: ExtractionReport | None,
+    ) -> None:
+        """
+        Write the document's row. Never raises: a failed write leaves this
+        process correct and is logged; after a restart the document is then
+        unknown, as it was before D60, and a re-upload extracts it again.
+        """
+        if self.persistence is None:
+            return
+        try:
+            self.persistence.save(
+                patient_uuid=stored.patient_uuid,
+                document=stored.document,
+                pages=stored.pages,
+                output=output,
+                report=report,
+            )
+        except Exception as error:  # noqa: BLE001 - the upload and the job carry on
+            log_event(
+                "extraction_store_save_failed",
+                {
+                    "document_id": stored.document.document_id,
+                    "status": output.status.value,
+                    "error_type": type(error).__name__,
+                },
+            )
 
     def _call_when_done(self, document_id: str, callback: Callable[[], None]) -> None:
         """
@@ -206,16 +293,18 @@ class DocumentStore:
         watcher.add_done_callback(finished)
 
     def lookup(self, document_id: str, patient_uuid: str) -> StoredDocument | None:
-        stored = self._documents.get(document_id)
+        stored = self._known(document_id)
         if stored is None or stored.patient_uuid != patient_uuid:
             return None
         return stored
 
     def status(self, document_id: str) -> IntakeExtractorOutput | None:
         """Never waits (D7)."""
+        self._known(document_id)
         return self.jobs.status(document_id)
 
     def report(self, document_id: str) -> ExtractionReport | None:
+        self._known(document_id)
         return self.jobs.report(document_id)
 
     async def wait(self, document_id: str) -> ExtractionReport | None:
@@ -223,10 +312,43 @@ class DocumentStore:
         return await self.jobs.wait(document_id)
 
     def clear(self) -> None:
-        """Tests only."""
+        """Tests only. Forgets this process's memory; a store's rows stay on disk."""
         self._documents.clear()
         self.jobs = ExtractionJobs(vision=self.jobs._vision)
 
 
+def _interrupted(output: IntakeExtractorOutput) -> bool:
+    return output.failure_reason is ExtractionFailureReason.INTERRUPTED
+
+
+def _as_restored(saved: SavedExtraction) -> IntakeExtractorOutput:
+    """
+    The status a saved document answers with after a restart: its report's
+    when it finished, otherwise `failed` / `interrupted` — the job that was
+    running is gone, and saying `pending` would have the card poll forever.
+    """
+    if saved.report is not None:
+        return saved.report.output
+    if saved.output.status in (ExtractionStatus.COMPLETE, ExtractionStatus.FAILED):
+        return saved.output
+    return IntakeExtractorOutput(
+        status=ExtractionStatus.FAILED,
+        document_id=saved.output.document_id,
+        kind=saved.output.kind,
+        failure_reason=ExtractionFailureReason.INTERRUPTED,
+        correlation_id=saved.output.correlation_id,
+    )
+
+
 #: The process's store. The upload route writes to it and the ask path reads it.
 DOCUMENTS = DocumentStore()
+
+
+def configure_from_env() -> None:
+    """
+    Give the process's store the on-disk store the environment configures
+    (D60). Called once by app/main.py at import, so a misconfigured
+    production service does not start; tests and scripts never call it and
+    stay in memory.
+    """
+    DOCUMENTS.persistence = open_from_env()

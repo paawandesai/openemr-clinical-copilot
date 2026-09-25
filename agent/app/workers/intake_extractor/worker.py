@@ -15,9 +15,10 @@ only ever calls `status` / `report`, which never wait and never start
 work: before the task finishes they answer `pending` / `in_progress` with
 no payload (the contract forbids one), and a question about that document
 gets D7's explicit "still processing", never a partial extraction.
-The store is in-process memory: it is lost on restart and not shared
-between workers, which is recorded as an open item in the session report
-rather than papered over.
+The job table is in-process memory and not shared between workers. Since
+D60 it is not the only copy: `DocumentStore` saves each status and report
+it receives through `on_report` (app/workers/extraction_store.py), and puts
+saved ones back after a restart through `restore`.
 
 **Graceful degradation.** `attach_and_extract` never raises. Every expected
 failure — an unreadable file, a non-PDF, no text layer with OCR
@@ -303,9 +304,15 @@ class ExtractionJobs:
         chart_reader: ChartReader | None = None,
         force_reextract: bool = False,
         after_extraction: AfterExtraction | None = None,
+        on_report: Callable[[ExtractionReport], None] | None = None,
     ) -> IntakeExtractorOutput:
         """
         Start extraction and return at once. Must be called on a running event loop.
+
+        `on_report` is called with the finished report as soon as it is
+        held here, before `after_extraction` — the document store's save
+        (D60), so the extraction is on disk before anything is written to
+        the chart. It must not raise.
 
         `after_extraction` runs once the report is stored and the status is
         terminal, inside the same task and correlation id — the upload
@@ -340,6 +347,8 @@ class ExtractionJobs:
             )
             self._reports[document_id] = report
             self._status[document_id] = report.output
+            if on_report is not None:
+                on_report(report)
             if after_extraction is not None:
                 with correlation_scope(correlation_id):
                     await after_extraction(report)
@@ -347,6 +356,22 @@ class ExtractionJobs:
 
         self._tasks[document_id] = asyncio.get_running_loop().create_task(run())
         return pending
+
+    def restore(
+        self,
+        document_id: str,
+        output: IntakeExtractorOutput,
+        report: ExtractionReport | None,
+    ) -> None:
+        """
+        Put back a status and report saved before a restart (D60). Starts
+        nothing, and never replaces what this process already holds.
+        """
+        if document_id in self._status:
+            return
+        self._status[document_id] = output
+        if report is not None:
+            self._reports[document_id] = report
 
     def status(self, document_id: str) -> IntakeExtractorOutput | None:
         """Never waits. None for a document never submitted."""

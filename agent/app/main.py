@@ -52,12 +52,17 @@ from app.middleware.telemetry_key import require_secret
 from app.models.api import ErrorCode, ErrorResponse
 from app.process_state import warn_if_multi_process
 from app.retrieval.preload import preload_enabled, preload_retrieval
+from app.workers import document_store
 
 configure_logging()
 # At import, not in the lifespan, so `--lifespan off` cannot skip it: with
 # AGENT_ENV=production and no usable AGENT_TELEMETRY_HMAC_SECRET the service
 # does not start (D56, app/middleware/telemetry_key.py).
 require_secret()
+# Likewise: uploaded documents' extractions are kept on disk so a restart
+# does not forget them, and production does not start without the file and
+# its key (D60, app/workers/extraction_store.py).
+document_store.configure_from_env()
 
 
 @asynccontextmanager

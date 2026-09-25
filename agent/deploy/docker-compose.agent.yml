@@ -62,6 +62,18 @@ services:
       LANGFUSE_PUBLIC_KEY: ${LANGFUSE_PUBLIC_KEY:-}
       LANGFUSE_SECRET_KEY: ${LANGFUSE_SECRET_KEY:-}
       LANGFUSE_TRACING_ENVIRONMENT: ${LANGFUSE_TRACING_ENVIRONMENT:-production}
+      # Uploaded documents' extractions are saved, sealed with AES-256-GCM
+      # under this key, on the extraction_data volume, so a restart does not
+      # forget them (D60). With AGENT_ENV=production the agent refuses to
+      # start without it: 64 hex characters, from
+      # `python -c 'import secrets; print(secrets.token_hex(32))'`. Keep it:
+      # a new key makes every saved extraction unreadable, and each such
+      # document must then be uploaded again.
+      AGENT_EXTRACTION_STORE_KEY: ${AGENT_EXTRACTION_STORE_KEY:-}
+    volumes:
+      # The one writable path besides /tmp. The file path is the image's
+      # AGENT_EXTRACTION_STORE_PATH. Holds sealed records, never a PDF.
+      - extraction_data:/var/lib/clinical-copilot
     # The agent shares the host with OpenEMR and MariaDB. Measured on the
     # 7.2 GiB host (docs/w2/DEPLOY.md §8): 3.7 GiB peak at demo load (two
     # reranks and one OCR job at a time), and past 5 GiB under a heavier mix,
@@ -125,3 +137,4 @@ services:
 volumes:
   caddy_data: {}
   caddy_config: {}
+  extraction_data: {}

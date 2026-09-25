@@ -408,11 +408,13 @@ def test_production_accepts_a_real_secret(monkeypatch: pytest.MonkeyPatch) -> No
 
 
 def _import_app(**env: str) -> subprocess.CompletedProcess[str]:
-    base = {
-        name: value
-        for name, value in os.environ.items()
-        if name not in (telemetry_key.MODE_ENV, telemetry_key.SECRET_ENV)
-    }
+    unset = (
+        telemetry_key.MODE_ENV,
+        telemetry_key.SECRET_ENV,
+        "AGENT_EXTRACTION_STORE_PATH",
+        "AGENT_EXTRACTION_STORE_KEY",
+    )
+    base = {name: value for name, value in os.environ.items() if name not in unset}
     return subprocess.run(
         [sys.executable, "-c", "import app.main"],
         cwd=AGENT_DIR,
@@ -423,13 +425,20 @@ def _import_app(**env: str) -> subprocess.CompletedProcess[str]:
     )
 
 
-def test_the_service_does_not_start_in_production_without_the_secret() -> None:
+def test_the_service_does_not_start_in_production_without_the_secret(tmp_path: Path) -> None:
     refused = _import_app(AGENT_ENV="production")
     assert refused.returncode != 0
     assert "TelemetrySecretError" in refused.stderr
     assert '"event": "startup_refused"' in refused.stdout
 
-    started = _import_app(AGENT_ENV="production", AGENT_TELEMETRY_HMAC_SECRET=SECRET)
+    # Production also needs the extraction store (D60,
+    # tests/test_extraction_store.py); given one, the secret is what decides.
+    started = _import_app(
+        AGENT_ENV="production",
+        AGENT_TELEMETRY_HMAC_SECRET=SECRET,
+        AGENT_EXTRACTION_STORE_PATH=str(tmp_path / "extractions.sqlite3"),
+        AGENT_EXTRACTION_STORE_KEY="ab" * 32,
+    )
     assert started.returncode == 0, started.stderr[-2000:]
 
 

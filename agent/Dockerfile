@@ -69,6 +69,18 @@ ENV AGENT_ENV=production
 
 # Unprivileged, and the compose file also mounts the root filesystem read-only.
 RUN useradd --system --uid 10001 --no-create-home --shell /usr/sbin/nologin agent
+
+# Uploaded documents' extractions are kept here so a restart does not forget
+# them (D60, app/workers/extraction_store.py). The compose file mounts a named
+# volume on this directory; a new volume takes this owner and mode from the
+# image. In production the service refuses to start without the file being
+# openable and AGENT_EXTRACTION_STORE_KEY set, so a run without the volume
+# (read-only root) fails loudly instead of silently forgetting uploads.
+RUN mkdir -p /var/lib/clinical-copilot \
+ && chown 10001:10001 /var/lib/clinical-copilot \
+ && chmod 700 /var/lib/clinical-copilot
+ENV AGENT_EXTRACTION_STORE_PATH=/var/lib/clinical-copilot/extractions.sqlite3
+
 USER 10001
 
 EXPOSE 8000

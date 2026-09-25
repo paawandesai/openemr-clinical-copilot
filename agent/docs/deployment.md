@@ -118,6 +118,15 @@ API collection, the smoke tests), never by the agent.
   `up --wait` fails. Keep it stable: a new value starts new trace sessions.
   Before deploying D56 or later to a host whose env file predates it, add
   it (§4).
+- `AGENT_EXTRACTION_STORE_KEY` (D60) is the AES-256-GCM key uploaded
+  documents' extractions are sealed under in
+  `/var/lib/clinical-copilot/extractions.sqlite3`, on the `extraction_data`
+  volume. It is in the env file, not on the volume, so a copy of the volume
+  alone is ciphertext. In production the agent **refuses to start** without
+  it (64 hex characters, not the dev default). Keep it stable: a new key
+  makes every saved extraction unreadable (logged as
+  `extraction_store_row_unreadable`), and those documents must be uploaded
+  again. Before deploying D60 or later, add it (§4).
 
 ## 4. Deploy (operator commands)
 
@@ -150,6 +159,18 @@ run it once, since a new value splits trace sessions):
 grep -q '^AGENT_TELEMETRY_HMAC_SECRET=.' /etc/clinical-copilot/agent.env \
   || ( umask 077; printf 'AGENT_TELEMETRY_HMAC_SECRET=%s\n' "$(python3 -c 'import secrets; print(secrets.token_hex(32))')" >> /etc/clinical-copilot/agent.env )
 ```
+
+Likewise the extraction store's key, before the first deploy of D60 or
+later (run it once: a new key makes every saved extraction unreadable):
+
+```bash
+grep -q '^AGENT_EXTRACTION_STORE_KEY=.' /etc/clinical-copilot/agent.env \
+  || ( umask 077; printf 'AGENT_EXTRACTION_STORE_KEY=%s\n' "$(python3 -c 'import secrets; print(secrets.token_hex(32))')" >> /etc/clinical-copilot/agent.env )
+```
+
+The compose file creates the `extraction_data` volume on the first `up`. Do
+not `docker compose down -v`: that deletes it, and every upload must then be
+extracted again.
 
 Start (and, after later deploys, rebuild) — on the host:
 
@@ -247,11 +268,13 @@ is. What deploying it involves:
 ## 7. Week 2 (`POST /w2/ask`, `/documents`): run exactly one worker
 
 **What a second process breaks.** Three stores live in the agent process's
-memory and nowhere else: the conversation store (shared by
+memory: the conversation store (shared by
 `/pre-visit-brief/conversation` and `/w2/ask`), the uploaded-document store
 with its extraction jobs (`app/workers/document_store.py`), and the
-retriever's rerank circuit. With two or more uvicorn workers, or two
-replicas behind Caddy:
+retriever's rerank circuit. Since D60 the document store also saves every
+upload and finished extraction to disk, so a *restart* forgets none of them
+(below); a job that is *running* is still one process's memory. With two or
+more uvicorn workers, or two replicas behind Caddy:
 
 - a document uploaded to process A is unknown to process B — B answers the
   browser's status poll `404`, and a question naming it `document_not_found`;
@@ -262,8 +285,14 @@ replicas behind Caddy:
 
 Each of these fails safe — every process checks its own patient binding, so
 none answers from another patient's document or context — but the features
-do not work. A restart or redeploy also forgets every upload and every
-conversation: documents must be uploaded again.
+do not work.
+
+**A restart or redeploy (D60).** Uploads and their extractions survive: the
+same document answers the same way, stays bound to its chart, and the same
+bytes for another chart are still `409`, with no second vision call. An
+extraction that was running when the process stopped reports `failed` /
+`interrupted`; uploading the file again starts it afresh. Conversations are
+still forgotten: a follow-up after a restart starts a new conversation.
 
 **For Wednesday this is acceptable because the deploy runs one worker**: the
 `Dockerfile` `CMD` starts a single `uvicorn` process and the compose file
