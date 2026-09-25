@@ -107,6 +107,37 @@ def test_the_notice_states_counts_and_nothing_else() -> None:
     assert named.startswith("Uploaded lab report (dddddddddddd…): This scan is heavily degraded")
 
 
+@pytest.mark.parametrize(
+    ("stated", "possible", "tail"),
+    [
+        (0, 0, "are not stated."),
+        (1, 0, "The critical value above from this scan was located on the page and verified."),
+        (
+            2,
+            0,
+            "The 2 critical values above from this scan were each located on the page and "
+            "verified.",
+        ),
+        (
+            0,
+            1,
+            "The possible critical value above could not be located, so its number is not stated.",
+        ),
+        (
+            1,
+            2,
+            "was located on the page and verified. The 2 possible critical values above could "
+            "not be located, so their numbers are not stated.",
+        ),
+    ],
+)
+def test_the_notice_says_which_critical_values_above_it_were_verified(
+    stated: int, possible: int, tail: str
+) -> None:
+    text = degraded_notice(quality(36, 71), stated_criticals=stated, possible_criticals=possible)
+    assert text.endswith(tail)
+
+
 @needs_ocr
 @pytest.mark.parametrize("sample", SAMPLES)
 def test_only_the_heavy_scan_of_the_six_samples_is_degraded(sample: str) -> None:
@@ -147,7 +178,7 @@ def ask_about(sample: str, vision, patient: str) -> AskResponse:  # noqa: ANN001
 
 @needs_ocr
 @pytest.mark.parametrize("vision", ["replay", "recorded real vision"])
-def test_the_heavy_scans_answer_leads_with_the_notice(
+def test_the_heavy_scans_answer_opens_with_the_notice_when_it_has_no_critical_value(
     monkeypatch: pytest.MonkeyPatch, vision: str
 ) -> None:
     FakeChart(patients=(HEAVY_PATIENT,)).install(monkeypatch)
@@ -156,10 +187,9 @@ def test_the_heavy_scans_answer_leads_with_the_notice(
 
     lines = response.message.splitlines()
     assert lines[0].startswith("Answer (turn")
+    # This scan has no critical value, so nothing sits above the notice.
+    assert response.critical_values == []
     assert lines[2].startswith("This scan is heavily degraded: 36 of 107 values")
-    # Ahead of the critical block, which still comes before everything else.
-    if response.critical_values:
-        assert lines[4].startswith("CRITICAL VALUES")
     assert AnswerLimitation.DEGRADED_DOCUMENT in response.limitations
     # Said once, at the top; not repeated among the closing caveats.
     assert response.message.count("could be located on the page") == 1
@@ -178,14 +208,14 @@ def test_a_clean_document_gets_no_notice(monkeypatch: pytest.MonkeyPatch) -> Non
     assert AnswerLimitation.DEGRADED_DOCUMENT not in response.limitations
 
 
-def test_the_notice_comes_before_the_critical_values_which_come_before_the_rest(
+def test_the_critical_values_lead_and_the_notice_follows_saying_they_were_verified(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """
     A located critical value on a document most of whose other values were
-    misread: the notice leads, the critical block follows at once (D60
-    against D40 item 9), and the critical value is still stated, because it
-    was located.
+    misread: the critical block leads (D40 item 9), the notice follows it at
+    once (D60), and the notice says the critical value was located on the
+    page and verified — it is stated because it was.
     """
     FakeChart().install(monkeypatch)
     raw = raw_from_ground_truth(CRITICAL_SAMPLE)
@@ -225,7 +255,14 @@ def test_the_notice_comes_before_the_critical_values_which_come_before_the_rest(
 
     response = asyncio.run(run())
     lines = response.message.splitlines()
-    assert lines[2].startswith("This document is heavily degraded:")
-    assert lines[4].startswith("CRITICAL VALUES")
-    assert "6.8 mmol/L" in lines[5]
+    assert lines[2].startswith("CRITICAL VALUES")
+    assert "6.8 mmol/L" in lines[3]
+    assert lines[4].startswith("(Flagged by rule")  # the critical block's footnote
+    notice = lines[6]
+    assert notice.startswith("This document is heavily degraded:")
+    assert notice.endswith(
+        "The critical value above from this document was located on the page and verified."
+    )
+    (critical,) = response.critical_values
+    assert critical.stated and all(c.bbox is not None for c in critical.citations)
     assert "zq/zq" not in response.message

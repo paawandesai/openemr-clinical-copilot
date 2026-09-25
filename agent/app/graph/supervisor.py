@@ -1053,7 +1053,7 @@ def render_answer(
     if output_limited:
         limitations.append(AnswerLimitation.OUTPUT_LIMIT_REACHED)
     # D60: a document most of whose values could not be placed on the page
-    # is said to be degraded before anything else, counts only.
+    # is said to be degraded, counts only, right under the critical block.
     degraded = [
         quality
         for document_id, report in reports.items()
@@ -1073,14 +1073,28 @@ def render_answer(
         status = AskStatus.PARTIALLY_ANSWERED
 
     lines = [f"Answer (turn {ctx.snapshot.turn})", ""]
-    if degraded:
-        # Ahead of the critical values too: it says how far every document
-        # value below, a critical one included, can be relied on (D60).
-        lines.extend(degraded_notice(q, name_document=len(reports) > 1) for q in degraded)
-        lines.append("")
     if criticals.values:
         lines.extend([CRITICAL_HEADING, *(f"  - {v.line}" for v in criticals.values)])
         lines.extend([CRITICAL_FOOTNOTE, ""])
+    if degraded:
+        # Directly below the critical block, which leads every answer (D40
+        # item 9), and above everything else (D60). It says which of that
+        # document's critical values were verified on the page.
+        for quality in degraded:
+            own = [
+                v
+                for v in criticals.values
+                if v.source_type is SourceType.DOCUMENT and v.source_id == quality.document_id
+            ]
+            lines.append(
+                degraded_notice(
+                    quality,
+                    name_document=len(reports) > 1,
+                    stated_criticals=sum(1 for v in own if v.stated),
+                    possible_criticals=sum(1 for v in own if not v.stated),
+                )
+            )
+        lines.append("")
     if status is AskStatus.NOT_IN_RECORD:
         lines.append("Nothing in the sources read for this question answers it.")
     if fact_lines:

@@ -1,6 +1,7 @@
 """
 When too few of a document's values could be placed on its page, the answer
-says so before anything else (D60).
+says so near the top (D60): directly below the critical-value block, which
+still leads every answer (D40 item 9), and before everything else.
 
     quality = document_quality(document_id, report)
     if quality.degraded:
@@ -34,7 +35,10 @@ measured both ways), and 41 points over the heavy scan. Below it, more than
 one value in four that the model read could not be placed on the page.
 
 The notice states counts and nothing read from the document, so it can never
-state an unverified value.
+state an unverified value. When the critical block above it holds values from
+the same document, the notice says that each one stated was located on the
+page and verified — the degradation is about the rest of the page, not about
+them — and that a *possible* critical value was not, so its number is absent.
 """
 
 from __future__ import annotations
@@ -83,10 +87,17 @@ def document_quality(document_id: str, report: ExtractionReport) -> DocumentQual
     )
 
 
-def degraded_notice(quality: DocumentQuality, *, name_document: bool = False) -> str:
+def degraded_notice(
+    quality: DocumentQuality,
+    *,
+    name_document: bool = False,
+    stated_criticals: int = 0,
+    possible_criticals: int = 0,
+) -> str:
     """
-    One sentence, counts only. `name_document` prefixes which upload it is
-    about, for a turn that reads more than one.
+    Counts only. `name_document` prefixes which upload it is about, for a
+    turn that reads more than one. `stated_criticals` / `possible_criticals`
+    are this document's entries in the critical block above the notice.
     """
     noun = "scan" if quality.scanned else "document"
     unplaced = quality.read - quality.located
@@ -95,6 +106,24 @@ def degraded_notice(quality: DocumentQuality, *, name_document: bool = False) ->
         f"from it could be located on the page and verified; the other {unplaced} are listed "
         "as unsupported and are not stated."
     )
+    if stated_criticals == 1:
+        sentence += (
+            f" The critical value above from this {noun} was located on the page and verified."
+        )
+    elif stated_criticals > 1:
+        sentence += (
+            f" The {stated_criticals} critical values above from this {noun} were each "
+            "located on the page and verified."
+        )
+    if possible_criticals == 1:
+        sentence += (
+            " The possible critical value above could not be located, so its number is not stated."
+        )
+    elif possible_criticals > 1:
+        sentence += (
+            f" The {possible_criticals} possible critical values above could not be located, "
+            "so their numbers are not stated."
+        )
     if name_document:
         return f"Uploaded {_KIND_NAMES[quality.kind]} ({quality.document_id[:12]}…): {sentence}"
     return sentence
