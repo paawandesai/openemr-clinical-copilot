@@ -72,11 +72,11 @@
     },
     "judge_prompts/factually_consistent.txt": {
       "source": "agent/evals/w2/judge_prompts/factually_consistent.txt",
-      "sha256": "ff473b4d8395003c7cf5495a82df39a0e7811269bcd447f5a68bac0982c09933"
+      "sha256": "851d2caa72d4ccf158d6c5f9c5167c1164734e6593b9b5082f6a8154f455a704"
     },
     "judge_prompts/safe_refusal.txt": {
       "source": "agent/evals/w2/judge_prompts/safe_refusal.txt",
-      "sha256": "34945cb489fbc3626a215e17f1ffdbd36981d9bdaf5e8ca64ebd4d10d7ca2f35"
+      "sha256": "6791b4b0e6a5bad96fa38be8e2a5f18e22b31d65e5f955050df89b5a813824ab"
     }
   }
 }

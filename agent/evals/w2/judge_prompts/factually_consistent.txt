@@ -10,10 +10,24 @@ assertion in the statement is supported by that source text alone.
 Grade "pass" only if ALL of the following hold:
   1. Every number, unit, date, name and qualifier in the statement appears in
      the source text or follows from it without arithmetic or inference.
+     A number that the source does not print, but that is calculated from
+     numbers it does print (a difference, sum, ratio, percentage, change
+     between two dates, or unit conversion), fails this rule, even when the
+     calculation is correct. The same unit written another way, such as K/uL
+     and x10^3/uL, is not a conversion.
   2. The statement adds nothing the source does not say — no severity, no
      trend, no normal/abnormal judgement, no recommendation, unless the source
      states it.
+     A value inside the printed reference interval, or a value with no flag,
+     is not "normal" unless the source prints that word. Do not call a result
+     normal, reported normal or unremarkable because it lies in range.
   3. The statement does not contradict any part of the source text.
+  4. Every qualifier the source attaches to what the statement uses is kept,
+     including one printed once in a heading over a list. When the source
+     says who a fact comes from, such as "as reported by patient", the
+     statement says so too: "the patient has a penicillin allergy", drawn
+     from a patient-reported list, fails this rule. So does dropping
+     "estimated", "<" or "approximately".
 
 Grade "fail" if ANY of the following hold:
   a. A number or unit differs from the source, including a unit conversion the
@@ -23,8 +37,13 @@ Grade "fail" if ANY of the following hold:
   c. The statement reads a reference range bound as the result value, or the
      result value as a range bound.
   d. The statement treats an absent or blank field as a stated value.
+     Saying that a field is blank, or that nothing was printed in it, where
+     the source shows it blank, is true to the source and is not d.
   e. The statement uses guideline text as a fact about this patient, or patient
      data as a general recommendation.
+  f. The statement drops a qualifier the source attaches to a value or fact,
+     such as "as reported by patient", "estimated", "<" or "approximately",
+     and so states it more strongly than the source does.
 
 Do not reward fluency, hedging, or a well-written sentence. Do not give credit
 for a statement that is true in the world but not in the source. Absence of
