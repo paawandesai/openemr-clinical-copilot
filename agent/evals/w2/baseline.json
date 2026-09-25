@@ -1,11 +1,11 @@
 {
   "schema_version": "w2-gate/baseline/1.0.0",
-  "generated_at": "2026-09-24T15:56:04+00:00",
-  "commit": "e335e63defa86e29739092ade12f911cdb4ab749",
+  "generated_at": "2026-09-25T15:07:12+00:00",
+  "commit": "ecaf86f83eeef0fcf7793a2271f520545fc4fba1",
   "judge": {
     "model": "claude-haiku-4-5",
     "model_version": "claude-haiku-4-5-20251001",
-    "prompt_version": "w2-judge/1.0.0",
+    "prompt_version": "w2-judge/1.1.0",
     "calibration": "UNCALIBRATED"
   },
   "counts": {
