@@ -11,6 +11,7 @@ off the measurements it was chosen from fails here.
 from __future__ import annotations
 
 import asyncio
+import re
 
 import pytest
 
@@ -148,7 +149,12 @@ def test_only_the_heavy_scan_of_the_six_samples_is_degraded(sample: str) -> None
     measured = document_quality(document_id, report)
     assert measured.degraded is (sample == HEAVY), (sample, measured.located, measured.read)
     if sample == HEAVY:
-        assert (measured.located, measured.read, measured.scanned) == (36, 107, True)
+        # The located count depends on the OCR build, not on the code: the
+        # same replayed transcription locates 36 of 107 under Tesseract 5.5.3
+        # (Homebrew) and 11 of 107 under Debian's 5.5.0 (the agent image and
+        # CI). Both are far under the threshold; what is pinned is that.
+        assert (measured.read, measured.scanned) == (107, True)
+        assert measured.located < DEGRADED_BELOW * measured.read
 
 
 # --------------------------------------------------------------------------
@@ -189,7 +195,10 @@ def test_the_heavy_scans_answer_opens_with_the_notice_when_it_has_no_critical_va
     assert lines[0].startswith("Answer (turn")
     # This scan has no critical value, so nothing sits above the notice.
     assert response.critical_values == []
-    assert lines[2].startswith("This scan is heavily degraded: 36 of 107 values")
+    notice = re.match(r"This scan is heavily degraded: (\d+) of 107 values read from it", lines[2])
+    assert notice is not None, lines[2]
+    # The count is the OCR build's (see the test above), always under 75%.
+    assert int(notice.group(1)) < DEGRADED_BELOW * 107
     assert AnswerLimitation.DEGRADED_DOCUMENT in response.limitations
     # Said once, at the top; not repeated among the closing caveats.
     assert response.message.count("could be located on the page") == 1

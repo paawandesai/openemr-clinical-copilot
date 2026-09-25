@@ -773,9 +773,10 @@ back. D55 is on this branch only. This document makes no new decision.
    for numbers, units, dates and flags over recall. On that scan the flag
    cross-check compares nothing: 0 comparable flags, 6 `not_reported`.
    Since D60 (reserved) an answer about a document under 75% located says so
-   with the counts, directly below any critical values, which still lead. A live run on the local stack on
-   2026-09-25 located 11 of 107 on this scan; the cause of the difference
-   from 36 was not investigated.
+   with the counts, directly below any critical values, which still lead.
+   **The figures above were measured under Tesseract 5.5.3.** The deployed
+   image's Debian Tesseract 5.5.0 locates 11 of 107 (10.3%) on the same
+   replayed transcription (D60).
 4. **Single worker, in-memory state.** See §9, row 2. Since D60 (reserved) a
    restart forgets no upload or finished extraction; it still forgets
    conversations, and an extraction it interrupts must be uploaded again.

@@ -190,10 +190,22 @@ Sources read for this question: the chart (Condition, MedicationRequest, Allergy
 critical block, which leads. This scan has no critical value, so the notice
 is still the first line.)
 
-**11 of 107, not the 36 of 107 measured before** (the committed real-vision
-transcription, and replay). Same bytes. This run's vision call and the
-container's OCR both differ from the recorded run's; which one moved the
-count was not investigated. Both are far below the 75% threshold.
+**11 of 107, not the 36 of 107 measured before.** Same bytes. It turned out
+to be the OCR build, not the vision call. Replaying the ground-truth
+transcription (no model call) gives 36 of 107 under Tesseract 5.5.3 on the
+laptop and 11 of 107 inside the agent image, whose Debian Tesseract is 5.5.0:
+
+```
+$ docker run ... clinical-copilot-agent:local ... (checkout mounted read-only)
+tesseract 5.5.0
+18 passed in 17.02s                      # tests/test_degraded_notice.py
+replay under this image: 11 of 107
+```
+
+CI found the same: pipeline 28822's `agent-unit-tests` (python:3.12-slim,
+Debian `tesseract-ocr`) failed three tests that pinned 36. Those tests now pin
+"degraded, 107 read" and not the OCR build's count. Both counts are far
+under the 75% threshold.
 
 ## Follow-ups (same day, the revised branch)
 

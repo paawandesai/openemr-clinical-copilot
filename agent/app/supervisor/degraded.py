@@ -23,6 +23,10 @@ does not, with nothing in between:
   light scan   87.5%
   heavy scan   33.6%           (34% with real vision)
 
+Those were measured under Tesseract 5.5.3. The deployed image's Debian
+Tesseract 5.5.0 locates 11 of 107 (10.3%) on the heavy scan's same replayed
+transcription: further under the threshold, not nearer it.
+
 The two clusters are 54 points apart, so any threshold between them separates
 the samples we have. Where in the gap is decided by the cost of each error: a
 notice on a document that read reasonably costs one sentence that is still

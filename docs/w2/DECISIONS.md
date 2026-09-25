@@ -3461,10 +3461,16 @@ values it could verify without saying they were a small part of the page.
 
    **Why (a).**
    - **(b) cannot meet the requirement.** "A restart must not change what a
-     clinician gets" needs the same extraction, and a second vision call is
-     a second reading. Measured on the same bytes: the heavy scan located
-     36 of 107 values in its recorded real-vision transcription, and 11 of
-     107 in this work order's live run (evidence, run 5).
+     clinician gets" needs the same extraction, and re-extracting repeats
+     both steps that can differ.
+     - **The vision call** is a second sample. The SDK and model take no
+       sampling parameters (D43), so nothing makes it repeat the first
+       reading. This is an argument; no vision variance was measured here.
+     - **The OCR step** is measured. The same replayed transcription of
+       the heavy scan locates 36 of 107 values under Tesseract 5.5.3
+       (Homebrew, the laptop) and 11 of 107 under Debian's 5.5.0 (the agent
+       image and CI). An image rebuilt with another Tesseract would change
+       what a re-extraction states.
    - **(b) costs a vision call per document after every restart**, and a
      redeploy is a restart: $0.0955–$0.2276 and 15–33 s per document
      (W2_ARCHITECTURE.md §1.4), plus OCR per scanned page.
@@ -3548,8 +3554,8 @@ values it could verify without saying they were a small part of the page.
      shown.
    - **Why 75%.** The measured rates fall in two clusters: text layers
      91.8–99.5% (92% and 98% with real vision) and the light scan 87.5%;
-     then the heavy scan at 33.6%, 34% with real vision and 10.3% in this
-     work order's live run. Any threshold in the gap separates them.
+     then the heavy scan at 33.6% under Tesseract 5.5.3 (34% with real
+     vision) and 10.3% under the image's 5.5.0, replay and live alike. Any threshold in the gap separates them.
      Within the gap the choice follows cost. A notice on a document that
      read well costs one true sentence. A missing notice lets a short list
      read as the whole document. So the threshold is set as high as it can
@@ -3588,7 +3594,7 @@ runs 6–8 on the revised one:
 | 2 | status and the same question | same `extraction_id`; `w2_document_restored`; the only model call is the drafting call; 53 of 53 citations, 24 of 24 unsupported values, status and limitations identical; one chart line in a different position (the live draft's ordering) |
 | 3 | the same bytes for another chart | 409 from the module; 409 and 404 from the agent's own binding, called directly |
 | 4 | another patient's report on pid 49 | `mismatch`; moved to "Quarantine - Patient Mismatch" with a note, `deleted = 0`, one category link, two audit rows, 0 ledger rows; a second poll added nothing; a question naming it is refused `document_identity_mismatch` |
-| 5 | the heavy scan on its own chart | 11 of 107 located; the notice is the answer's first line (no critical value); limitation `degraded_document` |
+| 5 | the heavy scan on its own chart | 11 of 107 located (the image's Tesseract 5.5.0; see "Not settled"); the notice is the answer's first line (no critical value); limitation `degraded_document` |
 | 6 | another patient's intake form on pid 49, page closed before any poll | extraction `mismatch`; the chart copy still in Medical Record |
 | 7 | the card loads on pid 49 | `reconcile.php`: checked 2, quarantined 1; the copy moved with its note and a "quarantined on card load" audit row; a second load moved nothing |
 | 8 | the same bytes on the chart they name (pid 31) | accepted, `pending`, not a duplicate; `w2_document_binding_released`; complete in 16.6 s, `confirmed`; filed in Medical Record on pid 31 while pid 49's copy stays in quarantine; a question on pid 49 is `document_not_found`; a third chart gets 409 |
@@ -3624,7 +3630,10 @@ name parts involved, and no test name.
   two processes.
 - **SQLite on the event loop.** Each statement is one short row read or
   write. They are not moved to a thread.
-- **The heavy scan's 11 vs 36 of 107.** Not investigated. It could be the
-  vision call or the container's OCR.
+- **The published heavy-scan rate is the laptop's.** W2_ARCHITECTURE.md
+  §1.4's 33.6% was measured under Tesseract 5.5.3. The deployed image's
+  5.5.0 locates 11 of 107 on the same replayed transcription (CI pipeline
+  28822, and a run inside the image). Which build to pin, and re-measuring,
+  are left open.
 - **The gate does not cover any of this yet.** The behaviours a gate session
   should add are listed in the work order 32 report.
