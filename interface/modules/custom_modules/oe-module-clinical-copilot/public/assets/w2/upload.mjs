@@ -29,6 +29,13 @@
  * The agent's own responses have no envelope and call it `status`; the
  * module translates (docs/w2/ui-integration.md).
  *
+ * A DOCUMENT FOR ANOTHER PATIENT IS SAID SO (D60). When the extraction
+ * finds a name or date of birth that contradicts this chart
+ * (`identity_check: "mismatch"`), the module moves the chart copy to
+ * quarantine and reports how that went (`quarantine`). The status line then
+ * says the document was not used and where it is — never a plain "complete"
+ * — and `isUsable` keeps it out of the documents a question names.
+ *
  * NOTHING LOGS, AND NOTHING KEEPS THE FILE. The chosen file is handed to
  * `FormData` and dropped; no name, size or content is written to the
  * console or to storage (work order requirement 6). Poll failures surface
@@ -93,6 +100,11 @@ const DEFAULT_STRINGS = {
     failureVisionCallFailed: 'the extraction model could not be reached',
     failureNoFieldsLocated: 'nothing read from the file could be found on its pages',
     failureInternalError: 'the extractor failed unexpectedly',
+    failureInterrupted: 'the co-pilot restarted before it finished; upload the file again',
+    identityMismatch: 'Not used: the name or date of birth printed on this document does not match this chart. Nothing from it is stated or written to the chart.',
+    quarantineQuarantined: 'It was moved to the “Quarantine - Patient Mismatch” category of this chart\'s Documents, with a note; it was not deleted.',
+    quarantineNotOnChart: 'No copy of it is filed on this chart.',
+    quarantineFailed: 'It could NOT be moved to quarantine and is still filed as a normal document: move it by hand.',
 };
 
 const STATUS_STRINGS = {
@@ -112,6 +124,13 @@ const FAILURE_STRINGS = {
     vision_call_failed: 'failureVisionCallFailed',
     no_fields_located: 'failureNoFieldsLocated',
     internal_error: 'failureInternalError',
+    interrupted: 'failureInterrupted',
+};
+
+const QUARANTINE_STRINGS = {
+    quarantined: 'quarantineQuarantined',
+    not_on_chart: 'quarantineNotOnChart',
+    failed: 'quarantineFailed',
 };
 
 function node(tag, className, text) {
@@ -143,6 +162,54 @@ export function pollDelay(attempt) {
  */
 export function isTerminal(status) {
     return TERMINAL_STATUSES.includes(status);
+}
+
+/**
+ * Did the extraction find another patient's name or date of birth on it?
+ *
+ * @param {object} payload An upload or status payload.
+ * @returns {boolean}
+ */
+export function isIdentityMismatch(payload) {
+    return payload.extraction_status === 'complete' && payload.identity_check === 'mismatch';
+}
+
+/**
+ * May a question name this document? Only a complete extraction of this
+ * chart's patient's document (D60).
+ *
+ * @param {object} payload The terminal upload or status payload.
+ * @returns {boolean}
+ */
+export function isUsable(payload) {
+    return payload.extraction_status === 'complete' && !isIdentityMismatch(payload);
+}
+
+/**
+ * The status line for an upload or status payload.
+ *
+ * @param {object} payload
+ * @param {object} [given] Translated strings; defaults for the rest.
+ * @returns {string}
+ */
+export function describeStatus(payload, given = {}) {
+    const strings = {...DEFAULT_STRINGS, ...given};
+    const key = STATUS_STRINGS[payload.extraction_status];
+    let text = key ? strings[key] : strings.statusUnknown;
+    if (payload.extraction_status === 'failed') {
+        const reason = FAILURE_STRINGS[payload.failure_reason];
+        text += reason ? ` — ${strings[reason]}` : '';
+    }
+    if (isIdentityMismatch(payload)) {
+        text += ` — ${strings.identityMismatch}`;
+        // No outcome (an older module) is described as a failure to move:
+        // never implied to be safely set aside when it may not be.
+        text += ` ${strings[QUARANTINE_STRINGS[payload.quarantine] || 'quarantineFailed']}`;
+    }
+    if (typeof payload.correlation_id === 'string') {
+        text += ` (${strings.reference} ${payload.correlation_id})`;
+    }
+    return text;
 }
 
 /**
@@ -279,18 +346,7 @@ export function createUploadControl(
         status.classList.toggle('ccw2-upload-status--error', isError);
     }
 
-    function describe(payload) {
-        const key = STATUS_STRINGS[payload.extraction_status];
-        let text = key ? strings[key] : strings.statusUnknown;
-        if (payload.extraction_status === 'failed') {
-            const reason = FAILURE_STRINGS[payload.failure_reason];
-            text += reason ? ` — ${strings[reason]}` : '';
-        }
-        if (typeof payload.correlation_id === 'string') {
-            text += ` (${strings.reference} ${payload.correlation_id})`;
-        }
-        return text;
-    }
+    const describe = (payload) => describeStatus(payload, strings);
 
     /**
      * Ask until the answer is terminal, the budget runs out, or the caller
@@ -318,7 +374,7 @@ export function createUploadControl(
                 }
                 continue;
             }
-            say(describe(payload), payload.extraction_status === 'failed');
+            say(describe(payload), payload.extraction_status === 'failed' || isIdentityMismatch(payload));
             if (isTerminal(payload.extraction_status)) {
                 polling = false;
                 onComplete(payload);
@@ -371,7 +427,7 @@ export function createUploadControl(
             send.disabled = false;
             return;
         }
-        say(describe(accepted), accepted.extraction_status === 'failed');
+        say(describe(accepted), accepted.extraction_status === 'failed' || isIdentityMismatch(accepted));
         if (isTerminal(accepted.extraction_status)) {
             onComplete(accepted);
         } else {

@@ -12,6 +12,12 @@
  * fail to stop, the poll (docs/w2/ui-integration.md §2.0). So the card sees
  * `extraction_status`, and never the agent's `status`.
  *
+ * `identity_check` (D60) is the agent's closed-set verdict on whether the
+ * document is this chart's patient's, set only once complete. `mismatch` is
+ * what the upload and status routes quarantine on; the card then shows the
+ * `quarantine` outcome they add, and does not offer the document for
+ * questions.
+ *
  * @package   OpenEMR
  * @link      https://www.open-emr.org
  * @author    Paawan Desai <paawankdesai@gmail.com>
@@ -39,7 +45,11 @@ final readonly class ExtractionState
         'vision_call_failed',
         'no_fields_located',
         'internal_error',
+        'interrupted',
     ];
+
+    /** `IdentityOutcome` (agent/app/api/documents.py). */
+    public const IDENTITY_CHECKS = ['mismatch', 'confirmed', 'not_confirmed'];
 
     private function __construct(
         public AgentDocumentId $documentId,
@@ -49,7 +59,14 @@ final readonly class ExtractionState
         public ?string $failureReason,
         public ?int $byteLength,
         public string $correlationId,
+        public ?string $identityCheck = null,
     ) {
+    }
+
+    /** The agent found another patient's name or date of birth on it: quarantine it (D60). */
+    public function isIdentityMismatch(): bool
+    {
+        return $this->extractionStatus === 'complete' && $this->identityCheck === 'mismatch';
     }
 
     /**
@@ -71,6 +88,7 @@ final readonly class ExtractionState
             null,
             AgentJson::int($body, 'byte_length'),
             $state->correlationId,
+            $state->identityCheck,
         );
     }
 
@@ -86,9 +104,10 @@ final readonly class ExtractionState
     }
 
     /**
-     * @return array{status: 'ok', document_id: string, kind: string, extraction_status: string, byte_length: int, correlation_id: string}
+     * @param ?QuarantineOutcome $quarantine What the route did about a mismatch; null when there was none.
+     * @return array{status: 'ok', document_id: string, kind: string, extraction_status: string, byte_length: int, correlation_id: string, identity_check: ?string, quarantine: ?string}
      */
-    public function toUploadPayload(): array
+    public function toUploadPayload(?QuarantineOutcome $quarantine = null): array
     {
         return [
             'status' => 'ok',
@@ -97,13 +116,16 @@ final readonly class ExtractionState
             'extraction_status' => $this->extractionStatus,
             'byte_length' => $this->byteLength ?? 0,
             'correlation_id' => $this->correlationId,
+            'identity_check' => $this->identityCheck,
+            'quarantine' => $quarantine?->value,
         ];
     }
 
     /**
-     * @return array{status: 'ok', document_id: string, kind: string, extraction_status: string, extraction_id: ?string, failure_reason: ?string, correlation_id: string}
+     * @param ?QuarantineOutcome $quarantine What the route did about a mismatch; null when there was none.
+     * @return array{status: 'ok', document_id: string, kind: string, extraction_status: string, extraction_id: ?string, failure_reason: ?string, correlation_id: string, identity_check: ?string, quarantine: ?string}
      */
-    public function toStatusPayload(): array
+    public function toStatusPayload(?QuarantineOutcome $quarantine = null): array
     {
         return [
             'status' => 'ok',
@@ -113,6 +135,8 @@ final readonly class ExtractionState
             'extraction_id' => $this->extractionId,
             'failure_reason' => $this->failureReason,
             'correlation_id' => $this->correlationId,
+            'identity_check' => $this->identityCheck,
+            'quarantine' => $quarantine?->value,
         ];
     }
 
@@ -140,6 +164,11 @@ final readonly class ExtractionState
         if ($failureReason !== null && ($status !== 'failed' || !in_array($failureReason, self::FAILURE_REASONS, true))) {
             throw new \UnexpectedValueException('Agent reported a failure reason it may not');
         }
+        // Absent from an agent older than D60: the same as null.
+        $identityCheck = AgentJson::nullableString($body, 'identity_check');
+        if ($identityCheck !== null && ($status !== 'complete' || !in_array($identityCheck, self::IDENTITY_CHECKS, true))) {
+            throw new \UnexpectedValueException('Agent reported an identity check it may not');
+        }
         return new self(
             $expected,
             $kind,
@@ -148,6 +177,7 @@ final readonly class ExtractionState
             $failureReason,
             null,
             AgentJson::string($body, 'correlation_id'),
+            $identityCheck,
         );
     }
 }

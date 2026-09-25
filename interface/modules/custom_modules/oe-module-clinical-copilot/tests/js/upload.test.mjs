@@ -19,7 +19,10 @@ import {
     DOCUMENT_KINDS,
     EXTRACTION_STATUSES,
     MAX_BYTES,
+    describeStatus,
+    isIdentityMismatch,
     isTerminal,
+    isUsable,
     pollDelay,
     rejectFile,
 } from '../../public/assets/w2/upload.mjs';
@@ -118,5 +121,45 @@ describe('rejectFile', () => {
         // wrong shape, which is worse than refusing.
         assert.equal(rejectFile(file('intake-form.pdf', 'application/pdf', 10)), null);
         assert.equal(rejectFile(file('lab-results.pdf', 'application/pdf', 10)), null);
+    });
+});
+
+describe('a document for another patient — D60', () => {
+    const complete = {extraction_status: 'complete', document_id: 'd'.repeat(128), correlation_id: 'c-1'};
+
+    it('is never usable in a question, and a confirmed or unknown one is', () => {
+        assert.ok(isIdentityMismatch({...complete, identity_check: 'mismatch'}));
+        assert.ok(!isUsable({...complete, identity_check: 'mismatch'}));
+        assert.ok(isUsable({...complete, identity_check: 'confirmed'}));
+        assert.ok(isUsable({...complete, identity_check: 'not_confirmed'}));
+        // An older module that sends no verdict: as before D60.
+        assert.ok(isUsable(complete));
+        assert.ok(!isUsable({extraction_status: 'failed', failure_reason: 'timed_out'}));
+    });
+
+    it('says it was not used, and where it went', () => {
+        const text = describeStatus({...complete, identity_check: 'mismatch', quarantine: 'quarantined'});
+        assert.match(text, /^Extraction complete — Not used: the name or date of birth/);
+        assert.match(text, /Quarantine - Patient Mismatch/);
+        assert.match(text, /not deleted/);
+    });
+
+    it('never implies it was set aside when the move failed or was not reported', () => {
+        for (const quarantine of ['failed', undefined, 'something-new']) {
+            const text = describeStatus({...complete, identity_check: 'mismatch', quarantine});
+            assert.match(text, /could NOT be moved to quarantine/, String(quarantine));
+        }
+    });
+
+    it('says nothing about identity for a document that matched', () => {
+        const text = describeStatus({...complete, identity_check: 'confirmed'});
+        assert.equal(text, 'Extraction complete (Reference: c-1)');
+    });
+});
+
+describe('an interrupted extraction — D60', () => {
+    it('tells the reader to upload again', () => {
+        const text = describeStatus({extraction_status: 'failed', failure_reason: 'interrupted'});
+        assert.match(text, /restarted before it finished; upload the file again/);
     });
 });

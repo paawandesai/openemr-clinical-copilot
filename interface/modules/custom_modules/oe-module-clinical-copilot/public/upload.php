@@ -18,6 +18,10 @@
  *  5. Only after the agent accepted: the chart copy, idempotent on the
  *     SHA3-512 digest (invariant 6). Storing first would leave a document on
  *     this chart that the agent refused for it.
+ *  6. D60: if the agent already knows the document's printed name or date of
+ *     birth contradicts this chart (a re-upload of a finished extraction),
+ *     the chart copy is moved to quarantine at once. A first upload is
+ *     quarantined by the status poll, when its extraction finishes.
  *
  * The token, the client secret and the file name never reach the agent or a
  * log; the file name is kept only as the chart document's name, as OpenEMR's
@@ -26,7 +30,7 @@
  * Request (multipart): pid, csrf_token_form, correlation_id, document_kind
  *   ("lab_pdf" | "intake_form"), document (the file).
  * Response: {"status": "ok", document_id, kind, extraction_status,
- *   byte_length, correlation_id}, or the error envelope with
+ *   byte_length, correlation_id, identity_check, quarantine}, or the error envelope with
  *   BriefFailure::httpStatus() (413 for an oversize file).
  *
  * @package   OpenEMR
@@ -195,4 +199,12 @@ try {
 }
 
 $audit(true, $state->extractionStatus . ', documents.id ' . $filed->documentId . ($filed->created ? ' stored' : ' already on chart'));
-$respond(200, $state->toUploadPayload());
+
+$quarantine = null;
+if ($state->isIdentityMismatch()) {
+    $quarantine = $documents->quarantine($chart->pid, $digest, $trace, $owner === false ? 0 : $owner);
+    if ($quarantine->moved) {
+        $audit(true, 'quarantined, identity mismatch, documents.id ' . $quarantine->documentId);
+    }
+}
+$respond(200, $state->toUploadPayload($quarantine?->outcome));

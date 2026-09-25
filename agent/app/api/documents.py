@@ -77,16 +77,31 @@ Nothing is written for an intake form (D2), a failed extraction, or a
 document whose patient the identity check did not confirm. The status
 route is final before the write starts and never reports it.
 
-IN-PROCESS STATE
-----------------
-The document store is this process's memory (app/workers/document_store.py):
-lost on restart, not shared between workers. Recorded as an open item.
+IDENTITY — D60
+--------------
+Both responses carry `identity_check` once the extraction is complete:
+`mismatch` when the name or date of birth printed on the document
+contradicts the chart (the extractor's hard flag, D35 item 10), `confirmed`
+when D54's rule confirms the patient, `not_confirmed` otherwise, and null
+before completion or on a failure. It is the whole of what the module needs
+to quarantine a wrong-patient document in the chart, and it carries no
+value from the document: the outcome of a comparison, never the name.
+
+STATE ACROSS RESTARTS — D60
+---------------------------
+The document store saves every upload and its extraction to an encrypted
+SQLite file (app/workers/extraction_store.py), so after a restart a
+document answers with the same status and report, stays bound to its
+chart, and the same bytes for another chart are still 409. An extraction
+the restart cut short is `failed` / `interrupted`, and uploading the file
+again starts it afresh. Still not shared between workers (D40 item 10).
 """
 
 from __future__ import annotations
 
 import time
 from collections.abc import Callable
+from enum import StrEnum
 
 from fastapi import APIRouter, Depends, Query, Request
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
@@ -104,7 +119,8 @@ from app.models.w2.workers import ExtractionFailureReason
 from app.workers import document_store
 from app.workers.document_store import DocumentBoundElsewhere, UnreadablePdf
 from app.workers.intake_extractor.chart import fhir_chart_reader
-from app.writeback.after_extraction import lab_write_back
+from app.workers.intake_extractor.report import ExtractionReport
+from app.writeback.after_extraction import identity_confirmed, lab_write_back
 
 router = APIRouter()
 
@@ -135,6 +151,30 @@ _PATIENT_QUERY = Query(
 )
 
 
+class IdentityOutcome(StrEnum):
+    """Whether the document is this chart's patient's, as far as the extractor could tell (D60)."""
+
+    #: The name or date of birth on the document contradicts the chart: the
+    #: extractor's hard flag. Nothing from it is stated or written back.
+    MISMATCH = "mismatch"
+    #: D54's rule: the name matched and neither comparison is a mismatch.
+    CONFIRMED = "confirmed"
+    #: Neither: the name could not be compared (not located, or the chart
+    #: could not be read). Not a mismatch, and not a confirmation either.
+    NOT_CONFIRMED = "not_confirmed"
+
+
+def identity_outcome(report: ExtractionReport | None) -> IdentityOutcome | None:
+    """None until the extraction is complete, and for a failed one."""
+    if report is None or not report.is_complete:
+        return None
+    if report.identity is not None and report.identity.hard_flag:
+        return IdentityOutcome.MISMATCH
+    if identity_confirmed(report):
+        return IdentityOutcome.CONFIRMED
+    return IdentityOutcome.NOT_CONFIRMED
+
+
 class UploadAccepted(W2Contract):
     """What `POST /documents` answers with. D7: already a status."""
 
@@ -143,6 +183,9 @@ class UploadAccepted(W2Contract):
     status: ExtractionStatus
     byte_length: int
     correlation_id: str
+    #: Set only when the document had already finished extracting (a
+    #: duplicate upload); see IdentityOutcome.
+    identity_check: IdentityOutcome | None = None
 
 
 class ExtractionState(W2Contract):
@@ -158,6 +201,7 @@ class ExtractionState(W2Contract):
     extraction_id: str | None = None
     failure_reason: ExtractionFailureReason | None = None
     correlation_id: str
+    identity_check: IdentityOutcome | None = None
 
 
 @router.post(
@@ -265,6 +309,9 @@ async def upload_document(
         status=output.status,
         byte_length=len(body),
         correlation_id=correlation_id,
+        identity_check=identity_outcome(
+            document_store.DOCUMENTS.report(stored.document.document_id)
+        ),
     )
 
 
@@ -294,11 +341,13 @@ async def extraction_state(
             404, ErrorCode.INVALID_REQUEST, "No extraction is recorded for that document."
         )
 
+    identity = identity_outcome(store.report(document_id))
     log_event(
         "w2_extraction_state_read",
         {
             "document_id": document_id,
             "status": output.status.value,
+            "identity_check": identity.value if identity is not None else None,
             "correlation_id": correlation_id,
         },
     )
@@ -317,6 +366,7 @@ async def extraction_state(
         extraction_id=output.extraction_id,
         failure_reason=output.failure_reason,
         correlation_id=correlation_id,
+        identity_check=identity,
     )
 
 

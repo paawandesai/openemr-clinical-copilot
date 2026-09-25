@@ -316,7 +316,8 @@ Path is nominal; §3 passes `.../public/upload-status.php`.
 
 `failure_reason` is one of `unreadable_file`, `unsupported_mime_type`,
 `no_text_layer_and_ocr_failed`, `model_output_invalid`,
-`page_limit_exceeded`, `timed_out`. The browser has a label for each.
+`page_limit_exceeded`, `timed_out` (and, below, the members added since).
+The browser has a label for each.
 
 **"Extraction not finished" is a 200, not a failure.** `pending` and
 `in_progress` are successful reads of a job that is still running, and the
@@ -357,6 +358,30 @@ order 17.
 
 **Guarded as the upload is (work order 17):** 401 / 403 / 404 / 502 as in
 §2.2, but a poll is not counted against the upload rate limits.
+
+**Added by work order 32 (D60, reserved):**
+
+- **`failure_reason` can also be `interrupted`**: the agent restarted while
+  the extraction ran. Its extractions are saved to disk, so a finished one
+  survives a restart unchanged; one that was running does not, and
+  uploading the same file again starts it afresh. The browser says so.
+- **Both agent responses (§2.2's and this one) carry `identity_check`**:
+  `null` until the extraction is `complete`, then `mismatch` (the name or
+  date of birth printed on the document contradicts this chart: the
+  extractor's hard flag), `confirmed` (D54's rule) or `not_confirmed`. It is
+  a closed-set outcome, never the name it compared.
+- **Both module responses carry `identity_check` and `quarantine`.** On a
+  `mismatch` the module moves the chart copy to the "Quarantine - Patient
+  Mismatch" document category with a note saying why
+  (`ChartDocuments::quarantine`, keyed on the digest, audited, never a
+  delete) and reports `quarantine`: `quarantined` | `not_on_chart` |
+  `failed`, `null` when there was no mismatch. The status poll is where
+  this normally happens, since a first upload is still extracting; a
+  re-upload of a finished mismatch is quarantined by `upload.php` at once.
+  Moving it needs `patients`/`docs` at write level; a poll without it
+  reports `failed` and moves nothing.
+- **The browser** shows a mismatch as "Not used: …" with where the document
+  went, or that it could NOT be moved, and never offers it for a question.
 
 ### 2.4 The ask path — `POST <agent>/w2/ask`
 

@@ -61,4 +61,39 @@ final class QueryUtilsChartDocumentIndex implements ChartDocumentIndex
         );
         return is_array($row) && isset($row['id']);
     }
+
+    public function isInCategory(int $documentId, int $categoryId): bool
+    {
+        $row = QueryUtils::querySingleRow(
+            'SELECT `document_id` FROM `categories_to_documents` WHERE `document_id` = ? AND `category_id` = ? LIMIT 1',
+            [$documentId, $categoryId]
+        );
+        return is_array($row) && isset($row['document_id']);
+    }
+
+    public function moveToCategory(int $documentId, int $categoryId): void
+    {
+        // Into the new category first, then out of every other: at no point
+        // is the document in no category, which would hide it from the tree.
+        // Document::createDocument() files with the same REPLACE.
+        QueryUtils::sqlStatementThrowException(
+            'REPLACE INTO `categories_to_documents` SET `category_id` = ?, `document_id` = ?',
+            [$categoryId, $documentId]
+        );
+        QueryUtils::sqlStatementThrowException(
+            'DELETE FROM `categories_to_documents` WHERE `document_id` = ? AND `category_id` <> ?',
+            [$documentId, $categoryId]
+        );
+    }
+
+    public function addNote(int $documentId, int $ownerId, string $note): void
+    {
+        // OpenEMR's own document note, as the Documents screen adds one.
+        $record = new \Note();
+        $record->set_foreign_id($documentId);
+        $record->set_owner($ownerId);
+        $record->set_date(date('Y-m-d H:i:s'));
+        $record->set_note($note);
+        $record->persist();
+    }
 }

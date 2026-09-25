@@ -309,7 +309,11 @@ rest.
 ### Setting it up
 
 ```bash
-# 1. Ledger table, through the module's own install SQL.
+# 1. Ledger table, through the module's own install SQL. Since D60 the same
+#    SQL also creates the "Quarantine - Patient Mismatch" document category a
+#    wrong-patient upload is moved to; run it again on an existing install
+#    (each block is guarded, so a re-run changes only what is missing).
+#    Without the category a mismatch is reported to the card as NOT moved.
 #    NOTE: `bin/console openemr:zfc-module --modaction=install_sql` does NOT
 #    work — InstallerController::getModuleId() is declared `: bool` in a file
 #    without strict_types, so the module id is coerced to true and mod_id 1 is

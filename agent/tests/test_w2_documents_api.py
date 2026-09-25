@@ -559,7 +559,16 @@ class TestExtractionState:
 class TestNoPhi:
     def test_the_upload_response_carries_no_file_name(self, client: TestClient) -> None:
         body = upload(client).json()
-        assert set(body) == {"document_id", "kind", "status", "byte_length", "correlation_id"}
+        assert set(body) == {
+            "document_id",
+            "kind",
+            "status",
+            "byte_length",
+            "correlation_id",
+            # D60: a closed-set outcome, never the name it compared.
+            "identity_check",
+        }
+        assert body["identity_check"] in (None, "mismatch", "confirmed", "not_confirmed")
 
     def test_the_status_response_carries_no_payload(self, client: TestClient) -> None:
         document_id = upload(client).json()["document_id"]

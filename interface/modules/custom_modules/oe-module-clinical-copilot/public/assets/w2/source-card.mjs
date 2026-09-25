@@ -21,7 +21,7 @@
 import {renderAnswerView} from './answer-view.mjs';
 import {createAskControl, moduleAskSource, patientBar, statusLabel} from './ask.mjs';
 import {createDocumentViewer, moduleDocumentSource} from './document-viewer.mjs';
-import {createUploadControl, moduleUploadSource} from './upload.mjs';
+import {createUploadControl, isUsable, moduleUploadSource} from './upload.mjs';
 
 /**
  * Mount the card.
@@ -62,7 +62,8 @@ export function mountSourceCard(
 
     // Documents uploaded on this page whose extraction completed, newest
     // last. A question names at most `maxDocuments` of them (the agent's
-    // MAX_DOCUMENTS_PER_TURN); a failed extraction is never included.
+    // MAX_DOCUMENTS_PER_TURN); a failed extraction is never included, and
+    // neither is one quarantined as another patient's (D60).
     const ready = [];
     let ask = null;
 
@@ -83,7 +84,7 @@ export function mountSourceCard(
                   // card shows next is asked for afterwards, through the
                   // question box — this control does not itself ask one.
                   onComplete: (payload) => {
-                      if (payload.extraction_status !== 'complete' || typeof payload.document_id !== 'string') {
+                      if (!isUsable(payload) || typeof payload.document_id !== 'string') {
                           return;
                       }
                       const at = ready.indexOf(payload.document_id);

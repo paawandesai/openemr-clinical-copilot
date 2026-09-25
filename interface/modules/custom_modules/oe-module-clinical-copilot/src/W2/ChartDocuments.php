@@ -21,9 +21,19 @@
  *
  * THE SAME BYTES ON ANOTHER CHART (D40 item 8) are refused, 409, never
  * rebound. The agent refuses them first; this refuses them again from the
- * chart's own records, because the agent's binding is process memory and a
- * restart forgets it. Only the two categories this module files into are
- * consulted, so a file filed elsewhere by other means is not affected.
+ * chart's own records, so the rule holds whatever the agent remembers.
+ * Only the categories this module files into are consulted — its two, and
+ * the quarantine below — so a file filed elsewhere by other means is not
+ * affected.
+ *
+ * QUARANTINE (D60). The upload is filed before its extraction finishes, so
+ * a document whose printed name or date of birth contradicts this chart is
+ * first filed like any other. When the agent reports that mismatch,
+ * `quarantine()` moves it to its own clearly named category and notes why on
+ * the document. It is never deleted: it is the record of what was uploaded
+ * to this chart, by whom, and why nothing from it was used. The move is
+ * keyed on the digest like the attach (invariant 6): a document already in
+ * quarantine is left alone, so repeating the call changes nothing.
  *
  * @package   OpenEMR
  * @link      https://www.open-emr.org
@@ -36,6 +46,7 @@ declare(strict_types=1);
 
 namespace OpenEMR\Modules\ClinicalCopilot\W2;
 
+use OpenEMR\Common\Database\SqlQueryException;
 use OpenEMR\Modules\ClinicalCopilot\BriefFailure;
 use OpenEMR\Modules\ClinicalCopilot\BriefUnavailable;
 use OpenEMR\Modules\ClinicalCopilot\WriteBack\DocumentStorage;
@@ -49,6 +60,18 @@ final readonly class ChartDocuments
 
     /** The agent's MAX_UPLOAD_BYTES, and upload.mjs's MAX_BYTES. */
     public const MAX_UPLOAD_BYTES = 25 * 1024 * 1024;
+
+    /**
+     * Where a wrong-patient upload is moved (D60): the category
+     * `sql/install.sql` creates, "Quarantine - Patient Mismatch", as a path
+     * DocumentService resolves (underscores for spaces).
+     */
+    public const QUARANTINE_CATEGORY_PATH = '/Categories/Quarantine_-_Patient_Mismatch';
+
+    /** At most 255 characters: `notes.note` is a VARCHAR(255). */
+    public const QUARANTINE_NOTE = 'Quarantined by Clinical Co-Pilot: the name or date of birth printed on this'
+        . ' document does not match this chart. Nothing from it was used or written to the chart.'
+        . ' Kept, not deleted. Reference: ';
 
     public function __construct(
         private DocumentStorage $storage,
@@ -82,7 +105,7 @@ final readonly class ChartDocuments
         if (!hash_equals($document->value, hash('sha3-512', $pdf))) {
             throw new \LogicException('The document id is not the digest of these bytes');
         }
-        $lock = 'ccw2-doc-' . substr($document->value, 0, 40);
+        $lock = self::lockName($document);
         if (!$this->index->lock($lock)) {
             $this->logger->error('Clinical Co-Pilot could not lock an upload for storing', ['document_id' => $document->value]);
             throw new BriefUnavailable(BriefFailure::DocumentNotStored);
@@ -116,14 +139,62 @@ final readonly class ChartDocuments
     }
 
     /**
+     * Moves this chart's copy of a document into the quarantine category
+     * and notes why on it, once. Never throws: the card reports the outcome,
+     * and a failure leaves the document where it was filed.
+     */
+    public function quarantine(int $pid, AgentDocumentId $document, string $reference, int $ownerId): QuarantineResult
+    {
+        try {
+            $quarantine = $this->storage->resolveCategoryId(self::QUARANTINE_CATEGORY_PATH);
+        } catch (InvalidWriteBackRequest) {
+            $this->logger->error('Clinical Co-Pilot has no quarantine category; re-run the module install SQL', ['document_id' => $document->value]);
+            return new QuarantineResult(QuarantineOutcome::Failed);
+        }
+        $lock = self::lockName($document);
+        if (!$this->index->lock($lock)) {
+            $this->logger->error('Clinical Co-Pilot could not lock an upload for quarantine', ['document_id' => $document->value]);
+            return new QuarantineResult(QuarantineOutcome::Failed);
+        }
+        try {
+            $documentId = $this->index->findForPatient($pid, $document->value);
+            if ($documentId === null) {
+                return new QuarantineResult(QuarantineOutcome::NotOnChart);
+            }
+            if ($this->index->isInCategory($documentId, $quarantine)) {
+                return new QuarantineResult(QuarantineOutcome::Quarantined, $documentId);
+            }
+            $this->index->moveToCategory($documentId, $quarantine);
+            $this->index->addNote($documentId, $ownerId, self::QUARANTINE_NOTE . $reference);
+            return new QuarantineResult(QuarantineOutcome::Quarantined, $documentId, true);
+        } catch (SqlQueryException $e) {
+            // The database refused the move or the note. Anything else is a
+            // bug and goes to the global handler.
+            $this->logger->error('Clinical Co-Pilot could not quarantine an upload', ['document_id' => $document->value, 'exception' => $e]);
+            return new QuarantineResult(QuarantineOutcome::Failed);
+        } finally {
+            $this->index->unlock($lock);
+        }
+    }
+
+    private static function lockName(AgentDocumentId $document): string
+    {
+        return 'ccw2-doc-' . substr($document->value, 0, 40);
+    }
+
+    /**
      * @return list<int>
      */
     private function moduleCategoryIds(): array
     {
         $ids = [];
-        foreach (DocumentKind::cases() as $kind) {
+        $paths = array_map(static fn (DocumentKind $kind): string => $kind->categoryPath(), DocumentKind::cases());
+        // A quarantined document is still filed on its chart: the same bytes
+        // on another chart are refused while it is there.
+        $paths[] = self::QUARANTINE_CATEGORY_PATH;
+        foreach ($paths as $path) {
             try {
-                $ids[] = $this->storage->resolveCategoryId($kind->categoryPath());
+                $ids[] = $this->storage->resolveCategoryId($path);
             } catch (InvalidWriteBackRequest) {
                 // A category deleted on this instance has nothing filed in it.
             }
