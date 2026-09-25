@@ -488,11 +488,13 @@ Nothing was deployed. The host needs the following, in this order:
    check that `/fhir/Encounter?patient=…` answers 403 and a POST to
    `/fhir/Patient` answers 405.
 
-**The CI job**, proposed and not added (`.gitlab-ci.yml` is a gate file):
-`dashboard-tests`, image `node:24`, run on changes under `dashboard/**`:
-`cd dashboard && npm ci && npm run typecheck && npm test && npm run build`.
-It takes about 30 s and needs no credentials. The e2e suite stays a local,
-pre-merge step, because it needs the OpenEMR stack.
+**The CI job** `dashboard-tests` was added by work order 33 (D61), in a gate
+session (`.gitlab-ci.yml` is a gate file). Image `node:24`. It is created when
+`dashboard/**` or `.gitlab-ci.yml` changes, and runs
+`cd dashboard && npm ci && npm run typecheck && npm test && npm run build`,
+with the unit results as a JUnit report. It takes about 40 s from a cold image
+and needs no credentials. The e2e suite stays a local, pre-merge step,
+because it needs the OpenEMR stack.
 
 ---
 
