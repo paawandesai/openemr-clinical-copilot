@@ -105,6 +105,10 @@ class AnswerLimitation(StrEnum):
     #: The drafting call reached its output ceiling; only what code states by
     #: rule is shown (D50).
     OUTPUT_LIMIT_REACHED = "output_limit_reached"
+    #: Fewer than 75% of the values read from a document in this turn could
+    #: be located on its page; the answer leads with the counts (D60,
+    #: app/supervisor/degraded.py).
+    DEGRADED_DOCUMENT = "degraded_document"
 
 
 class UnverifiedClaim(W2Contract):

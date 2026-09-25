@@ -122,6 +122,7 @@ from app.reasoning.draft_follow_up import Coverage
 from app.retrieval.retriever import GuidelineRetriever, parse_source_version
 from app.retrieval.worker import run_evidence_retriever
 from app.supervisor.critical import document_criticals, keep_critical, limit, observation_direction
+from app.supervisor.degraded import DEGRADED_BELOW, degraded_notice, document_quality
 from app.supervisor.facts import DocumentFact, document_facts, flagged_test_names, group_statement
 from app.supervisor.routing import (
     MAX_CONCEPTS,
@@ -660,6 +661,10 @@ LIMITATION_WORDING: dict[AnswerLimitation, str] = {
     AnswerLimitation.ANSWER_SCOPED: SCOPE_RULE,
     AnswerLimitation.ANSWER_CAPPED: SCOPE_RULE,
     AnswerLimitation.OUTPUT_LIMIT_REACHED: OUTPUT_LIMIT_WORDING,
+    AnswerLimitation.DEGRADED_DOCUMENT: (
+        f"Fewer than {DEGRADED_BELOW:.0%} of the values read from an uploaded document could "
+        "be located on its page; the answer states only those that could."
+    ),
 }
 
 _DOCUMENT_WHY = {
@@ -1047,6 +1052,15 @@ def render_answer(
         limitations.append(AnswerLimitation.ANSWER_CAPPED)
     if output_limited:
         limitations.append(AnswerLimitation.OUTPUT_LIMIT_REACHED)
+    # D60: a document most of whose values could not be placed on the page
+    # is said to be degraded before anything else, counts only.
+    degraded = [
+        quality
+        for document_id, report in reports.items()
+        if (quality := document_quality(document_id, report)).degraded
+    ]
+    if degraded:
+        limitations.append(AnswerLimitation.DEGRADED_DOCUMENT)
 
     verified = sum(1 for result in results if result.passed)
     status = _answer_status(draft, verified)
@@ -1059,6 +1073,11 @@ def render_answer(
         status = AskStatus.PARTIALLY_ANSWERED
 
     lines = [f"Answer (turn {ctx.snapshot.turn})", ""]
+    if degraded:
+        # Ahead of the critical values too: it says how far every document
+        # value below, a critical one included, can be relied on (D60).
+        lines.extend(degraded_notice(q, name_document=len(reports) > 1) for q in degraded)
+        lines.append("")
     if criticals.values:
         lines.extend([CRITICAL_HEADING, *(f"  - {v.line}" for v in criticals.values)])
         lines.extend([CRITICAL_FOOTNOTE, ""])
@@ -1101,6 +1120,7 @@ def render_answer(
         AnswerLimitation.UNSUPPORTED_DOCUMENT_VALUES,
         AnswerLimitation.ANSWER_SCOPED,
         AnswerLimitation.ANSWER_CAPPED,
+        AnswerLimitation.DEGRADED_DOCUMENT,
     }
     worded = [x for x in limitations if x not in said]
     if worded:
