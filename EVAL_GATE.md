@@ -191,12 +191,12 @@ not count. `--det-only` needs no key, but it exits 3 as well unless you pass
 
 ## What runs in CI
 
-Three jobs in `.gitlab-ci.yml`, all tagged `w2-eval`, on merge requests and on
+Four jobs in `.gitlab-ci.yml`, all tagged `w2-eval`, on merge requests and on
 `main`. None has `allow_failure`, so any one of them failing turns the pipeline
 red:
 
 1. **`w2-writeback-php`** (stage `writeback`, `php:8.3-cli`) — the fork
-   module's PHPUnit suite, 195 tests. Writes `w2-writeback-php.result.json`
+   module's PHPUnit suite, 213 tests. Writes `w2-writeback-php.result.json`
    and its JUnit report as artifacts.
 2. **`w2-eval-gate`** (stage `eval`, `python:3.12-slim`) — the gate. Declares
    `dependencies: [w2-writeback-php]`, so it receives that artifact and can
@@ -208,6 +208,11 @@ red:
    offline unit suite, with tesseract installed so the OCR tests run rather
    than skip. It includes `tests/test_decisions_log.py`, the DECISIONS.md
    numbering guard (D53), and fails if that file was not collected.
+4. **`dashboard-tests`** (stage `eval`, `node:24`, `needs: []`) — the patient
+   dashboard port (D59): `npm ci`, strict typecheck of the SPA and the BFF,
+   the 80 vitest unit tests with a JUnit report, and the production build.
+   Created whenever the commit differs from `main` under `dashboard/` or in
+   `.gitlab-ci.yml` (`compare_to: refs/heads/main`, D61).
 
 Repository settings a human has to make once:
 
@@ -246,6 +251,12 @@ needs 100–200 human-labelled examples per rubric and was out of scope.
 Category M — eight frozen fixtures with known labels — is the mitigation: it
 detects a judge that has drifted or a prompt that has been loosened, but it is
 a drift detector, not an agreement measure against human labels.
+
+The judge prompts are `w2-judge/1.1.0` (D61): the wording a rubric audit of
+the calibration set proposed (D57), amended where re-judging showed it did
+not hold. All eight M fixtures were re-measured under it: stable on five of
+five best-of-3 rounds each. The method and the blind set that will measure
+agreement are in [`docs/w2/calibration/`](docs/w2/calibration/README.md).
 
 ### The rules, in the order they are applied
 

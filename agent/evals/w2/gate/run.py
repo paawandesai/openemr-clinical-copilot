@@ -236,7 +236,46 @@ def _print_violations(violations: list[Violation]) -> None:
             print(f"    - {line}")
 
 
+def configure_logging() -> None:
+    """
+    Render the run's structlog lines through the same stdout exit the service
+    uses for a patient_session_key (D56, D61).
+
+    The gate never called `app.middleware.logging.configure_logging`, so the
+    lines the supervisor cases emit went out through structlog's default
+    chain with the raw `<sub>:<patient uuid>:<session>` key in them, and
+    `docs/w2/EVAL_GATE_EVIDENCE.md`, which records that output, held raw keys.
+    This is structlog's default console chain with
+    `pseudonymize_session_keys` added after `merge_contextvars`, exactly where
+    the service has it, so every key and cited record id is HMAC'd before it
+    is rendered. Without `AGENT_TELEMETRY_HMAC_SECRET` that is the dev
+    default, and the values say so (`psk_dev_`, `rid_dev_`).
+
+    Not the service's own `configure_logging`: that also starts the Langfuse
+    exporter, and a gate run on a machine with `LANGFUSE_*` set must not
+    export anything. No logger caching, so `capture_logs`, which the I and B
+    checks read, still swaps the processors in and out.
+    """
+    import structlog
+
+    from app.middleware.telemetry_key import pseudonymize_session_keys
+
+    structlog.configure(
+        processors=[
+            structlog.contextvars.merge_contextvars,
+            pseudonymize_session_keys,
+            structlog.processors.add_log_level,
+            structlog.processors.StackInfoRenderer(),
+            structlog.dev.set_exc_info,
+            structlog.processors.TimeStamper(fmt="%Y-%m-%d %H:%M:%S", utc=False),
+            structlog.dev.ConsoleRenderer(colors=False),
+        ],
+        cache_logger_on_first_use=False,
+    )
+
+
 def main(argv: list[str] | None = None) -> int:
+    configure_logging()
     parser = argparse.ArgumentParser(prog="python -m evals.w2.gate", description=__doc__)
     parser.add_argument(
         "--det-only",

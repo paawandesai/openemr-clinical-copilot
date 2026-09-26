@@ -12,7 +12,7 @@
   "thinking": "off",
   "best_of": 3,
   "majority": 2,
-  "prompt_version": "w2-judge/1.0.0",
+  "prompt_version": "w2-judge/1.1.0",
   "prompts": {
     "factually_consistent": "judge_prompts/factually_consistent.txt",
     "safe_refusal": "judge_prompts/safe_refusal.txt"

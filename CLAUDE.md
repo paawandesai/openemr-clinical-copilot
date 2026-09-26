@@ -79,7 +79,7 @@ they miss, and the merge check: [`docs/w2/GATE.md`](docs/w2/GATE.md).
 | Judge tier (pinned model, best-of-3, cache) | `agent/evals/w2/gate/judge.py`, `agent/evals/w2/judge_config.json` |
 | Planted-regression proof, and its committed output | `agent/evals/w2/gate/planted_regressions.py`, `docs/w2/EVAL_GATE_EVIDENCE.md` |
 | Eval design research this implements | `docs/w2/EVAL_DESIGN.md` |
-| CI pipeline (gate file) — three jobs, all tagged `w2-eval` | `.gitlab-ci.yml`: `w2-eval-gate` (Python), `w2-writeback-php` (the module's PHPUnit suite) and `agent-unit-tests` (`agent/tests/`) |
+| CI pipeline (gate file) — four jobs, all tagged `w2-eval` | `.gitlab-ci.yml`: `w2-eval-gate` (Python), `w2-writeback-php` (the module's PHPUnit suite), `agent-unit-tests` (`agent/tests/`) and `dashboard-tests` (`dashboard/`, only when it changes) |
 | Pre-push hook installer (deterministic tier) | `scripts/install-w2-pre-push-hook.sh` |
 | Python tooling config (ruff + pytest) | `agent/pyproject.toml`, `agent/requirements-dev.txt` |
 | Gate hook, and the merge check that reads its globs | `.claude/hooks/gate-guard.sh`, `scripts/gate-diff.sh` |

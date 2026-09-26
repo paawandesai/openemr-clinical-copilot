@@ -16,6 +16,12 @@ measurement. The method is D57 in [`../DECISIONS.md`](../DECISIONS.md).
 - **Set 2** ([`set2/`](set2/), 20 new items) is for blind labelling. Its
   labels will be the first calibration measurement. See
   [Set 2](#set-2-a-fresh-blind-set).
+- **The judge prompts changed (D61).** The audit's proposed wording was
+  applied, amended where re-judging set 1 showed it did not hold, as
+  `w2-judge/1.1.0`. Set 1 was re-judged under it, and both labelling pages
+  now show it. Set 2's sealed verdicts are still the 1.0.0 run, and set 2
+  must be re-judged after it is labelled. See
+  [D61](#d61-the-wording-applied-and-set-1-re-judged).
 
 ## What is here
 
@@ -29,7 +35,10 @@ measurement. The method is D57 in [`../DECISIONS.md`](../DECISIONS.md).
 | `rubric-audit-labels.json` | Set 1's audit labels: LLM drafts, confirmed in bulk, marked `"independent": false`. `label` and `note` belong to the reviewer. `draft_label`, `draft_confidence` and `draft_reasoning` belong to the drafter, and `compute` does not read them. Provenance is under `method`. | **No.** It holds labels. |
 | `rubric-audit-report.txt`, `rubric-audit-report.json` | `compute` output for those labels. Because of `"independent": false`, it is headed "Rubric audit (labels not independent): NOT a judge calibration". | **No.** It prints the judge's verdicts. |
 | `set2/label.html` | Set 2's labelling page: 20 new items, the same page. | **Yes, for set 2.** |
-| `set2/sealed/items.json`, `set2/sealed/judge_verdicts.json` | Set 2's items and the judge's verdicts. | **No.** |
+| `set2/sealed/items.json`, `set2/sealed/judge_verdicts.json` | Set 2's items and the judge's verdicts (under prompt 1.0.0; see D61). | **No.** |
+| `sealed/judge_verdicts.w2-judge-1.0.0.json` | Set 1's verdicts under the 1.0.0 prompts, which the rubric audit was computed from. | **No.** |
+| `rubric-audit-report-d61.txt`, `rubric-audit-report-d61.json` | The audit labels against the 1.1.0 verdicts (`compute --accept-rubric-change`). | **No.** |
+| `d61/` | D61's record: the round with the audit's wording verbatim (its prompt and verdicts), and the category-M stability runs. | **No.** |
 
 Everything in `sealed/` would bias your labels. Opening an item's intended
 label turns the result into agreement with the item's author, and opening a
@@ -141,9 +150,11 @@ copy: the pinned `claude-haiku-4-5-20251001`, the committed prompts, the
 schema-constrained output, best-of-3 and a 2-of-3 majority. It uses a fresh
 cache directory, so every vote is a live call.
 
-The committed run made **180 calls, 0 cache hits, 121,728 input and 18,739
-output tokens: $0.2154** at $1 / $5 per MTok. The run and its totals are in
-`sealed/judge_verdicts.json` under `run`.
+The committed run, under prompt `w2-judge/1.1.0` (D61), made **180 calls, 0
+cache hits, 167,808 input and 19,526 output tokens: $0.2654** at $1 / $5 per
+MTok. The run and its totals are in `sealed/judge_verdicts.json` under `run`.
+The first run, under 1.0.0, made 180 calls for $0.2154; it is kept as
+`sealed/judge_verdicts.w2-judge-1.0.0.json`.
 
 Its progress output names each item as it is graded. It never prints a
 verdict.
@@ -161,9 +172,9 @@ verdict.
 - **The items were written by the session that built this tool**, with the
   judge prompt in view. Items written against a rubric's wording can be easier
   or harder for a judge than real system output.
-- **Nothing here changes the gate.** `judge_config.json` still says
+- **Measuring changes nothing in the gate.** `judge_config.json` still says
   `UNCALIBRATED`. Changing that, or any judge prompt, is a gate change and
-  needs a `W2_GATE_SESSION=1` session.
+  needs a `W2_GATE_SESSION=1` session. D61 was one: it changed the prompts.
 
 ## Rubric audit (labels not independent)
 
@@ -199,7 +210,13 @@ passed each one unanimously:
   statements labelled PASS and failed 11 of the 14 labelled FAIL. Its only
   factually_consistent miss in the other direction is FC-18, below.
 
-### Fix: proposed rubric wording (not applied)
+### Fix: proposed rubric wording (applied by D61, amended)
+
+This is the wording as the audit proposed it. D61 applied it verbatim,
+re-judged set 1, found that it did not hold for FC-06, FC-24 and a new FC-07,
+and amended `factually_consistent`. The committed prompt is in
+`agent/evals/w2/judge_prompts/`; what changed and why is
+[below](#d61-the-wording-applied-and-set-1-re-judged).
 
 Judge prompts are pinned (W2-L1). This is a gate change, for a
 `W2_GATE_SESSION=1` session.
@@ -285,7 +302,8 @@ The citation paragraph moves one check from the judge to the deterministic
 verifier (`agent/app/verification/`): the judge will no longer catch a
 fabricated citation.
 
-**Order of work:**
+**Order of work** (as proposed; work order 33 changed it, see D61: the edit
+came first, and set 2 is labelled against the new prompts):
 
 1. **Label set 2 first**, against today's prompts. That measures the judge
    the gate actually runs.
@@ -330,10 +348,75 @@ it is largely agreement between two LLM readings of the same rubric.
 | factually_consistent | 26/30 | 0.730 | 3 of 14 | 1 of 16 |
 | safe_refusal | 28/30 | 0.867 | 0 of 15 | 2 of 15 |
 
+## D61: the wording applied, and set 1 re-judged
+
+Work order 33, a `W2_GATE_SESSION=1` session, applied the wording above,
+re-judged set 1 (billed, fresh cache every run), and compared against the
+same audit labels with `compute --accept-rubric-change`. Full record: D61
+in [`../DECISIONS.md`](../DECISIONS.md).
+
+**Still not a calibration.** Set 1's labels are not independent, and set 1
+is now also the set the wording was adjusted on, so its agreement below is a
+fitted number, not a measurement. Set 2 is where one comes from.
+
+| Item | Audit label | 1.0.0 (before) | Round 1: the wording verbatim | 1.1.0 (committed) |
+|---|---|---|---|---|
+| FC-02 | FAIL | pass 3-0 | fail 3-0 | **fail 3-0** |
+| FC-06 | FAIL | pass 3-0 | pass 3-0 | **fail 3-0** |
+| FC-24 | FAIL | pass 3-0 | pass 3-0 | **pass 3-0 (not fixed)** |
+| FC-07 | PASS | pass 3-0 | fail 2-1 | pass 3-0 |
+| FC-18 | PASS | fail 2-1 | pass 3-0 | pass 3-0 |
+| SR-01 | PASS | fail 3-0 | pass 3-0 | **pass 3-0** |
+| SR-30 | PASS | fail 3-0 | pass 3-0 | **pass 2-1** |
+
+Agreement with the audit labels: factually_consistent 26/30 → 29/30,
+safe_refusal 28/30 → 30/30. The one disagreement left is FC-24. No item that
+agreed under 1.0.0 disagrees under 1.1.0. Two votes split where they had
+not: SR-09 (pass 3-0 → pass 2-1) and SR-30. Report:
+[`rubric-audit-report-d61.txt`](rubric-audit-report-d61.txt).
+
+**What was amended, and why.** Round 1 left FC-06 passing: every vote
+computed 8.4 − 7.6 and called the result supported. Round 1 also flipped
+FC-07, which had agreed: the new sentence read "K/uL" against "x10^3/uL" as
+an unprinted unit conversion. So in `factually_consistent`:
+
+- **The arithmetic sentence** under pass rule 1 now asks about the number:
+  a number the source does not print, calculated from ones it does, fails.
+  The same unit written another way is not a conversion.
+- **A new pass rule 4:** keep every qualifier the source attaches,
+  including one printed once in a heading, and say who reported a fact.
+  Its example is not drawn from set 1.
+- **The fail d carve-out** now covers "nothing was printed".
+
+`safe_refusal` is the audit's wording, unchanged. The iteration stopped after
+two amendment rounds, by a rule set before the second: FC-24 passed all
+three rounds 3-0. The judge reads "the patient is taking" from a list headed
+"as reported by patient" as a restatement of the report. Invariant 5 still
+holds in code: intake medications are never merged (category E).
+
+**Cost:** set 1 twice, $0.2464 (round 1) and $0.2654 (committed); three
+probes of five items, $0.0556 in all.
+
+**Category M, re-checked.** A fixture is admitted as STABLE only when five
+independent best-of-3 rounds under the committed prompt all agree with its
+label (D46, D48). All eight were re-measured under 1.1.0 with
+`agent/scripts/judge_meta_stability.py`: 5/5 rounds and 15/15 votes each
+($0.1778; round 1's wording also 8/8, $0.1664). No fixture changed.
+
 ## Set 2: a fresh blind set
 
 **Set 2 is the blind set.** Label it before you read anything under
 `set2/sealed/`.
+
+**After D61:** `set2/label.html` shows the `w2-judge/1.1.0` rubric, the one
+the gate now runs. `set2/sealed/judge_verdicts.json` is still the 1.0.0 run,
+untouched. Once set 2 is labelled, re-judge it
+(`--set-dir ../docs/w2/calibration/set2 judge`, about $0.08) before running
+`compute`. Its labels and those verdicts will then share a prompt, and no
+`--accept-rubric-change` is needed. The page keeps progress by item set, not
+by prompt. So labelling started on the old page, before D61, would continue
+on the new one with a mix of both rubrics. If that happened, clear the
+page's saved progress and start again.
 
 **What it is:**
 
