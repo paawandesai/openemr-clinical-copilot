@@ -81,6 +81,8 @@ final class AgentClientW2Test extends TestCase
             // D60: no verdict before the extraction completes, so nothing to quarantine.
             'identity_check' => null,
             'quarantine' => null,
+            // Work order 34: no write-back has ended either.
+            'write_back' => null,
         ], $state->toUploadPayload());
     }
 
@@ -160,8 +162,84 @@ final class AgentClientW2Test extends TestCase
             'correlation_id' => self::TRACE,
             'identity_check' => null,
             'quarantine' => null,
+            'write_back' => null,
         ], $state->toStatusPayload());
         $this->assertFalse($state->isIdentityMismatch());
+    }
+
+    public function testTheWriteBackSummaryReachesTheCardFieldByFieldAndNothingElseDoes(): void
+    {
+        $document = new AgentDocumentId(hash('sha3-512', self::PDF));
+        $conflict = [
+            'test_code' => '2345-7',
+            'test_name' => 'Glucose',
+            'collection_date' => '2026-08-30',
+            'collected_at' => '2026-08-30T07:12:00',
+            'page' => 1,
+            'bbox' => ['page' => 1, 'x0' => 270.4, 'y0' => 256.3, 'x1' => 280, 'y1' => 268.1],
+            'document_value' => '89',
+            'document_unit' => 'mg/dL',
+            'chart_value' => '92',
+            'chart_unit' => 'mg/dL',
+            'chart_procedure_result_id' => 14912,
+            'surprise' => 'not for the browser',
+        ];
+        $http = new MockHttpClient(self::json(200, [
+            'document_id' => $document->value,
+            'kind' => 'lab_pdf',
+            'status' => 'complete',
+            'extraction_id' => 'w2x-0123456789abcdef0123456789abcdef',
+            'failure_reason' => null,
+            'correlation_id' => self::TRACE,
+            'identity_check' => 'confirmed',
+            'write_back' => [
+                'decision' => 'written',
+                'results_total' => 22,
+                'skipped' => 1,
+                'created' => 19,
+                'duplicate_ignored' => 0,
+                'already_in_chart' => 1,
+                'conflict' => 1,
+                'conflicts' => [$conflict],
+                'extra' => 'dropped',
+            ],
+        ]));
+
+        $payload = self::client($http)->extractionState(self::token(), self::patient(), $document)->toStatusPayload();
+
+        $expected = $conflict;
+        unset($expected['surprise']);
+        $expected['bbox'] = ['page' => 1, 'x0' => 270.4, 'y0' => 256.3, 'x1' => 280.0, 'y1' => 268.1];
+        $this->assertSame([
+            'decision' => 'written',
+            'results_total' => 22,
+            'skipped' => 1,
+            'created' => 19,
+            'duplicate_ignored' => 0,
+            'already_in_chart' => 1,
+            'conflict' => 1,
+            'conflicts' => [$expected],
+        ], $payload['write_back']);
+    }
+
+    public function testAWriteBackThatEndedWithoutWritingCarriesNoConflicts(): void
+    {
+        $document = new AgentDocumentId(hash('sha3-512', self::PDF));
+        $http = new MockHttpClient(self::json(200, [
+            'document_id' => $document->value,
+            'kind' => 'lab_pdf',
+            'status' => 'failed',
+            'extraction_id' => null,
+            'failure_reason' => 'timed_out',
+            'correlation_id' => self::TRACE,
+            'identity_check' => null,
+            'write_back' => ['decision' => 'extraction_not_complete', 'results_total' => 0, 'skipped' => 0, 'created' => 0, 'duplicate_ignored' => 0, 'already_in_chart' => 0, 'conflict' => 0, 'conflicts' => []],
+        ]));
+
+        $payload = self::client($http)->extractionState(self::token(), self::patient(), $document)->toStatusPayload();
+
+        $this->assertSame('extraction_not_complete', $payload['write_back']['decision'] ?? null);
+        $this->assertSame([], $payload['write_back']['conflicts'] ?? null);
     }
 
     public function testAMismatchIsReportedAndCarriesTheQuarantineOutcomeToTheCard(): void
@@ -245,6 +323,44 @@ final class AgentClientW2Test extends TestCase
             'an identity check before complete' => [['status' => 'in_progress', 'extraction_id' => null, 'failure_reason' => null, 'identity_check' => 'mismatch']],
             'an identity check on a failure' => [['status' => 'failed', 'extraction_id' => null, 'failure_reason' => 'timed_out', 'identity_check' => 'confirmed']],
             'an unknown identity check' => [['status' => 'complete', 'extraction_id' => 'w2x-0123456789abcdef0123456789abcdef', 'failure_reason' => null, 'identity_check' => 'probably']],
+            'a write-back before the extraction ends' => [['status' => 'in_progress', 'extraction_id' => null, 'failure_reason' => null, 'write_back' => self::writeBack()]],
+            'a write-back decision outside the closed set' => [['status' => 'complete', 'extraction_id' => null, 'failure_reason' => null, 'write_back' => self::writeBack(['decision' => 'maybe'])]],
+            'a conflict count that is not its conflicts' => [['status' => 'complete', 'extraction_id' => null, 'failure_reason' => null, 'write_back' => self::writeBack(['conflict' => 2])]],
+            'a negative count' => [['status' => 'complete', 'extraction_id' => null, 'failure_reason' => null, 'write_back' => self::writeBack(['created' => -1])]],
+            'a conflict without its chart row' => [['status' => 'complete', 'extraction_id' => null, 'failure_reason' => null, 'write_back' => self::writeBack(['conflict' => 1, 'conflicts' => [self::conflict(['chart_procedure_result_id' => 0])]])]],
+            'a conflict without a chart value' => [['status' => 'complete', 'extraction_id' => null, 'failure_reason' => null, 'write_back' => self::writeBack(['conflict' => 1, 'conflicts' => [self::conflict(['chart_value' => ''])]])]],
+            'a conflict whose region is on another page' => [['status' => 'complete', 'extraction_id' => null, 'failure_reason' => null, 'write_back' => self::writeBack(['conflict' => 1, 'conflicts' => [self::conflict(['page' => 2])]])]],
+            'a conflict whose region is not numbers' => [['status' => 'complete', 'extraction_id' => null, 'failure_reason' => null, 'write_back' => self::writeBack(['conflict' => 1, 'conflicts' => [self::conflict(['bbox' => ['page' => 1, 'x0' => 'left', 'y0' => 1, 'x1' => 2, 'y1' => 3]])]])]],
+        ];
+    }
+
+    /**
+     * @param array<string, mixed> $overrides
+     * @return array<string, mixed>
+     *
+     * @codeCoverageIgnore Builder for the data provider above.
+     */
+    private static function writeBack(array $overrides = []): array
+    {
+        return $overrides + [
+            'decision' => 'written', 'results_total' => 1, 'skipped' => 0, 'created' => 1,
+            'duplicate_ignored' => 0, 'already_in_chart' => 0, 'conflict' => 0, 'conflicts' => [],
+        ];
+    }
+
+    /**
+     * @param array<string, mixed> $overrides
+     * @return array<string, mixed>
+     *
+     * @codeCoverageIgnore Builder for the data provider above.
+     */
+    private static function conflict(array $overrides = []): array
+    {
+        return $overrides + [
+            'test_code' => '2345-7', 'test_name' => 'Glucose', 'collection_date' => '2026-08-30', 'collected_at' => null,
+            'page' => 1, 'bbox' => ['page' => 1, 'x0' => 1, 'y0' => 2, 'x1' => 3, 'y1' => 4],
+            'document_value' => '89', 'document_unit' => 'mg/dL', 'chart_value' => '92', 'chart_unit' => 'mg/dL',
+            'chart_procedure_result_id' => 5,
         ];
     }
 

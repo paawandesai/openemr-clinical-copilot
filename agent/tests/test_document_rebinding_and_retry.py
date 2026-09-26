@@ -381,3 +381,102 @@ def test_a_re_upload_with_no_write_back_step_retries_nothing() -> None:
 
     asyncio.run(flow())
     assert len(endpoint.calls) == 1
+
+
+# --------------------------------------------------------------------------
+# the write-back summary (work order 34)
+# --------------------------------------------------------------------------
+
+
+class ConflictingEndpoint:
+    """Answers the first row as a conflict with the chart, the rest as created."""
+
+    def __init__(self) -> None:
+        self.calls: list[tuple[str, LabWriteBackRequest]] = []
+
+    async def __call__(self, token: str, request: LabWriteBackRequest) -> LabWriteBackResponse:
+        self.calls.append((token, request))
+        results = []
+        for index, row in enumerate(request.results):
+            common = {
+                "test_code": row.test_code,
+                "idempotency_key": row.idempotency_key,
+                "extraction_id": row.extraction_id,
+            }
+            if index == 0:
+                results.append(
+                    LabWriteBackResultOutcome(
+                        **common,
+                        outcome=WriteOutcome.CONFLICT,
+                        matched_procedure_result_id=31,
+                        chart_value="7.7",
+                        chart_unit="mmol/L",
+                    )
+                )
+            else:
+                results.append(
+                    LabWriteBackResultOutcome(
+                        **common,
+                        outcome=WriteOutcome.CREATED,
+                        procedure_report_id=100 + index,
+                        procedure_result_id=200 + index,
+                    )
+                )
+        return LabWriteBackResponse(
+            patient_uuid=request.patient_uuid,
+            document_id=2484,
+            document_outcome=WriteOutcome.DUPLICATE_IGNORED,
+            procedure_order_id=9001,
+            results=results,
+            correlation_id=request.correlation_id,
+        )
+
+
+def write_back_to(endpoint: ConflictingEndpoint, token: str):  # noqa: ANN201
+    async def step(report):  # noqa: ANN001, ANN202
+        return await write_back_after_extraction(
+            report, token=token, patient_uuid=PATIENT, pdf=PDF, writer=endpoint
+        )
+
+    return step
+
+
+def test_the_summary_is_kept_with_the_document_and_survives_a_restart(tmp_path: Path) -> None:
+    path = tmp_path / "x.sqlite3"
+    endpoint = ConflictingEndpoint()
+    first = store_on(path)
+    document_id, _, _ = asyncio.run(
+        upload(first, PATIENT, LAB_SAMPLE, write_back_to(endpoint, "t-1"))
+    )
+    summary = first.write_back(document_id)
+    assert summary is not None and summary.decision is WriteBackDecision.WRITTEN
+    assert summary.conflict == 1 and summary.created == len(endpoint.calls[0][1].results) - 1
+    assert summary.conflicts[0].chart_procedure_result_id == 31
+
+    # A new process on the same volume: the same counts and the same
+    # conflict, without asking the endpoint again (nothing is owed).
+    vision = CountingVision()
+    reopened = store_on(path, vision)
+    assert reopened.write_back(document_id) == summary
+    asyncio.run(upload(reopened, PATIENT, LAB_SAMPLE, write_back_to(endpoint, "t-2")))
+    assert len(endpoint.calls) == 1 and vision.calls == 0
+
+
+def test_no_summary_is_reported_while_the_write_back_has_not_ended() -> None:
+    documents = DocumentStore(vision=CountingVision())
+    endpoint = ConflictingEndpoint()
+
+    async def flow() -> None:
+        stored, _, _ = documents.accept(
+            PATIENT,
+            PDF,
+            DocumentKind.LAB_PDF,
+            chart_reader=reader(LAB_SAMPLE),
+            after_extraction=write_back_to(endpoint, "t"),
+        )
+        assert documents.write_back(stored.document.document_id) is None
+        await documents.wait(stored.document.document_id)
+        await asyncio.sleep(0.05)
+        assert documents.write_back(stored.document.document_id) is not None
+
+    asyncio.run(flow())

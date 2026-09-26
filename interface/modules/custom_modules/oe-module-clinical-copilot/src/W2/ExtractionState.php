@@ -18,6 +18,14 @@
  * `quarantine` outcome they add, and does not offer the document for
  * questions.
  *
+ * `write_back` is the lab write-back's outcome once it has ended: its
+ * decision, the counts per outcome, and each result that conflicts with a
+ * value already in the chart, with both values. Null until it ends, and
+ * absent from an agent older than work order 34. It is passed to the card
+ * field by field, after every field has been checked, so an agent response
+ * cannot put an unexpected key in front of the browser. The conflict values
+ * are chart content: they go to the card and nowhere else.
+ *
  * @package   OpenEMR
  * @link      https://www.open-emr.org
  * @author    Paawan Desai <paawankdesai@gmail.com>
@@ -51,6 +59,26 @@ final readonly class ExtractionState
     /** `IdentityOutcome` (agent/app/api/documents.py). */
     public const IDENTITY_CHECKS = ['mismatch', 'confirmed', 'not_confirmed'];
 
+    /** `WriteBackDecision` (agent/app/models/w2/writeback.py). */
+    public const WRITE_BACK_DECISIONS = [
+        'written',
+        'not_lab_report',
+        'extraction_not_complete',
+        'identity_not_confirmed',
+        'nothing_writable',
+        'token_refused',
+        'request_refused',
+        'endpoint_unavailable',
+    ];
+
+    /** The counts a `WriteBackSummary` carries, every one a non-negative integer. */
+    private const WRITE_BACK_COUNTS = [
+        'results_total', 'skipped', 'created', 'duplicate_ignored', 'already_in_chart', 'conflict',
+    ];
+
+    /**
+     * @param ?array<string, mixed> $writeBack
+     */
     private function __construct(
         public AgentDocumentId $documentId,
         public DocumentKind $kind,
@@ -60,6 +88,7 @@ final readonly class ExtractionState
         public ?int $byteLength,
         public string $correlationId,
         public ?string $identityCheck = null,
+        public ?array $writeBack = null,
     ) {
     }
 
@@ -89,6 +118,7 @@ final readonly class ExtractionState
             AgentJson::int($body, 'byte_length'),
             $state->correlationId,
             $state->identityCheck,
+            $state->writeBack,
         );
     }
 
@@ -105,7 +135,7 @@ final readonly class ExtractionState
 
     /**
      * @param ?QuarantineOutcome $quarantine What the route did about a mismatch; null when there was none.
-     * @return array{status: 'ok', document_id: string, kind: string, extraction_status: string, byte_length: int, correlation_id: string, identity_check: ?string, quarantine: ?string}
+     * @return array{status: 'ok', document_id: string, kind: string, extraction_status: string, byte_length: int, correlation_id: string, identity_check: ?string, quarantine: ?string, write_back: ?array<string, mixed>}
      */
     public function toUploadPayload(?QuarantineOutcome $quarantine = null): array
     {
@@ -118,12 +148,13 @@ final readonly class ExtractionState
             'correlation_id' => $this->correlationId,
             'identity_check' => $this->identityCheck,
             'quarantine' => $quarantine?->value,
+            'write_back' => $this->writeBack,
         ];
     }
 
     /**
      * @param ?QuarantineOutcome $quarantine What the route did about a mismatch; null when there was none.
-     * @return array{status: 'ok', document_id: string, kind: string, extraction_status: string, extraction_id: ?string, failure_reason: ?string, correlation_id: string, identity_check: ?string, quarantine: ?string}
+     * @return array{status: 'ok', document_id: string, kind: string, extraction_status: string, extraction_id: ?string, failure_reason: ?string, correlation_id: string, identity_check: ?string, quarantine: ?string, write_back: ?array<string, mixed>}
      */
     public function toStatusPayload(?QuarantineOutcome $quarantine = null): array
     {
@@ -137,6 +168,7 @@ final readonly class ExtractionState
             'correlation_id' => $this->correlationId,
             'identity_check' => $this->identityCheck,
             'quarantine' => $quarantine?->value,
+            'write_back' => $this->writeBack,
         ];
     }
 
@@ -169,6 +201,10 @@ final readonly class ExtractionState
         if ($identityCheck !== null && ($status !== 'complete' || !in_array($identityCheck, self::IDENTITY_CHECKS, true))) {
             throw new \UnexpectedValueException('Agent reported an identity check it may not');
         }
+        $writeBack = self::parseWriteBack($body);
+        if ($writeBack !== null && $status !== 'complete' && $status !== 'failed') {
+            throw new \UnexpectedValueException('Agent reported a write-back for an unfinished extraction');
+        }
         return new self(
             $expected,
             $kind,
@@ -178,6 +214,75 @@ final readonly class ExtractionState
             null,
             AgentJson::string($body, 'correlation_id'),
             $identityCheck,
+            $writeBack,
         );
+    }
+
+    /**
+     * The agent's `WriteBackSummary`, checked field by field and rebuilt
+     * from only those fields. Null when the agent sent null, or nothing.
+     *
+     * @param array<mixed> $body
+     * @return ?array<string, mixed>
+     * @throws \UnexpectedValueException
+     */
+    private static function parseWriteBack(array $body): ?array
+    {
+        if (($body['write_back'] ?? null) === null) {
+            return null;
+        }
+        $summary = AgentJson::map($body, 'write_back');
+        $parsed = ['decision' => AgentJson::oneOf($summary, 'decision', self::WRITE_BACK_DECISIONS)];
+        foreach (self::WRITE_BACK_COUNTS as $count) {
+            $parsed[$count] = AgentJson::int($summary, $count);
+        }
+        $conflicts = [];
+        foreach (AgentJson::rows($summary, 'conflicts') as $row) {
+            $conflicts[] = self::parseConflict($row);
+        }
+        if (count($conflicts) !== $parsed['conflict']) {
+            throw new \UnexpectedValueException('Agent reported a conflict count that is not its conflicts');
+        }
+        $parsed['conflicts'] = $conflicts;
+        return $parsed;
+    }
+
+    /**
+     * @param array<mixed> $row
+     * @return array<string, mixed>
+     * @throws \UnexpectedValueException
+     */
+    private static function parseConflict(array $row): array
+    {
+        $bbox = AgentJson::map($row, 'bbox');
+        $page = AgentJson::int($row, 'page');
+        if ($page < 1 || AgentJson::int($bbox, 'page') !== $page) {
+            throw new \UnexpectedValueException('Agent reported a conflict whose region is not on its page');
+        }
+        $region = ['page' => $page];
+        foreach (['x0', 'y0', 'x1', 'y1'] as $edge) {
+            $value = $bbox[$edge] ?? null;
+            if (!is_int($value) && !is_float($value)) {
+                throw new \UnexpectedValueException('Agent reported a conflict region that is not numbers: ' . $edge);
+            }
+            $region[$edge] = (float) $value;
+        }
+        $chartResultId = AgentJson::int($row, 'chart_procedure_result_id');
+        if ($chartResultId < 1) {
+            throw new \UnexpectedValueException('Agent reported a conflict with no chart row');
+        }
+        return [
+            'test_code' => AgentJson::string($row, 'test_code'),
+            'test_name' => AgentJson::string($row, 'test_name'),
+            'collection_date' => AgentJson::string($row, 'collection_date'),
+            'collected_at' => AgentJson::nullableString($row, 'collected_at'),
+            'page' => $page,
+            'bbox' => $region,
+            'document_value' => AgentJson::string($row, 'document_value'),
+            'document_unit' => AgentJson::nullableString($row, 'document_unit'),
+            'chart_value' => AgentJson::string($row, 'chart_value'),
+            'chart_unit' => AgentJson::nullableString($row, 'chart_unit'),
+            'chart_procedure_result_id' => $chartResultId,
+        ];
     }
 }

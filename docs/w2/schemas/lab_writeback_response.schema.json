@@ -5,7 +5,7 @@
   "$defs": {
     "LabWriteBackResultOutcome": {
       "additionalProperties": false,
-      "description": "What happened to one result, with the ids D1 requires the endpoint to\nreturn. Real ids, not `true`: the standard document endpoint's\nreturns-no-identifier behaviour is the race D1 exists to fix.",
+      "description": "What happened to one result, with the ids D1 requires the endpoint to\nreturn. Real ids, not `true`: the standard document endpoint's\nreturns-no-identifier behaviour is the race D1 exists to fix.\n\nThe ids are the row this write made (`created`), the row an earlier\nwrite of the same file made (`duplicate_ignored`), or the row already\nin the chart from any source (`already_in_chart`). A `conflict` wrote\nnothing and has no ids of its own; `matched_procedure_result_id`,\n`chart_value` and `chart_unit` say what it disagreed with.",
       "properties": {
         "test_code": {
           "minLength": 1,
@@ -26,39 +26,127 @@
           "$ref": "#/$defs/WriteOutcome"
         },
         "procedure_report_id": {
-          "minimum": 1,
-          "title": "Procedure Report Id",
-          "type": "integer"
+          "anyOf": [
+            {
+              "minimum": 1,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Procedure Report Id"
         },
         "procedure_result_id": {
-          "minimum": 1,
-          "title": "Procedure Result Id",
-          "type": "integer"
+          "anyOf": [
+            {
+              "minimum": 1,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Procedure Result Id"
+        },
+        "matched_procedure_result_id": {
+          "anyOf": [
+            {
+              "minimum": 1,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "The chart row this result matched (already_in_chart) or disagrees with (conflict).",
+          "title": "Matched Procedure Result Id"
+        },
+        "chart_value": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "The chart row's value as stored, for a conflict.",
+          "title": "Chart Value"
+        },
+        "chart_unit": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "The chart row's unit as stored, for a conflict.",
+          "title": "Chart Unit"
         }
       },
       "required": [
         "test_code",
         "idempotency_key",
         "extraction_id",
-        "outcome",
-        "procedure_report_id",
-        "procedure_result_id"
+        "outcome"
       ],
       "title": "LabWriteBackResultOutcome",
+      "type": "object"
+    },
+    "WriteBackCounts": {
+      "additionalProperties": false,
+      "description": "How many results a write-back ended in each outcome. Counts only.",
+      "properties": {
+        "created": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Created",
+          "type": "integer"
+        },
+        "duplicate_ignored": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Duplicate Ignored",
+          "type": "integer"
+        },
+        "already_in_chart": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Already In Chart",
+          "type": "integer"
+        },
+        "conflict": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Conflict",
+          "type": "integer"
+        }
+      },
+      "title": "WriteBackCounts",
       "type": "object"
     },
     "WriteOutcome": {
       "description": "What the endpoint did with one result.",
       "enum": [
         "created",
-        "duplicate_ignored"
+        "duplicate_ignored",
+        "already_in_chart",
+        "conflict"
       ],
       "title": "WriteOutcome",
       "type": "string"
     }
   },
   "additionalProperties": false,
-  "description": "The ids the endpoint wrote, or found already written.",
+  "description": "The ids the endpoint wrote, found already written, or found already in\nthe chart \u2014 and, for a conflict, what it declined to overwrite.",
   "properties": {
     "patient_uuid": {
       "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
@@ -75,9 +163,18 @@
       "$ref": "#/$defs/WriteOutcome"
     },
     "procedure_order_id": {
-      "minimum": 1,
-      "title": "Procedure Order Id",
-      "type": "integer"
+      "anyOf": [
+        {
+          "minimum": 1,
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "The order this call created; when it created nothing, the order recorded for its first result; None when no result has an order (every result a conflict).",
+      "title": "Procedure Order Id"
     },
     "results": {
       "items": {
@@ -91,13 +188,24 @@
       "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$",
       "title": "Correlation Id",
       "type": "string"
+    },
+    "counts": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/WriteBackCounts"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Per-outcome counts as the endpoint reports them; `outcome_counts()` derives the same from `results`."
     }
   },
   "required": [
     "patient_uuid",
     "document_id",
     "document_outcome",
-    "procedure_order_id",
     "results",
     "correlation_id"
   ],

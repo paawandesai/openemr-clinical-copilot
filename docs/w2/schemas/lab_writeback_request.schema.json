@@ -144,6 +144,20 @@
           "title": "Collection Date",
           "type": "string"
         },
+        "collected_at": {
+          "anyOf": [
+            {
+              "format": "date-time",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "The collection time, when the report prints one, on the same day as `collection_date`. -> procedure_report.date_collected. The endpoint matches an existing chart result on this exact time, or on the date alone when the report gives no time.",
+          "title": "Collected At"
+        },
         "reported_at": {
           "anyOf": [
             {

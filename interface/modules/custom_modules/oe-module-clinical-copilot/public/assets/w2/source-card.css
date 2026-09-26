@@ -499,3 +499,16 @@
 .ccw2-answer-status[data-answer-status="partially_answered"] {
   color: var(--ccw2-warn);
 }
+
+/* Results the chart already holds with a different value (work order 34):
+   one line each, under the upload status, never merged into the chart. */
+.ccw2-writeback-conflicts {
+    margin: 0.25rem 0 0;
+    padding-left: 1.25rem;
+    font-size: 0.875rem;
+}
+
+.ccw2-writeback-conflict {
+    color: var(--ccw2-bad);
+    margin: 0.125rem 0;
+}

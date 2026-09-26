@@ -53,6 +53,19 @@ final readonly class EventLogWriteBackAudit implements WriteBackAudit
         $this->record(false, $pid, 'write-back attempt wrote nothing: ' . $reason);
     }
 
+    /** @param list<int> $chartResultIds */
+    public function conflictsFound(int $pid, array $chartResultIds): void
+    {
+        // A success: the endpoint did what it should, which was to refuse
+        // to overwrite. Ids only; the values are on the rows themselves.
+        $this->record(
+            true,
+            $pid,
+            count($chartResultIds) . ' result(s) in the document disagree with procedure_result ['
+            . implode(',', $chartResultIds) . '] already in the chart; nothing written or overwritten'
+        );
+    }
+
     private function record(bool $success, int $pid, string $comment): void
     {
         EventAuditLogger::getInstance()->newEvent(

@@ -24,6 +24,9 @@ final class RecordingAudit implements WriteBackAudit
     /** @var list<array{pid: int, reason: string}> */
     public array $abandoned = [];
 
+    /** @var list<array{pid: int, chart_results: list<int>}> */
+    public array $conflicts = [];
+
     /** @param list<int> $resultIds */
     public function orderWritten(int $pid, int $procedureOrderId, array $resultIds): void
     {
@@ -33,5 +36,11 @@ final class RecordingAudit implements WriteBackAudit
     public function writeAbandoned(int $pid, string $reason): void
     {
         $this->abandoned[] = ['pid' => $pid, 'reason' => $reason];
+    }
+
+    /** @param list<int> $chartResultIds */
+    public function conflictsFound(int $pid, array $chartResultIds): void
+    {
+        $this->conflicts[] = ['pid' => $pid, 'chart_results' => $chartResultIds];
     }
 }

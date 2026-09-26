@@ -567,8 +567,13 @@ class TestNoPhi:
             "correlation_id",
             # D60: a closed-set outcome, never the name it compared.
             "identity_check",
+            # The write-back's counts and conflicts, once it has ended; null
+            # here, before any extraction has (test_w2_writeback_after_extraction
+            # pins what it carries then).
+            "write_back",
         }
         assert body["identity_check"] in (None, "mismatch", "confirmed", "not_confirmed")
+        assert body["write_back"] is None
 
     def test_the_status_response_carries_no_payload(self, client: TestClient) -> None:
         document_id = upload(client).json()["document_id"]

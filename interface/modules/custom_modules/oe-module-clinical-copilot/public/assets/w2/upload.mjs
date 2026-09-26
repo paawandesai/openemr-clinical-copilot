@@ -36,6 +36,16 @@
  * says the document was not used and where it is — never a plain "complete"
  * — and `isUsable` keeps it out of the documents a question names.
  *
+ * THE CHART WRITE IS REPORTED, AND A CONFLICT IS SHOWN (work order 34). A
+ * lab report's extraction ends by writing its verified rows to the chart
+ * (D54). The status payload carries `write_back` once that has ended: the
+ * counts of rows added, already in the chart (from any source, any file),
+ * in conflict with a chart value, and not written. For a lab report the
+ * control keeps polling past `complete` until it is set, and then lists
+ * each conflict as "the chart has X, this document has Y" under the status
+ * line. A conflict is never written and never resolved here: the line is
+ * for the clinician to act on. `awaitsWriteBack` says when to keep asking.
+ *
  * NOTHING LOGS, AND NOTHING KEEPS THE FILE. The chosen file is handed to
  * `FormData` and dropped; no name, size or content is written to the
  * console or to storage (work order requirement 6). Poll failures surface
@@ -108,6 +118,21 @@ const DEFAULT_STRINGS = {
     reconciledOne: '1 document on this chart was moved to the “Quarantine - Patient Mismatch” category: the name or date of birth printed on it does not match this chart. It was not deleted.',
     reconciledMany: '%count% documents on this chart were moved to the “Quarantine - Patient Mismatch” category: the name or date of birth printed on them does not match this chart. They were not deleted.',
     reconcileFailed: 'A document on this chart whose name or date of birth does not match it could NOT be moved to quarantine: check this chart\'s Documents.',
+    writeBackPending: 'Checking the chart for these results…',
+    writeBackTimedOut: 'The chart write is still running after five minutes; this page stopped asking. Reload the chart to see the result.',
+    writeBackAdded: '%count% result(s) added to the chart',
+    writeBackAlready: '%count% already in the chart',
+    writeBackDuplicate: '%count% from an earlier upload of this file',
+    writeBackConflicts: '%count% conflict(s) with the chart',
+    writeBackSkipped: '%count% not written (not verified on the page)',
+    writeBackNoneWritten: 'nothing written',
+    writeBackNothingWritable: 'Chart: nothing written — no result was verified on the page.',
+    writeBackIdentityNotConfirmed: 'Chart: nothing written — the patient on the document was not confirmed as this chart\'s.',
+    writeBackTokenRefused: 'Chart: the write was refused — this client cannot write lab results.',
+    writeBackRequestRefused: 'Chart: the write was refused by OpenEMR.',
+    writeBackEndpointUnavailable: 'Chart: the write could not be completed. Upload the file again to retry.',
+    writeBackExtractionNotComplete: 'Chart: nothing written — the extraction did not complete.',
+    writeBackConflictLine: '%name% (LOINC %code%), collected %when%, page %page%: the chart has %chart%, this document has %document%. Not written.',
 };
 
 const STATUS_STRINGS = {
@@ -135,6 +160,19 @@ const QUARANTINE_STRINGS = {
     not_on_chart: 'quarantineNotOnChart',
     failed: 'quarantineFailed',
 };
+
+/** `WriteBackDecision` values that ended without a write, and what to say. */
+const WRITE_BACK_DECISION_STRINGS = {
+    nothing_writable: 'writeBackNothingWritable',
+    identity_not_confirmed: 'writeBackIdentityNotConfirmed',
+    token_refused: 'writeBackTokenRefused',
+    request_refused: 'writeBackRequestRefused',
+    endpoint_unavailable: 'writeBackEndpointUnavailable',
+    extraction_not_complete: 'writeBackExtractionNotComplete',
+};
+
+/** Decisions after which the rows are not known to be in the chart: shown as errors. */
+const WRITE_BACK_FAILED_DECISIONS = ['token_refused', 'request_refused', 'endpoint_unavailable'];
 
 function node(tag, className, text) {
     const element = document.createElement(tag);
@@ -189,6 +227,81 @@ export function isUsable(payload) {
 }
 
 /**
+ * Is the chart write for this document still to be reported? Only a lab
+ * report has one, only once its extraction has ended, and only when the
+ * module passed the field at all (an older agent never will, and the
+ * control must not wait on it).
+ *
+ * @param {object} payload An upload or status payload.
+ * @returns {boolean}
+ */
+export function awaitsWriteBack(payload) {
+    return (
+        payload.kind === 'lab_pdf' &&
+        isTerminal(payload.extraction_status) &&
+        Object.prototype.hasOwnProperty.call(payload, 'write_back') &&
+        payload.write_back === null
+    );
+}
+
+function count(template, n) {
+    return template.replace('%count%', String(n));
+}
+
+/**
+ * What the chart write did, for the status line and the list under it.
+ *
+ * @param {object|null|undefined} summary The payload's `write_back`.
+ * @param {object} [given] Translated strings.
+ * @returns {{text: string, conflicts: string[], isError: boolean}|null} Null
+ *     when there is nothing to say (no summary, or not a lab report).
+ */
+export function describeWriteBack(summary, given = {}) {
+    if (!summary || typeof summary !== 'object' || summary.decision === 'not_lab_report') {
+        return null;
+    }
+    const strings = {...DEFAULT_STRINGS, ...given};
+    const decisionKey = WRITE_BACK_DECISION_STRINGS[summary.decision];
+    if (decisionKey) {
+        return {
+            text: strings[decisionKey],
+            conflicts: [],
+            isError: WRITE_BACK_FAILED_DECISIONS.includes(summary.decision),
+        };
+    }
+    const n = (field) => Number(summary[field]) || 0;
+    const parts = [];
+    if (n('created') > 0) {
+        parts.push(count(strings.writeBackAdded, n('created')));
+    }
+    if (n('already_in_chart') > 0) {
+        parts.push(count(strings.writeBackAlready, n('already_in_chart')));
+    }
+    if (n('duplicate_ignored') > 0) {
+        parts.push(count(strings.writeBackDuplicate, n('duplicate_ignored')));
+    }
+    if (n('conflict') > 0) {
+        parts.push(count(strings.writeBackConflicts, n('conflict')));
+    }
+    if (n('skipped') > 0) {
+        parts.push(count(strings.writeBackSkipped, n('skipped')));
+    }
+    if (parts.length === 0) {
+        parts.push(strings.writeBackNoneWritten);
+    }
+    const conflicts = (Array.isArray(summary.conflicts) ? summary.conflicts : []).map((conflict) =>
+        strings.writeBackConflictLine
+            .replace('%name%', String(conflict.test_name))
+            .replace('%code%', String(conflict.test_code))
+            .replace('%when%', String(conflict.collected_at || conflict.collection_date).replace('T', ' '))
+            .replace('%page%', String(conflict.page))
+            .replace('%chart%', [conflict.chart_value, conflict.chart_unit].filter(Boolean).join(' '))
+            .replace('%document%', [conflict.document_value, conflict.document_unit].filter(Boolean).join(' '))
+    );
+    return {text: `Chart: ${parts.join(', ')}.`, conflicts, isError: conflicts.length > 0};
+}
+
+/**
  * The status line for an upload or status payload.
  *
  * @param {object} payload
@@ -209,10 +322,31 @@ export function describeStatus(payload, given = {}) {
         // never implied to be safely set aside when it may not be.
         text += ` ${strings[QUARANTINE_STRINGS[payload.quarantine] || 'quarantineFailed']}`;
     }
+    const writeBack = describeWriteBack(payload.write_back, strings);
+    if (writeBack) {
+        text += ` — ${writeBack.text}`;
+    } else if (awaitsWriteBack(payload)) {
+        text += ` — ${strings.writeBackPending}`;
+    }
     if (typeof payload.correlation_id === 'string') {
         text += ` (${strings.reference} ${payload.correlation_id})`;
     }
     return text;
+}
+
+/**
+ * Should the status line be styled as an error for this payload?
+ *
+ * @param {object} payload
+ * @returns {boolean}
+ */
+export function isErrorStatus(payload) {
+    const writeBack = describeWriteBack(payload.write_back);
+    return (
+        payload.extraction_status === 'failed' ||
+        isIdentityMismatch(payload) ||
+        Boolean(writeBack && writeBack.isError)
+    );
 }
 
 /**
@@ -386,6 +520,10 @@ export function createUploadControl(
     status.setAttribute('role', 'status');
     status.setAttribute('aria-live', 'polite');
     form.appendChild(status);
+    // One line per result the chart holds with a different value.
+    const conflicts = node('ul', 'ccw2-writeback-conflicts');
+    conflicts.hidden = true;
+    form.appendChild(conflicts);
     container.appendChild(form);
 
     let polling = false;
@@ -395,17 +533,31 @@ export function createUploadControl(
         status.classList.toggle('ccw2-upload-status--error', isError);
     }
 
-    const describe = (payload) => describeStatus(payload, strings);
+    function showConflicts(lines) {
+        conflicts.replaceChildren(...lines.map((line) => node('li', 'ccw2-writeback-conflict', line)));
+        conflicts.hidden = lines.length === 0;
+    }
+
+    /** The status line and the conflict list, for one payload. */
+    function render(payload) {
+        say(describeStatus(payload, strings), isErrorStatus(payload));
+        const writeBack = describeWriteBack(payload.write_back, strings);
+        showConflicts(writeBack ? writeBack.conflicts : []);
+    }
 
     /**
-     * Ask until the answer is terminal, the budget runs out, or the caller
+     * Ask until the answer is terminal — and, for a lab report, until its
+     * chart write has been reported — or the budget runs out, or the caller
      * navigates away. A poll that errors does not end the run: the
      * extraction is a server-side job and a dropped request says nothing
      * about it, so the control reports the read failure and keeps asking.
+     * `onComplete` fires once, when the extraction ends: the document is
+     * usable for a question from then on, whatever the chart write says.
      */
-    async function poll(documentId) {
+    async function poll(documentId, alreadyCompleted = false) {
         polling = true;
         const started = Date.now();
+        let completed = alreadyCompleted;
         for (let attempt = 0; polling; attempt += 1) {
             await sleep(pollDelay(attempt));
             if (!polling) {
@@ -423,15 +575,20 @@ export function createUploadControl(
                 }
                 continue;
             }
-            say(describe(payload), payload.extraction_status === 'failed' || isIdentityMismatch(payload));
+            render(payload);
             if (isTerminal(payload.extraction_status)) {
-                polling = false;
-                onComplete(payload);
-                return;
+                if (!completed) {
+                    completed = true;
+                    onComplete(payload);
+                }
+                if (!awaitsWriteBack(payload)) {
+                    polling = false;
+                    return;
+                }
             }
             if (Date.now() - started > POLL_LIMIT_MS) {
                 polling = false;
-                say(strings.pollTimedOut, true);
+                say(completed ? strings.writeBackTimedOut : strings.pollTimedOut, true);
                 return;
             }
         }
@@ -476,11 +633,13 @@ export function createUploadControl(
             send.disabled = false;
             return;
         }
-        say(describe(accepted), accepted.extraction_status === 'failed' || isIdentityMismatch(accepted));
-        if (isTerminal(accepted.extraction_status)) {
+        render(accepted);
+        const terminal = isTerminal(accepted.extraction_status);
+        if (terminal) {
             onComplete(accepted);
-        } else {
-            await poll(accepted.document_id);
+        }
+        if (!terminal || awaitsWriteBack(accepted)) {
+            await poll(accepted.document_id, terminal);
         }
         file.value = '';
         file.disabled = false;
@@ -493,6 +652,6 @@ export function createUploadControl(
         stop() {
             polling = false;
         },
-        elements: {form, kind, file, send, status},
+        elements: {form, kind, file, send, status, conflicts},
     };
 }

@@ -14,11 +14,13 @@ namespace OpenEMR\Modules\ClinicalCopilot\Tests;
 
 use OpenEMR\Common\Database\SqlQueryException;
 use OpenEMR\Modules\ClinicalCopilot\Tests\Fakes\FixedPatientLookup;
+use OpenEMR\Modules\ClinicalCopilot\Tests\Fakes\InMemoryChartResults;
 use OpenEMR\Modules\ClinicalCopilot\Tests\Fakes\InMemoryLedger;
 use OpenEMR\Modules\ClinicalCopilot\Tests\Fakes\RecordingAudit;
 use OpenEMR\Modules\ClinicalCopilot\Tests\Fakes\RecordingDocumentStorage;
 use OpenEMR\Modules\ClinicalCopilot\Tests\Fakes\RecordingTransaction;
 use OpenEMR\Modules\ClinicalCopilot\Tests\Fakes\ScriptedProcedureChain;
+use OpenEMR\Modules\ClinicalCopilot\WriteBack\ChartResult;
 use OpenEMR\Modules\ClinicalCopilot\WriteBack\IdempotencyKeys;
 use OpenEMR\Modules\ClinicalCopilot\WriteBack\LabWriteBackOutcome;
 use OpenEMR\Modules\ClinicalCopilot\WriteBack\LabWriteBackRequest;
@@ -98,7 +100,7 @@ final class WriteBackServiceTest extends TestCase
         // not with ids from this call.
         foreach ($outcome->results as $result) {
             if ($result->testCode === '2823-3') {
-                $this->assertSame(14000, $result->ids->procedureResultId);
+                $this->assertSame(14000, $result->ids?->procedureResultId);
             }
         }
     }
@@ -220,7 +222,7 @@ final class WriteBackServiceTest extends TestCase
         $this->assertSame(1, $transaction->rolledBack, 'our own transaction is abandoned');
         $this->assertSame(0, $transaction->committed);
         $this->assertSame(WriteOutcome::DUPLICATE_IGNORED, $outcome->results[0]->outcome);
-        $this->assertSame(9004, $outcome->results[0]->ids->procedureResultId);
+        $this->assertSame(9004, $outcome->results[0]->ids?->procedureResultId);
         $this->assertSame(9002, $outcome->procedureOrderId);
         $this->assertSame(9001, $outcome->documentId);
         $this->assertCount(1, $storage->discarded, 'the loser cleans up its own ciphertext');
@@ -253,6 +255,172 @@ final class WriteBackServiceTest extends TestCase
         $this->assertCount(1, $ledger->rows, 'exactly one chain is recorded');
     }
 
+    // -- the same results in a different file (work order 34) ---------------
+
+    public function testAResultTheChartAlreadyHoldsIsNotWrittenAgainAndNamesTheExistingRow(): void
+    {
+        // Another file's write, a lab interface, a hand entry: any source.
+        // Same test, same day, same value and unit -> already in the chart.
+        $chart = (new InMemoryChartResults())
+            ->with(1, '2345-7', self::chartRow(5001, '1', 'mmol/L', '2026-09-20 00:00:00'));
+        $chain = new ScriptedProcedureChain();
+        $ledger = new InMemoryLedger();
+        $service = $this->service($chain, $ledger, new RecordingDocumentStorage(), new RecordingTransaction(), $chart);
+
+        $outcome = $service->write($this->request(['2345-7', '2823-3']), 7);
+
+        $this->assertSame([1], $chain->batchSizes, 'only the row the chart lacks reaches the chain');
+        $this->assertSame(['created' => 1, 'duplicate_ignored' => 0, 'already_in_chart' => 1, 'conflict' => 0], $outcome->counts());
+        $byCode = self::byCode($outcome);
+        $this->assertSame(WriteOutcome::ALREADY_IN_CHART, $byCode['2345-7']->outcome);
+        $this->assertSame(5001, $byCode['2345-7']->matchedProcedureResultId);
+        $this->assertSame(5001, $byCode['2345-7']->ids?->procedureResultId, 'the ids are the existing row\'s');
+        $this->assertSame(WriteOutcome::CREATED, $byCode['2823-3']->outcome);
+        $this->assertCount(1, $ledger->rows, 'the ledger records only what was written');
+        $this->assertArrayHasKey($this->keyFor('2823-3'), $ledger->rows);
+        $this->assertSame([], $this->audit->conflicts);
+    }
+
+    public function testAByteVariantOfTheSameReportWritesNothing(): void
+    {
+        // The first file's rows, as this endpoint wrote them; the second
+        // file has a different digest, so the ledger knows none of its keys.
+        $chart = (new InMemoryChartResults())
+            ->with(1, '2345-7', self::chartRow(5001, '1', 'mmol/L', '2026-09-20 00:00:00'))
+            ->with(1, '2823-3', self::chartRow(5002, '1.0', 'mmol/L', '2026-09-20 00:00:00'));
+        $chain = new ScriptedProcedureChain();
+        $ledger = new InMemoryLedger();
+        $transaction = new RecordingTransaction();
+        $service = $this->service($chain, $ledger, new RecordingDocumentStorage(existingIdForHash: 2474), $transaction, $chart);
+
+        $outcome = $service->write($this->request(['2345-7', '2823-3']), 7);
+
+        $this->assertSame(0, $chain->calls, 'nothing reaches the chain');
+        $this->assertSame(0, $outcome->createdCount());
+        $this->assertSame(2, $outcome->counts()['already_in_chart']);
+        $this->assertSame([], $ledger->rows);
+        $this->assertSame(1, $transaction->committed);
+        $this->assertSame([], $this->audit->written, 'no order was written, so none is audited');
+        // The order named is the one the matched rows already belong to.
+        $this->assertSame(4001, $outcome->procedureOrderId);
+    }
+
+    public function testADifferentValueIsAConflictWrittenNowhereWithBothValuesReported(): void
+    {
+        $chart = (new InMemoryChartResults())
+            ->with(1, '2345-7', self::chartRow(5001, '2.5', 'mmol/L', '2026-09-20 00:00:00'));
+        $chain = new ScriptedProcedureChain();
+        $ledger = new InMemoryLedger();
+        $service = $this->service($chain, $ledger, new RecordingDocumentStorage(), new RecordingTransaction(), $chart);
+
+        $outcome = $service->write($this->request(['2345-7']), 7);
+
+        $this->assertSame(0, $chain->calls);
+        $this->assertSame(['created' => 0, 'duplicate_ignored' => 0, 'already_in_chart' => 0, 'conflict' => 1], $outcome->counts());
+        $conflict = $outcome->results[0];
+        $this->assertSame(WriteOutcome::CONFLICT, $conflict->outcome);
+        $this->assertNull($conflict->ids, 'a conflict has no row of its own');
+        $this->assertSame(5001, $conflict->matchedProcedureResultId);
+        $this->assertSame('2.5', $conflict->chartValue);
+        $this->assertSame('mmol/L', $conflict->chartUnit);
+        $this->assertNull($outcome->procedureOrderId, 'no result has an order');
+        $this->assertSame([], $ledger->rows);
+        $this->assertSame([['pid' => 1, 'chart_results' => [5001]]], $this->audit->conflicts);
+        $this->assertSame([], $this->audit->written);
+        $this->assertSame([], $this->audit->abandoned);
+    }
+
+    public function testADifferentUnitIsAConflictToo(): void
+    {
+        $chart = (new InMemoryChartResults())
+            ->with(1, '2345-7', self::chartRow(5001, '1', 'mg/dL', '2026-09-20 00:00:00'));
+        $service = $this->service(new ScriptedProcedureChain(), new InMemoryLedger(), new RecordingDocumentStorage(), new RecordingTransaction(), $chart);
+
+        $outcome = $service->write($this->request(['2345-7']), 7);
+
+        $this->assertSame(WriteOutcome::CONFLICT, $outcome->results[0]->outcome);
+        $this->assertSame('mg/dL', $outcome->results[0]->chartUnit);
+    }
+
+    public function testASameValueRowWinsOverAConflictingOneOnTheSameDay(): void
+    {
+        $chart = (new InMemoryChartResults())
+            ->with(1, '2345-7', self::chartRow(5001, '2.5', 'mmol/L', '2026-09-20 00:00:00'))
+            ->with(1, '2345-7', self::chartRow(5002, '1', 'mmol/L', '2026-09-20 00:00:00'));
+        $service = $this->service(new ScriptedProcedureChain(), new InMemoryLedger(), new RecordingDocumentStorage(), new RecordingTransaction(), $chart);
+
+        $outcome = $service->write($this->request(['2345-7']), 7);
+
+        $this->assertSame(WriteOutcome::ALREADY_IN_CHART, $outcome->results[0]->outcome);
+        $this->assertSame(5002, $outcome->results[0]->matchedProcedureResultId);
+    }
+
+    public function testADifferentCollectionDateIsANewResult(): void
+    {
+        $chart = (new InMemoryChartResults())
+            ->with(1, '2345-7', self::chartRow(5001, '1', 'mmol/L', '2026-09-19 00:00:00'))
+            ->with(1, '2345-7', self::chartRow(5002, '1', 'mmol/L', '2026-09-21 00:00:00'));
+        $chain = new ScriptedProcedureChain();
+        $ledger = new InMemoryLedger();
+        $service = $this->service($chain, $ledger, new RecordingDocumentStorage(), new RecordingTransaction(), $chart);
+
+        $outcome = $service->write($this->request(['2345-7']), 7);
+
+        $this->assertSame([1], $chain->batchSizes);
+        $this->assertSame(WriteOutcome::CREATED, $outcome->results[0]->outcome);
+        $this->assertCount(1, $ledger->rows);
+    }
+
+    public function testADifferentCollectionTimeOnTheSameDayIsANewResultButADateOnlyRowMatches(): void
+    {
+        // The report prints 07:12. A chart row at 09:30 is another draw; a
+        // row stored at midnight recorded no time and is matched on the day.
+        $chart = (new InMemoryChartResults())
+            ->with(1, '2345-7', self::chartRow(5001, '1', 'mmol/L', '2026-09-20 09:30:00'))
+            ->with(1, '2823-3', self::chartRow(5002, '1', 'mmol/L', '2026-09-20 00:00:00'))
+            ->with(1, '2951-2', self::chartRow(5003, '1', 'mmol/L', '2026-09-20 07:12:00'));
+        $chain = new ScriptedProcedureChain();
+        $service = $this->service($chain, new InMemoryLedger(), new RecordingDocumentStorage(), new RecordingTransaction(), $chart);
+
+        $outcome = $service->write($this->request(['2345-7', '2823-3', '2951-2'], '2026-09-20T07:12:00'), 7);
+
+        $byCode = self::byCode($outcome);
+        $this->assertSame(WriteOutcome::CREATED, $byCode['2345-7']->outcome);
+        $this->assertSame(WriteOutcome::ALREADY_IN_CHART, $byCode['2823-3']->outcome);
+        $this->assertSame(WriteOutcome::ALREADY_IN_CHART, $byCode['2951-2']->outcome);
+        $this->assertSame([1], $chain->batchSizes);
+    }
+
+    public function testAnotherPatientsResultIsNotAMatch(): void
+    {
+        $chart = (new InMemoryChartResults())
+            ->with(2, '2345-7', self::chartRow(5001, '1', 'mmol/L', '2026-09-20 00:00:00'));
+        $chain = new ScriptedProcedureChain();
+        $service = $this->service($chain, new InMemoryLedger(), new RecordingDocumentStorage(), new RecordingTransaction(), $chart);
+
+        $outcome = $service->write($this->request(['2345-7']), 7);
+
+        $this->assertSame(WriteOutcome::CREATED, $outcome->results[0]->outcome);
+        $this->assertSame([[1, '2345-7', '2026-09-20', null]], $chart->lookups, 'looked up for this patient only');
+    }
+
+    public function testTheLedgerStillAnswersFirstForTheSameFile(): void
+    {
+        // The ledger's answer for a key it holds is unchanged; the chart is
+        // not consulted for that row at all.
+        $ledger = new InMemoryLedger();
+        $key = $this->keyFor('2345-7');
+        $ledger->rows[$key] = new LedgerEntry($key, $this->extractionIdFor('2345-7'), 2474, 8000, 700, 14000);
+        $chart = (new InMemoryChartResults())
+            ->with(1, '2345-7', self::chartRow(14000, '9', 'mmol/L', '2026-09-20 00:00:00'));
+        $service = $this->service(new ScriptedProcedureChain(), $ledger, new RecordingDocumentStorage(), new RecordingTransaction(), $chart);
+
+        $outcome = $service->write($this->request(['2345-7']), 7);
+
+        $this->assertSame(WriteOutcome::DUPLICATE_IGNORED, $outcome->results[0]->outcome);
+        $this->assertSame([], $chart->lookups);
+    }
+
     // -- helpers -----------------------------------------------------------
 
     private RecordingAudit $audit;
@@ -266,24 +434,41 @@ final class WriteBackServiceTest extends TestCase
         ScriptedProcedureChain $chain,
         InMemoryLedger $ledger,
         RecordingDocumentStorage $storage,
-        RecordingTransaction $transaction
+        RecordingTransaction $transaction,
+        ?InMemoryChartResults $chart = null
     ): LabWriteBackService {
         return new LabWriteBackService(
             new FixedPatientLookup(),
             $storage,
             $chain,
             $ledger,
+            $chart ?? new InMemoryChartResults(),
             $transaction,
             $this->audit,
             new NullLogger(),
         );
     }
 
+    private static function chartRow(int $resultId, string $result, string $units, string $collected): ChartResult
+    {
+        return new ChartResult(4001, 4100 + $resultId % 100, $resultId, $result, $units, new \DateTimeImmutable($collected));
+    }
+
+    /** @return array<string, ResultOutcome> */
+    private static function byCode(LabWriteBackOutcome $outcome): array
+    {
+        $byCode = [];
+        foreach ($outcome->results as $result) {
+            $byCode[$result->testCode] = $result;
+        }
+        return $byCode;
+    }
+
     /**
      * Everything about a response's results except the outcome, which is the
      * only thing a replay is allowed to change.
      *
-     * @return list<array{string, string, string, int, int}>
+     * @return list<array{string, string, string, ?int, ?int}>
      */
     private static function idsOf(LabWriteBackOutcome $outcome): array
     {
@@ -292,8 +477,8 @@ final class WriteBackServiceTest extends TestCase
                 $result->testCode,
                 $result->idempotencyKey,
                 $result->extractionId,
-                $result->ids->procedureReportId,
-                $result->ids->procedureResultId,
+                $result->ids?->procedureReportId,
+                $result->ids?->procedureResultId,
             ],
             $outcome->results
         );
@@ -326,7 +511,7 @@ final class WriteBackServiceTest extends TestCase
     }
 
     /** @param list<string> $testCodes */
-    private function request(array $testCodes): LabWriteBackRequest
+    private function request(array $testCodes, ?string $collectedAt = null): LabWriteBackRequest
     {
         $results = [];
         foreach ($testCodes as $code) {
@@ -338,6 +523,7 @@ final class WriteBackServiceTest extends TestCase
                 'unit' => 'mmol/L',
                 'reference_range' => ['low' => 0.5, 'high' => 2.0, 'text' => '0.5 - 2.0'],
                 'collection_date' => '2026-09-20',
+                'collected_at' => $collectedAt,
                 'abnormal' => 'normal',
                 'page' => 1,
                 'bbox' => ['page' => 1, 'x0' => 1.0, 'y0' => 2.0, 'x1' => 3.0, 'y1' => 4.0],

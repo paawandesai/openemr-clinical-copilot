@@ -95,6 +95,7 @@ from app.middleware.telemetry_key import MODE_ENV, PRODUCTION, production_mode
 from app.models.w2.answer_view import PageGeometry
 from app.models.w2.documents import SourceDocument
 from app.models.w2.workers import IntakeExtractorOutput
+from app.models.w2.writeback import WriteBackSummary
 from app.workers.intake_extractor.report import ExtractionReport
 
 PATH_ENV = "AGENT_EXTRACTION_STORE_PATH"
@@ -146,6 +147,9 @@ class SavedExtraction:
     #: The lab write-back's outcome (`WriteBackDecision` value), None when
     #: none has finished: not run yet, or interrupted.
     writeback: str | None = None
+    #: The same outcome with its counts and conflicts, as the card shows it.
+    #: None for a record saved before summaries were, or before any ended.
+    writeback_summary: WriteBackSummary | None = None
 
 
 def parse_key(value: str) -> bytes:
@@ -191,6 +195,7 @@ class ExtractionStore:
         output: IntakeExtractorOutput,
         report: ExtractionReport | None = None,
         writeback: str | None = None,
+        writeback_summary: WriteBackSummary | None = None,
     ) -> None:
         """Insert or replace the document's row, then drop expired ones. Raises on I/O failure."""
         record = {
@@ -202,6 +207,9 @@ class ExtractionStore:
             "output": output.model_dump_json(),
             "report": report.model_dump_json() if report is not None else None,
             "writeback": writeback,
+            "writeback_summary": (
+                writeback_summary.model_dump_json() if writeback_summary is not None else None
+            ),
         }
         nonce = secrets.token_bytes(_NONCE_BYTES)
         plaintext = json.dumps(record, separators=(",", ":")).encode("utf-8")
@@ -282,6 +290,11 @@ def _parse(record: dict[str, Any]) -> SavedExtraction:
         output=IntakeExtractorOutput.model_validate_json(record["output"]),
         report=ExtractionReport.model_validate_json(report) if report is not None else None,
         writeback=record.get("writeback"),
+        writeback_summary=(
+            WriteBackSummary.model_validate_json(summary)
+            if (summary := record.get("writeback_summary")) is not None
+            else None
+        ),
     )
 
 

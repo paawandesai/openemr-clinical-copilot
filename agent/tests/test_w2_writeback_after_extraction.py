@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import asyncio
 import base64
+import json
 import time
 from datetime import UTC, datetime
 
@@ -122,7 +123,7 @@ def test_a_confirmed_lab_report_writes_its_located_coded_rows_under_the_uploader
     assert report.identity is not None and not report.identity.hard_flag
     writer = RecordingWriter()
 
-    assert decide(report, writer) is WriteBackDecision.WRITTEN
+    assert decide(report, writer).decision is WriteBackDecision.WRITTEN
 
     assert len(writer.calls) == 1
     token, request = writer.calls[0]
@@ -162,7 +163,7 @@ def test_a_document_naming_another_patient_is_not_written():
     assert report.identity is not None and report.identity.hard_flag
     writer = RecordingWriter()
 
-    assert decide(report, writer) is WriteBackDecision.IDENTITY_NOT_CONFIRMED
+    assert decide(report, writer).decision is WriteBackDecision.IDENTITY_NOT_CONFIRMED
     assert writer.calls == []
 
 
@@ -173,7 +174,7 @@ def test_a_document_whose_patient_could_not_be_checked_is_not_written():
     assert report.identity is not None and report.identity.name.value == "not_comparable"
     writer = RecordingWriter()
 
-    assert decide(report, writer) is WriteBackDecision.IDENTITY_NOT_CONFIRMED
+    assert decide(report, writer).decision is WriteBackDecision.IDENTITY_NOT_CONFIRMED
     assert writer.calls == []
 
 
@@ -182,7 +183,7 @@ def test_an_intake_form_is_never_written():
     assert report.is_complete
     writer = RecordingWriter()
 
-    assert decide(report, writer, INTAKE) is WriteBackDecision.NOT_LAB_REPORT
+    assert decide(report, writer, INTAKE).decision is WriteBackDecision.NOT_LAB_REPORT
     assert writer.calls == []
 
 
@@ -198,7 +199,7 @@ def test_a_failed_extraction_is_not_written():
     )
     writer = RecordingWriter()
 
-    assert decide(report, writer) is WriteBackDecision.EXTRACTION_NOT_COMPLETE
+    assert decide(report, writer).decision is WriteBackDecision.EXTRACTION_NOT_COMPLETE
     assert writer.calls == []
 
 
@@ -225,7 +226,7 @@ def test_a_failed_write_is_reported_and_never_raised(error: Exception, decision:
             report, token=TOKEN, patient_uuid=patient_uuid(LAB), pdf=pdf_bytes(LAB), writer=failing
         )
     )
-    assert outcome is decision
+    assert outcome.decision is decision
 
 
 # --- when it runs -------------------------------------------------------------
@@ -346,8 +347,234 @@ def test_lab_write_back_binds_the_uploaders_token_patient_and_bytes():
     original = after_extraction.write_lab_results
     after_extraction.write_lab_results = writer  # type: ignore[assignment]
     try:
-        assert asyncio.run(step(report)) is WriteBackDecision.WRITTEN
+        assert asyncio.run(step(report)).decision is WriteBackDecision.WRITTEN
     finally:
         after_extraction.write_lab_results = original  # type: ignore[assignment]
     [(token, request)] = writer.calls
     assert token == TOKEN and request.patient_uuid == patient_uuid(LAB)
+
+
+# --- results the chart already holds (work order 34) ----------------------------
+
+
+class ChartAwareWriter:
+    """
+    The endpoint after work order 34: the first row is already in the chart
+    with a different value (a conflict), the second is already there with
+    the same value, the rest are created.
+    """
+
+    def __init__(self) -> None:
+        self.calls: list[tuple[str, LabWriteBackRequest]] = []
+
+    async def __call__(self, token: str, request: LabWriteBackRequest) -> LabWriteBackResponse:
+        self.calls.append((token, request))
+        results = []
+        for index, row in enumerate(request.results):
+            common = {
+                "test_code": row.test_code,
+                "idempotency_key": row.idempotency_key,
+                "extraction_id": row.extraction_id,
+            }
+            if index == 0:
+                results.append(
+                    LabWriteBackResultOutcome(
+                        **common,
+                        outcome=WriteOutcome.CONFLICT,
+                        matched_procedure_result_id=777,
+                        chart_value="98765.4321",
+                        chart_unit="mg/dL",
+                    )
+                )
+            elif index == 1:
+                results.append(
+                    LabWriteBackResultOutcome(
+                        **common,
+                        outcome=WriteOutcome.ALREADY_IN_CHART,
+                        procedure_report_id=600,
+                        procedure_result_id=778,
+                        matched_procedure_result_id=778,
+                    )
+                )
+            else:
+                results.append(
+                    LabWriteBackResultOutcome(
+                        **common,
+                        outcome=WriteOutcome.CREATED,
+                        procedure_report_id=9100 + index,
+                        procedure_result_id=9200 + index,
+                    )
+                )
+        return LabWriteBackResponse(
+            patient_uuid=request.patient_uuid,
+            document_id=2484,
+            document_outcome=WriteOutcome.DUPLICATE_IGNORED,
+            procedure_order_id=9001,
+            results=results,
+            correlation_id=request.correlation_id,
+        )
+
+
+def test_the_summary_counts_every_outcome_and_carries_each_conflict_with_both_values():
+    report = asyncio.run(extract(LAB))
+    writer = ChartAwareWriter()
+
+    summary = decide(report, writer)
+
+    [(_, request)] = writer.calls
+    sent = len(request.results)
+    assert summary.decision is WriteBackDecision.WRITTEN
+    assert (summary.conflict, summary.already_in_chart, summary.created) == (1, 1, sent - 2)
+    assert summary.duplicate_ignored == 0
+    assert summary.results_total == summary.skipped + sent
+    [conflict] = summary.conflicts
+    first = request.results[0]
+    # The document side with its provenance (invariant 2), the chart side
+    # with its row: "chart has X, this document has Y", never overwritten.
+    assert conflict.test_code == first.test_code and conflict.test_name == first.test_name
+    assert conflict.document_value == first.value.as_text()
+    assert conflict.document_unit == first.unit
+    assert (conflict.page, conflict.bbox) == (first.page, first.bbox)
+    assert conflict.collection_date == first.collection_date
+    assert (conflict.chart_value, conflict.chart_unit) == ("98765.4321", "mg/dL")
+    assert conflict.chart_procedure_result_id == 777
+
+
+def test_the_summary_logs_counts_and_never_a_conflicts_values():
+    report = asyncio.run(extract(LAB))
+    writer = ChartAwareWriter()
+    with capture_logs() as logs:
+        summary = decide(report, writer)
+
+    text = json.dumps(logs, default=str)
+    [conflict] = summary.conflicts
+    # The chart value is distinctive by construction; the document value is
+    # a real lab number that could appear as some latency or count, so the
+    # keys that would carry either are what is asserted absent.
+    assert conflict.chart_value not in text
+    assert conflict.test_name not in text
+    for field in ("chart_value", "document_value", "conflicts", "test_name"):
+        assert f'"{field}"' not in text, field
+    [event] = [e for e in logs if e.get("event_type") == "lab_writeback_after_extraction"]
+    data = event["event_data"]
+    assert (data["results_conflict"], data["results_already_in_chart"]) == (1, 1)
+    assert data["results_created"] == summary.created
+
+
+def test_lab_clean_001_sends_its_collection_time_for_the_chart_match():
+    # The report prints "Collected 2026-08-30 07:12": the endpoint matches an
+    # existing chart result on that time, not only on the day.
+    report = asyncio.run(extract(LAB))
+    writer = RecordingWriter()
+    decide(report, writer)
+    [(_, request)] = writer.calls
+    assert {row.collected_at for row in request.results} == {datetime(2026, 8, 30, 7, 12)}
+
+
+def test_a_refused_write_still_reports_the_rows_it_would_have_sent():
+    report = asyncio.run(extract(LAB))
+
+    async def refused(token: str, request: LabWriteBackRequest) -> LabWriteBackResponse:
+        raise WriteBackAuthError("no scope")
+
+    summary = asyncio.run(
+        write_back_after_extraction(
+            report, token=TOKEN, patient_uuid=patient_uuid(LAB), pdf=pdf_bytes(LAB), writer=refused
+        )
+    )
+    assert summary.decision is WriteBackDecision.TOKEN_REFUSED
+    assert summary.results_total > 0 and summary.created == 0 and summary.conflicts == []
+
+
+def test_the_status_route_reports_the_write_back_once_it_has_ended(
+    monkeypatch: pytest.MonkeyPatch,
+):
+    async def patient_exists(token: str, patient_id: str) -> None:
+        return None
+
+    writer = ChartAwareWriter()
+    monkeypatch.setattr(fhir_client, "ensure_patient_exists", patient_exists)
+    monkeypatch.setattr(document_store, "DOCUMENTS", DocumentStore(vision=ground_truth_vision(LAB)))
+    monkeypatch.setattr(documents, "fhir_chart_reader", lambda token, **_: reader_for(LAB))
+    monkeypatch.setattr(after_extraction, "write_lab_results", writer)
+    upload_guard.reset_for_tests()
+    token = _jwt()
+    try:
+        with TestClient(app) as client:
+            headers = {"Content-Type": "application/pdf", "Authorization": f"Bearer {token}"}
+            params = {"kind": "lab_pdf", "patient_id": patient_uuid(LAB)}
+            accepted = client.post(
+                "/documents", params=params, content=pdf_bytes(LAB), headers=headers
+            )
+            assert accepted.status_code == 200, accepted.text
+            assert accepted.json()["write_back"] is None  # nothing has ended yet
+            document_id = accepted.json()["document_id"]
+            task = document_store.DOCUMENTS.jobs._tasks[document_id]
+            deadline = time.monotonic() + 60
+            while not task.done() and time.monotonic() < deadline:
+                time.sleep(0.05)
+            assert task.done()
+
+            status = client.get(
+                f"/documents/{document_id}/extraction",
+                params={"patient_id": patient_uuid(LAB)},
+                headers={"Authorization": f"Bearer {token}"},
+            )
+            assert status.status_code == 200, status.text
+            body = status.json()
+            assert body["status"] == "complete"
+            write_back = body["write_back"]
+            assert write_back["decision"] == "written"
+            assert (write_back["conflict"], write_back["already_in_chart"]) == (1, 1)
+            assert write_back["created"] == len(writer.calls[0][1].results) - 2
+            [conflict] = write_back["conflicts"]
+            assert conflict["chart_value"] == "98765.4321"
+            assert conflict["chart_procedure_result_id"] == 777
+            assert conflict["bbox"]["page"] == conflict["page"]
+
+            # A re-upload of the same bytes is a duplicate that owes no
+            # retry: the upload response carries the same summary at once.
+            again = client.post(
+                "/documents", params=params, content=pdf_bytes(LAB), headers=headers
+            )
+            assert again.status_code == 200 and again.json()["write_back"] == write_back
+            assert len(writer.calls) == 1
+    finally:
+        upload_guard.reset_for_tests()
+
+
+def test_an_intake_form_has_no_write_back_to_report(monkeypatch: pytest.MonkeyPatch):
+    async def patient_exists(token: str, patient_id: str) -> None:
+        return None
+
+    monkeypatch.setattr(fhir_client, "ensure_patient_exists", patient_exists)
+    monkeypatch.setattr(
+        document_store, "DOCUMENTS", DocumentStore(vision=ground_truth_vision(INTAKE))
+    )
+    monkeypatch.setattr(documents, "fhir_chart_reader", lambda token, **_: reader_for(INTAKE))
+    upload_guard.reset_for_tests()
+    token = _jwt()
+    try:
+        with TestClient(app) as client:
+            headers = {"Content-Type": "application/pdf", "Authorization": f"Bearer {token}"}
+            accepted = client.post(
+                "/documents",
+                params={"kind": "intake_form", "patient_id": patient_uuid(INTAKE)},
+                content=pdf_bytes(INTAKE),
+                headers=headers,
+            )
+            assert accepted.status_code == 200, accepted.text
+            document_id = accepted.json()["document_id"]
+            task = document_store.DOCUMENTS.jobs._tasks[document_id]
+            deadline = time.monotonic() + 60
+            while not task.done() and time.monotonic() < deadline:
+                time.sleep(0.05)
+            status = client.get(
+                f"/documents/{document_id}/extraction",
+                params={"patient_id": patient_uuid(INTAKE)},
+                headers={"Authorization": f"Bearer {token}"},
+            )
+            assert status.json()["status"] == "complete"
+            assert status.json()["write_back"] is None
+    finally:
+        upload_guard.reset_for_tests()
