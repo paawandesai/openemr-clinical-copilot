@@ -3800,8 +3800,13 @@ the judge grades frozen fixtures, not live answers.
 - **What it runs.** The job PATIENT_DASHBOARD_MIGRATION.md §8 proposed:
   `node:24`, `npm ci`, `npm run typecheck`, `npm test` with a JUnit report,
   `npm run build`.
-- **When it runs.** It is created when `dashboard/**` or `.gitlab-ci.yml`
-  changes, so an edit to the job's own definition is tested by the job.
+- **When it runs.** It is created whenever the commit differs from `main`
+  under `dashboard/**` or in `.gitlab-ci.yml` (`compare_to: refs/heads/main`),
+  so an edit to the job's own definition is tested by the job. The first
+  version compared a branch push with the previous push only. After the
+  rebase onto D60, pipeline 29938 therefore did not create the job, and a
+  branch could have merged on a pipeline that never ran it. On `main`
+  itself nothing differs, so the job runs before a merge, not after it.
 - **How it gates.** `needs: []`, and no `allow_failure`.
 - **Measured locally in `node:24`:** typecheck clean, 80/80 tests, build OK,
   about 40 s from a cold image.

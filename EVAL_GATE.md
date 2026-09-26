@@ -211,7 +211,8 @@ red:
 4. **`dashboard-tests`** (stage `eval`, `node:24`, `needs: []`) — the patient
    dashboard port (D59): `npm ci`, strict typecheck of the SPA and the BFF,
    the 80 vitest unit tests with a JUnit report, and the production build.
-   Created only when `dashboard/` or `.gitlab-ci.yml` changes (D61).
+   Created whenever the commit differs from `main` under `dashboard/` or in
+   `.gitlab-ci.yml` (`compare_to: refs/heads/main`, D61).
 
 Repository settings a human has to make once:
 

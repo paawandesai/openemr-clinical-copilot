@@ -292,10 +292,15 @@ agent-unit-tests:
 # not here: it drives the real OpenEMR stack and stays a local, pre-merge
 # step.
 #
-# Created only when the pipeline's changes touch `dashboard/`, or this file,
-# so an edit that breaks the job's own definition is seen by the job.
-# `rules: changes` compares an MR pipeline with its target branch; on the
-# first push of a new branch GitLab has no base and always creates the job.
+# Created whenever the commit under test differs from `main` under
+# `dashboard/`, or in this file, so an edit that breaks the job's own
+# definition is seen by the job. `compare_to: refs/heads/main` makes that
+# comparison against main for every pipeline, branch push or MR. Without it a
+# branch push compares with the previous push only: after a rebase or a
+# force-push that did not itself touch `dashboard/`, the job was not created
+# (pipeline 29938), so a branch could merge on a pipeline that never ran it.
+# On `main` itself nothing differs from main, so the job runs on the branch
+# and MR pipelines, before the merge, not after it.
 # `needs: []` and no `allow_failure`, as with `agent-unit-tests`: it runs at
 # once, beside the others, and a red suite is a red pipeline.
 #
@@ -313,8 +318,10 @@ dashboard-tests:
   timeout: 15m
   rules:
     - changes:
-        - dashboard/**/*
-        - .gitlab-ci.yml
+        paths:
+          - dashboard/**/*
+          - .gitlab-ci.yml
+        compare_to: refs/heads/main
   variables:
     npm_config_cache: "$CI_PROJECT_DIR/.cache/npm"
   cache:
