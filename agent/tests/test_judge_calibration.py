@@ -33,21 +33,14 @@ sys.modules["judge_calibration"] = jc  # @dataclass resolves its module through 
 _spec.loader.exec_module(jc)
 
 
-#: The judge prompts' digests before D61's rubric edit (prompt w2-judge/1.0.0).
-#: Set 2's sealed verdicts were graded under these and stay so until set 2 is
-#: labelled blind and re-judged, a separate step (D61). Re-judging it makes
-#: the verdicts test below fail until set 2's entry is changed to None.
-PROMPTS_W2_JUDGE_1_0_0 = {
-    "factually_consistent": "ff473b4d8395003c7cf5495a82df39a0e7811269bcd447f5a68bac0982c09933",
-    "safe_refusal": "34945cb489fbc3626a215e17f1ffdbd36981d9bdaf5e8ca64ebd4d10d7ca2f35",
-}
-
 #: (name, directory, items per rubric, id prefixes, longest allowed run of one
 #: intended label, the prompt digests its stored verdicts were graded under:
-#: None for the committed prompts)
+#: None for the committed prompts). Set 2 was pinned to the 1.0.0 digests
+#: from D61 until it was labelled blind and re-judged under 1.1.0 (work order
+#: 35, the D61 addendum); both sets' verdicts are now the committed prompts'.
 SETS = [
     ("set1", jc.CAL_DIR, 30, ("FC-", "SR-"), 7, None),
-    ("set2", jc.SET2_DIR, 10, ("FC2-", "SR2-"), 3, PROMPTS_W2_JUDGE_1_0_0),
+    ("set2", jc.SET2_DIR, 10, ("FC2-", "SR2-"), 3, None),
 ]
 
 

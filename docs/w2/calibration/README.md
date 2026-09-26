@@ -19,9 +19,11 @@ measurement. The method is D57 in [`../DECISIONS.md`](../DECISIONS.md).
 - **The judge prompts changed (D61).** The audit's proposed wording was
   applied, amended where re-judging set 1 showed it did not hold, as
   `w2-judge/1.1.0`. Set 1 was re-judged under it, and both labelling pages
-  now show it. Set 2's sealed verdicts are still the 1.0.0 run, and set 2
-  must be re-judged after it is labelled. See
-  [D61](#d61-the-wording-applied-and-set-1-re-judged).
+  now show it. See [D61](#d61-the-wording-applied-and-set-1-re-judged).
+- **Set 2 was labelled blind and re-judged under 1.1.0** (work order 35,
+  recorded as an addendum to D61 in `../DECISIONS.md`). Its sealed verdicts
+  are now the 1.1.0 run, and the 1.0.0 run is kept beside them. See
+  [Set 2](#set-2-a-fresh-blind-set).
 
 ## What is here
 
@@ -35,7 +37,8 @@ measurement. The method is D57 in [`../DECISIONS.md`](../DECISIONS.md).
 | `rubric-audit-labels.json` | Set 1's audit labels: LLM drafts, confirmed in bulk, marked `"independent": false`. `label` and `note` belong to the reviewer. `draft_label`, `draft_confidence` and `draft_reasoning` belong to the drafter, and `compute` does not read them. Provenance is under `method`. | **No.** It holds labels. |
 | `rubric-audit-report.txt`, `rubric-audit-report.json` | `compute` output for those labels. Because of `"independent": false`, it is headed "Rubric audit (labels not independent): NOT a judge calibration". | **No.** It prints the judge's verdicts. |
 | `set2/label.html` | Set 2's labelling page: 20 new items, the same page. | **Yes, for set 2.** |
-| `set2/sealed/items.json`, `set2/sealed/judge_verdicts.json` | Set 2's items and the judge's verdicts (under prompt 1.0.0; see D61). | **No.** |
+| `set2/sealed/items.json`, `set2/sealed/judge_verdicts.json` | Set 2's items and the judge's verdicts under prompt 1.1.0 (work order 35). | **No.** |
+| `set2/sealed/judge_verdicts.w2-judge-1.0.0.json` | Set 2's verdicts under the 1.0.0 prompts, the run D61 left sealed. | **No.** |
 | `sealed/judge_verdicts.w2-judge-1.0.0.json` | Set 1's verdicts under the 1.0.0 prompts, which the rubric audit was computed from. | **No.** |
 | `rubric-audit-report-d61.txt`, `rubric-audit-report-d61.json` | The audit labels against the 1.1.0 verdicts (`compute --accept-rubric-change`). | **No.** |
 | `d61/` | D61's record: the round with the audit's wording verbatim (its prompt and verdicts), and the category-M stability runs. | **No.** |
@@ -64,9 +67,12 @@ a rubric audit. Everything below applies to either page.
    Add a note when you choose FAIL or UNSURE: one line on why is enough. Your
    notes are printed next to every disagreement in phase 2.
 4. Keys: `P`, `F`, `U` to label, `←` `→` to move. Keys do nothing while you
-   are typing a note. **Next unlabelled** jumps to the next gap. The grid at
-   the top marks the items you have labelled with ✓. It does not show which
-   label you gave.
+   are typing a note. A key held down acts once: the page ignores key
+   auto-repeat, so a held arrow cannot carry you past items unseen (it did,
+   for two set 2 items, before this was fixed). **Next unlabelled** jumps to
+   the next gap. The grid at the top marks the items you have labelled with
+   ✓. It does not show which label you gave. The progress line names up to
+   six unlabelled items, and the download prompt names them all.
 5. Click **Download labels**. You get
    `judge-calibration-labels-<name>.json`. Send me that file.
 
@@ -409,14 +415,19 @@ label (D46, D48). All eight were re-measured under 1.1.0 with
 `set2/sealed/`.
 
 **After D61:** `set2/label.html` shows the `w2-judge/1.1.0` rubric, the one
-the gate now runs. `set2/sealed/judge_verdicts.json` is still the 1.0.0 run,
-untouched. Once set 2 is labelled, re-judge it
-(`--set-dir ../docs/w2/calibration/set2 judge`, about $0.08) before running
-`compute`. Its labels and those verdicts will then share a prompt, and no
-`--accept-rubric-change` is needed. The page keeps progress by item set, not
-by prompt. So labelling started on the old page, before D61, would continue
-on the new one with a mix of both rubrics. If that happened, clear the
-page's saved progress and start again.
+the gate now runs. The page keeps progress by item set, not by prompt. So
+labelling started on the old page, before D61, would continue on the new one
+with a mix of both rubrics. If that happened, clear the page's saved
+progress and start again.
+
+**Work order 35 (the D61 addendum):** set 2 was labelled blind against the
+1.1.0 page, then re-judged under 1.1.0 (`--set-dir ../docs/w2/calibration/set2
+judge`: 60 calls, 0 cache hits, 57,195 input and 6,814 output tokens,
+**$0.0913**). `set2/sealed/judge_verdicts.json` is that run; the 1.0.0 run
+D61 left sealed is kept as `set2/sealed/judge_verdicts.w2-judge-1.0.0.json`.
+The labels and the verdicts share a prompt, so `compute` needs no
+`--accept-rubric-change`. The result is in the D61 addendum in
+`../DECISIONS.md`.
 
 **What it is:**
 
@@ -430,8 +441,10 @@ page's saved progress and start again.
   - the same blindness tests, which now run on both sets;
   - the gate's unchanged judge (pinned model, best-of-3, 2-of-3 majority,
     fresh cache).
-- **The judge run.** 60 calls, 0 cache hits, 41,835 input and 6,732 output
-  tokens: **$0.0755**. The verdicts are in `set2/sealed/judge_verdicts.json`.
+- **The first judge run, under 1.0.0.** 60 calls, 0 cache hits, 41,835 input
+  and 6,732 output tokens: **$0.0755**. Kept as
+  `set2/sealed/judge_verdicts.w2-judge-1.0.0.json`; the 1.1.0 run above
+  replaced it as `set2/sealed/judge_verdicts.json`.
 
 **Who has seen what:**
 
