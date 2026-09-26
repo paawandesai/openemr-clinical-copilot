@@ -301,6 +301,68 @@ reads), which this change does not scope.
 
 Cost of these runs: before $3.97 (6 runs), after $1.28 (10 runs).
 
+## 8. The live host, `main@d61f739`: conversation turn, real LLM, 10 users
+
+**Setup:**
+
+- **Target:** the deployed agent on `64.177.42.210` (4 vCPU, 7.2 GiB),
+  reached through its Caddy proxy on `:8443`, as the chart card reaches it.
+- **Build:** `main@d61f739`, with drafting thinking **disabled**
+  (D-unassigned, answer-step thinking). The model is real, with no stub.
+- **Load:** k6 `k6-ask.js` from the operator's laptop: 10 VUs for 3 min on
+  the conversation route. The question was "What medications is the patient
+  on?", for patient `a2c373ec-…` (pid 38), with a new session every
+  iteration.
+- **Token:** from a temporary password-grant client, deleted afterwards
+  with its tokens.
+- **Resources:** `docker stats` every 5 s.
+- **Stop rule:** a watchdog stops k6 if the agent passes 80% of its 4,608
+  MiB cap (3,686 MiB). It did not trip.
+- **When:** 2026-09-26 21:18:38–21:21:53 UTC.
+- **Raw files:** `evidence/load/host-d61f739-10vu/`, holding
+  `k6-summary.json`, `k6.txt`, `resources.csv` and the runner,
+  `load-run.sh`.
+
+| Users | Requests | Error rate | p50 | p95 | p99 | Max | Throughput |
+|---|---|---|---|---|---|---|---|
+| 10 | 125 | **0.00%** (125/125 were 200) | 13.25 s | 19.47 s | 23.58 s | 23.68 s | 0.64 req/s |
+
+**By step, from the response body:**
+
+| Step | p50 | p95 |
+|---|---|---|
+| `draft` (the model) | 12.00 s | 18.52 s |
+| `retrieve` | 0.94 s | 2.82 s |
+| `verify` | 0.01 s | 0.02 s |
+
+**The model is about 90% of the wait.**
+
+**Resources, peak over 28 samples:**
+
+| Container | Memory | CPU |
+|---|---|---|
+| Agent | **818 MiB** (794 at rest; **18% of its cap**) | 35% |
+| OpenEMR | 675 MiB | 281% |
+| MariaDB | 231 MiB | — |
+
+Memory stayed flat through the run: this route does no rerank and no OCR,
+which are the memory drivers D39 names.
+
+**Against §2** (the local stack, the same route and question, 10 users): p95
+is 19.5 s here against 6.4 s there, and a turn costs $0.089 against $0.030.
+
+- **Not like for like.** §2 ran another patient (`a2c36e54-…`) on another
+  host, so this is not a build-against-build comparison.
+- **The input is much larger.** Here a turn reads about 9.7k input tokens,
+  against 4,250 tokens in all for §2's turn, and writes a median of 1,431
+  output tokens.
+- **Thinking was disabled on every call**, so thinking is not the
+  difference.
+
+**Cost: 125 model calls; 1,217,125 input and 201,969 output tokens; $11.13**
+at $5 / $25 per MTok. That was over the $6–8 estimated before the run,
+because the estimate used §2's per-turn cost.
+
 ## Where the new bottleneck is
 
 | Path | Bottleneck | Evidence |
@@ -333,6 +395,7 @@ the module docstring says it does not.
 | §2, real-LLM conversation run | 100 turns | $2.99 |
 | §4b, vision sample | 3 | $0.35 |
 | API collection runs | 3 runs, 5 calls (the brief was stubbed in one run) | $0.38 ($0.150 + $0.087 + $0.145, from the logs) |
+| §8, live host, 10 users, `main@d61f739` | 125 turns | $11.13 (from the host's `llm_usage_event`s) |
 
 ## Not measured
 
