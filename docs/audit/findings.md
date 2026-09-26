@@ -3077,6 +3077,51 @@ Pass-2 droplet database commands were run as
   `site_addr_oath` must be set to the public origin at deploy time, or the
   co-pilot must be configured with explicit endpoints and must validate `iss`
   against a configured value rather than the discovered one.
+- **Outcome, 2026-09-25 (`64.177.42.210`): fixed on the host;
+  `site_addr_oath` is now `https://64.177.42.210:9300`.**
+  - **What forced it.** The patient dashboard (WO31, D59) was the first
+    browser-driven OAuth client on the host. Its BFF already sends the
+    browser to the public `authorize` URL (`OPENEMR_BROWSER_OAUTH_BASE`). A
+    traced sign-in showed where the flow broke: OpenEMR's own
+    `POST /oauth2/default/login` answered `307 Location:
+    https://localhost:9300/oauth2/default/scope-authorize-confirm`. OpenEMR
+    builds that redirect from `site_addr_oath` on the server, so no
+    client-side rewrite can reach it. The chart card never met this: its
+    broker runs the flow server-side over loopback (`ClinicianTokenBroker`).
+  - **The change.**
+    - The `globals` row, backed up in `/root/dashboard-deploy-20260925/`.
+      That row is what OpenEMR reads at runtime. The image applies
+      `OPENEMR_SETTING_*` only at first install: the container log has one
+      `Set site_addr_oath` line, from 2026-09-16 setup. At runtime
+      `interface/globals.php` reads only `http_verify_ssl` and `http_ca_cert`
+      from the environment.
+    - A host-only `docker/development-easy/docker-compose.override.yml`
+      setting `OPENEMR_SETTING_site_addr_oath` to the same value, so a
+      from-scratch install matches. The OpenEMR container was not recreated.
+    - The dashboard BFF's `OPENEMR_ISSUER` and `OPENEMR_FHIR_AUDIENCE`,
+      switched to the public values.
+    - Nothing in the agent: its upload guard reads the token's `aud` as the
+      OAuth client id (a rate-limit key) and checks no issuer or audience.
+  - **Verified after the change.**
+    - Discovery advertises the public issuer, authorize endpoint and FHIR
+      URL.
+    - The dashboard's full sign-in (login, consent, callback) works as
+      `physician`. Every card and Lab Results render for pid 38 and pid 31.
+      No CSP violations; `/fhir/Encounter` is 403 and `POST /fhir/Patient`
+      is 405.
+    - The chart card works on both patients: brief 200 and ask 200.
+    - A lab upload with write-back went through the card on pid 38: order
+      8200, 21 results, `received`, listed under Pending Review. It was then
+      removed by its ledger rows (`DEPLOY.md` §7.4), with its stored file.
+      Order 8199 stays.
+    - Evidence: `docs/w2/evidence/dashboard-deploy-2026-09-25/`.
+  - **Residual.**
+    - With a non-loopback `site_addr_oath`, OpenEMR verifies TLS on any call
+      it makes to itself (`interface/globals.php`). The certificate is
+      self-signed `CN=localhost`. No such call was found in the flows used,
+      and every one of them was re-verified.
+    - The local development stack keeps `https://localhost:9300`, which is
+      correct there.
 
 ### F-50 — ACL layer: section-level phpGACL behind a static facade, with an implicit session dependency and no patient scoping
 - **Category:** Architecture

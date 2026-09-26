@@ -112,6 +112,9 @@ services:
       # agent from outside. IPv4 only. Every data-bearing request still
       # needs a clinician token OpenEMR accepts. See deployment.md.
       - "0.0.0.0:8443:8443"
+      # The patient dashboard's origin (WO31, D59), served by the BFF on this
+      # network. Same TLS, same exposure rules; also opened in ufw.
+      - "0.0.0.0:8444:8444"
     environment:
       AGENT_PUBLIC_HOST: ${AGENT_PUBLIC_HOST:?set AGENT_PUBLIC_HOST (the address clients use) in the env file (see .env.example)}
     volumes:
