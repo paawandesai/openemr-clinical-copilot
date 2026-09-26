@@ -15,6 +15,7 @@ declare(strict_types=1);
 namespace OpenEMR\Modules\ClinicalCopilot\Tests\Fakes;
 
 use OpenEMR\Modules\ClinicalCopilot\WriteBack\DocumentStorage;
+use OpenEMR\Modules\ClinicalCopilot\WriteBack\InvalidWriteBackRequest;
 use OpenEMR\Modules\ClinicalCopilot\WriteBack\StoredDocument;
 use OpenEMR\Modules\ClinicalCopilot\WriteBack\WriteOutcome;
 
@@ -27,13 +28,26 @@ final class RecordingDocumentStorage implements DocumentStorage
 
     public int $stored = 0;
 
-    public function __construct(public ?int $existingIdForHash = null)
-    {
+    /**
+     * @param array<string, int> $categories Category path => id; a path not
+     *     listed does not exist on this instance.
+     */
+    public function __construct(
+        public ?int $existingIdForHash = null,
+        private array $categories = [
+            '/Categories/Lab_Report' => 2,
+            '/Categories/Medical_Record' => 3,
+            '/Categories/Quarantine_-_Patient_Mismatch' => 34,
+        ],
+    ) {
     }
 
     public function resolveCategoryId(string $categoryPath): int
     {
-        return 2;
+        if (!isset($this->categories[$categoryPath])) {
+            throw new InvalidWriteBackRequest('document.category_path', 'names a document category that exists on this instance');
+        }
+        return $this->categories[$categoryPath];
     }
 
     public function findByHash(int $pid, int $categoryId, string $sha3512): ?int

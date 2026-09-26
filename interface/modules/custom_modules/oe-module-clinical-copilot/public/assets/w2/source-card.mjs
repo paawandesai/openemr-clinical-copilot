@@ -21,7 +21,13 @@
 import {renderAnswerView} from './answer-view.mjs';
 import {createAskControl, moduleAskSource, patientBar, statusLabel} from './ask.mjs';
 import {createDocumentViewer, moduleDocumentSource} from './document-viewer.mjs';
-import {createUploadControl, moduleUploadSource} from './upload.mjs';
+import {
+    createUploadControl,
+    isUsable,
+    moduleReconcileSource,
+    moduleUploadSource,
+    reconcileMessage,
+} from './upload.mjs';
 
 /**
  * Mount the card.
@@ -34,6 +40,8 @@ import {createUploadControl, moduleUploadSource} from './upload.mjs';
  * @param {object} options.documentSource A `DocumentSource`.
  * @param {object} [options.uploadSource] An upload adapter; omit to hide the control.
  * @param {object} [options.askSource] A question adapter; omit to hide the question box.
+ * @param {object} [options.reconcileSource] Called once on mount to quarantine
+ *     wrong-patient copies the status poll never saw finish (D60); omit to skip.
  * @param {number} [options.questionMaxLength]
  * @param {number} [options.maxDocuments] How many documents one question may name.
  * @param {object} [options.strings] Translated labels.
@@ -48,6 +56,7 @@ export function mountSourceCard(
         documentSource,
         uploadSource = null,
         askSource = null,
+        reconcileSource = null,
         questionMaxLength = 500,
         maxDocuments = 4,
         strings = {},
@@ -62,7 +71,8 @@ export function mountSourceCard(
 
     // Documents uploaded on this page whose extraction completed, newest
     // last. A question names at most `maxDocuments` of them (the agent's
-    // MAX_DOCUMENTS_PER_TURN); a failed extraction is never included.
+    // MAX_DOCUMENTS_PER_TURN); a failed extraction is never included, and
+    // neither is one quarantined as another patient's (D60).
     const ready = [];
     let ask = null;
 
@@ -83,7 +93,7 @@ export function mountSourceCard(
                   // card shows next is asked for afterwards, through the
                   // question box — this control does not itself ask one.
                   onComplete: (payload) => {
-                      if (payload.extraction_status !== 'complete' || typeof payload.document_id !== 'string') {
+                      if (!isUsable(payload) || typeof payload.document_id !== 'string') {
                           return;
                       }
                       const at = ready.indexOf(payload.document_id);
@@ -158,7 +168,26 @@ export function mountSourceCard(
         });
     }
 
-    return {show, showAnswer, viewer, upload, ask, get view() { return current; }};
+    // D60: bring the chart's quarantine up to date. Fire and forget: a
+    // failure says nothing about the chart and is not shown.
+    const reconciled =
+        reconcileSource && uploadSlot
+            ? reconcileSource
+                  .reconcile()
+                  .then((result) => {
+                      const message = reconcileMessage(result, strings);
+                      if (message) {
+                          const note = node('p', 'ccw2-reconcile-note', message.text);
+                          note.setAttribute('role', 'status');
+                          note.classList.toggle('ccw2-upload-status--error', message.isError);
+                          uploadSlot.prepend(note);
+                      }
+                      return result;
+                  })
+                  .catch(() => null)
+            : Promise.resolve(null);
+
+    return {show, showAnswer, viewer, upload, ask, reconciled, get view() { return current; }};
 }
 
 function node(tag, className, text) {
@@ -177,6 +206,7 @@ function node(tag, className, text) {
  *   data-document-endpoint   GET ...?document_id=<id> -> application/pdf
  *   data-upload-endpoint     POST multipart
  *   data-status-endpoint     GET ...?document_id=...
+ *   data-reconcile-endpoint  POST form, once on load (D60)
  *   data-ask-endpoint        POST form (question, conversation, document_ids[])
  *   data-pid                 the open patient
  *   data-csrf-token          OpenEMR's per-session token
@@ -203,6 +233,9 @@ export function mountFromDataset(root, pdfjs, strings = {}) {
               })
             : null,
         askSource: data.askEndpoint ? moduleAskSource({endpoint: data.askEndpoint, fields}) : null,
+        reconcileSource: data.reconcileEndpoint
+            ? moduleReconcileSource({endpoint: data.reconcileEndpoint, fields})
+            : null,
         questionMaxLength: Number(data.questionMaxLength) || 500,
         maxDocuments: Number(data.maxDocuments) || 4,
         strings,

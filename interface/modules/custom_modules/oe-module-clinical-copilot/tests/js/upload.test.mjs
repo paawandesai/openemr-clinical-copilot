@@ -19,8 +19,12 @@ import {
     DOCUMENT_KINDS,
     EXTRACTION_STATUSES,
     MAX_BYTES,
+    describeStatus,
+    isIdentityMismatch,
     isTerminal,
+    isUsable,
     pollDelay,
+    reconcileMessage,
     rejectFile,
 } from '../../public/assets/w2/upload.mjs';
 
@@ -118,5 +122,67 @@ describe('rejectFile', () => {
         // wrong shape, which is worse than refusing.
         assert.equal(rejectFile(file('intake-form.pdf', 'application/pdf', 10)), null);
         assert.equal(rejectFile(file('lab-results.pdf', 'application/pdf', 10)), null);
+    });
+});
+
+describe('a document for another patient — D60', () => {
+    const complete = {extraction_status: 'complete', document_id: 'd'.repeat(128), correlation_id: 'c-1'};
+
+    it('is never usable in a question, and a confirmed or unknown one is', () => {
+        assert.ok(isIdentityMismatch({...complete, identity_check: 'mismatch'}));
+        assert.ok(!isUsable({...complete, identity_check: 'mismatch'}));
+        assert.ok(isUsable({...complete, identity_check: 'confirmed'}));
+        assert.ok(isUsable({...complete, identity_check: 'not_confirmed'}));
+        // An older module that sends no verdict: as before D60.
+        assert.ok(isUsable(complete));
+        assert.ok(!isUsable({extraction_status: 'failed', failure_reason: 'timed_out'}));
+    });
+
+    it('says it was not used, and where it went', () => {
+        const text = describeStatus({...complete, identity_check: 'mismatch', quarantine: 'quarantined'});
+        assert.match(text, /^Extraction complete — Not used: the name or date of birth/);
+        assert.match(text, /Quarantine - Patient Mismatch/);
+        assert.match(text, /not deleted/);
+    });
+
+    it('never implies it was set aside when the move failed or was not reported', () => {
+        for (const quarantine of ['failed', undefined, 'something-new']) {
+            const text = describeStatus({...complete, identity_check: 'mismatch', quarantine});
+            assert.match(text, /could NOT be moved to quarantine/, String(quarantine));
+        }
+    });
+
+    it('says nothing about identity for a document that matched', () => {
+        const text = describeStatus({...complete, identity_check: 'confirmed'});
+        assert.equal(text, 'Extraction complete (Reference: c-1)');
+    });
+});
+
+describe('an interrupted extraction — D60', () => {
+    it('tells the reader to upload again', () => {
+        const text = describeStatus({extraction_status: 'failed', failure_reason: 'interrupted'});
+        assert.match(text, /restarted before it finished; upload the file again/);
+    });
+});
+
+describe('reconciling on card load — D60', () => {
+    it('says nothing when nothing was moved and nothing failed', () => {
+        assert.equal(reconcileMessage({checked: 3, quarantined: 0, failed: 0}), null);
+        assert.equal(reconcileMessage(null), null);
+    });
+
+    it('says how many documents were moved, and that none was deleted', () => {
+        const one = reconcileMessage({quarantined: 1, failed: 0});
+        assert.match(one.text, /^1 document on this chart was moved to the “Quarantine - Patient Mismatch” category/);
+        assert.match(one.text, /It was not deleted\.$/);
+        assert.equal(one.isError, false);
+        const three = reconcileMessage({quarantined: 3, failed: 0});
+        assert.match(three.text, /^3 documents on this chart were moved/);
+    });
+
+    it('says so, as an error, when a mismatched document could not be moved', () => {
+        const message = reconcileMessage({quarantined: 0, failed: 1});
+        assert.match(message.text, /could NOT be moved to quarantine/);
+        assert.equal(message.isError, true);
     });
 });

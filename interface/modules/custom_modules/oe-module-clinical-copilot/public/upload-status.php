@@ -13,9 +13,19 @@
  * status, not the record. The upload that started the job and the question
  * that reads its results are each logged.
  *
+ * QUARANTINE (D60). The poll is where the card learns the extraction ended,
+ * so it is where a wrong-patient document is dealt with: when the agent
+ * reports `identity_check: mismatch`, the chart copy is moved to the
+ * "Quarantine - Patient Mismatch" category with a note saying why
+ * (ChartDocuments::quarantine), and that move — the one write this route can
+ * make — is audited. It needs the documents ACL at write level, as the
+ * upload did; a poll without it reports `failed` and moves nothing. The move
+ * is keyed on the digest, so later polls change nothing.
+ *
  * Request (query): pid, csrf_token_form, correlation_id, document_id.
  * Response: {"status": "ok", document_id, kind, extraction_status,
- *   extraction_id, failure_reason, correlation_id}, or the error envelope.
+ *   extraction_id, failure_reason, correlation_id, identity_check,
+ *   quarantine}, or the error envelope.
  *
  * @package   OpenEMR
  * @link      https://www.open-emr.org
@@ -32,6 +42,7 @@ require_once dirname(__DIR__, 4) . '/globals.php';
 use OpenEMR\BC\ServiceContainer;
 use OpenEMR\Common\Acl\AclMain;
 use OpenEMR\Common\Csrf\CsrfUtils;
+use OpenEMR\Common\Logging\EventAuditLogger;
 use OpenEMR\Common\Session\SessionWrapperFactory;
 use OpenEMR\Core\OEGlobalsBag;
 use OpenEMR\Modules\ClinicalCopilot\Bootstrap;
@@ -45,6 +56,11 @@ use OpenEMR\Modules\ClinicalCopilot\ModuleNotConfigured;
 use OpenEMR\Modules\ClinicalCopilot\OpenPatient;
 use OpenEMR\Modules\ClinicalCopilot\W2\AgentDocumentId;
 use OpenEMR\Modules\ClinicalCopilot\W2\CardServices;
+use OpenEMR\Modules\ClinicalCopilot\W2\ChartDocuments;
+use OpenEMR\Modules\ClinicalCopilot\W2\QuarantineOutcome;
+use OpenEMR\Modules\ClinicalCopilot\W2\QueryUtilsChartDocumentIndex;
+use OpenEMR\Modules\ClinicalCopilot\WriteBack\DocumentStore;
+use OpenEMR\Services\DocumentService;
 use OpenEMR\Services\PatientService;
 use Symfony\Component\HttpFoundation\Request;
 
@@ -116,4 +132,31 @@ try {
     $fail($e->failure, $e->correlationId ?? $trace);
 }
 
-$respond(200, $state->toStatusPayload());
+$quarantine = null;
+if ($state->isIdentityMismatch()) {
+    if (!AclMain::aclCheckCore(Bootstrap::DOCUMENTS_ACL[0], Bootstrap::DOCUMENTS_ACL[1], '', ['write', 'addonly'])) {
+        $quarantine = QuarantineOutcome::Failed;
+    } else {
+        $owner = filter_var($session->get('authUserID'), FILTER_VALIDATE_INT);
+        $result = (new ChartDocuments(
+            new DocumentStore(new DocumentService(), $globals, $logger),
+            new QueryUtilsChartDocumentIndex(),
+            $logger,
+        ))->quarantine($chart->pid, $document, $trace, $owner === false ? 0 : $owner);
+        $quarantine = $result->outcome;
+        if ($result->moved) {
+            // The co-pilot's own access record (AUDIT.md F-52): identifiers only.
+            EventAuditLogger::getInstance()->newEvent(
+                'patient-record',
+                $session->get('authUser'),
+                $session->get('authProvider'),
+                1,
+                'Clinical Co-Pilot document quarantined: identity mismatch (documents.id ' . $result->documentId
+                    . ', document ' . substr($document->value, 0, 16) . ', correlation_id ' . $trace . ')',
+                $chart->pid,
+            );
+        }
+    }
+}
+
+$respond(200, $state->toStatusPayload($quarantine));

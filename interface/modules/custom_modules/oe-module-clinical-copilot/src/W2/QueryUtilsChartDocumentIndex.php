@@ -61,4 +61,65 @@ final class QueryUtilsChartDocumentIndex implements ChartDocumentIndex
         );
         return is_array($row) && isset($row['id']);
     }
+
+    public function isInCategory(int $documentId, int $categoryId): bool
+    {
+        $row = QueryUtils::querySingleRow(
+            'SELECT `document_id` FROM `categories_to_documents` WHERE `document_id` = ? AND `category_id` = ? LIMIT 1',
+            [$documentId, $categoryId]
+        );
+        return is_array($row) && isset($row['document_id']);
+    }
+
+    public function moveToCategory(int $documentId, int $categoryId): void
+    {
+        // Into the new category first, then out of every other: at no point
+        // is the document in no category, which would hide it from the tree.
+        // Document::createDocument() files with the same REPLACE.
+        QueryUtils::sqlStatementThrowException(
+            'REPLACE INTO `categories_to_documents` SET `category_id` = ?, `document_id` = ?',
+            [$categoryId, $documentId]
+        );
+        QueryUtils::sqlStatementThrowException(
+            'DELETE FROM `categories_to_documents` WHERE `document_id` = ? AND `category_id` <> ?',
+            [$documentId, $categoryId]
+        );
+    }
+
+    public function addNote(int $documentId, int $ownerId, string $note): void
+    {
+        // OpenEMR's own document note, as the Documents screen adds one.
+        $record = new \Note();
+        $record->set_foreign_id($documentId);
+        $record->set_owner($ownerId);
+        $record->set_date(date('Y-m-d H:i:s'));
+        $record->set_note($note);
+        $record->persist();
+    }
+
+    public function filedNotIn(int $pid, array $categoryIds, int $exceptCategoryId, int $limit): array
+    {
+        if ($categoryIds === [] || $limit < 1) {
+            return [];
+        }
+        $placeholders = implode(', ', array_fill(0, count($categoryIds), '?'));
+        $rows = QueryUtils::fetchRecords(
+            'SELECT DISTINCT d.`id`, d.`hash` FROM `documents` d'
+            . ' JOIN `categories_to_documents` ctd ON ctd.`document_id` = d.`id`'
+            . ' WHERE d.`foreign_id` = ? AND d.`deleted` = 0'
+            . ' AND ctd.`category_id` IN (' . $placeholders . ')'
+            . ' AND NOT EXISTS (SELECT 1 FROM `categories_to_documents` q'
+            . ' WHERE q.`document_id` = d.`id` AND q.`category_id` = ?)'
+            // An int the caller controls, not input: LIMIT takes no bound string.
+            . ' ORDER BY d.`id` DESC LIMIT ' . $limit,
+            array_merge([$pid], $categoryIds, [$exceptCategoryId])
+        );
+        $documents = [];
+        foreach ($rows as $row) {
+            if (isset($row['hash']) && is_string($row['hash'])) {
+                $documents[] = ['id' => Row::int($row, 'id'), 'hash' => strtolower($row['hash'])];
+            }
+        }
+        return $documents;
+    }
 }

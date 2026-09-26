@@ -30,6 +30,7 @@ use OpenEMR\Modules\ClinicalCopilot\OpenPatient;
 use OpenEMR\Modules\ClinicalCopilot\PatientUuid;
 use OpenEMR\Modules\ClinicalCopilot\W2\AgentDocumentId;
 use OpenEMR\Modules\ClinicalCopilot\W2\DocumentKind;
+use OpenEMR\Modules\ClinicalCopilot\W2\QuarantineOutcome;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use Psr\Log\NullLogger;
@@ -77,6 +78,9 @@ final class AgentClientW2Test extends TestCase
             'extraction_status' => 'pending',
             'byte_length' => strlen(self::PDF),
             'correlation_id' => self::TRACE,
+            // D60: no verdict before the extraction completes, so nothing to quarantine.
+            'identity_check' => null,
+            'quarantine' => null,
         ], $state->toUploadPayload());
     }
 
@@ -154,7 +158,50 @@ final class AgentClientW2Test extends TestCase
             'extraction_id' => 'w2x-0123456789abcdef0123456789abcdef',
             'failure_reason' => null,
             'correlation_id' => self::TRACE,
+            'identity_check' => null,
+            'quarantine' => null,
         ], $state->toStatusPayload());
+        $this->assertFalse($state->isIdentityMismatch());
+    }
+
+    public function testAMismatchIsReportedAndCarriesTheQuarantineOutcomeToTheCard(): void
+    {
+        $document = new AgentDocumentId(hash('sha3-512', self::PDF));
+        $http = new MockHttpClient(self::json(200, [
+            'document_id' => $document->value,
+            'kind' => 'lab_pdf',
+            'status' => 'complete',
+            'extraction_id' => 'w2x-0123456789abcdef0123456789abcdef',
+            'failure_reason' => null,
+            'correlation_id' => self::TRACE,
+            'identity_check' => 'mismatch',
+        ]));
+
+        $state = self::client($http)->extractionState(self::token(), self::patient(), $document);
+
+        $this->assertTrue($state->isIdentityMismatch());
+        $payload = $state->toStatusPayload(QuarantineOutcome::Quarantined);
+        $this->assertSame('mismatch', $payload['identity_check']);
+        $this->assertSame('quarantined', $payload['quarantine']);
+    }
+
+    public function testAnInterruptedExtractionIsAFailureReasonTheModuleAccepts(): void
+    {
+        $document = new AgentDocumentId(hash('sha3-512', self::PDF));
+        $http = new MockHttpClient(self::json(200, [
+            'document_id' => $document->value,
+            'kind' => 'lab_pdf',
+            'status' => 'failed',
+            'extraction_id' => null,
+            'failure_reason' => 'interrupted',
+            'correlation_id' => self::TRACE,
+            'identity_check' => null,
+        ]));
+
+        $state = self::client($http)->extractionState(self::token(), self::patient(), $document);
+
+        $this->assertSame('interrupted', $state->toStatusPayload()['failure_reason']);
+        $this->assertFalse($state->isIdentityMismatch());
     }
 
     public function testAnUnknownOrOtherChartsDocumentIsExtractionNotFound(): void
@@ -195,6 +242,9 @@ final class AgentClientW2Test extends TestCase
             'a failure reason while pending' => [['status' => 'pending', 'extraction_id' => null, 'failure_reason' => 'timed_out']],
             'an unknown failure reason' => [['status' => 'failed', 'extraction_id' => null, 'failure_reason' => 'because']],
             'an unknown status' => [['status' => 'queued', 'extraction_id' => null, 'failure_reason' => null]],
+            'an identity check before complete' => [['status' => 'in_progress', 'extraction_id' => null, 'failure_reason' => null, 'identity_check' => 'mismatch']],
+            'an identity check on a failure' => [['status' => 'failed', 'extraction_id' => null, 'failure_reason' => 'timed_out', 'identity_check' => 'confirmed']],
+            'an unknown identity check' => [['status' => 'complete', 'extraction_id' => 'w2x-0123456789abcdef0123456789abcdef', 'failure_reason' => null, 'identity_check' => 'probably']],
         ];
     }
 

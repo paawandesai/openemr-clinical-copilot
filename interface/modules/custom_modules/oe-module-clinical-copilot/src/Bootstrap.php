@@ -235,6 +235,9 @@ final readonly class Bootstrap
                 'documentEndpoint' => $moduleUrl . '/public/document.php',
                 'uploadEndpoint' => $moduleUrl . '/public/upload.php',
                 'statusEndpoint' => $moduleUrl . '/public/upload-status.php',
+                // D60: quarantines, on card load, a wrong-patient copy the
+                // status poll never saw finish (public/reconcile.php).
+                'reconcileEndpoint' => $moduleUrl . '/public/reconcile.php',
                 'askEndpoint' => $moduleUrl . '/public/ask.php',
                 'questionMaxLength' => FollowUpQuestion::MAX_LENGTH,
                 'maxDocuments' => AskAnswer::MAX_DOCUMENTS,

@@ -33,6 +33,7 @@
          data-document-endpoint="{{ documentEndpoint|attr }}"
          data-upload-endpoint="{{ uploadEndpoint|attr }}"
          data-status-endpoint="{{ statusEndpoint|attr }}"
+         data-reconcile-endpoint="{{ reconcileEndpoint|attr }}"
          data-ask-endpoint="{{ askEndpoint|attr }}"
          data-correlation-id="{{ correlationId|attr }}"
          data-question-max-length="{{ questionMaxLength|attr }}"
@@ -151,6 +152,14 @@
             failureVisionCallFailed: {{ "the extraction model could not be reached"|xlj }},
             failureNoFieldsLocated: {{ "nothing read from the file could be found on its pages"|xlj }},
             failureInternalError: {{ "the extractor failed unexpectedly"|xlj }},
+            failureInterrupted: {{ "the co-pilot restarted before it finished; upload the file again"|xlj }},
+            identityMismatch: {{ "Not used: the name or date of birth printed on this document does not match this chart. Nothing from it is stated or written to the chart."|xlj }},
+            quarantineQuarantined: {{ "It was moved to the “Quarantine - Patient Mismatch” category of this chart's Documents, with a note; it was not deleted."|xlj }},
+            quarantineNotOnChart: {{ "No copy of it is filed on this chart."|xlj }},
+            quarantineFailed: {{ "It could NOT be moved to quarantine and is still filed as a normal document: move it by hand."|xlj }},
+            reconciledOne: {{ "1 document on this chart was moved to the “Quarantine - Patient Mismatch” category: the name or date of birth printed on it does not match this chart. It was not deleted."|xlj }},
+            reconciledMany: {{ "%count% documents on this chart were moved to the “Quarantine - Patient Mismatch” category: the name or date of birth printed on them does not match this chart. They were not deleted."|xlj }},
+            reconcileFailed: {{ "A document on this chart whose name or date of birth does not match it could NOT be moved to quarantine: check this chart's Documents."|xlj }},
 
             askHeading: {{ "Ask about this chart"|xlj }},
             askNote: {{ "Answers cite the chart, the uploaded documents that finished extracting, and guideline passages, each in its own section."|xlj }},

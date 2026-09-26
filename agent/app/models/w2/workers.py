@@ -97,6 +97,9 @@ class ExtractionFailureReason(StrEnum):
     #: An unexpected error inside the worker. Logged by exception type only;
     #: the caller still gets a typed failure, never an exception (D35).
     INTERNAL_ERROR = "internal_error"
+    #: The agent restarted while the extraction was running. Nothing was
+    #: extracted; uploading the same file again starts it afresh (D60).
+    INTERRUPTED = "interrupted"
 
 
 class IntakeExtractorOutput(W2Contract):

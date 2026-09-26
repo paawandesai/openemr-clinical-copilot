@@ -29,6 +29,11 @@ pydantic>=2.9.0
 # agent/docs/observability.md
 langfuse>=4.15.3,<5
 
+# AES-256-GCM for the on-disk extraction store (app/workers/extraction_store.py,
+# D60): uploaded documents' extractions survive a restart, sealed under a key
+# held in the deployment's env file rather than on the volume.
+cryptography>=44.0.0
+
 # Structured JSON logging with contextvars support, used by
 # app/middleware/logging.py + app/middleware/correlation.py to attach
 # correlation_id to every log line for a request's lifetime

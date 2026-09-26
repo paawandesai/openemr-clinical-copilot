@@ -1,0 +1,312 @@
+# Work order 32 — local end-to-end runs of degraded document handling (`feat/w2-degraded-docs`)
+
+Raw output of every run this branch's session made through the module's real
+routes, so no figure in D60 exists only in a session report. Nothing is edited
+except long document ids, shortened to their first 16 characters where marked
+`…`.
+
+## What was run, and where
+
+| | |
+|---|---|
+| Date | 2026-09-25 (UTC) |
+| Stack | **LOCAL only.** OpenEMR `development-easy-openemr-1` (https://localhost:9300, this checkout mounted); agent `clinical-copilot-agent` rebuilt from this branch's working tree with the compose file's new `extraction_data` volume, `AGENT_ENV=production`, a locally generated `AGENT_EXTRACTION_STORE_KEY`, `FHIR_BASE_URL=https://host.docker.internal:9300/...` (checked in `/proc/1/environ`), `LANGFUSE_*` empty. Neither host was touched. |
+| Path | HTTP client (httpx) → login as `physician` → `demographics.php?set_pid=` → the card's `data-*` attributes → `public/upload.php`, `upload-status.php`, `ask.php` → the module's broker-minted clinician token → agent. |
+| Module SQL | `InstallModuleSQL(17)` (DEPLOY.md §4 path): created `categories` id 35 "Quarantine - Patient Mismatch", parent 1, lft 67 / rght 68, `patients|docs`; root rght 67 → 69; `categories_seq` 35. A second run changed nothing. |
+| Model calls | 3 live vision extractions (runs 1, 4, 5), 3 live drafting calls (runs 1, 2, 5). Run 4's question was refused before the answer step. |
+| Patients | pid 38 = FHIR `a2c373ec-…` (lab-clean-001's patient); pid 49 = `a2c37430-…`; pid 31 = `a2c373d1-…` (the heavy scan's patient). Synthea synthetic. |
+
+## Run 1 — upload lab-clean-001 to its own chart, then ask
+
+```
+login 302 /interface/main/tabs/main.php?token_main=…
+chart 200 sources card present: True
+card pid 38 correlation_id a2c26659-77f7-42dd-abc0-8b3cecd8a478
+upload 200 {"status": "ok", "document_id": "5414f88e0e4e92e0…", "kind": "lab_pdf", "extraction_status": "pending", "byte_length": 32032, "correlation_id": "a2c26659-77f7-42dd-abc0-8b3cecd8a478", "identity_check": null, "quarantine": null}
+  poll 1..7: 200 in_progress failure=None identity=None quarantine=None
+  poll 8: 200 complete failure=None identity=confirmed quarantine=None
+upload to terminal 32.3s
+```
+
+```
+ask 200 in 13.5s answered extraction_available
+```
+
+Agent log: 2 `llm_usage_event` lines (the vision call and the drafting call).
+
+## Restart — a new agent container on the same volume
+
+```
+docker compose ... up -d --force-recreate --no-deps --wait agent
+container 8149ef4e00e9 -> e7e75bc24fdd
+{"documents": 1, "event": "extraction_store_opened", ...}
+FHIR_BASE_URL=https://host.docker.internal:9300/apis/default/fhir
+```
+
+## Run 2 — the same document after the restart
+
+```
+status 200 {"status": "ok", "document_id": "5414f88e0e4e92e0…", "kind": "lab_pdf", "extraction_status": "complete", "extraction_id": "w2x-8e923de644b4cacc4bd0231210a12707", "failure_reason": null, "correlation_id": "e5b304cc-0092-4086-816d-d6e534fc6d28", "identity_check": "confirmed", "quarantine": null}
+ask 200 in 12.8s answered extraction_available
+llm calls since restart:
+follow_up_drilling claude-opus-5 1127
+{"event_type": "w2_document_restored", "event_data": {"document_id": "5414f88e0e4e92e0…", "status": "complete", "has_report": true}, ...}
+```
+
+One model call after the restart, the drafting call. No vision call: nothing
+was extracted again. Comparing run 1's and run 2's `ask.php` payloads:
+
+```
+answer_status same
+reason_code same
+limitations same
+critical_values same
+unverified same
+discrepancies same
+citations same: True 53
+message same: False
+unsupported same: True 24
+answer_view (minus correlation id) same: False
+--- before restart
++++ after restart
+@@ -4 +3,0 @@
+-  - Lab result: LOINC 2345-7 (Glucose [Mass/volume] in Serum or Plasma) of 2026-08-30 [most recent of 13 results for this test (LOINC 2339-0, 2345-7)]
+@@ -6,0 +6 @@
++  - Lab result: LOINC 2345-7 (Glucose [Mass/volume] in Serum or Plasma) of 2026-08-30 [most recent of 13 results for this test (LOINC 2339-0, 2345-7)]
+answer_view.answer differs in answer
+answer_view.answer differs in patient_facts
+answer_view.answer differs in correlation_id
+```
+
+Every one of the 53 citations (value, field and bbox), the 24 unsupported
+values, the status, the limitations and the critical values are identical.
+The one difference is where one **chart** line appears: the live drafting call
+listed its chart claims in a different order. The document lines are the
+same lines. `tests/test_extraction_store.py` shows exact equality of the whole
+response across a restart with a scripted drafter.
+
+## Run 3 — the same bytes for another chart, after the restart
+
+Through the card (the module refuses first, from the chart's own records):
+
+```
+card pid 49 correlation_id db44e270-adc4-45b6-892d-057dd8948719
+upload 409 {"status": "error", "error": "document_attached_elsewhere", "message": "This file is already attached to a different chart, so it cannot be attached to this one.", "correlation_id": "db44e270-adc4-45b6-892d-057dd8948719"}
+upload to terminal 0.1s
+```
+
+Directly to the agent (a local password-grant token for `physician`), so the
+agent's own binding is what answers:
+
+```
+token granted: True
+agent upload, same bytes, pid 49's chart: 409 This file is already attached to a different chart and cannot be attached here.
+agent status, pid 38's document under pid 49: 404 No extraction is recorded for that document.
+agent status, under its own chart: 200 complete confirmed
+```
+
+## Run 4 — another patient's report uploaded to pid 49
+
+lab-clean-001 (pid 38's patient) plus 28 trailing bytes, so the digest is new
+and the module's 409 does not stop it: SHA3-512 `01abdd9e7f51fd91…`.
+
+```
+card pid 49 correlation_id 719bddb4-39a2-416d-a1bd-37bbf0870346
+upload 200 {"status": "ok", "document_id": "01abdd9e7f51fd91…", "kind": "lab_pdf", "extraction_status": "pending", "byte_length": 32060, "correlation_id": "719bddb4-39a2-416d-a1bd-37bbf0870346", "identity_check": null, "quarantine": null}
+  poll 1..7: 200 in_progress failure=None identity=None quarantine=None
+  poll 8: 200 complete failure=None identity=mismatch quarantine=quarantined
+upload to terminal 31.7s
+```
+
+The chart afterwards (MariaDB, `openemr`):
+
+```
+id	pid	deleted	mimetype	category
+2489	49	0	application/pdf	Quarantine - Patient Mismatch
+category_links
+1
+foreign_id	owner	date	note
+2489	6	2026-09-25 16:36:05	Quarantined by Clinical Co-Pilot: the name or date of birth printed on this document does not match this chart. Nothing from it was used or written to the chart. Kept, not deleted. Reference: 719bddb4-39a2-416d-a1bd-37bbf0870346
+ledger_rows
+0
+date	patient_id	success	comment
+2026-09-25 16:35:35	49	1	Clinical Co-Pilot document upload: pending, documents.id 2489 stored (document 01abdd9e7f51fd91, correlation_id 719bddb4-39a2-416d-a1bd-37bbf0870346)
+2026-09-25 16:36:05	49	1	Clinical Co-Pilot document quarantined: identity mismatch (documents.id 2489, document 01abdd9e7f51fd91, correlation_id 719bddb4-39a2-416d-a1bd-37bbf0870346)
+```
+
+Agent: `lab_writeback_after_extraction` with `identity_name: mismatch`,
+`identity_date_of_birth: mismatch`, decision `identity_not_confirmed`: no
+write-back (D54 item 3, unchanged).
+
+A second poll, to show the move is keyed and not repeated:
+
+```
+{'extraction_status': 'complete', 'identity_check': 'mismatch', 'quarantine': 'quarantined'}
+notes
+1
+quarantine_audits
+1
+```
+
+A question naming it (no model call; refused before the answer step):
+
+```
+ask 200 in 1.0s refused document_identity_mismatch
+Answer (turn 1)
+
+The name or date of birth printed on that document does not match this chart, so nothing from it is stated. Check that it was uploaded to the right patient.
+
+Nothing about the patient is stated in this answer.
+```
+
+## Run 5 — the heavy scan on its own chart (pid 31)
+
+```
+card pid 31 correlation_id 8f1f6067-4644-4d56-b24b-23b436b625d5
+upload 200 {"status": "ok", "document_id": "9cbb4b2c619c1c02…", "kind": "lab_pdf", "extraction_status": "pending", "byte_length": 152895, "correlation_id": "8f1f6067-4644-4d56-b24b-23b436b625d5", "identity_check": null, "quarantine": null}
+  poll 11: 200 complete failure=None identity=confirmed quarantine=None
+upload to terminal 43.2s
+field_outcomes {'located': 11, 'unlocated': 96, 'missing': 19} has_text_layer False cost_usd 0.12619
+ask 200 in 10.5s partially_answered extraction_available
+limitations ['unsupported_document_values', 'degraded_document']
+critical_values []
+---- message ----
+Answer (turn 1)
+
+This scan is heavily degraded: 11 of 107 values read from it could be located on the page and verified; the other 96 are listed as unsupported and are not stated.
+
+From this patient's record and uploaded documents:
+  - Lab report, page 1: specimen: collected: 2026-09-09 06:05; reported: 2026-09-10 20:08; type: Whole blood, EDTA
+
+115 value(s) on the uploaded document(s) are unsupported: not located on the page, missing, or illegible. They are listed, not stated.
+
+Not in the sources read for this question:
+  - The lab results considered for this turn do not include it.
+
+Sources read for this question: the chart (Condition, MedicationRequest, AllergyIntolerance, Observation), 1 uploaded document(s), 0 guideline passage(s).
+```
+
+(Answer order changed afterwards: the notice now sits directly below the
+critical block, which leads. This scan has no critical value, so the notice
+is still the first line.)
+
+**11 of 107, not the 36 of 107 measured before.** Same bytes. It turned out
+to be the OCR build, not the vision call. Replaying the ground-truth
+transcription (no model call) gives 36 of 107 under Tesseract 5.5.3 on the
+laptop and 11 of 107 inside the agent image, whose Debian Tesseract is 5.5.0:
+
+```
+$ docker run ... clinical-copilot-agent:local ... (checkout mounted read-only)
+tesseract 5.5.0
+18 passed in 17.02s                      # tests/test_degraded_notice.py
+replay under this image: 11 of 107
+```
+
+CI found the same: pipeline 28822's `agent-unit-tests` (python:3.12-slim,
+Debian `tesseract-ocr`) failed three tests that pinned 36. Those tests now pin
+"degraded, 107 read" and not the OCR build's count. Both counts are far
+under the 75% threshold.
+
+## Follow-ups (same day, the revised branch)
+
+Runs 6-8 ran after the owner's follow-ups, on an agent rebuilt from the
+revised tree (same env file, same volume: `extraction_store_opened` with
+`documents: 3, retention_days: 30`). File: intake-clean-004 (the patient of
+pid 31) plus 24 trailing bytes (124,606 → 124,630), SHA3-512 `719d3456e83d9c8b…`. An intake form
+has no write-back, so the right-chart step writes nothing to the chart.
+
+### Run 6 — another patient's intake form on pid 49, page closed before any poll
+
+```
+card pid 49 correlation_id cfb570dd-00a0-4322-803a-af4b0cce9aa9
+upload 200 {"status": "ok", "document_id": "719d3456e83d9c8b…", "kind": "intake_form", "extraction_status": "pending", "byte_length": 124630, "correlation_id": "cfb570dd-00a0-4322-803a-af4b0cce9aa9", "identity_check": null, "quarantine": null}
+upload to terminal 1.2s
+```
+
+No poll. The agent's status route, read directly (it never quarantines):
+
+```
+agent status after 0s: 200 {'status': 'complete', 'failure_reason': None, 'identity_check': 'mismatch', 'message': None}
+id	pid	deleted	category
+2493	49	0	Medical Record
+```
+
+### Run 7 — the card loads on pid 49 (reconciliation)
+
+```
+card data-reconcile-endpoint: /interface/modules/custom_modules/oe-module-clinical-copilot/public/reconcile.php
+reconcile 200 {"status": "ok", "checked": 2, "quarantined": 1, "failed": 0, "skipped": null, "correlation_id": "80b7b0a2-b943-439e-8b35-f19e0ddff01d"}
+id	pid	deleted	category
+2493	49	0	Quarantine - Patient Mismatch
+foreign_id	note
+2493	Quarantined by Clinical Co-Pilot: the name or date of birth printed on this document does not match this chart. Nothing from it was used or written to the chart. Kept, not deleted. Reference: 80b7b0a2-b943-439e-8b35-f19e0ddff01d
+date	patient_id	comment
+2026-09-25 22:55:14	49	Clinical Co-Pilot document quarantined on card load: identity mismatch (documents.id 2493, correlation_id 80b7b0a2-b943-439e-8b35-f19e0ddff01d)
+--- second card load:
+reconcile 200 {"status": "ok", "checked": 1, "quarantined": 0, "failed": 0, "skipped": null, "correlation_id": "86c3d06c-9f35-474a-a487-38e4a8d7d206"}
+--- a chart with nothing to check (pid 38):
+reconcile 200 {"status": "ok", "checked": 1, "quarantined": 0, "failed": 0, "skipped": null, "correlation_id": "2009b074-6ecd-49cc-b35e-bde49ffcd69f"}
+```
+
+`checked` counts pid 49's other unquarantined filing-category copy, and pid
+38's lab-clean-001 copy (`confirmed`): asked about, not moved.
+
+### Run 8 — the same bytes on the chart they name (pid 31)
+
+```
+card pid 31 correlation_id c82d369b-f57c-441c-9c72-802d29fcbda4
+upload 200 {"status": "ok", "document_id": "719d3456e83d9c8b…", "kind": "intake_form", "extraction_status": "pending", "byte_length": 124630, "correlation_id": "c82d369b-f57c-441c-9c72-802d29fcbda4", "identity_check": null, "quarantine": null}
+  poll 4: 200 complete failure=None identity=confirmed quarantine=None
+upload to terminal 16.6s
+id	pid	deleted	category
+2493	49	0	Quarantine - Patient Mismatch
+2495	31	0	Medical Record
+{"event_type": "w2_document_binding_released", "event_data": {"document_id": "719d3456e83d9c8b…"}, ...}
+--- asking about it on the wrong chart now:
+ask 200 in 0.8s refused document_not_found
+--- and a third chart:
+upload 409 {"status": "error", "error": "document_attached_elsewhere", "message": "This file is already attached to a different chart, so it cannot be attached to this one.", "correlation_id": "933d201f-93c5-426f-8d4f-ccf7a8d96667"}
+```
+
+Not run end to end here: the notice-below-criticals order (no local sample
+has a located critical value on a degraded page; unit-tested with the
+potassium sample), the write-back retry (unit-tested with a scripted
+transient failure) and an expiry (unit-tested by backdating rows).
+
+## No patient identifier in the agent's log
+
+The recreated container's whole log (202 lines, runs 2-5), searched for the
+three patient uuids, the lab report's patient name parts and two test names:
+
+```
+a2c373ec-57bf-41cb-8767-94410dcf663d: 0
+a2c37430-0a29-4c57-8195-2c924c2b654a: 0
+a2c373d1-c8c6-47f3-b566-e4ceaacdb1c7: 0
+Merlyn225: 0
+Mueller846: 0
+Glucose: 0
+Potassium: 0
+```
+
+The rebuilt container's log after runs 6-8 (93 lines), the same way:
+
+```
+a2c373ec-57bf-41cb-8767-94410dcf663d: 0
+a2c37430-0a29-4c57-8195-2c924c2b654a: 0
+a2c373d1-c8c6-47f3-b566-e4ceaacdb1c7: 0
+Merlyn225: 0
+Mueller846: 0
+Jae222: 0
+Dach178: 0
+```
+
+## Left on the local stack
+
+The agent keeps running this branch's image with the `extraction_data` volume
+(3 documents saved). pid 49 keeps `documents.id` 2489 in quarantine, with its
+note and two audit rows. pid 31's heavy scan was filed in Lab Report. Its D54
+write-back wrote nothing: `lab_writeback_after_extraction` reports
+`results_total: 22, results_writable: 0, results_skipped_by_reason:
+{value_not_located: 22}, decision: nothing_writable`, and the ledger holds 0
+rows for its digest. Run 1's document is the one the earlier sessions had
+already written (D54 A1); its write-back this time was not inspected.

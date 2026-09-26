@@ -236,10 +236,13 @@ def test_the_store_runs_it_once_after_the_status_is_final_and_not_for_a_duplicat
         store = DocumentStore(vision=ground_truth_vision(LAB))
         seen: list[ExtractionStatus] = []
 
-        async def after(report: ExtractionReport) -> None:
+        async def after(report: ExtractionReport) -> WriteBackDecision:
             status = store.status(report.output.document_id)
             assert status is not None
             seen.append(status.status)
+            # Completed: a duplicate owes no retry (D60 retries only a
+            # write-back that did not complete; see the retry tests below).
+            return WriteBackDecision.WRITTEN
 
         stored, _, _ = store.accept(
             patient_uuid(LAB),
@@ -249,7 +252,8 @@ def test_the_store_runs_it_once_after_the_status_is_final_and_not_for_a_duplicat
             after_extraction=after,
         )
         await store.wait(stored.document.document_id)
-        # The same bytes again: the extraction already exists, nothing runs.
+        # The same bytes again: the extraction exists and its write-back
+        # completed, so nothing runs.
         _, _, duplicate = store.accept(
             patient_uuid(LAB),
             pdf_bytes(LAB),

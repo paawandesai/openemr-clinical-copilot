@@ -41,3 +41,16 @@ CREATE TABLE `module_clinical_copilot_writeback_ledger` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci
   COMMENT='Clinical Co-Pilot lab write-back ledger: idempotency key -> the ids it wrote, and the page region the value came from';
 #EndIf
+
+-- D60: where an upload whose printed name or date of birth contradicts the
+-- chart is moved (W2\ChartDocuments::quarantine). A top-level document
+-- category with the stock ACL, so anyone who can see the chart's documents
+-- sees it. Inserted as the last child of the root, the way OpenEMR's own
+-- upgrade scripts add categories (sql/4_0_0-to-4_1_0_upgrade.sql, "CCR"):
+-- the new node takes the root's right edge, and the root widens by two.
+-- Idempotent: the directive skips it once the row exists.
+#IfNotRow categories name Quarantine - Patient Mismatch
+INSERT INTO categories SELECT (SELECT MAX(id) FROM categories) + 1, 'Quarantine - Patient Mismatch', '', 1, rght, rght + 1, 'patients|docs', '' FROM categories WHERE name = 'Categories';
+UPDATE categories SET rght = rght + 2 WHERE name = 'Categories';
+UPDATE categories_seq SET id = (SELECT MAX(id) FROM categories);
+#EndIf
