@@ -122,6 +122,7 @@ final readonly class LabWriteBackApi
                 new DocumentStore(new DocumentService(), $this->globals, $this->logger),
                 new ProcedureChainWriter(),
                 new WriteBackLedger(ServiceContainer::getClock()),
+                new QueryUtilsChartResults(),
                 new QueryUtilsTransaction(),
                 new EventLogWriteBackAudit($session),
                 $this->logger,

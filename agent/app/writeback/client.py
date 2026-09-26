@@ -82,10 +82,12 @@ async def write_lab_results(
     with step(Pipeline.WRITEBACK, "writeback") as writeback:
         writeback.counts["results_total"] = len(request.results)
         written = await _post(token, request, client)
-        created = sum(1 for r in written.results if r.outcome is WriteOutcome.CREATED)
+        counts = written.outcome_counts()
         writeback.counts.update(
-            results_created=created,
-            results_duplicate_ignored=len(written.results) - created,
+            results_created=counts.created,
+            results_duplicate_ignored=counts.duplicate_ignored,
+            results_already_in_chart=counts.already_in_chart,
+            results_conflict=counts.conflict,
         )
     _log_outcome(request, written)
     return written
@@ -178,7 +180,7 @@ def _log_outcome(request: LabWriteBackRequest, written: LabWriteBackResponse) ->
     absent too: the ids below identify the write without it, and a log line
     that pairs a patient with a lab write says more than it needs to.
     """
-    created = [r for r in written.results if r.outcome is WriteOutcome.CREATED]
+    counts = written.outcome_counts()
     log_event(
         "lab_writeback_completed",
         {
@@ -188,8 +190,20 @@ def _log_outcome(request: LabWriteBackRequest, written: LabWriteBackResponse) ->
             "document_outcome": written.document_outcome.value,
             "procedure_order_id": written.procedure_order_id,
             "results_total": len(written.results),
-            "results_created": len(created),
-            "results_duplicate_ignored": len(written.results) - len(created),
-            "procedure_result_ids": [r.procedure_result_id for r in written.results],
+            "results_created": counts.created,
+            "results_duplicate_ignored": counts.duplicate_ignored,
+            "results_already_in_chart": counts.already_in_chart,
+            "results_conflict": counts.conflict,
+            "procedure_result_ids": [
+                r.procedure_result_id
+                for r in written.results
+                if r.outcome is WriteOutcome.CREATED or r.outcome is WriteOutcome.DUPLICATE_IGNORED
+            ],
+            # The chart rows a document matched or disagrees with: ids only.
+            "matched_procedure_result_ids": [
+                r.matched_procedure_result_id
+                for r in written.results
+                if r.matched_procedure_result_id is not None
+            ],
         },
     )

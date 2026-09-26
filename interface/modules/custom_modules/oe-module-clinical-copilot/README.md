@@ -290,6 +290,27 @@ rest.
   every result's extraction id, and the run's `extraction_id` (which is
   `document_extraction_id` of the document digest and `extractor_version`) from
   their components, and refuses a request whose values do not match.
+- **Never a second copy of a result the chart already holds, whatever file it
+  arrived in.** The ledger is keyed on the file, so a re-scan, a re-print or a
+  report faxed twice passes it. Before a row the ledger does not know is
+  written, the endpoint reads the patient's existing results for the same test
+  code and collection date — from any source: this endpoint under another
+  file, a lab interface, a hand entry — at the same time when the report
+  prints one (`collected_at`), or on the date alone when it does not (a chart
+  row stored at midnight recorded no time and matches on the date). The same
+  value and unit is `already_in_chart`: nothing is written, and the response
+  carries the existing row's ids in `matched_procedure_result_id`,
+  `procedure_report_id` and `procedure_result_id`. A different value or unit
+  is a `conflict`: nothing is written, nothing is overwritten, and the
+  response carries the chart's `chart_value` and `chart_unit` beside the
+  document's, for the clinician to resolve — the chart card shows each one as
+  "the chart has X, this document has Y". The comparison is exact (D24):
+  `4.10` is `4.1`, `4.1` is not `4.2`, `<5` is not `5`, `mg/dL` is not
+  `mmol/L`. A different collection date, or a different printed time on the
+  same day, is a new result. The response's `counts` gives one number per
+  outcome; `procedure_order_id` is null when no result has an order (every
+  result a conflict). Each conflict is also an audit row naming the chart
+  rows it disagrees with.
 - **All of it or none of it.** Document and results commit together. A failure
   part-way rolls the whole thing back and deletes the encrypted file
   `\Document::createDocument()` had already written — a filesystem write is not

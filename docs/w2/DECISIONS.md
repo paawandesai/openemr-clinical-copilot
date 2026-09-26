@@ -3955,3 +3955,129 @@ gate file.
   record fields, so it was left as is and not measured here.
 - **The live host still runs adaptive thinking** until the agent-only
   redeploy after this merges.
+## D-unassigned (duplicate results) — A result the chart already holds is not written again, whatever file it arrived in; a different value is a conflict, never an overwrite
+
+**Status:** DECIDED
+**Date:** 2026-09-26
+**Work order:** 34 (`fix/w2-result-dedupe`). Headed "D-unassigned (duplicate
+results)"; numbered at the final docs refresh.
+**Amends:** D31's per-result answer (a result now has four outcomes, not
+two); D54's "Not settled: the card does not show the write-back's outcome"
+(it does now, item 4). **It does not amend D1's ledger key**, which stays
+(document SHA3-512, test code, collection date) and still answers first.
+**Evidence:** the module's `WriteBackServiceTest`, `ChartMatchTest` and
+`AgentClientW2Test`; `agent/tests/test_w2_writeback.py`,
+`test_w2_writeback_after_extraction.py`, `test_document_rebinding_and_retry.py`,
+`test_intake_extractor_writeback_plan.py`; `tests/js/upload.test.mjs`; the
+local end-to-end runs below.
+
+**Problem.** The write-back ledger (D1) is keyed on the file's digest. The
+same results arriving in a different file — a re-scan, a re-print, a report
+faxed twice — carry new keys, so every row was written to the chart again.
+The PRD requires derived observations to round-trip "without creating
+duplicate or untraceable records", and a duplicated lab panel is exactly a
+duplicate record.
+
+**Decision.**
+
+1. **The chart is checked before a row is written, for results from any
+   source.** For each result the ledger does not know, the endpoint reads
+   the patient's existing `procedure_result` rows (through
+   `procedure_report` and `procedure_order`, `activity = 1`) with the same
+   test code and the same collection date, from any source: this endpoint
+   under another file, a lab interface, a hand entry. The ledger's answer
+   for a key it holds is unchanged and comes first; the chart is not read
+   for that row.
+   - **Same value and unit → `already_in_chart`.** Nothing is written. The
+     response names the existing row: its `procedure_result_id`,
+     `procedure_report_id` and `procedure_order_id`, and
+     `matched_procedure_result_id` says which one was matched. Nothing is
+     added to the ledger, which records writes.
+   - **Different value or unit → `conflict`.** Nothing is written for that
+     row, and nothing is overwritten. The response carries the chart's
+     value and unit beside the document's, and the audit log gets a
+     `lab-results` row naming the chart rows disagreed with. This is D2's
+     rule for intake medications applied to a lab value: the co-pilot shows
+     the clinician where two records disagree; it does not pick a winner.
+   - **No match → `created`**, as before.
+   - **A row with the same value and one with a different value on the
+     same day** is `already_in_chart` (the equal row is the match).
+     Otherwise the earliest row of the day is the one disagreed with.
+2. **The comparison is exact (D24).** A numeric value matches a stored
+   numeric with the same comparator and the same number: `4.10` is `4.1`;
+   `4.1` is not `4.2`; `<5` is not `5`. A qualitative value matches the same
+   term ignoring case and repeated whitespace. A unit matches ignoring case
+   and whitespace and nothing else: `mg/dL` is not `mmol/L`, and a row with
+   no unit is not a row with one.
+3. **The collection time counts when the report prints one.** The request
+   gains `collected_at`, a time on the row's `collection_date`; the planner
+   fills it from the report's header (`order.collected_at`) when that falls
+   on the row's date. With it, the chart match is on the exact time, or on
+   a chart row stored at midnight (a date-only entry: it recorded no time,
+   so the date is all it says). Without it, the match is on the date. A
+   different printed time on the same day is a different draw and a new
+   result. The row's `procedure_report.date_collected` is now written with
+   that time. The ledger key stays at day resolution (D1).
+4. **The card reports the write, and shows the conflicts (settles D54's
+   open item).** The after-extraction step returns a `WriteBackSummary`:
+   the decision (D54's `WriteBackDecision`), `results_total`, `skipped`,
+   `created`, `duplicate_ignored`, `already_in_chart`, `conflict`, and each
+   conflict with the document's value, unit, page and region (invariant 2)
+   and the chart's value, unit and `procedure_result` id. The document
+   store keeps it with the document, in memory and in the sealed record on
+   disk (D60), and both document routes carry it as `write_back`: null
+   until the write-back has ended, always null for an intake form. The
+   module checks it field by field (`ExtractionState`) and passes only
+   those fields to the card. For a lab report the card polls past
+   `complete` until it is set, then adds "Chart: N added, M already in the
+   chart, K conflicts, S not written" to the status line and lists each
+   conflict under it as "chart has X, this document has Y. Not written."
+   A conflict is styled as an error: it needs the clinician. The document
+   is usable for a question from the moment its extraction completes,
+   whatever the write says (D7).
+5. **What is logged.** Counts per outcome, on the agent
+   (`lab_writeback_completed`, `lab_writeback_after_extraction`) and in the
+   module's log line; the audit row names `procedure_result` ids. A
+   conflict's values reach the response, the sealed store and the card,
+   and nothing else (invariant 1).
+
+**Why not extend the ledger key.** A key without the digest, over (patient,
+test code, collection date), would make the ledger refuse a second file's
+rows — but only rows this endpoint wrote. A result from a lab interface or
+a hand entry is not in the ledger and would still be duplicated. The chart
+is the record; the check reads it. The ledger keeps its job: the ids a
+retry of the same file answers with (invariant 6).
+
+**Why a conflict is not written under a new order.** Two results for one
+test at one time, with different values, is the chart contradicting
+itself, and a clinician reading Patient Results could not tell which to
+trust. Writing the second value would also silently promote the document
+over the chart, which D2 forbids for intake data for the same reason.
+
+**Verified on the local stack, 2026-09-26.** Runs and their raw output:
+`docs/w2/evidence/result-dedupe-e2e-run.md`.
+
+**Not settled here.**
+- **Two different files with the same results uploaded at the same
+  instant.** Each transaction reads the chart before the other commits, and
+  both write. The ledger's UNIQUE key does not catch this (different
+  digests). A vision call separates two uploads in practice; a named lock
+  per patient around the write would close it.
+- **A chart row in a different unit for the same quantity** (`mg/dL`
+  against `mmol/L`) is a conflict, not a conversion. D24 forbids
+  near-matching; unit conversion is a different feature and is not done.
+- **A conflict is shown once, on the card that uploaded the document.** It
+  is in the sealed store and the response; nothing else surfaces it later
+  (not the ask path's answer, not Pending Review). Whether a conflict
+  should be filed in the chart as its own record is not decided.
+- **A request that writes no row still files its document.** The document
+  is resolved (reused by digest, or stored) before the rows are decided,
+  as D1's one transaction always has. Through the card this is
+  `upload.php`'s chart copy, reused (D54 item 5); a direct request with
+  no chart copy stores one that no ledger row points at (run 3 below), so
+  the ledger-driven cleanup does not remove it. Whether the endpoint
+  should refuse to store a document it writes nothing for is not decided.
+- **The gate does not cover any of this.** What a gate session should add
+  is listed in the work order 34 report.
+
+---

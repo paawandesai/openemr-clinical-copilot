@@ -504,3 +504,119 @@ def test_the_ledger_holds_no_chart_content() -> None:
         "note",
         "quote",
     }
+
+
+# -- results the chart already holds (work order 34) ------------------------
+
+
+def outcome(kind: WriteOutcome, **fields: object) -> LabWriteBackResultOutcome:
+    base: dict[str, object] = {
+        "test_code": "2345-7",
+        "idempotency_key": key(),
+        "extraction_id": extraction(),
+        "outcome": kind,
+    }
+    base.update(fields)
+    return LabWriteBackResultOutcome(**base)  # type: ignore[arg-type]
+
+
+def test_a_result_already_in_the_chart_answers_with_the_existing_rows_ids() -> None:
+    # The same results in a different file: nothing is written, and the ids
+    # are the chart row's, whichever source wrote it.
+    matched = outcome(
+        WriteOutcome.ALREADY_IN_CHART,
+        procedure_report_id=700,
+        procedure_result_id=14000,
+        matched_procedure_result_id=14000,
+    )
+    assert matched.procedure_result_id == matched.matched_procedure_result_id
+
+
+def test_an_already_in_chart_result_cannot_name_ids_other_than_the_matched_rows() -> None:
+    with pytest.raises(ValidationError, match="matched chart row"):
+        outcome(
+            WriteOutcome.ALREADY_IN_CHART,
+            procedure_report_id=700,
+            procedure_result_id=14000,
+            matched_procedure_result_id=14001,
+        )
+
+
+def test_a_conflict_wrote_nothing_and_names_what_it_disagrees_with() -> None:
+    conflict = outcome(
+        WriteOutcome.CONFLICT,
+        matched_procedure_result_id=14000,
+        chart_value="92",
+        chart_unit="mg/dL",
+    )
+    assert conflict.procedure_report_id is None and conflict.procedure_result_id is None
+    assert (conflict.chart_value, conflict.chart_unit) == ("92", "mg/dL")
+
+
+@pytest.mark.parametrize(
+    "fields",
+    [
+        {
+            "procedure_report_id": 700,
+            "procedure_result_id": 14000,
+            "matched_procedure_result_id": 14000,
+            "chart_value": "92",
+        },
+        {"matched_procedure_result_id": 14000},
+        {"chart_value": "92"},
+    ],
+    ids=["with ids of its own", "without the chart value", "without the chart row"],
+)
+def test_a_conflict_is_refused_when_it_claims_ids_or_omits_the_chart_side(fields: dict) -> None:
+    with pytest.raises(ValidationError):
+        outcome(WriteOutcome.CONFLICT, **fields)
+
+
+@pytest.mark.parametrize("kind", [WriteOutcome.CREATED, WriteOutcome.DUPLICATE_IGNORED])
+def test_a_written_result_always_carries_its_ids_and_matched_nothing(kind: WriteOutcome) -> None:
+    with pytest.raises(ValidationError, match="carries the ids"):
+        outcome(kind)
+    with pytest.raises(ValidationError, match="matched nothing"):
+        outcome(kind, procedure_report_id=1, procedure_result_id=2, matched_procedure_result_id=2)
+
+
+def test_the_response_counts_each_outcome_and_may_have_no_order() -> None:
+    # Every result a conflict: nothing was written, so there is no order to
+    # name. The counts are derived from the rows, not trusted from the wire.
+    response = LabWriteBackResponse(
+        patient_uuid=PATIENT,
+        document_id=2820,
+        document_outcome=WriteOutcome.DUPLICATE_IGNORED,
+        procedure_order_id=None,
+        results=[
+            outcome(WriteOutcome.CONFLICT, matched_procedure_result_id=14000, chart_value="92"),
+            LabWriteBackResultOutcome(
+                test_code="2823-3",
+                idempotency_key=key("2823-3"),
+                extraction_id=extraction("2823-3"),
+                outcome=WriteOutcome.ALREADY_IN_CHART,
+                procedure_report_id=701,
+                procedure_result_id=14001,
+                matched_procedure_result_id=14001,
+            ),
+        ],
+        correlation_id=CORRELATION_ID,
+    )
+    counts = response.outcome_counts()
+    assert (counts.created, counts.duplicate_ignored, counts.already_in_chart, counts.conflict) == (
+        0,
+        0,
+        1,
+        1,
+    )
+
+
+def test_a_collection_time_must_fall_on_the_collection_date() -> None:
+    timed = result().model_copy(update={"collected_at": datetime(2026, 8, 30, 7, 12)})
+    assert LabWriteBackResult.model_validate(timed.model_dump()).collected_at == datetime(
+        2026, 8, 30, 7, 12
+    )
+    with pytest.raises(ValidationError, match="collected_at is a time on the collection date"):
+        LabWriteBackResult.model_validate(
+            result().model_dump() | {"collected_at": datetime(2026, 8, 31, 7, 12)}
+        )

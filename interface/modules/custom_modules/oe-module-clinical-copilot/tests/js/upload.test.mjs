@@ -19,7 +19,10 @@ import {
     DOCUMENT_KINDS,
     EXTRACTION_STATUSES,
     MAX_BYTES,
+    awaitsWriteBack,
     describeStatus,
+    describeWriteBack,
+    isErrorStatus,
     isIdentityMismatch,
     isTerminal,
     isUsable,
@@ -184,5 +187,111 @@ describe('reconciling on card load — D60', () => {
         const message = reconcileMessage({quarantined: 0, failed: 1});
         assert.match(message.text, /could NOT be moved to quarantine/);
         assert.equal(message.isError, true);
+    });
+});
+
+describe('the chart write — work order 34', () => {
+    const complete = {kind: 'lab_pdf', extraction_status: 'complete', document_id: 'd'.repeat(128), correlation_id: 'c-1'};
+    const conflict = {
+        test_code: '2345-7',
+        test_name: 'Glucose',
+        collection_date: '2026-08-30',
+        collected_at: '2026-08-30T07:12:00',
+        page: 1,
+        bbox: {page: 1, x0: 1, y0: 2, x1: 3, y1: 4},
+        document_value: '89',
+        document_unit: 'mg/dL',
+        chart_value: '92',
+        chart_unit: 'mg/dL',
+        chart_procedure_result_id: 14912,
+    };
+    const written = {
+        decision: 'written',
+        results_total: 22,
+        skipped: 1,
+        created: 19,
+        duplicate_ignored: 0,
+        already_in_chart: 1,
+        conflict: 1,
+        conflicts: [conflict],
+    };
+
+    it('keeps polling a finished lab report until its chart write is reported', () => {
+        assert.ok(awaitsWriteBack({...complete, write_back: null}));
+        assert.ok(awaitsWriteBack({...complete, extraction_status: 'failed', write_back: null}));
+        assert.ok(!awaitsWriteBack({...complete, write_back: written}));
+    });
+
+    it('never waits on a write the module did not report, or an unfinished extraction', () => {
+        // An older agent sends no field at all: waiting would poll for five minutes.
+        assert.ok(!awaitsWriteBack(complete));
+        assert.ok(!awaitsWriteBack({...complete, extraction_status: 'in_progress', write_back: null}));
+    });
+
+    it('never waits on an intake form, which has no chart write (D2)', () => {
+        assert.ok(!awaitsWriteBack({...complete, kind: 'intake_form', write_back: null}));
+        assert.equal(describeWriteBack({decision: 'not_lab_report', conflicts: []}), null);
+    });
+
+    it('says what was added, what was already there, what conflicts and what was not written', () => {
+        const said = describeWriteBack(written);
+        assert.equal(
+            said.text,
+            'Chart: 19 result(s) added to the chart, 1 already in the chart, 1 conflict(s) with the chart, 1 not written (not verified on the page).'
+        );
+        assert.ok(said.isError, 'a conflict needs the clinician');
+    });
+
+    it('lists each conflict as the chart\'s value against the document\'s, never merged', () => {
+        const [line] = describeWriteBack(written).conflicts;
+        assert.equal(
+            line,
+            'Glucose (LOINC 2345-7), collected 2026-08-30 07:12:00, page 1: the chart has 92 mg/dL, this document has 89 mg/dL. Not written.'
+        );
+    });
+
+    it('falls back to the date when the report printed no time, and omits a missing unit', () => {
+        const [line] = describeWriteBack({
+            ...written,
+            conflicts: [{...conflict, collected_at: null, document_unit: null, chart_unit: null}],
+        }).conflicts;
+        assert.ok(line.includes('collected 2026-08-30,'));
+        assert.ok(line.includes('the chart has 92, this document has 89.'));
+    });
+
+    it('is not an error when every row was added or already there', () => {
+        const said = describeWriteBack({...written, conflict: 0, conflicts: [], skipped: 0});
+        assert.equal(said.text, 'Chart: 19 result(s) added to the chart, 1 already in the chart.');
+        assert.ok(!said.isError);
+        assert.deepEqual(said.conflicts, []);
+    });
+
+    it('says when a byte-variant of the same report added nothing', () => {
+        const said = describeWriteBack({...written, created: 0, already_in_chart: 21, conflict: 0, conflicts: [], skipped: 1});
+        assert.equal(said.text, 'Chart: 21 already in the chart, 1 not written (not verified on the page).');
+    });
+
+    it('says why nothing was written, and treats a refused or failed write as an error', () => {
+        assert.ok(describeWriteBack({decision: 'identity_not_confirmed'}).text.includes('not confirmed'));
+        assert.ok(!describeWriteBack({decision: 'identity_not_confirmed'}).isError);
+        for (const decision of ['token_refused', 'request_refused', 'endpoint_unavailable']) {
+            assert.ok(describeWriteBack({decision}).isError, decision);
+        }
+        assert.ok(describeWriteBack({decision: 'endpoint_unavailable'}).text.includes('Upload the file again'));
+    });
+
+    it('puts the chart write on the status line, and says it is still being checked before then', () => {
+        assert.ok(describeStatus({...complete, write_back: written}).includes('Chart: 19 result(s) added'));
+        assert.ok(describeStatus({...complete, write_back: null}).includes('Checking the chart'));
+        assert.ok(!describeStatus(complete).includes('Chart'));
+    });
+
+    it('styles a conflict, a failed write, a failure and a mismatch as errors, and nothing else', () => {
+        assert.ok(isErrorStatus({...complete, write_back: written}));
+        assert.ok(isErrorStatus({...complete, write_back: {decision: 'token_refused'}}));
+        assert.ok(isErrorStatus({...complete, extraction_status: 'failed'}));
+        assert.ok(isErrorStatus({...complete, identity_check: 'mismatch'}));
+        assert.ok(!isErrorStatus({...complete, write_back: {...written, conflict: 0, conflicts: []}}));
+        assert.ok(!isErrorStatus({...complete, write_back: null}));
     });
 });

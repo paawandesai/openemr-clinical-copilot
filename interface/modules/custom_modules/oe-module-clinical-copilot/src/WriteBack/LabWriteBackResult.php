@@ -35,6 +35,8 @@ final readonly class LabWriteBackResult
         public ?string $unit,
         public ?ReferenceRange $referenceRange,
         public DateTimeImmutable $collectionDate,
+        /** The collection time the report printed, on `collectionDate`; null when it printed none. */
+        public ?DateTimeImmutable $collectedAt,
         public ?DateTimeImmutable $reportedAt,
         public AbnormalFlag $abnormal,
         public int $page,
@@ -54,7 +56,7 @@ final readonly class LabWriteBackResult
             $payload,
             [
                 'test_code', 'test_name', 'value', 'unit', 'reference_range',
-                'collection_date', 'reported_at', 'abnormal', 'page', 'bbox',
+                'collection_date', 'collected_at', 'reported_at', 'abnormal', 'page', 'bbox',
                 'idempotency_key', 'extraction_id',
             ],
             $field
@@ -62,6 +64,12 @@ final readonly class LabWriteBackResult
 
         $testCode = RequestField::string($payload, 'test_code', $field . '.test_code');
         $collectionDate = RequestField::date($payload, 'collection_date', $field . '.collection_date');
+        // A time on the collection date, or nothing: the chart match uses
+        // it, and the ledger key (date only, D1) does not.
+        $collectedAt = RequestField::optionalDateTime($payload, 'collected_at', $field . '.collected_at');
+        if ($collectedAt !== null && $collectedAt->format('Y-m-d') !== $collectionDate->format('Y-m-d')) {
+            throw new InvalidWriteBackRequest($field . '.collected_at', 'is a time on collection_date');
+        }
         $abnormal = AbnormalFlag::tryFrom(
             RequestField::string($payload, 'abnormal', $field . '.abnormal')
         );
@@ -129,6 +137,7 @@ final readonly class LabWriteBackResult
             RequestField::optionalString($payload, 'unit', $field . '.unit'),
             $referenceRange,
             $collectionDate,
+            $collectedAt,
             RequestField::optionalDateTime($payload, 'reported_at', $field . '.reported_at'),
             $abnormal,
             $page,

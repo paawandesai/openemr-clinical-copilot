@@ -100,4 +100,42 @@ final readonly class LabValue
     {
         return ($this->kind === self::KIND_NUMERIC && $this->comparator === null) ? 'N' : 'S';
     }
+
+    /**
+     * Is `$stored` — `procedure_result.result` as some source wrote it —
+     * this value?
+     *
+     * D24: numbers are never near-matched. A numeric value matches a stored
+     * numeric with the same comparator and the same number (`4.10` and
+     * `4.1` are one number, `4.1` and `4.2` are two); a censored value never
+     * matches an exact one. A qualitative value matches the same term,
+     * ignoring case and surrounding or repeated whitespace only.
+     */
+    public function matches(string $stored): bool
+    {
+        $stored = trim($stored);
+        if ($this->kind === self::KIND_QUALITATIVE) {
+            return self::normaliseText((string) $this->text) === self::normaliseText($stored);
+        }
+        if (preg_match('/^(<=|>=|<|>)?\s*([-+]?(?:\d+\.?\d*|\.\d+))$/', $stored, $parts) !== 1) {
+            return false;
+        }
+        $comparator = $parts[1] === '' ? null : $parts[1];
+        return $comparator === $this->comparator && (float) $parts[2] === (float) $this->value;
+    }
+
+    /**
+     * Is `$stored` — `procedure_result.units` — the unit of this row? Case
+     * and whitespace are spelling; nothing else is (`mg/dL` and `mmol/L`
+     * are different units, and a row with no unit is not a row with one).
+     */
+    public static function sameUnit(?string $unit, string $stored): bool
+    {
+        return self::normaliseText($unit ?? '') === self::normaliseText($stored);
+    }
+
+    private static function normaliseText(string $text): string
+    {
+        return strtolower(trim((string) preg_replace('/\s+/', ' ', $text)));
+    }
 }

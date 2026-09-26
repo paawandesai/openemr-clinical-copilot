@@ -88,8 +88,20 @@ def test_the_write_back_schemas_carry_the_key_shaped_fields() -> None:
     assert {"idempotency_key", "extraction_id", "bbox", "page"} <= set(result["required"])
 
     outcome = response["$defs"]["LabWriteBackResultOutcome"]
-    assert {"procedure_report_id", "procedure_result_id", "outcome"} <= set(outcome["required"])
-    assert set(response["$defs"]["WriteOutcome"]["enum"]) == {"created", "duplicate_ignored"}
+    assert {"idempotency_key", "extraction_id", "outcome"} <= set(outcome["required"])
+    # The ids are optional on the wire since work order 34: a `conflict`
+    # wrote nothing and has none. The model's validator, not the schema,
+    # requires them for every other outcome (D22).
+    assert {"procedure_report_id", "procedure_result_id", "matched_procedure_result_id"} <= set(
+        outcome["properties"]
+    )
+    assert set(response["$defs"]["WriteOutcome"]["enum"]) == {
+        "created",
+        "duplicate_ignored",
+        "already_in_chart",
+        "conflict",
+    }
+    assert "collected_at" in result["properties"]
 
 
 def test_generic_definitions_are_named_readably() -> None:

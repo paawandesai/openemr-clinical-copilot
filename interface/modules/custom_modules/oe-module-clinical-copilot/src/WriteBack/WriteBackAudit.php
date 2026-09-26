@@ -46,4 +46,15 @@ interface WriteBackAudit
      * an event whether or not it landed.
      */
     public function writeAbandoned(int $pid, string $reason): void;
+
+    /**
+     * Results a document carries that disagree with results the chart
+     * already holds for the same test and collection date/time. Nothing was
+     * written or overwritten; the clinician is shown both values. Recorded
+     * because a document contradicting a chart is an event, and the chart
+     * rows it contradicts are named so an auditor can find them.
+     *
+     * @param list<int> $chartResultIds `procedure_result` ids of the rows disagreed with
+     */
+    public function conflictsFound(int $pid, array $chartResultIds): void;
 }

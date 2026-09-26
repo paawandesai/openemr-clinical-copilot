@@ -55,6 +55,12 @@ write (the endpoint unavailable, the token or request refused, or never
 finished), runs the write-back again on the saved report under the new
 upload's token. The ledger's keys (D1) make a repeat write idempotent. One
 write-back per document runs at a time.
+
+**The write-back's summary is kept for the card.** The step returns a
+`WriteBackSummary` (decision, counts, conflicts); the store keeps it in
+memory and on disk beside the decision, and `write_back()` hands it to the
+extraction-status route once the write-back has ended. A step that returns
+a bare decision (tests) is kept as the decision alone.
 """
 
 from __future__ import annotations
@@ -75,7 +81,7 @@ from app.models.w2.documents import (
     SourceDocument,
 )
 from app.models.w2.workers import ExtractionFailureReason, IntakeExtractorOutput
-from app.models.w2.writeback import document_idempotency_key
+from app.models.w2.writeback import WriteBackSummary, document_idempotency_key
 from app.workers.extraction_store import ExtractionStore, SavedExtraction, open_from_env
 from app.workers.intake_extractor.chart import ChartReader
 from app.workers.intake_extractor.report import ExtractionReport
@@ -140,6 +146,8 @@ class DocumentStore:
         #: Each document's last write-back outcome (a WriteBackDecision
         #: value), None when none has finished.
         self._writeback: dict[str, str | None] = {}
+        #: The same outcome with counts and conflicts, for the card.
+        self._summaries: dict[str, WriteBackSummary | None] = {}
         #: Documents whose write-back is running now, first run or retry.
         self._writing: set[str] = set()
 
@@ -235,6 +243,7 @@ class DocumentStore:
         )
         self._documents[document_id] = stored
         self._writeback.pop(document_id, None)
+        self._summaries.pop(document_id, None)
         output = self.jobs.submit(
             patient_uuid,
             pdf,
@@ -277,12 +286,17 @@ class DocumentStore:
                 decision = await step(report)
             finally:
                 self._writing.discard(document_id)
-            value = None if decision is None else str(getattr(decision, "value", decision))
+            summary = decision if isinstance(decision, WriteBackSummary) else None
+            if summary is not None:
+                value: str | None = summary.decision.value
+            else:
+                value = None if decision is None else str(getattr(decision, "value", decision))
             # Only while the document is still bound as it was: a binding
             # released meanwhile belongs to another chart's extraction now.
             if self._documents.get(document_id) is stored:
                 self._writeback[document_id] = value
-                self._save(stored, report.output, report, writeback=value)
+                self._summaries[document_id] = summary
+                self._save(stored, report.output, report, writeback=value, summary=summary)
             return decision
 
         return run
@@ -332,6 +346,7 @@ class DocumentStore:
         self._documents[document_id] = stored
         self.jobs.restore(document_id, _as_restored(saved), saved.report)
         self._writeback[document_id] = saved.writeback
+        self._summaries[document_id] = saved.writeback_summary
         log_event(
             "w2_document_restored",
             {
@@ -348,6 +363,7 @@ class DocumentStore:
         output: IntakeExtractorOutput,
         report: ExtractionReport | None,
         writeback: str | None = None,
+        summary: WriteBackSummary | None = None,
     ) -> None:
         """
         Write the document's row. Never raises: a failed write leaves this
@@ -364,6 +380,7 @@ class DocumentStore:
                 output=output,
                 report=report,
                 writeback=writeback,
+                writeback_summary=summary,
             )
         except Exception as error:  # noqa: BLE001 - the upload and the job carry on
             log_event(
@@ -416,6 +433,15 @@ class DocumentStore:
         self._known(document_id)
         return self.jobs.report(document_id)
 
+    def write_back(self, document_id: str) -> WriteBackSummary | None:
+        """
+        The last write-back's summary, or None while none has ended (not
+        started, still running, or the step returned no summary). Never
+        waits.
+        """
+        self._known(document_id)
+        return self._summaries.get(document_id)
+
     async def wait(self, document_id: str) -> ExtractionReport | None:
         """Upload path, scripts and tests only. The ask path never calls this (D7)."""
         return await self.jobs.wait(document_id)
@@ -424,6 +450,7 @@ class DocumentStore:
         """Tests only. Forgets this process's memory; a store's rows stay on disk."""
         self._documents.clear()
         self._writeback.clear()
+        self._summaries.clear()
         self._writing.clear()
         self.jobs = ExtractionJobs(vision=self.jobs._vision)
 

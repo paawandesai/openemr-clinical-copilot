@@ -69,7 +69,10 @@ final readonly class ProcedureChainWriter implements ProcedureChain
         }
         // The order spans the panel, so its dates come from the earliest
         // collection and the latest report across the rows it covers.
-        $collected = min(array_map(static fn(LabWriteBackResult $r): string => $r->collectionDate->format('Y-m-d H:i:s'), $results));
+        $collected = min(array_map(
+            static fn(LabWriteBackResult $r): string => ($r->collectedAt ?? $r->collectionDate)->format('Y-m-d H:i:s'),
+            $results
+        ));
         $reported = max(array_map(
             static fn(LabWriteBackResult $r): string => ($r->reportedAt ?? $r->collectionDate)->format('Y-m-d H:i:s'),
             $results
@@ -104,7 +107,9 @@ final readonly class ProcedureChainWriter implements ProcedureChain
         int $userId,
         int $documentId
     ): ProcedureChainIds {
-        $collected = $result->collectionDate->format('Y-m-d H:i:s');
+        // The time the report printed, when it printed one: what a later
+        // upload of the same results is matched against.
+        $collected = ($result->collectedAt ?? $result->collectionDate)->format('Y-m-d H:i:s');
         $reported = ($result->reportedAt ?? $result->collectionDate)->format('Y-m-d H:i:s');
 
         QueryUtils::sqlStatementThrowException(

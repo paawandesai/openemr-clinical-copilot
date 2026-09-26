@@ -210,7 +210,13 @@ FHIR_BASE_URL=https://<host>:9300/apis/default/fhir
    gets **403** instead — different failure, different fix.
 3. **A write lands.** POST one document and one result; expect **200** with real
    ids. Then post it again byte-for-byte: expect **200**, the *same* ids, and
-   `duplicate_ignored` throughout, with no new rows.
+   `duplicate_ignored` throughout, with no new rows. Then post the same
+   result under a different document (append a byte to the PDF and re-derive
+   the digest and every key): expect **200**, `already_in_chart` with the
+   first write's `procedure_result_id` as `matched_procedure_result_id`, and
+   again no new rows. Change the value and post once more: `conflict`, with
+   the chart's value in `chart_value`, no ids, and a `lab-results` audit row
+   naming the chart row — still no new rows, and the chart row unchanged.
 4. **It reads back.** `GET /fhir/Observation?patient=<uuid>&category=laboratory`
    shows the value, unit, reference range, interpretation, and
    `note[0].text` equal to the result's extraction id.

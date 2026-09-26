@@ -113,3 +113,31 @@ def test_a_blank_flag_column_is_not_a_disagreement() -> None:
     plan = _plan(_one_row(""), SHA, b"%PDF-1.7")
     assert plan.skipped == []
     assert plan.request.results[0].abnormal.value == "normal"
+
+
+def test_a_row_carries_the_headers_collection_time_when_it_is_the_rows_date() -> None:
+    # lab-clean-001 prints "Collected 2026-08-30 07:12"; every row is dated
+    # 2026-08-30, so each carries the time the endpoint matches the chart on.
+    extraction = _extracted("lab-clean-001")
+    sha = "a" * 128
+    plan = _plan(extraction, sha, b"%PDF-")
+    assert plan.request is not None
+    collected = extraction.order.collected_at.as_presented_fact()
+    assert collected is not None
+    for row in plan.request.results:
+        assert row.collected_at == collected.value
+        assert row.collected_at.date() == row.collection_date
+
+
+def test_a_header_time_from_another_day_is_not_a_rows_time() -> None:
+    extraction = _extracted("lab-clean-001")
+    header = extraction.order.collected_at
+    shifted = header.model_copy(
+        update={"value": header.value.replace(day=header.value.day + 1)}  # type: ignore[union-attr]
+    )
+    moved = extraction.model_copy(
+        update={"order": extraction.order.model_copy(update={"collected_at": shifted})}
+    )
+    plan = _plan(moved, "a" * 128, b"%PDF-")
+    assert plan.request is not None
+    assert all(row.collected_at is None for row in plan.request.results)

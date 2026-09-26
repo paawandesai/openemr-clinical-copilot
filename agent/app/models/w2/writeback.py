@@ -188,6 +188,18 @@ class WriteOutcome(StrEnum):
     #: The ledger already had this key. The original ids are returned
     #: unchanged, which is what makes a retry safe (invariant 6).
     DUPLICATE_IGNORED = "duplicate_ignored"
+    #: The chart already holds a result for this test and collection
+    #: date/time with the same value and unit, from any source (this
+    #: endpoint under another file, a lab interface, a hand entry). Nothing
+    #: is written; the ids are the existing row's. The ledger is per file,
+    #: so it cannot see this; the chart can.
+    ALREADY_IN_CHART = "already_in_chart"
+    #: The chart holds a result for this test and collection date/time with
+    #: a different value or unit. Nothing is written and nothing is
+    #: overwritten: the two values are returned side by side for a human to
+    #: resolve, the way D2 surfaces an intake medication that disagrees
+    #: with the chart.
+    CONFLICT = "conflict"
 
 
 class WriteBackDocument(W2Contract):
@@ -259,6 +271,15 @@ class LabWriteBackResult(W2Contract):
     unit: str | None = None
     reference_range: ReferenceRange | None = None
     collection_date: date
+    collected_at: datetime | None = Field(
+        default=None,
+        description=(
+            "The collection time, when the report prints one, on the same day "
+            "as `collection_date`. -> procedure_report.date_collected. The "
+            "endpoint matches an existing chart result on this exact time, or "
+            "on the date alone when the report gives no time."
+        ),
+    )
     reported_at: datetime | None = Field(
         default=None,
         description=(
@@ -294,6 +315,11 @@ class LabWriteBackResult(W2Contract):
         openemr_abnormal_code(self.abnormal)
         if self.bbox.page != self.page:
             raise ValueError(f"page is {self.page} but bbox is on page {self.bbox.page}")
+        if self.collected_at is not None and self.collected_at.date() != self.collection_date:
+            raise ValueError(
+                "collected_at is a time on the collection date; "
+                f"{self.collected_at.date()} is not {self.collection_date}"
+            )
         return self
 
 
@@ -389,25 +415,166 @@ class LabWriteBackResultOutcome(W2Contract):
     What happened to one result, with the ids D1 requires the endpoint to
     return. Real ids, not `true`: the standard document endpoint's
     returns-no-identifier behaviour is the race D1 exists to fix.
+
+    The ids are the row this write made (`created`), the row an earlier
+    write of the same file made (`duplicate_ignored`), or the row already
+    in the chart from any source (`already_in_chart`). A `conflict` wrote
+    nothing and has no ids of its own; `matched_procedure_result_id`,
+    `chart_value` and `chart_unit` say what it disagreed with.
     """
 
     test_code: str = Field(min_length=1)
     idempotency_key: str = Field(min_length=1)
     extraction_id: str = Field(pattern=EXTRACTION_ID_PATTERN)
     outcome: WriteOutcome
-    procedure_report_id: int = Field(ge=1)
-    procedure_result_id: int = Field(ge=1)
+    procedure_report_id: int | None = Field(default=None, ge=1)
+    procedure_result_id: int | None = Field(default=None, ge=1)
+    matched_procedure_result_id: int | None = Field(
+        default=None,
+        ge=1,
+        description="The chart row this result matched (already_in_chart) or disagrees with (conflict).",
+    )
+    chart_value: str | None = Field(
+        default=None, description="The chart row's value as stored, for a conflict."
+    )
+    chart_unit: str | None = Field(
+        default=None, description="The chart row's unit as stored, for a conflict."
+    )
+
+    @model_validator(mode="after")
+    def _ids_match_the_outcome(self) -> Self:
+        has_ids = self.procedure_report_id is not None and self.procedure_result_id is not None
+        if self.outcome is WriteOutcome.CONFLICT:
+            if (
+                has_ids
+                or self.procedure_report_id is not None
+                or self.procedure_result_id is not None
+            ):
+                raise ValueError("a conflict wrote nothing and has no ids of its own")
+            if self.matched_procedure_result_id is None or self.chart_value is None:
+                raise ValueError("a conflict names the chart row and value it disagrees with")
+            return self
+        if not has_ids:
+            raise ValueError(f"a {self.outcome.value} result carries the ids of its chart row")
+        if self.outcome is WriteOutcome.ALREADY_IN_CHART:
+            if self.matched_procedure_result_id != self.procedure_result_id:
+                raise ValueError("an already_in_chart result's ids are the matched chart row's")
+        elif self.matched_procedure_result_id is not None or self.chart_value is not None:
+            raise ValueError(f"a {self.outcome.value} result matched nothing in the chart")
+        return self
+
+
+class WriteBackCounts(W2Contract):
+    """How many results a write-back ended in each outcome. Counts only."""
+
+    created: int = Field(default=0, ge=0)
+    duplicate_ignored: int = Field(default=0, ge=0)
+    already_in_chart: int = Field(default=0, ge=0)
+    conflict: int = Field(default=0, ge=0)
 
 
 class LabWriteBackResponse(W2Contract):
-    """The ids the endpoint wrote, or found already written."""
+    """
+    The ids the endpoint wrote, found already written, or found already in
+    the chart — and, for a conflict, what it declined to overwrite.
+    """
 
     patient_uuid: str = Field(pattern=PATIENT_UUID_PATTERN)
     document_id: int = Field(ge=1, description="`documents.id` of the stored file.")
     document_outcome: WriteOutcome
-    procedure_order_id: int = Field(ge=1)
+    procedure_order_id: int | None = Field(
+        default=None,
+        ge=1,
+        description=(
+            "The order this call created; when it created nothing, the order "
+            "recorded for its first result; None when no result has an order "
+            "(every result a conflict)."
+        ),
+    )
     results: list[LabWriteBackResultOutcome] = Field(min_length=1)
     correlation_id: str = Field(pattern=CORRELATION_ID_PATTERN)
+    counts: WriteBackCounts | None = Field(
+        default=None,
+        description="Per-outcome counts as the endpoint reports them; `outcome_counts()` derives the same from `results`.",
+    )
+
+    def outcome_counts(self) -> WriteBackCounts:
+        """Counts derived from the per-result outcomes, whatever the endpoint sent."""
+        return WriteBackCounts(
+            **{
+                outcome.value: sum(1 for r in self.results if r.outcome is outcome)
+                for outcome in WriteOutcome
+            }
+        )
+
+
+class WriteBackDecision(StrEnum):
+    """
+    What happened after one extraction (D54). Logged; never shown as a
+    value. `written` covers a call that reached the endpoint and was
+    answered, including one that wrote no row because every row was
+    already in the chart or conflicts with it.
+    """
+
+    WRITTEN = "written"
+    NOT_LAB_REPORT = "not_lab_report"
+    EXTRACTION_NOT_COMPLETE = "extraction_not_complete"
+    IDENTITY_NOT_CONFIRMED = "identity_not_confirmed"
+    NOTHING_WRITABLE = "nothing_writable"
+    TOKEN_REFUSED = "token_refused"
+    REQUEST_REFUSED = "request_refused"
+    ENDPOINT_UNAVAILABLE = "endpoint_unavailable"
+
+
+class WriteBackConflict(W2Contract):
+    """
+    One result the chart already holds with a different value or unit.
+
+    Shown to the clinician on the chart card as "chart has X, this document
+    has Y", never written (D2's rule for intake data, applied to a lab
+    value). Both sides carry their provenance: the document value its page
+    and region (invariant 2), the chart value its `procedure_result` id.
+    Never logged: this model is chart content.
+    """
+
+    test_code: str = Field(min_length=1)
+    test_name: str = Field(min_length=1)
+    collection_date: date
+    collected_at: datetime | None = None
+    page: int = Field(ge=1)
+    bbox: BBox
+    document_value: str = Field(min_length=1, description="The value as the report writes it.")
+    document_unit: str | None = None
+    chart_value: str = Field(min_length=1, description="The value as the chart stores it.")
+    chart_unit: str | None = None
+    chart_procedure_result_id: int = Field(ge=1)
+
+
+class WriteBackSummary(W2Contract):
+    """
+    A lab upload's write-back, as the chart card reports it: the decision,
+    the counts, and the conflicts. Saved with the document (D60) and served
+    by the extraction-status route once the write-back has ended.
+
+    `skipped` is the rows the planner refused (unlocated, uncoded, undated,
+    an undecidable or disputed flag); `results_total` is every row the
+    extraction read, so the counts add up to it.
+    """
+
+    decision: WriteBackDecision
+    results_total: int = Field(default=0, ge=0)
+    skipped: int = Field(default=0, ge=0)
+    created: int = Field(default=0, ge=0)
+    duplicate_ignored: int = Field(default=0, ge=0)
+    already_in_chart: int = Field(default=0, ge=0)
+    conflict: int = Field(default=0, ge=0)
+    conflicts: list[WriteBackConflict] = Field(default_factory=list)
+
+    @model_validator(mode="after")
+    def _conflicts_are_counted(self) -> Self:
+        if len(self.conflicts) != self.conflict:
+            raise ValueError("`conflict` counts the entries of `conflicts`")
+        return self
 
 
 class LabWriteBackLedgerRow(W2Contract):

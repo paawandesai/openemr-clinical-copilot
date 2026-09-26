@@ -22,6 +22,19 @@ use Throwable;
  * Document and lab results are written together or not at all, so a partial
  * write cannot leave results pointing at a document that was never stored.
  *
+ * ### The chart is checked before a row is written
+ *
+ * The ledger is keyed on the file, so the same results arriving in a
+ * different file — a re-scan, a re-print, a report faxed twice — pass it.
+ * So before a row that the ledger does not know is written, the chart's
+ * own results for that patient, test code and collection date/time are
+ * read, from any source. The same value and unit means the row is already
+ * in the chart: nothing is written, and the existing row's ids are
+ * returned. A different value or unit is a conflict: nothing is written,
+ * nothing is overwritten, and both values are returned for a human to
+ * resolve, the way D2 treats an intake medication that disagrees with the
+ * chart. Only a row the chart does not hold is written, as before.
+ *
  * ### Idempotency is per result, and the constraint is what enforces it
  *
  * Each result carries its own D1 key. The ledger is read before the
@@ -50,6 +63,7 @@ final readonly class LabWriteBackService
         private DocumentStorage $documents,
         private ProcedureChain $chain,
         private Ledger $ledger,
+        private ChartResults $chartResults,
         private Transaction $transaction,
         private WriteBackAudit $audit,
         private LoggerInterface $logger,
@@ -84,17 +98,19 @@ final readonly class LabWriteBackService
         // After the commit, never inside it: OpenEMR's audit inserts do not
         // roll back with the work they describe, so an entry written inside
         // the transaction can outlive rows that were undone.
-        $this->audit->orderWritten(
-            $pid,
-            $outcome->procedureOrderId,
-            array_values(array_map(
-                static fn(ResultOutcome $r): int => $r->ids->procedureResultId,
-                array_filter(
-                    $outcome->results,
-                    static fn(ResultOutcome $r): bool => $r->outcome === WriteOutcome::CREATED
-                )
-            ))
-        );
+        $createdIds = [];
+        foreach ($outcome->results as $result) {
+            if ($result->outcome === WriteOutcome::CREATED && $result->ids !== null) {
+                $createdIds[] = $result->ids->procedureResultId;
+            }
+        }
+        if ($createdIds !== [] && $outcome->procedureOrderId !== null) {
+            $this->audit->orderWritten($pid, $outcome->procedureOrderId, $createdIds);
+        }
+        $conflicts = $outcome->conflictingChartResultIds();
+        if ($conflicts !== []) {
+            $this->audit->conflictsFound($pid, $conflicts);
+        }
 
         $this->logger->info('Clinical Co-Pilot wrote lab results back to the chart', [
             'correlation_id' => $request->correlationId,
@@ -104,6 +120,9 @@ final readonly class LabWriteBackService
             'procedure_order_id' => $outcome->procedureOrderId,
             'results_created' => $outcome->createdCount(),
             'results_total' => count($outcome->results),
+            // Counts only (invariant 1): which test, value or unit conflicted
+            // is in the response and the audit row, never here.
+            'results_by_outcome' => $outcome->counts(),
         ]);
         return $outcome;
     }
@@ -129,15 +148,24 @@ final readonly class LabWriteBackService
         $stored = $this->resolveDocument($request, $pid, $categoryId, $userId);
 
         try {
+            // Three answers for a row the ledger does not know: the chart
+            // already holds it, the chart holds a different value, or it is
+            // new. Only the last reaches the chain.
             $pending = [];
+            $byKey = [];
             foreach ($request->results as $result) {
-                if (($recorded[$result->idempotencyKey] ?? null) === null) {
+                if (($recorded[$result->idempotencyKey] ?? null) !== null) {
+                    continue;
+                }
+                $inChart = $this->matchChart($result, $pid);
+                if ($inChart === null) {
                     $pending[] = $result;
+                } else {
+                    $byKey[$result->idempotencyKey] = $inChart;
                 }
             }
-            $written = $this->chain->write($pending, $pid, $userId, $stored->documentId);
+            $written = $pending === [] ? [] : $this->chain->write($pending, $pid, $userId, $stored->documentId);
 
-            $byKey = [];
             foreach ($pending as $index => $result) {
                 $this->ledger->record($request, $result, $stored->documentId, $written[$index]);
                 $byKey[$result->idempotencyKey] = ResultOutcome::created($result, $written[$index]);
@@ -157,7 +185,7 @@ final readonly class LabWriteBackService
                 $request->patientUuid,
                 $stored->documentId,
                 $stored->outcome,
-                $written[0]->procedureOrderId,
+                $written !== [] ? $written[0]->procedureOrderId : self::firstOrderAmong($outcomes),
                 $outcomes,
                 $request->correlationId,
             );
@@ -167,6 +195,51 @@ final readonly class LabWriteBackService
             $this->documents->discardStoredFile($stored);
             throw $exception;
         }
+    }
+
+    /**
+     * What the chart already says about this result, or null when nothing.
+     *
+     * Every result the patient has for this test code on this collection
+     * date (at this time, when the report printed one) is read, from any
+     * source. One with the same value and unit means the row is already in
+     * the chart. Otherwise the earliest is the one this document disagrees
+     * with. The comparison is exact (D24): `4.10` is `4.1`, `4.1` is not
+     * `4.2`, and `mg/dL` is not `mmol/L`.
+     */
+    private function matchChart(LabWriteBackResult $result, int $pid): ?ResultOutcome
+    {
+        $existing = $this->chartResults->findCollected(
+            $pid,
+            $result->testCode,
+            $result->collectionDate,
+            $result->collectedAt
+        );
+        if ($existing === []) {
+            return null;
+        }
+        foreach ($existing as $row) {
+            if ($result->value->matches($row->result) && LabValue::sameUnit($result->unit, $row->units)) {
+                return ResultOutcome::alreadyInChart($result, $row);
+            }
+        }
+        return ResultOutcome::conflict($result, $existing[0]);
+    }
+
+    /**
+     * The order recorded for the first result that has one, or null when
+     * none has (every result a conflict).
+     *
+     * @param list<ResultOutcome> $outcomes
+     */
+    private static function firstOrderAmong(array $outcomes): ?int
+    {
+        foreach ($outcomes as $outcome) {
+            if ($outcome->ids !== null) {
+                return $outcome->ids->procedureOrderId;
+            }
+        }
+        return null;
     }
 
     /**

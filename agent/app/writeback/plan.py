@@ -135,11 +135,18 @@ def plan_write_back(
     # leaves it None and the endpoint falls back to the collection date.
     reported = extraction.order.reported_at.as_presented_fact()
     reported_at = None if reported is None else reported.value
+    # The collection time, when the header prints one. A row carries it only
+    # when it falls on the row's own collection date: the endpoint matches an
+    # existing chart result on the exact time, or on the date alone when the
+    # report gives none, and a header time from another day is not this
+    # row's time.
+    collected = extraction.order.collected_at.as_presented_fact()
+    collected_at = None if collected is None else collected.value
 
     writable: list[LabWriteBackResult] = []
     skipped: list[SkippedResult] = []
     for result in extraction.results:
-        built = _build_result(result, document_sha3_512, reported_at)
+        built = _build_result(result, document_sha3_512, reported_at, collected_at)
         if isinstance(built, SkipReason):
             skipped.append(SkippedResult(test_key=result.test_key, reason=built))
         else:
@@ -170,7 +177,10 @@ def plan_write_back(
 
 
 def _build_result(
-    result: LabResult, document_sha3_512: str, reported_at: datetime | None
+    result: LabResult,
+    document_sha3_512: str,
+    reported_at: datetime | None,
+    collected_at: datetime | None = None,
 ) -> LabWriteBackResult | SkipReason:
     """One row, or the reason it is not one."""
     value = result.value.as_presented_fact()
@@ -214,6 +224,11 @@ def _build_result(
         unit=None if unit is None else unit.value,
         reference_range=None if reference_range is None else reference_range.value,
         collection_date=collected.value,
+        collected_at=(
+            collected_at
+            if collected_at is not None and collected_at.date() == collected.value
+            else None
+        ),
         reported_at=reported_at,
         abnormal=cross_check.computed,
         page=bbox.page,

@@ -75,7 +75,19 @@ LOINC-coded rows to the chart through the module's write-back endpoint,
 under the uploader's token, unreviewed (`app/writeback/after_extraction.py`).
 Nothing is written for an intake form (D2), a failed extraction, or a
 document whose patient the identity check did not confirm. The status
-route is final before the write starts and never reports it.
+route is final before the write starts: `status` never waits for it.
+
+WRITE-BACK OUTCOME — duplicate results
+--------------------------------------
+Both responses carry `write_back`: null until the lab report's write-back
+has ended (and always null for an intake form, which has none), then a
+`WriteBackSummary` — the decision, the counts (created, duplicate_ignored,
+already_in_chart, conflict, skipped) and each conflict with both values.
+The card polls a lab report past `complete` until this is set, and shows
+the conflicts. A conflict is the one place chart content crosses this
+route: a value the chart holds and a value the document prints, for the
+clinician who uploaded it, on the chart it was uploaded to, under the
+same token that could read the chart. It is never logged.
 
 IDENTITY — D60
 --------------
@@ -116,6 +128,7 @@ from app.models.telemetry_events import Pipeline, StepOutcome
 from app.models.w2.base import W2Contract
 from app.models.w2.documents import DocumentKind, ExtractionStatus
 from app.models.w2.workers import ExtractionFailureReason
+from app.models.w2.writeback import WriteBackSummary
 from app.workers import document_store
 from app.workers.document_store import DocumentBoundElsewhere, UnreadablePdf
 from app.workers.intake_extractor.chart import fhir_chart_reader
@@ -186,6 +199,8 @@ class UploadAccepted(W2Contract):
     #: Set only when the document had already finished extracting (a
     #: duplicate upload); see IdentityOutcome.
     identity_check: IdentityOutcome | None = None
+    #: The lab write-back's outcome, once it has ended; see the module docstring.
+    write_back: WriteBackSummary | None = None
 
 
 class ExtractionState(W2Contract):
@@ -202,6 +217,7 @@ class ExtractionState(W2Contract):
     failure_reason: ExtractionFailureReason | None = None
     correlation_id: str
     identity_check: IdentityOutcome | None = None
+    write_back: WriteBackSummary | None = None
 
 
 @router.post(
@@ -312,6 +328,7 @@ async def upload_document(
         identity_check=identity_outcome(
             document_store.DOCUMENTS.report(stored.document.document_id)
         ),
+        write_back=document_store.DOCUMENTS.write_back(stored.document.document_id),
     )
 
 
@@ -342,12 +359,14 @@ async def extraction_state(
         )
 
     identity = identity_outcome(store.report(document_id))
+    write_back = store.write_back(document_id)
     log_event(
         "w2_extraction_state_read",
         {
             "document_id": document_id,
             "status": output.status.value,
             "identity_check": identity.value if identity is not None else None,
+            "write_back": write_back.decision.value if write_back is not None else None,
             "correlation_id": correlation_id,
         },
     )
@@ -367,6 +386,7 @@ async def extraction_state(
         failure_reason=output.failure_reason,
         correlation_id=correlation_id,
         identity_check=identity,
+        write_back=write_back,
     )
 
 
