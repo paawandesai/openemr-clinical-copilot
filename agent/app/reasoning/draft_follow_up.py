@@ -73,6 +73,10 @@ from app.reasoning.draft_claims import (
 
 _USE_CASE = UseCase.FOLLOW_UP_DRILLING
 
+# The follow-up and conversation turns' thinking, set explicitly
+# (D-unassigned, answer-step thinking; draft_claims.BRIEF_THINKING says why).
+FOLLOW_UP_THINKING: dict[str, str] = {"type": "disabled"}
+
 # The record types the Pre-Visit Brief retrieves (ARCHITECTURE.md §3) —
 # the whole bounded set a follow-up may draw from.
 BOUNDED_RESOURCE_MODELS: dict[FhirResourceType, type[BaseModel]] = {
@@ -254,19 +258,25 @@ async def stream_structured(
     schema: dict[str, Any],
     patient_session_key: str,
     max_tokens: int = _MAX_TOKENS,
+    thinking: dict[str, str] | None = None,
+    effort: str | None = None,
 ) -> Any:
     """
     One schema-constrained model call for Follow-Up Drilling: the single-turn
     follow-up below and a conversation turn
     (app/reasoning/draft_conversation_turn.py) make exactly this call, with
     the same model, effort and refusal fallback. Returns the final message.
-    The Week 2 answer step passes a lower `max_tokens` (D50).
+    The Week 2 answer step passes a lower `max_tokens` (D50), and its own
+    `thinking` and `effort` (D-unassigned, answer-step thinking); everything
+    else runs at FOLLOW_UP_THINKING and EFFORT.
 
     Logs llm_usage_event, or llm_call_failed and re-raises. Raises
     ClaimDraftingError on a refusal, and its subclass DraftTruncatedError on
     a truncated output. Neither the prompt nor the output is logged.
     """
     correlation_id = get_correlation_id() or "no-request-context"
+    thinking = thinking or FOLLOW_UP_THINKING
+    effort = effort or EFFORT
 
     started = time.perf_counter()
     try:
@@ -278,9 +288,9 @@ async def stream_structured(
                 max_tokens=max_tokens,
                 system=system,
                 messages=[{"role": "user", "content": user_content}],
-                thinking={"type": "adaptive"},
+                thinking=thinking,
                 output_config={
-                    "effort": EFFORT,
+                    "effort": effort,
                     "format": {"type": "json_schema", "schema": schema},
                 },
                 betas=[_FALLBACK_BETA],
@@ -317,7 +327,8 @@ async def stream_structured(
             "requested_model": MODEL,
             "served_model": message.model,
             "fallback_ran": fallback_ran,
-            "effort": EFFORT,
+            "effort": effort,
+            "thinking": thinking["type"],
             "request_id": request_id,
             "input_tokens": usage.input_tokens,
             "output_tokens": usage.output_tokens,

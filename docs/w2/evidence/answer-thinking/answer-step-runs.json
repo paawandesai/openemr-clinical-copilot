@@ -1,0 +1,669 @@
+[
+  {
+    "round": 1,
+    "case": "whole-report",
+    "config": "adaptive-medium",
+    "status": "partially_answered",
+    "wall_ms": 12151,
+    "turn_ms": 12151,
+    "answer_node_ms": 11984,
+    "output_tokens": 1066,
+    "input_tokens": 16140,
+    "thinking": [
+      "adaptive"
+    ],
+    "effort": [
+      "medium"
+    ],
+    "stop_reasons": [
+      "end_turn"
+    ],
+    "verified_claims": 3,
+    "citations_by_source": {
+      "document": 50
+    },
+    "unverified": 0,
+    "unverified_reasons": [],
+    "unsupported": 23,
+    "critical_values": [
+      {
+        "analyte": "Potassium",
+        "direction": "high",
+        "stated": true
+      }
+    ],
+    "limitations": [
+      "unsupported_document_values",
+      "answer_scoped"
+    ],
+    "cost_usd": 0.10735
+  },
+  {
+    "round": 1,
+    "case": "whole-report",
+    "config": "disabled-medium",
+    "status": "partially_answered",
+    "wall_ms": 12036,
+    "turn_ms": 12036,
+    "answer_node_ms": 11864,
+    "output_tokens": 1002,
+    "input_tokens": 16140,
+    "thinking": [
+      "disabled"
+    ],
+    "effort": [
+      "medium"
+    ],
+    "stop_reasons": [
+      "end_turn"
+    ],
+    "verified_claims": 3,
+    "citations_by_source": {
+      "document": 50
+    },
+    "unverified": 0,
+    "unverified_reasons": [],
+    "unsupported": 23,
+    "critical_values": [
+      {
+        "analyte": "Potassium",
+        "direction": "high",
+        "stated": true
+      }
+    ],
+    "limitations": [
+      "unsupported_document_values",
+      "answer_scoped"
+    ],
+    "cost_usd": 0.10575
+  },
+  {
+    "round": 1,
+    "case": "whole-report",
+    "config": "adaptive-low",
+    "status": "partially_answered",
+    "wall_ms": 10545,
+    "turn_ms": 10545,
+    "answer_node_ms": 10374,
+    "output_tokens": 1003,
+    "input_tokens": 16140,
+    "thinking": [
+      "adaptive"
+    ],
+    "effort": [
+      "low"
+    ],
+    "stop_reasons": [
+      "end_turn"
+    ],
+    "verified_claims": 3,
+    "citations_by_source": {
+      "document": 50
+    },
+    "unverified": 0,
+    "unverified_reasons": [],
+    "unsupported": 23,
+    "critical_values": [
+      {
+        "analyte": "Potassium",
+        "direction": "high",
+        "stated": true
+      }
+    ],
+    "limitations": [
+      "unsupported_document_values",
+      "answer_scoped"
+    ],
+    "cost_usd": 0.105775
+  },
+  {
+    "round": 1,
+    "case": "glucose-uspstf",
+    "config": "adaptive-medium",
+    "status": "answered",
+    "wall_ms": 12879,
+    "turn_ms": 12878,
+    "answer_node_ms": 12264,
+    "output_tokens": 1253,
+    "input_tokens": 13869,
+    "thinking": [
+      "adaptive"
+    ],
+    "effort": [
+      "medium"
+    ],
+    "stop_reasons": [
+      "end_turn"
+    ],
+    "verified_claims": 5,
+    "citations_by_source": {
+      "document": 48,
+      "guideline": 2
+    },
+    "unverified": 0,
+    "unverified_reasons": [],
+    "unsupported": 24,
+    "critical_values": [],
+    "limitations": [
+      "guideline_applicability_not_verified",
+      "unsupported_document_values",
+      "answer_scoped"
+    ],
+    "cost_usd": 0.10067
+  },
+  {
+    "round": 1,
+    "case": "glucose-uspstf",
+    "config": "disabled-medium",
+    "status": "answered",
+    "wall_ms": 12795,
+    "turn_ms": 12794,
+    "answer_node_ms": 12269,
+    "output_tokens": 1134,
+    "input_tokens": 13869,
+    "thinking": [
+      "disabled"
+    ],
+    "effort": [
+      "medium"
+    ],
+    "stop_reasons": [
+      "end_turn"
+    ],
+    "verified_claims": 6,
+    "citations_by_source": {
+      "document": 48,
+      "guideline": 3
+    },
+    "unverified": 0,
+    "unverified_reasons": [],
+    "unsupported": 24,
+    "critical_values": [],
+    "limitations": [
+      "guideline_applicability_not_verified",
+      "unsupported_document_values",
+      "answer_scoped"
+    ],
+    "cost_usd": 0.097695
+  },
+  {
+    "round": 1,
+    "case": "glucose-uspstf",
+    "config": "adaptive-low",
+    "status": "answered",
+    "wall_ms": 9347,
+    "turn_ms": 9347,
+    "answer_node_ms": 8809,
+    "output_tokens": 873,
+    "input_tokens": 13869,
+    "thinking": [
+      "adaptive"
+    ],
+    "effort": [
+      "low"
+    ],
+    "stop_reasons": [
+      "end_turn"
+    ],
+    "verified_claims": 5,
+    "citations_by_source": {
+      "document": 47,
+      "guideline": 2
+    },
+    "unverified": 0,
+    "unverified_reasons": [],
+    "unsupported": 24,
+    "critical_values": [],
+    "limitations": [
+      "guideline_applicability_not_verified",
+      "unsupported_document_values",
+      "answer_scoped"
+    ],
+    "cost_usd": 0.09117
+  },
+  {
+    "round": 2,
+    "case": "whole-report",
+    "config": "adaptive-medium",
+    "status": "partially_answered",
+    "wall_ms": 11080,
+    "turn_ms": 11079,
+    "answer_node_ms": 10872,
+    "output_tokens": 1105,
+    "input_tokens": 16140,
+    "thinking": [
+      "adaptive"
+    ],
+    "effort": [
+      "medium"
+    ],
+    "stop_reasons": [
+      "end_turn"
+    ],
+    "verified_claims": 3,
+    "citations_by_source": {
+      "document": 50
+    },
+    "unverified": 0,
+    "unverified_reasons": [],
+    "unsupported": 23,
+    "critical_values": [
+      {
+        "analyte": "Potassium",
+        "direction": "high",
+        "stated": true
+      }
+    ],
+    "limitations": [
+      "unsupported_document_values",
+      "answer_scoped"
+    ],
+    "cost_usd": 0.108325
+  },
+  {
+    "round": 2,
+    "case": "whole-report",
+    "config": "disabled-medium",
+    "status": "partially_answered",
+    "wall_ms": 9934,
+    "turn_ms": 9934,
+    "answer_node_ms": 9755,
+    "output_tokens": 1002,
+    "input_tokens": 16140,
+    "thinking": [
+      "disabled"
+    ],
+    "effort": [
+      "medium"
+    ],
+    "stop_reasons": [
+      "end_turn"
+    ],
+    "verified_claims": 3,
+    "citations_by_source": {
+      "document": 50
+    },
+    "unverified": 0,
+    "unverified_reasons": [],
+    "unsupported": 23,
+    "critical_values": [
+      {
+        "analyte": "Potassium",
+        "direction": "high",
+        "stated": true
+      }
+    ],
+    "limitations": [
+      "unsupported_document_values",
+      "answer_scoped"
+    ],
+    "cost_usd": 0.10575
+  },
+  {
+    "round": 2,
+    "case": "whole-report",
+    "config": "adaptive-low",
+    "status": "partially_answered",
+    "wall_ms": 9808,
+    "turn_ms": 9807,
+    "answer_node_ms": 9610,
+    "output_tokens": 1003,
+    "input_tokens": 16140,
+    "thinking": [
+      "adaptive"
+    ],
+    "effort": [
+      "low"
+    ],
+    "stop_reasons": [
+      "end_turn"
+    ],
+    "verified_claims": 3,
+    "citations_by_source": {
+      "document": 50
+    },
+    "unverified": 0,
+    "unverified_reasons": [],
+    "unsupported": 23,
+    "critical_values": [
+      {
+        "analyte": "Potassium",
+        "direction": "high",
+        "stated": true
+      }
+    ],
+    "limitations": [
+      "unsupported_document_values",
+      "answer_scoped"
+    ],
+    "cost_usd": 0.105775
+  },
+  {
+    "round": 2,
+    "case": "glucose-uspstf",
+    "config": "adaptive-medium",
+    "status": "answered",
+    "wall_ms": 13093,
+    "turn_ms": 13093,
+    "answer_node_ms": 12480,
+    "output_tokens": 1327,
+    "input_tokens": 13869,
+    "thinking": [
+      "adaptive"
+    ],
+    "effort": [
+      "medium"
+    ],
+    "stop_reasons": [
+      "end_turn"
+    ],
+    "verified_claims": 5,
+    "citations_by_source": {
+      "document": 48,
+      "guideline": 2
+    },
+    "unverified": 0,
+    "unverified_reasons": [],
+    "unsupported": 24,
+    "critical_values": [],
+    "limitations": [
+      "guideline_applicability_not_verified",
+      "unsupported_document_values",
+      "answer_scoped"
+    ],
+    "cost_usd": 0.10252
+  },
+  {
+    "round": 2,
+    "case": "glucose-uspstf",
+    "config": "disabled-medium",
+    "status": "answered",
+    "wall_ms": 11271,
+    "turn_ms": 11271,
+    "answer_node_ms": 10739,
+    "output_tokens": 1134,
+    "input_tokens": 13869,
+    "thinking": [
+      "disabled"
+    ],
+    "effort": [
+      "medium"
+    ],
+    "stop_reasons": [
+      "end_turn"
+    ],
+    "verified_claims": 6,
+    "citations_by_source": {
+      "document": 48,
+      "guideline": 3
+    },
+    "unverified": 0,
+    "unverified_reasons": [],
+    "unsupported": 24,
+    "critical_values": [],
+    "limitations": [
+      "guideline_applicability_not_verified",
+      "unsupported_document_values",
+      "answer_scoped"
+    ],
+    "cost_usd": 0.097695
+  },
+  {
+    "round": 2,
+    "case": "glucose-uspstf",
+    "config": "adaptive-low",
+    "status": "answered",
+    "wall_ms": 8883,
+    "turn_ms": 8883,
+    "answer_node_ms": 8453,
+    "output_tokens": 873,
+    "input_tokens": 13869,
+    "thinking": [
+      "adaptive"
+    ],
+    "effort": [
+      "low"
+    ],
+    "stop_reasons": [
+      "end_turn"
+    ],
+    "verified_claims": 5,
+    "citations_by_source": {
+      "document": 47,
+      "guideline": 2
+    },
+    "unverified": 0,
+    "unverified_reasons": [],
+    "unsupported": 24,
+    "critical_values": [],
+    "limitations": [
+      "guideline_applicability_not_verified",
+      "unsupported_document_values",
+      "answer_scoped"
+    ],
+    "cost_usd": 0.09117
+  },
+  {
+    "round": 3,
+    "case": "whole-report",
+    "config": "adaptive-medium",
+    "status": "partially_answered",
+    "wall_ms": 11168,
+    "turn_ms": 11167,
+    "answer_node_ms": 10977,
+    "output_tokens": 1094,
+    "input_tokens": 16140,
+    "thinking": [
+      "adaptive"
+    ],
+    "effort": [
+      "medium"
+    ],
+    "stop_reasons": [
+      "end_turn"
+    ],
+    "verified_claims": 3,
+    "citations_by_source": {
+      "document": 50
+    },
+    "unverified": 0,
+    "unverified_reasons": [],
+    "unsupported": 23,
+    "critical_values": [
+      {
+        "analyte": "Potassium",
+        "direction": "high",
+        "stated": true
+      }
+    ],
+    "limitations": [
+      "unsupported_document_values",
+      "answer_scoped"
+    ],
+    "cost_usd": 0.10805
+  },
+  {
+    "round": 3,
+    "case": "whole-report",
+    "config": "disabled-medium",
+    "status": "partially_answered",
+    "wall_ms": 9923,
+    "turn_ms": 9923,
+    "answer_node_ms": 9733,
+    "output_tokens": 1002,
+    "input_tokens": 16140,
+    "thinking": [
+      "disabled"
+    ],
+    "effort": [
+      "medium"
+    ],
+    "stop_reasons": [
+      "end_turn"
+    ],
+    "verified_claims": 3,
+    "citations_by_source": {
+      "document": 50
+    },
+    "unverified": 0,
+    "unverified_reasons": [],
+    "unsupported": 23,
+    "critical_values": [
+      {
+        "analyte": "Potassium",
+        "direction": "high",
+        "stated": true
+      }
+    ],
+    "limitations": [
+      "unsupported_document_values",
+      "answer_scoped"
+    ],
+    "cost_usd": 0.10575
+  },
+  {
+    "round": 3,
+    "case": "whole-report",
+    "config": "adaptive-low",
+    "status": "partially_answered",
+    "wall_ms": 9860,
+    "turn_ms": 9859,
+    "answer_node_ms": 9645,
+    "output_tokens": 1003,
+    "input_tokens": 16140,
+    "thinking": [
+      "adaptive"
+    ],
+    "effort": [
+      "low"
+    ],
+    "stop_reasons": [
+      "end_turn"
+    ],
+    "verified_claims": 3,
+    "citations_by_source": {
+      "document": 50
+    },
+    "unverified": 0,
+    "unverified_reasons": [],
+    "unsupported": 23,
+    "critical_values": [
+      {
+        "analyte": "Potassium",
+        "direction": "high",
+        "stated": true
+      }
+    ],
+    "limitations": [
+      "unsupported_document_values",
+      "answer_scoped"
+    ],
+    "cost_usd": 0.105775
+  },
+  {
+    "round": 3,
+    "case": "glucose-uspstf",
+    "config": "adaptive-medium",
+    "status": "answered",
+    "wall_ms": 13898,
+    "turn_ms": 13897,
+    "answer_node_ms": 13302,
+    "output_tokens": 1449,
+    "input_tokens": 13869,
+    "thinking": [
+      "adaptive"
+    ],
+    "effort": [
+      "medium"
+    ],
+    "stop_reasons": [
+      "end_turn"
+    ],
+    "verified_claims": 9,
+    "citations_by_source": {
+      "chart": 4,
+      "document": 48,
+      "guideline": 2
+    },
+    "unverified": 0,
+    "unverified_reasons": [],
+    "unsupported": 24,
+    "critical_values": [],
+    "limitations": [
+      "guideline_applicability_not_verified",
+      "unsupported_document_values",
+      "answer_scoped"
+    ],
+    "cost_usd": 0.10557
+  },
+  {
+    "round": 3,
+    "case": "glucose-uspstf",
+    "config": "disabled-medium",
+    "status": "answered",
+    "wall_ms": 11158,
+    "turn_ms": 11157,
+    "answer_node_ms": 10733,
+    "output_tokens": 1134,
+    "input_tokens": 13869,
+    "thinking": [
+      "disabled"
+    ],
+    "effort": [
+      "medium"
+    ],
+    "stop_reasons": [
+      "end_turn"
+    ],
+    "verified_claims": 6,
+    "citations_by_source": {
+      "document": 48,
+      "guideline": 3
+    },
+    "unverified": 0,
+    "unverified_reasons": [],
+    "unsupported": 24,
+    "critical_values": [],
+    "limitations": [
+      "guideline_applicability_not_verified",
+      "unsupported_document_values",
+      "answer_scoped"
+    ],
+    "cost_usd": 0.097695
+  },
+  {
+    "round": 3,
+    "case": "glucose-uspstf",
+    "config": "adaptive-low",
+    "status": "answered",
+    "wall_ms": 10219,
+    "turn_ms": 10219,
+    "answer_node_ms": 9545,
+    "output_tokens": 980,
+    "input_tokens": 13869,
+    "thinking": [
+      "adaptive"
+    ],
+    "effort": [
+      "low"
+    ],
+    "stop_reasons": [
+      "end_turn"
+    ],
+    "verified_claims": 5,
+    "citations_by_source": {
+      "document": 48,
+      "guideline": 2
+    },
+    "unverified": 0,
+    "unverified_reasons": [],
+    "unsupported": 24,
+    "critical_values": [],
+    "limitations": [
+      "guideline_applicability_not_verified",
+      "unsupported_document_values",
+      "answer_scoped"
+    ],
+    "cost_usd": 0.093845
+  }
+]

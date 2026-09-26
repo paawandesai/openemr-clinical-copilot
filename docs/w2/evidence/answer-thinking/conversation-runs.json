@@ -1,0 +1,80 @@
+[
+  {
+    "round": 1,
+    "path": "conversation",
+    "config": "adaptive-medium",
+    "wall_ms": 61893,
+    "llm_ms": 61301,
+    "output_tokens": 7737,
+    "thinking": [
+      "adaptive"
+    ],
+    "claims_passed": 104,
+    "claims_failed": 0
+  },
+  {
+    "round": 1,
+    "path": "conversation",
+    "config": "disabled-medium",
+    "wall_ms": 58883,
+    "llm_ms": 58182,
+    "output_tokens": 7542,
+    "thinking": [
+      "disabled"
+    ],
+    "claims_passed": 114,
+    "claims_failed": 0
+  },
+  {
+    "round": 2,
+    "path": "conversation",
+    "config": "adaptive-medium",
+    "wall_ms": 64899,
+    "llm_ms": 64204,
+    "output_tokens": 8220,
+    "thinking": [
+      "adaptive"
+    ],
+    "claims_passed": 108,
+    "claims_failed": 0
+  },
+  {
+    "round": 2,
+    "path": "conversation",
+    "config": "disabled-medium",
+    "wall_ms": 57994,
+    "llm_ms": 57324,
+    "output_tokens": 7536,
+    "thinking": [
+      "disabled"
+    ],
+    "claims_passed": 114,
+    "claims_failed": 0
+  },
+  {
+    "round": 3,
+    "path": "conversation",
+    "config": "adaptive-medium",
+    "wall_ms": 57104,
+    "llm_ms": 56437,
+    "output_tokens": 7209,
+    "thinking": [
+      "adaptive"
+    ],
+    "claims_passed": 104,
+    "claims_failed": 0
+  },
+  {
+    "round": 3,
+    "path": "conversation",
+    "config": "disabled-medium",
+    "wall_ms": 58015,
+    "llm_ms": 57295,
+    "output_tokens": 7536,
+    "thinking": [
+      "disabled"
+    ],
+    "claims_passed": 114,
+    "claims_failed": 0
+  }
+]

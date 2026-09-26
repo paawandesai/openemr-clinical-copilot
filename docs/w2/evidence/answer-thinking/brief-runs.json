@@ -1,0 +1,80 @@
+[
+  {
+    "round": 1,
+    "path": "brief",
+    "config": "adaptive-medium",
+    "wall_ms": 15193,
+    "llm_ms": 14639,
+    "output_tokens": 1710,
+    "thinking": [
+      "adaptive"
+    ],
+    "claims_passed": 24,
+    "claims_failed": 0
+  },
+  {
+    "round": 1,
+    "path": "brief",
+    "config": "disabled-medium",
+    "wall_ms": 15015,
+    "llm_ms": 14441,
+    "output_tokens": 1709,
+    "thinking": [
+      "disabled"
+    ],
+    "claims_passed": 24,
+    "claims_failed": 0
+  },
+  {
+    "round": 2,
+    "path": "brief",
+    "config": "adaptive-medium",
+    "wall_ms": 14818,
+    "llm_ms": 14394,
+    "output_tokens": 1710,
+    "thinking": [
+      "adaptive"
+    ],
+    "claims_passed": 24,
+    "claims_failed": 0
+  },
+  {
+    "round": 2,
+    "path": "brief",
+    "config": "disabled-medium",
+    "wall_ms": 14612,
+    "llm_ms": 14018,
+    "output_tokens": 1709,
+    "thinking": [
+      "disabled"
+    ],
+    "claims_passed": 24,
+    "claims_failed": 0
+  },
+  {
+    "round": 3,
+    "path": "brief",
+    "config": "adaptive-medium",
+    "wall_ms": 16801,
+    "llm_ms": 16285,
+    "output_tokens": 1710,
+    "thinking": [
+      "adaptive"
+    ],
+    "claims_passed": 24,
+    "claims_failed": 0
+  },
+  {
+    "round": 3,
+    "path": "brief",
+    "config": "disabled-medium",
+    "wall_ms": 14516,
+    "llm_ms": 14024,
+    "output_tokens": 1709,
+    "thinking": [
+      "disabled"
+    ],
+    "claims_passed": 24,
+    "claims_failed": 0
+  }
+]
