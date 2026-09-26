@@ -1,0 +1,40 @@
+
+
+  █ THRESHOLDS 
+
+    http_req_failed
+    ✓ 'rate<=1' rate=0.00%
+
+
+  █ TOTAL RESULTS 
+
+    checks_total.......: 125     0.640931/s
+    checks_succeeded...: 100.00% 125 out of 125
+    checks_failed......: 0.00%   0 out of 125
+
+    ✓ status is 200
+
+    CUSTOM
+    step_draft_seconds.............: avg=12.997253 min=11.195643 med=12.004511 p(50)=12.004511 p(90)=14.421457 p(95)=18.521479 p(99)=21.479756 max=21.871835
+    step_retrieve_seconds..........: avg=1.20347   min=0.82114   med=0.937184  p(50)=0.937184  p(90)=1.775418  p(95)=2.823891  p(99)=3.855242  max=3.94502  
+    step_verify_seconds............: avg=0.01489   min=0.006253  med=0.011739  p(50)=0.011739  p(90)=0.017001  p(95)=0.0211    p(99)=0.139539  max=0.181661 
+
+    HTTP
+    http_req_duration..............: avg=14.26s    min=12.19s    med=13.24s    p(50)=13.24s    p(90)=16.81s    p(95)=19.47s    p(99)=23.58s    max=23.68s   
+      { expected_response:true }...: avg=14.26s    min=12.19s    med=13.24s    p(50)=13.24s    p(90)=16.81s    p(95)=19.47s    p(99)=23.58s    max=23.68s   
+    http_req_failed................: 0.00%  0 out of 125
+    http_reqs......................: 125    0.640931/s
+
+    EXECUTION
+    iteration_duration.............: avg=15.27s    min=13.19s    med=14.24s    p(50)=14.24s    p(90)=17.88s    p(95)=20.47s    p(99)=24.58s    max=24.75s   
+    iterations.....................: 125    0.640931/s
+    vus............................: 1      min=1        max=10
+    vus_max........................: 10     min=10       max=10
+
+    NETWORK
+    data_received..................: 1.1 MB 5.8 kB/s
+    data_sent......................: 61 kB  314 B/s
+
+
+
+k6 exit 0
