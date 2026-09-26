@@ -3842,3 +3842,116 @@ which it does not total, and the CI gate jobs on the pushed branches.
 - whether a second blind labeller is added.
 
 ---
+
+## D-unassigned (answer-step thinking) — Drafting calls set thinking explicitly, and set it off
+
+**Status:** DECIDED
+**Date:** 2026-09-26
+**Branch:** `fix/w2-answer-thinking`.
+**Numbering:** D60 and D61 were reserved by other sessions and are now on
+`main`; this entry is numbered at the final docs refresh.
+**Evidence:** `docs/w2/evidence/answer-thinking/`;
+`agent/tests/test_drafting_thinking.py`.
+
+**Problem: a provider-side regression, with no code change.** Every drafting
+call sent `thinking: {"type": "adaptive"}` at effort `medium`. That covers
+the W2 answer step (`draft_answer`), the Pre-Visit Brief (`draft_claims`),
+and the follow-up and conversation turns (`draft_follow_up.stream_structured`).
+Under adaptive thinking the provider decides, per request, how much to
+think.
+
+On 2026-09-25 that decision changed, and our code did not:
+
+- **The symptom.** On the host, the chart card's "What were the results on
+  the uploaded lab report?" wrote 6.2–7.0k output tokens and took 54–58 s. D50
+  had measured 368–461 tokens and 7–8 s on the same host two days earlier.
+  The module's ask proxy gives up at about 40 s, so the clinician saw "the
+  co-pilot service is unavailable" three times out of three.
+- **The extra tokens were thinking.** Every response was the same 88,079
+  bytes.
+- **It was not the deploy.** The previously deployed image, `ea198c8`, ran
+  the same question at 53–56 s with 6.1–6.4k tokens. One earlier run of it
+  took 8.9 s, and one sample of that was briefly mistaken for a regression.
+  Input tokens, effort and installed packages were identical.
+- **By the next morning it had swung back,** to about 1k tokens and 10–14 s.
+
+**How it was caught.** The stdout dashboard caught it first
+(`scripts/w2_dashboard.py` over the host's log).
+
+- Its `answer_p95_latency` read **57.6 s against the 45 s threshold**.
+- The alert showed `INSUFFICIENT_DATA` at n = 6/10, so it had not fired yet.
+- That is the rule working as designed: the p95 moved on a handful of
+  answers, before anyone reported a symptom.
+
+**Decision.**
+
+- **Thinking is set explicitly, and set off**, `{"type": "disabled"}`, on
+  all three paths:
+  - `draft_answer.ANSWER_THINKING`;
+  - `draft_claims.BRIEF_THINKING`;
+  - `draft_follow_up.FOLLOW_UP_THINKING`.
+
+  `stream_structured` takes `thinking` and `effort` as arguments. The answer
+  step passes its own, so it no longer inherits whatever the shared default
+  becomes.
+- **Effort stays `medium`.** The API accepts `disabled` only at effort `high`
+  or below; `xhigh` or `max` with thinking disabled is a 400. The tests pin
+  that pairing.
+- **`llm_usage_event` records `thinking`** next to `effort`, so a dashboard
+  can tell the two modes apart.
+- **Not changed:** the card's timeout.
+
+**Rationale.**
+
+- **Each call copies values from records into a schema.** Every claim is
+  then checked by the deterministic verifier, and a claim that fails renders
+  as UNVERIFIED. Thinking does not add safety; the verifier does. What
+  thinking adds is latency, and a latency the provider controls.
+- **Measured, interleaved, live, over the same extraction** (evidence
+  README), 3 runs each:
+  - **Unverified claims:** 0 before and 0 after, on both questions.
+  - **Critical potassium:** stated in every whole-report run (9/9).
+  - **Output tokens with thinking off** are the answer alone, the same every
+    run (1,002 and 1,134). Adaptive thinking varied.
+  - **Latency:** 9.9–12.0 s after, against 11.1–12.2 s before (whole-report);
+    11.2–12.8 s against 12.9–13.9 s (glucose + USPSTF). The measurement ran
+    on a morning when the provider was *not* in its heavy-thinking mode, so
+    it shows no regression, only that the change costs nothing. The
+    protection is the bound: the 6k-token mode is gone.
+- **Brief and conversation turn: same exposure, same result.**
+  - Brief: 24 claims passed and 0 failed, before and after.
+  - Conversation: 0 failed before and after, with 104–108 passed before and
+    114 after.
+- **Rejected:**
+  - **A small fixed thinking budget:** `budget_tokens` is a 400 on
+    `claude-opus-5`.
+  - **Adaptive thinking at effort `low`:** fastest on the day measured, but
+    it still leaves the amount of thinking to the provider, which is what
+    regressed.
+  - **Raising the card's timeout:** it hides the latency from the clinician
+    instead of removing it.
+
+**Known risks of thinking off, and why they do not bite here.** The API
+guidance lists two failure modes on this model:
+
+- **tool calls written as text:** these calls use no tools;
+- **internal XML tags leaking into the visible response:** every call here is
+  schema-constrained JSON, and any leaked text in a claim value fails
+  deterministic verification and is counted as unverified. The measured count
+  was 0.
+
+The prompts were not changed. They are pinned by the W2-L1 prompt pins, a
+gate file.
+
+**Open, not decided here.**
+
+- **The conversation turn is slow for a different reason.** A broad question
+  ("medications … and latest labs") drafts about 110 claims, which is about
+  7.5k output tokens and 58 s *with thinking off*. That path has no output
+  bound, unlike D50's bound on the answer step. If the card routes such
+  questions through it, the same timeout applies.
+- **The intake extractor's vision call still runs adaptive thinking** (33 s,
+  3.7k output tokens on the host). It reads page images rather than copying
+  record fields, so it was left as is and not measured here.
+- **The live host still runs adaptive thinking** until the agent-only
+  redeploy after this merges.

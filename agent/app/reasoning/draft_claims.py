@@ -80,6 +80,16 @@ MODEL = "claude-opus-5"
 # over them, so it runs below the API's default `high` effort.
 EFFORT = "medium"
 
+# Thinking is off, set explicitly on every drafting call rather than left
+# to the model's default, which on claude-opus-5 is adaptive (D-unassigned,
+# answer-step thinking). Each call copies values out of records into a
+# schema, and every claim is then checked by the deterministic verifier
+# (app/verification/), so thinking buys latency, not safety. Adaptive
+# thinking's depth is decided per request on the provider's side, and on
+# 2026-09-25 it grew the answer step's output ~15-fold with no code change.
+# The API accepts "disabled" only at effort "high" or below.
+BRIEF_THINKING: dict[str, str] = {"type": "disabled"}
+
 # Streamed, so a large cap doesn't risk an HTTP timeout. Thinking and the
 # claims share this cap.
 _MAX_TOKENS = 64000
@@ -445,7 +455,7 @@ async def draft_pre_visit_brief(
                 max_tokens=_MAX_TOKENS,
                 system=SYSTEM_PROMPT,
                 messages=[{"role": "user", "content": user_content}],
-                thinking={"type": "adaptive"},
+                thinking=BRIEF_THINKING,
                 output_config={
                     "effort": EFFORT,
                     "format": {"type": "json_schema", "schema": _OUTPUT_SCHEMA},
@@ -492,6 +502,7 @@ async def draft_pre_visit_brief(
             "served_model": message.model,
             "fallback_ran": fallback_ran,
             "effort": EFFORT,
+            "thinking": BRIEF_THINKING["type"],
             "request_id": request_id,
             "input_tokens": usage.input_tokens,
             "output_tokens": usage.output_tokens,

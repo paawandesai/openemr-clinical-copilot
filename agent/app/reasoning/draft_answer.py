@@ -62,6 +62,12 @@ from app.workers.intake_extractor.vision import PRICES_PER_MTOK
 
 _USE_CASE = UseCase.FOLLOW_UP_DRILLING
 
+# The answer step's thinking and effort, set explicitly: thinking off
+# (D-unassigned, answer-step thinking; draft_claims.BRIEF_THINKING says why).
+# Measured before and after in docs/w2/evidence/answer-thinking/.
+ANSWER_THINKING: dict[str, str] = {"type": "disabled"}
+ANSWER_EFFORT = "medium"
+
 
 @dataclass(frozen=True)
 class DraftUsage:
@@ -354,6 +360,8 @@ async def draft_answer(
             schema=output_schema(turn_resource_types(chart), documents, chunks),
             patient_session_key=patient_session_key,
             max_tokens=ANSWER_MAX_TOKENS,
+            thinking=ANSWER_THINKING,
+            effort=ANSWER_EFFORT,
         )
     except DraftTruncatedError as error:
         raise AnswerTruncatedError(_usage(error.final_message)) from error
