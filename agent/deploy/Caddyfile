@@ -83,3 +83,24 @@ https://{$AGENT_PUBLIC_HOST}:8443 {
 		file_server
 	}
 }
+
+# Patient dashboard (WO31, D59): the SPA and its BFF, one container on this
+# network as bff:8787 (dashboard/deploy/docker-compose.dashboard.yml). Its own
+# port, so its own origin: the BFF's Path=/ session cookie and its CSP never
+# share an origin with the agent UI on 8443. Same internal CA as 8443.
+# Every request is small (the BFF only reads FHIR and handles OAuth), so the
+# 16KB cap covers all of it.
+https://{$AGENT_PUBLIC_HOST}:8444 {
+	tls internal
+
+	request_body {
+		max_size 16KB
+	}
+
+	header {
+		-Server
+		X-Content-Type-Options nosniff
+	}
+
+	reverse_proxy bff:8787
+}
