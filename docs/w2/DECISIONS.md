@@ -3823,7 +3823,8 @@ the judge grades frozen fixtures, not live answers.
   (71 before) and 72 `psk_dev_` values.
 - **Counts:** 98 specs, 81 active, 15 pending, 2 delegated, 22 planted
   regressions and 19 pinned prompts, none of them changed. The PHP suite is
-  197 tests (EVAL_GATE.md said 195), and CI has four jobs.
+  213 tests on `main@3a2aa4c`, which carries D60's 16 new ones
+  (EVAL_GATE.md said 195), and CI has four jobs.
 
 **Billed in this session:** $0.9477 measured: set 1 re-judged twice
 ($0.5118), three five-item probes ($0.0556), category M five rounds twice ($0.3442), one full gate run
