@@ -134,7 +134,7 @@ kbd { font: 12px ui-monospace, monospace; border: 1px solid var(--line); border-
       </div>
       <p class="keys muted small">
         Keys: <kbd>P</kbd> pass, <kbd>F</kbd> fail, <kbd>U</kbd> unsure, <kbd>&larr;</kbd> <kbd>&rarr;</kbd> move.
-        Keys are off while you type a note.
+        Keys are off while you type a note. A key held down acts once.
       </p>
     </main>
 
@@ -196,6 +196,18 @@ kbd { font: 12px ui-monospace, monospace; border: 1px solid var(--line); border-
     return n;
   }
 
+  function unlabelledIds() {
+    return ITEMS.filter(function (it) { return !(state.labels[it.id] && state.labels[it.id].label); })
+      .map(function (it) { return it.id; });
+  }
+
+  // "FC2-07, FC2-08", or the first few and a count, so a gap is named, never
+  // only counted.
+  function nameIds(ids, limit) {
+    if (ids.length <= limit) return ids.join(", ");
+    return ids.slice(0, limit).join(", ") + " and " + (ids.length - limit) + " more";
+  }
+
   function renderGrid() {
     var grid = document.getElementById("grid");
     grid.textContent = "";
@@ -211,7 +223,10 @@ kbd { font: 12px ui-monospace, monospace; border: 1px solid var(--line); border-
 
   function renderProgress() {
     var n = labelledCount();
-    document.getElementById("progressText").textContent = n + " of " + ITEMS.length + " labelled";
+    var gaps = unlabelledIds();
+    var text = n + " of " + ITEMS.length + " labelled";
+    if (gaps.length > 0 && gaps.length <= 6) text += " (unlabelled: " + gaps.join(", ") + ")";
+    document.getElementById("progressText").textContent = text;
     document.getElementById("progressBar").style.width = (100 * n / ITEMS.length) + "%";
   }
 
@@ -312,8 +327,8 @@ kbd { font: 12px ui-monospace, monospace; border: 1px solid var(--line); border-
   }
 
   function download() {
-    var missing = ITEMS.length - labelledCount();
-    if (missing > 0 && !window.confirm(missing + " item(s) have no label yet. Download anyway? (You can resume from the file later.)")) return;
+    var missing = unlabelledIds();
+    if (missing.length > 0 && !window.confirm(missing.length + " item(s) have no label yet: " + nameIds(missing, 12) + ". Download anyway? (You can resume from the file later.)")) return;
     var blob = new Blob([JSON.stringify(exportLabels(), null, 2) + "\n"], { type: "application/json" });
     var url = URL.createObjectURL(blob);
     var a = document.createElement("a");
@@ -380,13 +395,18 @@ kbd { font: 12px ui-monospace, monospace; border: 1px solid var(--line); border-
     if (t && (t.tagName === "TEXTAREA" || t.tagName === "INPUT")) return;
     if (e.metaKey || e.ctrlKey || e.altKey) return;
     var k = e.key.toLowerCase();
+    var ours = k === "p" || k === "f" || k === "u" || e.key === "ArrowRight" || e.key === "ArrowLeft";
+    if (!ours) return;
+    e.preventDefault();
+    // A key held down auto-repeats, one keydown per repeat. Acting on every
+    // one let a held arrow move several items in a row, so items went by
+    // unseen (set 2, FC2-07 and FC2-08). A held key now acts once.
+    if (e.repeat) return;
     if (k === "p") setLabel("pass");
     else if (k === "f") setLabel("fail");
     else if (k === "u") setLabel("unsure");
     else if (e.key === "ArrowRight") go(state.index + 1);
-    else if (e.key === "ArrowLeft") go(state.index - 1);
-    else return;
-    e.preventDefault();
+    else go(state.index - 1);
   });
 
   load();
