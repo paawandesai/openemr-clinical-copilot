@@ -125,7 +125,7 @@ try {
 }
 
 try {
-    $broker = CardServices::broker($config, $globals->getWebRoot(), $session->get('site_id'), $logger);
+    $broker = CardServices::broker($config, $globals->getWebRoot(), $session->get('site_id'), $session->get('authUserID'), $logger);
     $state = CardServices::agent($config, $logger, $correlation)
         ->extractionState($broker->issueFor($coreSession, $patient), $patient, $document);
 } catch (BriefUnavailable $e) {

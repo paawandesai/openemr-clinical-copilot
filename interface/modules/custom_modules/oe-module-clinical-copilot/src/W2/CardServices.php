@@ -1,9 +1,9 @@
 <?php
 
 /**
- * The token broker and agent client the Week 2 card's routes use, built the
- * way brief.php and conversation.php build theirs, so the three new routes
- * cannot drift from them or from each other.
+ * The token broker and agent client the card's routes use. Every route builds
+ * its broker here, brief.php and conversation.php included, so none can drift
+ * from the others or be built without the token fetch lock.
  *
  * @package   OpenEMR
  * @link      https://www.open-emr.org
@@ -20,6 +20,7 @@ use OpenEMR\FHIR\Config\ServerConfig;
 use OpenEMR\Modules\ClinicalCopilot\AgentClient;
 use OpenEMR\Modules\ClinicalCopilot\ClinicianTokenBroker;
 use OpenEMR\Modules\ClinicalCopilot\CorrelationId;
+use OpenEMR\Modules\ClinicalCopilot\DatabaseTokenFetchLock;
 use OpenEMR\Modules\ClinicalCopilot\ModuleConfig;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\HttpClient\HttpClient;
@@ -28,8 +29,10 @@ final class CardServices
 {
     /**
      * @param mixed $siteId The session's site_id, as stored.
+     * @param mixed $userId The session's authUserID, as stored. A session without one (never, past globals.php)
+     *     shares a single lock with every other such session: waits longer, never races.
      */
-    public static function broker(ModuleConfig $config, string $webRoot, mixed $siteId, LoggerInterface $logger): ClinicianTokenBroker
+    public static function broker(ModuleConfig $config, string $webRoot, mixed $siteId, mixed $userId, LoggerInterface $logger): ClinicianTokenBroker
     {
         return new ClinicianTokenBroker(
             HttpClient::create(),
@@ -40,6 +43,8 @@ final class CardServices
             $config->clientId,
             $config->clientSecret,
             $config->redirectUri,
+            DatabaseTokenFetchLock::viaQueryUtils(),
+            is_int($userId) || is_string($userId) ? (string) $userId : '',
         );
     }
 
