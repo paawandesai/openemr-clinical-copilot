@@ -640,9 +640,10 @@ ourselves stores no patient or chart-record uuid; that was measured, not
 assumed (D58). Stdout stays the record of source.
 
 The Langfuse is up at <https://64-177-51-119.sslip.io> with a read-only grader
-account. The live agent host starts exporting at its next redeploy, which
-merges values already staged on it. Until then its metrics come from its JSON
-event log alone.
+account. The live agent host has exported to it since the 2026-09-25
+redeploy of `main@06f0d45`. A real chart-card upload arrived as one trace with
+a `psk_` session, and no UUID OpenEMR issued is in any trace
+([evidence](docs/w2/evidence/prod-langfuse/deploy-2026-09-25/README.md)).
 
 - **Local:** the Langfuse screenshots,
   [`langfuse-dashboard.png`](docs/w2/evidence/screenshots/langfuse-dashboard.png)
@@ -661,21 +662,26 @@ event log alone.
 - Write-back carries no correlation id into PHP.
 - Extraction inherits the upload's id only when that id is a UUID;
   otherwise the two traces are linked by a logged event, not merged.
-- The live host runs with Langfuse export off, so its `/ready` reports
-  `disabled` at `ea198c8`. The self-hosted production Langfuse is up (D58),
-  and the host's Langfuse values are staged
-  (`/etc/clinical-copilot/agent.env.langfuse-staged`). After the next
-  redeploy, `/ready` reports `backend: "langfuse"`. If Langfuse cannot be
-  reached, `status` is `degraded` at 200, never unready
-  (`OBSERVABILITY.md` §7.4).
+- Since the 2026-09-25 redeploy (`main@06f0d45`), the live host's `/ready`
+  reports `backend: "langfuse"`, healthy. If Langfuse cannot be reached,
+  `status` is `degraded` at 200, never unready (`OBSERVABILITY.md` §7.4,
+  D58).
 
 ---
 
 ## 8. Deployment state
 
-The host `64.177.42.210` runs **`main@ea198c8`**, deployed 2026-09-23 17:12
-UTC. That is the eval gate and D50 on top of `21f1053`, with the module,
-Caddyfile and compose file unchanged.
+The host `64.177.42.210` runs **`main@06f0d45`**, deployed 2026-09-25 14:44
+UTC.
+
+- It adds D54's upload scopes (module), D56, and D58: the access log is off,
+  `source_id` is sent as an HMAC, and there is export to the self-hosted
+  Langfuse. The Caddyfile is unchanged
+  ([evidence](docs/w2/evidence/prod-langfuse/deploy-2026-09-25/README.md)).
+- Before that it ran `main@ea198c8`, deployed 2026-09-23 17:12 UTC: the eval
+  gate and D50 on top of `21f1053`.
+
+The measurements below are from those earlier builds.
 
 - It was first deployed at `21f1053` (16:40 UTC) and measured through the
   real chart card, one document at a time (`DEPLOY.md` §8.0).
