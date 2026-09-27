@@ -20,8 +20,22 @@ string. It was denied at the proxy (`22585d2`, 503 from Caddy), the agent
 gained an upload guard (`98f1758`, §2.2), and the route was reopened behind
 it with `/w2/ask` forwarded too (`a78ba51`).
 
-**What the host runs now:** the agent image and module files from
-**`main@06f0d45`**, deployed 2026-09-25 14:44 UTC.
+**What the host runs now:**
+
+- **Agent image:** **`main@d61f739`**, deployed 2026-09-26 18:57 UTC:
+  D60's extraction store and quarantine, result dedupe, and drafting
+  thinking off.
+  - Its snapshot and rollback are in `/root/w2-deploy-20260926/` on the
+    host.
+  - It has no committed evidence file of its own. Its load figures are
+    `LOAD_TEST.md` §8.
+- **Module files:** **`main@a434ffd`**, deployed 2026-09-27: the per-user
+  token-fetch lock
+  ([`evidence/token-race-deploy-2026-09-27/`](evidence/token-race-deploy-2026-09-27/README.md)).
+- **Proxy:** the Caddyfile adds the patient dashboard's `:8444` site (WO31,
+  `evidence/dashboard-deploy-2026-09-25/`).
+
+Before these, the host ran `main@06f0d45`, deployed 2026-09-25 14:44 UTC.
 
 - **What it adds:** D54's upload scopes, D56, and D58. Export to the
   self-hosted Langfuse is on (`OBSERVABILITY.md` §7).
