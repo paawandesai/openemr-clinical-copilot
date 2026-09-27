@@ -4223,7 +4223,7 @@ over the chart, which D2 forbids for intake data for the same reason.
 
 ## D64 — One clinician's token exchanges run one at a time, under a database lock held from the first authorize until the code is redeemed
 
-**Status:** DECIDED
+**Status:** DECIDED; verified on the host: 20/20 chart opens on 2026-09-27 (evidence in `docs/w2/evidence/token-race-deploy-2026-09-27/`).
 **Date:** 2026-09-26
 **Work order:** 38 (`fix/w2-token-race`). Headed "D-unassigned (token fetch
 race)" until the final docs refresh (work order 37) numbered it D64, in
