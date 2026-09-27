@@ -1,7 +1,7 @@
 # Work order 38 — the chart-open token race, reproduced and fixed locally (`fix/w2-token-race`)
 
 Raw output of every run this branch's session made through the module's real
-routes, so no figure in the D-unassigned (token fetch race) entry exists only
+routes, so no figure in the D64 (token fetch race) entry exists only
 in a session report. Nothing is edited.
 
 ## What was run, and where

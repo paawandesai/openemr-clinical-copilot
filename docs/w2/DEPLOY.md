@@ -52,7 +52,13 @@ laptop).
 
 ---
 
-## 0. What Week 2 on `main` actually contains
+## 0. What Week 2 on `main` actually contained, at the rehearsal
+
+**Historical, as of `d65dac4` (2026-09-22).** Everything this section lists
+as missing has since landed and is deployed: the supervisor, the real
+`/documents` route, the card and its routes, and the write-back after
+extraction (D54). The current state is "What the host runs now" above and
+`W2_ARCHITECTURE.md` §8.
 
 Read this before promising a demo. As of `d65dac4`, these pieces exist and
 **deploy and work**:

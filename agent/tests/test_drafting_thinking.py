@@ -1,6 +1,6 @@
 """
 Every drafting call sets its thinking explicitly, and sets it off
-(D-unassigned, answer-step thinking; app/reasoning/draft_claims.BRIEF_THINKING).
+(D62, answer-step thinking; app/reasoning/draft_claims.BRIEF_THINKING).
 
 On claude-opus-5 an omitted `thinking` means adaptive thinking, whose depth
 the provider decides per request. On 2026-09-25 it grew the answer step's

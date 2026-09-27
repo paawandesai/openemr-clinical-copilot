@@ -5,13 +5,15 @@ run, what to say, and what the viewer should see. It is built only from what
 exists at the snapshot below. Where a step has not been measured on the
 deployed host, the step says so.
 
-**Snapshot: `main@d6119e6`**, which is on `origin`. Every path, number and
+**Snapshot: `main@54266a9`**, which is on `origin`. Every path, number and
 decision below is on that commit. Numbers measured elsewhere name the build
 they were measured on.
 
-**The host runs `main@d61f739`**, the build the 10-user load test ran
-against on 2026-09-26 (`LOAD_TEST.md` §8). Between it and the snapshot, only
-documentation and calibration files changed; no code did.
+**The host runs agent `main@d61f739` and module `main@a434ffd`**, plus the
+patient dashboard on port 8444 (`docs/w2/DEPLOY.md`, "What the host runs
+now"). Between them and the snapshot, no deployed code differs: the agent's
+code (`agent/app/`) is unchanged since `d61f739` and the module since
+`a434ffd`, apart from code comments this branch renumbered to D62–D64.
 
 **Host figures name the build they were measured on:**
 
@@ -20,13 +22,15 @@ documentation and calibration files changed; no code did.
 | `21f1053` | 2026-09-23 16:40 UTC | the first Week 2 deploy: card, routes, upload guard, D41 | `DEPLOY.md` §8.0 |
 | `ea198c8` | 2026-09-23 17:12 UTC | D50, the scoped document answer; the eval gate | `DEPLOY.md` §8.00 |
 | `06f0d45` | 2026-09-25 14:44 UTC | D54's upload scopes, D56, D58 (production Langfuse); then the patient dashboard on port 8444 | `docs/w2/evidence/prod-langfuse/deploy-2026-09-25/`, `docs/w2/evidence/dashboard-deploy-2026-09-25/` |
-| **`d61f739`** | 2026-09-26 | D60 (degraded documents, quarantine), drafting thinking off, the duplicate-result guard | `LOAD_TEST.md` §8 |
+| **`d61f739`** (agent) | 2026-09-26 18:57 UTC | D60 (degraded documents, quarantine), drafting thinking off (D62), the duplicate-result guard (D63) | `LOAD_TEST.md` §8 |
+| **`a434ffd`** (module only) | 2026-09-27 | the per-user token-fetch lock (D64); the agent was not restarted | `docs/w2/evidence/token-race-deploy-2026-09-27/` |
 
-Figures labelled "rehearsal host, before the Week 2 deploy" predate all four.
+Figures labelled "rehearsal host, before the Week 2 deploy" predate all five.
 
 ## What the demo shows, and where
 
-Recorded on Sunday 2026-09-27 against the host, which runs `main@d61f739`.
+Recorded on Sunday 2026-09-27 against the host, which runs agent
+`main@d61f739` and module `main@a434ffd` (D64, the token-fetch lock).
 
 | Scene | Where it runs | Measured on the deployed host? |
 |---|---|---|
@@ -112,7 +116,7 @@ delegated PHP result must exist for the checked-out commit:
 
 ```bash
 docker run --rm -v "$PWD":/app -w /app composer:2 composer install --ignore-platform-reqs --no-scripts   # once per clone
-scripts/w2-writeback-result.sh      # after every commit or checkout; 258 tests
+scripts/w2-writeback-result.sh      # after every commit or checkout; 272 tests
 cd agent && python -m pip install -r requirements.txt -r requirements-dev.txt
 export ANTHROPIC_API_KEY=...        # in this shell; the gate does not read agent/.env
 python -m evals.w2.gate             # once, to warm the judge cache: 24 calls, ~$0.03
@@ -463,7 +467,7 @@ we showed traces to a file."
 
 | Asset | Where | Branch |
 |---|---|---|
-| The deployed chart | `https://64.177.42.210:9300`, `physician`; cards "Clinical Co-Pilot: Pre-Visit Brief" and "…: Documents & Sources" | host runs `main@d61f739` |
+| The deployed chart | `https://64.177.42.210:9300`, `physician`; cards "Clinical Co-Pilot: Pre-Visit Brief" and "…: Documents & Sources" | host runs agent `main@d61f739`, module `main@a434ffd` |
 | The patient dashboard | `https://64.177.42.210:8444`; `docs/w2/evidence/dashboard-deploy-2026-09-25/` | host, since 2026-09-25 |
 | The production Langfuse | `https://64-177-51-119.sslip.io`, read-only grader account (credentials in the submission notes); `docs/w2/evidence/prod-langfuse/deploy-2026-09-25/` | host, since 2026-09-25 |
 | Post-deploy measurements | `docs/w2/DEPLOY.md` §8.0 (`21f1053`); §8.00 (`ea198c8`, D50); `docs/w2/LOAD_TEST.md` §8 (`d61f739`) | `main` |

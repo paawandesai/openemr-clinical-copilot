@@ -1,7 +1,7 @@
 # Work order 34 — local end-to-end runs of duplicate-result handling (`fix/w2-result-dedupe`)
 
 Raw output of every run this branch's session made through the module's real
-routes, so no figure in the D-unassigned (duplicate results) entry exists only
+routes, so no figure in the D63 (duplicate results) entry exists only
 in a session report. Nothing is edited except long digests and keys, shortened
 to their first 16 characters where marked `…`, and one login token, redacted.
 

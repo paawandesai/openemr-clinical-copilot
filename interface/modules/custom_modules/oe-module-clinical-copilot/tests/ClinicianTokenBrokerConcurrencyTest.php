@@ -1,7 +1,7 @@
 <?php
 
 /**
- * Concurrent token exchanges for one clinician (DECISIONS.md D-unassigned
+ * Concurrent token exchanges for one clinician (DECISIONS.md D64
  * (token fetch race)). Opening a chart fires the brief, the D60 reconcile
  * and, when a file is chosen, the upload at once; each brokers its own
  * token, and OpenEMR keeps one trusted-user row per (client, user) that each

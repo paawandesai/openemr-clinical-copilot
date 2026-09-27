@@ -1,6 +1,6 @@
 # Token-fetch lock deployed on `64.177.42.210`, 2026-09-27 (module only)
 
-This is work order 38's fix, D-unassigned (token fetch race), deployed as
+This is work order 38's fix, D64 (token fetch race), deployed as
 the Clinical Co-Pilot module from **`main@a434ffd`**.
 
 ## The problem it fixes

@@ -203,8 +203,8 @@ Four jobs in `.gitlab-ci.yml`, all tagged `w2-eval`, on merge requests and on
 red:
 
 1. **`w2-writeback-php`** (stage `writeback`, `php:8.3-cli`) — the fork
-   module's PHPUnit suite, 258 tests and 560 assertions (run locally on
-   `d6119e6` by work order 37). Writes `w2-writeback-php.result.json`
+   module's PHPUnit suite, 272 tests and 597 assertions (run locally on
+   `main@54266a9`, which carries D64's new tests, by work order 37). Writes `w2-writeback-php.result.json`
    and its JUnit report as artifacts.
 2. **`w2-eval-gate`** (stage `eval`, `python:3.12-slim`) — the gate. Declares
    `dependencies: [w2-writeback-php]`, so it receives that artifact and can

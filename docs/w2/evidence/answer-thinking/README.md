@@ -1,6 +1,6 @@
 # Answer-step thinking: before and after
 
-Evidence for **D-unassigned (answer-step thinking)** (`docs/w2/DECISIONS.md`).
+Evidence for **D62 (answer-step thinking)** (`docs/w2/DECISIONS.md`).
 The raw rows are in `answer-step-runs.json`, `brief-runs.json` and
 `conversation-runs.json`. They hold counts, statuses and critical-value flags
 only; no chart content.

@@ -11,7 +11,7 @@
  * reaches authorize before the first has redeemed its code overwrites it,
  * and the first redemption is refused: "CSRF check failed", 400, and the
  * route answers token_unavailable. Opening a chart fires several of these at
- * once (DECISIONS.md D-unassigned (token fetch race)).
+ * once (DECISIONS.md D64 (token fetch race)).
  *
  * @package   OpenEMR
  * @link      https://www.open-emr.org

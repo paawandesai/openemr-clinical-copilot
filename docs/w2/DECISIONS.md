@@ -3979,13 +3979,15 @@ becomes an answer-step requirement (product).
 
 ---
 
-## D-unassigned (answer-step thinking) — Drafting calls set thinking explicitly, and set it off
+## D62 — Drafting calls set thinking explicitly, and set it off
 
 **Status:** DECIDED
 **Date:** 2026-09-26
 **Branch:** `fix/w2-answer-thinking`.
-**Numbering:** D60 and D61 were reserved by other sessions and are now on
-`main`; this entry is numbered at the final docs refresh.
+**Numbering:** D62. D60 and D61 were reserved by other sessions; this entry
+was headed "D-unassigned (answer-step thinking)" until the final docs
+refresh (work order 37) numbered the three unassigned entries in merge
+order: this one merged first, at `dd12b86`.
 **Evidence:** `docs/w2/evidence/answer-thinking/`;
 `agent/tests/test_drafting_thinking.py`.
 
@@ -4091,12 +4093,13 @@ gate file.
   record fields, so it was left as is and not measured here.
 - **The live host still runs adaptive thinking** until the agent-only
   redeploy after this merges.
-## D-unassigned (duplicate results) — A result the chart already holds is not written again, whatever file it arrived in; a different value is a conflict, never an overwrite
+## D63 — A result the chart already holds is not written again, whatever file it arrived in; a different value is a conflict, never an overwrite
 
 **Status:** DECIDED
 **Date:** 2026-09-26
 **Work order:** 34 (`fix/w2-result-dedupe`). Headed "D-unassigned (duplicate
-results)"; numbered at the final docs refresh.
+results)" until the final docs refresh (work order 37) numbered it D63, in
+merge order (`d61f739`).
 **Amends:** D31's per-result answer (a result now has four outcomes, not
 two); D54's "Not settled: the card does not show the write-back's outcome"
 (it does now, item 4). **It does not amend D1's ledger key**, which stays
@@ -4218,12 +4221,13 @@ over the chart, which D2 forbids for intake data for the same reason.
 
 ---
 
-## D-unassigned (token fetch race) — One clinician's token exchanges run one at a time, under a database lock held from the first authorize until the code is redeemed
+## D64 — One clinician's token exchanges run one at a time, under a database lock held from the first authorize until the code is redeemed
 
 **Status:** DECIDED
 **Date:** 2026-09-26
 **Work order:** 38 (`fix/w2-token-race`). Headed "D-unassigned (token fetch
-race)"; numbered at the final docs refresh.
+race)" until the final docs refresh (work order 37) numbered it D64, in
+merge order (`a434ffd`).
 **Amends:** nothing. D54's upload token (the uploader's own, with the write
 scopes) and D60's reconcile-on-mount (one token, only when the chart holds a
 copy to check) are unchanged; each still brokers its own token. This entry

@@ -63,7 +63,7 @@ from app.workers.intake_extractor.vision import PRICES_PER_MTOK
 _USE_CASE = UseCase.FOLLOW_UP_DRILLING
 
 # The answer step's thinking and effort, set explicitly: thinking off
-# (D-unassigned, answer-step thinking; draft_claims.BRIEF_THINKING says why).
+# (D62, answer-step thinking; draft_claims.BRIEF_THINKING says why).
 # Measured before and after in docs/w2/evidence/answer-thinking/.
 ANSWER_THINKING: dict[str, str] = {"type": "disabled"}
 ANSWER_EFFORT = "medium"

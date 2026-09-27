@@ -9,20 +9,22 @@ A Clinical Co-Pilot AI agent built into a fork of [OpenEMR](https://open-emr.org
 | | Week 1: baseline | Week 2: multimodal |
 |---|---|---|
 | What it does | Pre-Visit Brief and multi-turn follow-up, read from the chart over FHIR; every claim deterministically verified | lab PDFs and intake forms extracted to a strict schema with page-located values; a supervisor over an intake-extractor and an evidence-retriever; hybrid RAG over guideline evidence; an eval gate; the patient dashboard ported to React over FHIR |
-| Deployed at `64.177.42.210`? | **Yes**, the whole Week 1 surface | **Yes.** The host runs `main@d61f739`: upload, extraction, write-back, the scoped ask path, the Documents & Sources card, export to the production Langfuse, and the patient dashboard on port 8444 |
+| Deployed at `64.177.42.210`? | **Yes**, the whole Week 1 surface | **Yes.** The host runs agent `main@d61f739` and module `main@a434ffd`: upload, extraction, write-back, the scoped ask path, the Documents & Sources card, export to the production Langfuse, and the patient dashboard on port 8444 |
 | Start reading | [Week 1 baseline](#week-1-baseline) below | [Week 2: start here](#week-2-start-here), next |
 
 ---
 
 ## Week 2: start here
 
-**Snapshot: `main@d6119e6`**, which is on `origin`. Every path, number and
+**Snapshot: `main@54266a9`**, which is on `origin`. Every path, number and
 decision below is on that commit. Numbers measured elsewhere name the build
 they were measured on.
 
-**The host runs `main@d61f739`**, the build the 10-user load test ran
-against on 2026-09-26 (`docs/w2/LOAD_TEST.md` §8). Between it and the
-snapshot, only documentation and calibration files changed; no code did.
+**The host runs agent `main@d61f739` and module `main@a434ffd`**, plus the
+patient dashboard on port 8444 (`docs/w2/DEPLOY.md`, "What the host runs
+now"). Between them and the snapshot, no deployed code differs: the agent's
+code (`agent/app/`) is unchanged since `d61f739` and the module since
+`a434ffd`, apart from code comments this branch renumbered to D62–D64.
 
 **Host figures name the build they were measured on:**
 
@@ -31,13 +33,14 @@ snapshot, only documentation and calibration files changed; no code did.
 | `21f1053` | 2026-09-23 16:40 UTC | the first Week 2 deploy: card, routes, upload guard, D41 | `docs/w2/DEPLOY.md` §8.0 |
 | `ea198c8` | 2026-09-23 17:12 UTC | D50, the scoped document answer; the eval gate | `DEPLOY.md` §8.00 |
 | `06f0d45` | 2026-09-25 14:44 UTC | D54's upload scopes, D56, D58 (production Langfuse); then the patient dashboard on port 8444 | `docs/w2/evidence/prod-langfuse/deploy-2026-09-25/`, `docs/w2/evidence/dashboard-deploy-2026-09-25/` |
-| **`d61f739`** | 2026-09-26 | D60 (degraded documents, quarantine), drafting thinking off, the duplicate-result guard | `LOAD_TEST.md` §8 |
+| **`d61f739`** (agent) | 2026-09-26 18:57 UTC | D60 (degraded documents, quarantine), drafting thinking off (D62), the duplicate-result guard (D63) | `LOAD_TEST.md` §8 |
+| **`a434ffd`** (module only) | 2026-09-27 | the per-user token-fetch lock (D64); the agent was not restarted | `docs/w2/evidence/token-race-deploy-2026-09-27/` |
 
-Figures labelled "rehearsal host, before the Week 2 deploy" predate all four.
+Figures labelled "rehearsal host, before the Week 2 deploy" predate all five.
 
 ### What Week 2 adds, and where it runs
 
-| Piece | Code | On the host (`main@d61f739`) |
+| Piece | Code | On the host (agent `d61f739`, module `a434ffd`) |
 |---|---|---|
 | Document extraction: text layer / OCR → one vision call → deterministic locate → flag cross-check → discrepancies | `agent/app/graph/intake_extractor.py`, `agent/app/workers/intake_extractor/`, `agent/app/extraction/` | yes: one vision call per document, 15.7–54.5 s (`DEPLOY.md` §8.0, on `21f1053`) |
 | Supervisor + workers, `POST /w2/ask` | `agent/app/graph/supervisor.py`, `agent/app/supervisor/`, `agent/app/api/ask.py` | yes. The whole-report question answers in 6.9–8.4 s on 22 rows (§8.00, on `ea198c8`). A conversation turn at 10 users: p50 13.25 s, p95 19.47 s, 0 errors in 125 (`LOAD_TEST.md` §8, on `d61f739`) |
@@ -210,7 +213,7 @@ purpose.
 | [docs/w2/COST_AND_LATENCY.md](docs/w2/COST_AND_LATENCY.md) | actual dev spend, per-encounter cost, projections at 100 to 100K encounters a day, p50/p95 and bottlenecks |
 | [docs/w2/DEMO_SCRIPT.md](docs/w2/DEMO_SCRIPT.md) | the recorded walkthrough |
 | [PATIENT_DASHBOARD_MIGRATION.md](PATIENT_DASHBOARD_MIGRATION.md) | the patient dashboard port (D59): why React + a BFF, the parity matrix, tradeoffs, how to run it; live at <https://64.177.42.210:8444> ([deploy evidence](docs/w2/evidence/dashboard-deploy-2026-09-25/README.md)) |
-| [docs/w2/DECISIONS.md](docs/w2/DECISIONS.md) | every Week 2 decision, D1–D61; a numbering test (`agent/tests/test_decisions_log.py`) fails on a duplicate or a gap |
+| [docs/w2/DECISIONS.md](docs/w2/DECISIONS.md) | every Week 2 decision, D1–D64; a numbering test (`agent/tests/test_decisions_log.py`) fails on a duplicate or a gap |
 | [EVAL_GATE.md](EVAL_GATE.md) | the eval gate: find, run and read it; the blocked merge request |
 | [docs/w2/EVAL_DESIGN.md](docs/w2/EVAL_DESIGN.md), [docs/w2/GATE.md](docs/w2/GATE.md) | why the gate is shaped as it is, and how gate files are protected |
 | [docs/w2/EVAL_GATE_EVIDENCE.md](docs/w2/EVAL_GATE_EVIDENCE.md), [docs/w2/calibration/](docs/w2/calibration/README.md) | the planted-regression proof against the committed baseline; the judge's calibration sets and its first independent measurement |

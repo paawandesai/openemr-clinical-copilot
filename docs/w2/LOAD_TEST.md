@@ -308,7 +308,7 @@ Cost of these runs: before $3.97 (6 runs), after $1.28 (10 runs).
 - **Target:** the deployed agent on `64.177.42.210` (4 vCPU, 7.2 GiB),
   reached through its Caddy proxy on `:8443`, as the chart card reaches it.
 - **Build:** `main@d61f739`, with drafting thinking **disabled**
-  (D-unassigned, answer-step thinking). The model is real, with no stub.
+  (D62, answer-step thinking). The model is real, with no stub.
 - **Load:** k6 `k6-ask.js` from the operator's laptop: 10 VUs for 3 min on
   the conversation route. The question was "What medications is the patient
   on?", for patient `a2c373ec-…` (pid 38), with a new session every

@@ -84,7 +84,7 @@ architecture is unchanged and is not repeated here:
 [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) (authorization, tool scope,
 conversation state, the deterministic verifier).
 
-**Snapshot: `main@d6119e6`**, which is on `origin`. Every path and every
+**Snapshot: `main@54266a9`**, which is on `origin`. Every path and every
 decision cited is on that commit. Numbers are **not** pinned to one commit.
 Each is pinned to the artifact it cites, and that artifact names where it
 was measured:
@@ -96,9 +96,11 @@ was measured:
 - load and cost figures to their own `LOAD_TEST.md` and
   `COST_AND_LATENCY.md` sections.
 
-**The host runs `main@d61f739`**, the build the 10-user load test ran
-against on 2026-09-26 (`LOAD_TEST.md` §8). Between it and the snapshot only
-documentation and calibration files changed; no code did.
+**The host runs agent `main@d61f739` and module `main@a434ffd`**, plus the
+patient dashboard on port 8444 (`docs/w2/DEPLOY.md`, "What the host runs
+now"). Between them and the snapshot, no deployed code differs: the agent's
+code (`agent/app/`) is unchanged since `d61f739` and the module since
+`a434ffd`, apart from code comments this branch renumbered to D62–D64.
 
 **Host figures name the build they were measured on:**
 
@@ -107,9 +109,10 @@ documentation and calibration files changed; no code did.
 | `21f1053` | 2026-09-23 16:40 UTC | the first Week 2 deploy: card, routes, upload guard, D41 | `DEPLOY.md` §8.0 |
 | `ea198c8` | 2026-09-23 17:12 UTC | D50, the scoped document answer; the eval gate | `DEPLOY.md` §8.00 |
 | `06f0d45` | 2026-09-25 14:44 UTC | D54's upload scopes, D56, D58 (production Langfuse); then the patient dashboard on port 8444 | `docs/w2/evidence/prod-langfuse/deploy-2026-09-25/`, `docs/w2/evidence/dashboard-deploy-2026-09-25/` |
-| **`d61f739`** | 2026-09-26 | D60 (degraded documents, quarantine), drafting thinking off, the duplicate-result guard | `LOAD_TEST.md` §8 |
+| **`d61f739`** (agent) | 2026-09-26 18:57 UTC | D60 (degraded documents, quarantine), drafting thinking off (D62), the duplicate-result guard (D63) | `LOAD_TEST.md` §8 |
+| **`a434ffd`** (module only) | 2026-09-27 | the per-user token-fetch lock (D64); the agent was not restarted | `docs/w2/evidence/token-race-deploy-2026-09-27/` |
 
-Figures labelled "rehearsal host, before the Week 2 deploy" predate all four.
+Figures labelled "rehearsal host, before the Week 2 deploy" predate all five.
 
 ---
 
@@ -659,12 +662,19 @@ UUID OpenEMR issued is in any trace
 
 ## 8. Deployment state
 
-The host `64.177.42.210` runs **`main@d61f739`**, the build the 10-user load
-test ran against on 2026-09-26 (`LOAD_TEST.md` §8). It adds D60 (extractions
-kept on disk, wrong-patient uploads quarantined, the degraded-scan notice),
-drafting thinking set off, and the duplicate-result guard to what came
-before. The repository holds no deploy record of its own for this build:
-`LOAD_TEST.md` §8 is the evidence that it runs.
+The host `64.177.42.210` runs the agent image from **`main@d61f739`**
+(deployed 2026-09-26 18:57 UTC) and the module from **`main@a434ffd`**
+(deployed module-only on 2026-09-27), with the patient dashboard on port
+8444 (`docs/w2/DEPLOY.md`, "What the host runs now").
+
+- `d61f739` adds D60 (extractions kept on disk, wrong-patient uploads
+  quarantined, the degraded-scan notice), drafting thinking set off (D62)
+  and the duplicate-result guard (D63). It has no evidence file of its own;
+  its snapshot and rollback are in `/root/w2-deploy-20260926/` on the host,
+  and its load figures are `LOAD_TEST.md` §8.
+- `a434ffd` adds D64, the per-user token-fetch lock; the agent was not
+  restarted
+  ([evidence](docs/w2/evidence/token-race-deploy-2026-09-27/README.md)).
 
 The builds before it (the table in "Provenance"):
 
@@ -745,18 +755,20 @@ The agent image grew from 360 MB to 1.18 GB, and idle memory from 50 MiB to
 |---|---|
 | Extraction | D3, D7, D10, D11, D13, D16, D20 (supersedes D12), D24, D35, D60 (degraded documents: saved extractions, quarantine, the degraded-scan notice) |
 | Contracts | D9, D14, D17, D18, D21, D22 |
-| Routing and the ask path | D4, D40, D50 (the scoped document answer), D-unassigned "answer-step thinking" (drafting calls set thinking explicitly, and off) |
+| Routing and the ask path | D4, D40, D50 (the scoped document answer), D62 (answer-step thinking: drafting calls set thinking explicitly, and off) |
 | Retrieval | D25 (supersedes D5, D23), D26, D39, D41 |
 | UI | D27, D28, D30, D32, D33, D34, D49 (the preview URL; supersedes D28 and D30 on that point), D51 (the card's module routes; a citation's digest opens the preview) |
-| Write-back | D1 (superseding), D2, D15, D29, D31, D54 (an extraction writes its verified rows back, under the uploader's token), D-unassigned "duplicate results" (a result the chart holds is not written again) |
+| Write-back | D1 (superseding), D2, D15, D29, D31, D54 (an extraction writes its verified rows back, under the uploader's token), D63 (duplicate results: a result the chart holds is not written again) |
 | Observability | D36, D37, D38, D52 (a turn's tags reach the operational events), D55 (`/ready` names stdout as the backend; spans name the service), D56 (telemetry carries an HMAC of the session key), D58 (production telemetry: stdout plus a self-hosted Langfuse) |
 | Evals | D6, D8, D42–D48, D57 (judge calibration by blind human labels), D61 (the rubric wording, HMAC'd gate output, the dashboard CI job; its addendum is the first independent measurement) |
 | Patient dashboard | D59 (a React SPA behind a same-origin BFF that holds the tokens) |
+| The chart card's tokens | D64 (one clinician's token exchanges run one at a time, under a database lock) |
 | The decisions log itself | D53 (no merge driver for `DECISIONS.md`; a numbering test guards it) |
 
-D1–D61 are on `main`, with two entries still headed `D-unassigned`
-(answer-step thinking, duplicate results); they are numbered in merge order
-before submission. D53 records a decision already made in commit `cb99e7b`;
+D1–D64 are on `main`. D62–D64 were headed `D-unassigned` until this
+refresh numbered them in merge order: D62 answer-step thinking (merged at
+`dd12b86`), D63 duplicate results (`d61f739`), D64 the token fetch race
+(`a434ffd`). D53 records a decision already made in commit `cb99e7b`;
 it was appended at the owner's request, not decided here. This document
 makes no new decision.
 
@@ -925,7 +937,7 @@ makes no new decision.
     wrote 104–114 claims and about 7.5k output tokens in 57–65 s, with
     thinking on or off (`docs/w2/evidence/answer-thinking/README.md`). D50
     bounds the `/w2/ask` answer step; the conversation turn has no such
-    bound. 0 claims failed verification. OPEN in D-unassigned (answer-step
+    bound. 0 claims failed verification. OPEN in D62 (answer-step
     thinking), "Open, not decided here"; its cost was not recorded.
 18. **The dashboard CI job does not run on `main`'s own pipelines.**
     `dashboard-tests` is created only when a commit differs from `main`
@@ -965,8 +977,28 @@ makes no new decision.
     (`docs/w2/evidence/load/extraction-live-vision.json`); D60 notes that no
     vision variance was measured. The gate replays recordings, so it does
     not see this.
-22. **The chart-open token race.** Requests from the same clinician fired
-    together at chart open (the brief, and an upload while the brief is
-    loading) fetch a token at the same time, and one can fail as
-    `token_unavailable`. Work order 38 adds a per-user token-fetch lock
-    (`fix/w2-token-race`); **it is not merged at this snapshot.**
+22. **The chart-open token race: fixed by D64, 20/20 on the host.** A chart
+    open fires the brief, D60's reconcile and, when a file is chosen, the
+    upload at once, and each brokered its own token. OpenEMR keeps one
+    `oauth_trusted_user` row per client and user, so one exchange's
+    authorization code could overwrite another's before it was redeemed,
+    and that request failed as `token_unavailable` (502). It was seen on the
+    host once in 56 briefs, and locally in 5 of 10 opens of a chart holding a
+    filed copy (D64). D64 serializes one clinician's token exchanges under a
+    MariaDB `GET_LOCK` named per user (module `main@a434ffd`, deployed
+    module-only on 2026-09-27). On the host afterwards: 20 opens of pid 38,
+    the brief 200 in all 20 and reconcile 200 in all 20; **0
+    `token_unavailable`** in the audit log after the pre-deploy baseline; an
+    upload sent while the brief was loading, both 200
+    ([evidence](docs/w2/evidence/token-race-deploy-2026-09-27/README.md)).
+    Still open (D64, "Not settled"): anything else running the EHR-launch
+    flow with the module's client for the same user would race outside the
+    lock (nothing does today), and no eval case exercises concurrent chart
+    opens.
+23. **Reconcile hides a failed token.** D60 made the card's reconcile check
+    fire and forget. Before D64, 8 of the 27 failed token exchanges in the
+    local reproduction were reconcile's: it answered **200** regardless, and
+    its quarantine check silently did not run. The race was the only known
+    cause, and D64 removed it, but a `token_unavailable` in reconcile still
+    skips the check without saying so. Recorded as not settled (D64, "Not
+    settled here").
