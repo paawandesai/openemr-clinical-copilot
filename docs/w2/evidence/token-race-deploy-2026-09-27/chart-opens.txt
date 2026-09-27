@@ -1,0 +1,23 @@
+04:38:47 open 1   brief=200@17.5s    reconcile=200@4.3s     upload=-
+04:39:04 open 2   brief=200@17.3s    reconcile=200@3.9s     upload=-
+04:39:21 open 3   brief=200@16.8s    reconcile=200@4.2s     upload=-
+04:39:38 open 4   brief=200@16.8s    reconcile=200@4.1s     upload=-
+04:39:55 open 5   brief=200@17.1s    reconcile=200@4.1s     upload=-
+04:40:12 open 6   brief=200@17.0s    reconcile=200@3.8s     upload=-
+04:40:29 open 7   brief=200@17.1s    reconcile=200@3.9s     upload=-
+04:40:46 open 8   brief=200@16.7s    reconcile=200@4.0s     upload=-
+04:41:03 open 9   brief=200@17.2s    reconcile=200@4.0s     upload=-
+04:41:21 open 10  brief=200@17.3s    reconcile=200@4.3s     upload=-
+04:41:38 open 11  brief=200@17.4s    reconcile=200@4.1s     upload=-
+04:41:59 open 12  brief=200@20.6s    reconcile=200@4.2s     upload=-
+04:42:16 open 13  brief=200@16.8s    reconcile=200@4.3s     upload=-
+04:42:33 open 14  brief=200@16.8s    reconcile=200@4.1s     upload=-
+04:42:50 open 15  brief=200@16.5s    reconcile=200@3.9s     upload=-
+04:43:07 open 16  brief=200@17.2s    reconcile=200@4.1s     upload=-
+04:43:24 open 17  brief=200@17.1s    reconcile=200@4.0s     upload=-
+04:43:41 open 18  brief=200@16.5s    reconcile=200@4.0s     upload=-
+04:43:58 open 19  brief=200@17.5s    reconcile=200@4.0s     upload=-
+04:44:15 open 20  brief=200@16.7s    reconcile=200@4.2s     upload=-
+BRIEF OK 20/20
+04:44:54 upload   brief=200@16.7s    reconcile=200@4.2s     upload=200@4.8s (sent @1.7s) | Extraction complete — Chart: 21 already in the chart, 1 not written (not verified on the page). 
+UPLOAD+BRIEF brief_ok=true upload_ok=true
