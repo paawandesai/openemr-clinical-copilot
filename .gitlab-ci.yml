@@ -152,7 +152,8 @@ w2-eval-gate:
 #
 # Measured locally with the same images and the same commands:
 # `composer install` 65 s cold, and the suite 143 tests / 294 assertions in
-# 0.097 s.
+# 0.097 s. Re-measured by work order 37 on d6119e6: 258 tests / 560
+# assertions in 0.100 s.
 w2-writeback-php:
   stage: writeback
   image: php:8.3-cli

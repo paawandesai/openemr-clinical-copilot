@@ -36,7 +36,7 @@ pre-push hook (`scripts/install-w2-pre-push-hook.sh`) runs
 |---|---|---|
 | `cases/` | yes | One JSON file per spec. Deleting one is a deletion in the diff. |
 | `case_schema.json` | yes | Every case file is validated against it before anything is scored. |
-| `rubrics/rubrics.json` | yes | The 17 rubrics: 5 required, 12 sub-rubrics, each with its tier and why. |
+| `rubrics/rubrics.json` | yes | The 20 rubrics: 6 required (the assignment's five, plus `prompt_pinned`, W2-L1) and 14 sub-rubrics, each with its tier (16 deterministic, 4 judge) and why. |
 | `rubrics/categories.json` | yes | Per category: `n_min`, thresholds, Wilson slack. |
 | `judge_config.json` | yes | Pinned judge model and version, prompts, cache key, and what the judge does not cover. |
 | `judge_prompts/` | yes | The two judge rubrics, as text. Their sha256 is part of the cache key. |
@@ -66,12 +66,16 @@ D42.
 
 ## Running it needs tesseract
 
-Category B's scanned-page cases and W2-C2 drive the OCR locate path.
-Without `tesseract-ocr` they **fail rather than skip**: a scanned-page case
-that goes green on a machine with no OCR is exactly the silent pass this gate
-exists to prevent. The CI job installs it; a dev machine needs
-`brew install tesseract` or `apt-get install tesseract-ocr`, and the
-pre-push hook will block until it is there.
+Five cases drive the OCR locate path and declare `requires: [tesseract]`:
+W2-B1, W2-B2, W2-B6, W2-C2 and W2-H3 (critical). Without a working
+`tesseract` the runner **skips** them with a visible notice naming what is
+missing (`gate/run.py`, `_missing_tools`); it does not fail them. A skipped
+case is not a passing one: any active case left unscored makes the run
+**INCOMPLETE**, exit 3, so a machine with no OCR cannot produce a green
+verdict. The pre-push hook passes `--allow-incomplete`, so it prints the
+notice and lets the push through; CI installs `tesseract-ocr` and never
+passes that flag. On a dev machine: `brew install tesseract` or
+`apt-get install tesseract-ocr`.
 
 ## Recorded model output, or the ground-truth stub
 
