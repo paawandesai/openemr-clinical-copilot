@@ -486,11 +486,13 @@ rests on.
   HELD").
 - **A merge it blocked.** [MR !1](https://labs.gauntletai.com/paawandesai/openemr-clinical-copilot/-/merge_requests/1) is left open with a red pipeline. It plants
   "blank flag means normal", and W2-D2 blocks it:
-  `VERDICT: BLOCKED | specs 96 | active 79 | pending 15 | det 72/73 | judge 8/8`
-  (`EVAL_GATE.md`; recorded before W2-L1, when there were 96 specs).
+  today the same regression prints
+  `VERDICT: BLOCKED | specs 98 | active 81 | pending 15 | det 74/75 | judge 8/8 (RUN [UNCALIBRATED])`
+  (evidence regression 1; the MR's pipeline predates W2-L1 and W2-J8 and
+  printed 96 specs and det 72/73).
 - **The gate at the snapshot.** 98 specs (81 active, 15 pending, 2
-  delegated), 75/75 deterministic and 8/8 judge (evidence control run,
-  re-seeded after W2-J8, the turn event's scope fields).
+  delegated), 75/75 deterministic and 8/8 judge: the evidence's control
+  run, 2026-09-27, against the baseline seeded at `4835f74`.
 - **The judge is UNCALIBRATED.** It is `claude-haiku-4-5-20251001`,
   best-of-3 (D43, D48). Category M detects drift, not agreement with humans.
 - **Its protection is a guard, not a boundary.** The hooks and

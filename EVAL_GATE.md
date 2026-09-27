@@ -29,11 +29,17 @@ Caught by **W2-D2**, a critical case, under three rules at once — (b) the
 deterministic tier is not at 100%, (c) a critical case that passed on the
 baseline now fails, (e) the category regressed against the baseline.
 
+What the gate prints for this regression today (regression 1 in
+[`docs/w2/EVAL_GATE_EVIDENCE.md`](docs/w2/EVAL_GATE_EVIDENCE.md), run
+2026-09-27 against baseline `4835f74`):
+
 ```
-VERDICT: BLOCKED | specs 96 | active 79 | pending 15 | det 72/73 | judge 8/8
+VERDICT: BLOCKED | specs 98 | active 81 | pending 15 | det 74/75 | judge 8/8 (RUN [UNCALIBRATED])
 ```
 
-(Recorded on that MR's pipeline, before W2-L1 and W2-J8 existed — 96 specs then, 98 now.)
+The MR's own pipeline ran before W2-L1 and W2-J8 existed, and before the
+verdict line named the judge state, so it printed
+`specs 96 | active 79 | pending 15 | det 72/73 | judge 8/8`.
 
 That MR is left open with a red pipeline on purpose. It must not be merged.
 
