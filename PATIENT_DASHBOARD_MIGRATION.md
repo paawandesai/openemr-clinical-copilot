@@ -3,7 +3,8 @@
 Work order 31 · branch `feat/w2-dashboard-port` · decision D59 ·
 written 2026-09-24. Everything below that has a number was measured on the
 local OpenEMR stack on that date. Where something was not measured, it
-says so.
+says so. **Deployed on the graded host on 2026-09-25, at
+<https://64.177.42.210:8444>** (§8).
 
 **The short version.** The OpenEMR patient dashboard is now a React +
 TypeScript single-page app in `dashboard/`. It reads the patient's chart over
@@ -437,9 +438,26 @@ without its client id and secret.
 
 ---
 
-## 8. What Saturday's deploy needs (not done here)
+## 8. The deploy: done 2026-09-25
 
-Nothing was deployed. The host needs the following, in this order:
+**Deployed.** The dashboard has run on the graded host since 2026-09-25, at
+<https://64.177.42.210:8444>, from `main@06f0d45` (the `dashboard/` tree is
+unchanged from there to the final `main`). The deploy followed the steps
+below, with one addition: audit F-49 (`site_addr_oath` still advertised
+`localhost`) had to be fixed on the host first. Evidence, rollback and the
+checks run in Chrome as `physician`:
+[`docs/w2/evidence/dashboard-deploy-2026-09-25/README.md`](docs/w2/evidence/dashboard-deploy-2026-09-25/README.md).
+
+- **Verified:** the real OAuth flow (login and consent on `:9300`, callback
+  on `:8444`); every card for pid 38 and pid 31, including the D54 rows
+  "From document"; 0 CSP violations; `/fhir/Encounter` 403 and
+  `POST /fhir/Patient` 405 at the BFF; the only new listening socket is
+  `0.0.0.0:8444`, served by Caddy.
+- **Differs from the plan:** the secret file is mode 600, not 0400.
+- **Not measured:** how long `:8443` was interrupted while the proxy was
+  recreated.
+
+The steps as planned, and as run, in order:
 
 1. **The OAuth client, registered on the host's OpenEMR.**
    - Confidential (`application_type: private`), `client_secret_post`.
@@ -475,7 +493,7 @@ Nothing was deployed. The host needs the following, in this order:
    - Limits: `mem_limit: 256m` (measured use is 20–25 MiB), read-only,
      `cap_drop: ALL`, `no-new-privileges`, healthcheck on `/healthz`.
 6. **The proxy route.** This is an edit to `agent/deploy/`, which work order
-   31 did not make:
+   31 did not make; `chore/w2-dashboard-deploy` made it:
    - Add a site block `https://{$AGENT_PUBLIC_HOST}:8444 { tls internal;
      request_body { max_size 16KB }; reverse_proxy bff:8787 }`.
    - Publish `8444` on the proxy service.
@@ -496,6 +514,13 @@ with the unit results as a JUnit report. It takes about 40 s from a cold image
 and needs no credentials. The e2e suite stays a local, pre-merge step,
 because it needs the OpenEMR stack.
 
+**It does not run on `main`'s own pipelines.** `compare_to: refs/heads/main`
+means that on `main` itself nothing differs, so the job is never created
+there (`.gitlab-ci.yml`, the comment above `dashboard-tests`). It runs on the
+branch and merge-request pipelines, before a merge. The consequence: a
+dashboard break introduced by the merge itself, for example by two branches
+that pass apart and fail together, would get no signal on `main`.
+
 ---
 
 ## 9. Where things are
@@ -505,7 +530,7 @@ because it needs the OpenEMR stack.
 | SPA | `dashboard/web/src/`: `components/` (cards, header), `mapping/` (FHIR to view model), `fhir/types.ts`, `api.ts` |
 | BFF | `dashboard/bff/src/`: `app.ts` (routes, headers, refresh), `oauth.ts`, `fhirProxy.ts` (allowlist), `sessions.ts`, `log.ts`, `upstream.ts`, `static.ts` |
 | Tests | `dashboard/test/unit/`, `dashboard/test/e2e/`, fixtures in `dashboard/test/fixtures/` (synthetic patients only, SSN replaced) |
-| Container, deploy proposal | `dashboard/Dockerfile`, `dashboard/deploy/docker-compose.dashboard.yml` |
+| Container, host compose file | `dashboard/Dockerfile`, `dashboard/deploy/docker-compose.dashboard.yml`; deploy evidence in `docs/w2/evidence/dashboard-deploy-2026-09-25/` |
 | Phase 1 inventory, screenshots, measurements | `docs/dashboard/PARITY_INVENTORY.md`, `docs/dashboard/inventory/`, `docs/dashboard/screenshots/`, `docs/dashboard/perf.json` |
 | Decision | `docs/w2/DECISIONS.md` D59 |
 | Audit findings from this work | `docs/audit/findings.md` F-65, F-66, F-67 |

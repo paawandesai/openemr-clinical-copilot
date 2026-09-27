@@ -8,65 +8,82 @@ A Clinical Co-Pilot AI agent built into a fork of [OpenEMR](https://open-emr.org
 
 | | Week 1: baseline | Week 2: multimodal |
 |---|---|---|
-| What it does | Pre-Visit Brief and multi-turn follow-up, read from the chart over FHIR; every claim deterministically verified | lab PDFs and intake forms extracted to a strict schema with page-located values; a supervisor over an intake-extractor and an evidence-retriever; hybrid RAG over guideline evidence; an eval gate |
-| Deployed at `64.177.42.210`? | **Yes**, the whole Week 1 surface | **Yes.** The host runs `main@ea198c8`: upload, extraction, the scoped ask path and the Documents & Sources card, measured one question at a time (`docs/w2/DEPLOY.md` §8.0 on `21f1053`; §8.00 after D50) |
+| What it does | Pre-Visit Brief and multi-turn follow-up, read from the chart over FHIR; every claim deterministically verified | lab PDFs and intake forms extracted to a strict schema with page-located values; a supervisor over an intake-extractor and an evidence-retriever; hybrid RAG over guideline evidence; an eval gate; the patient dashboard ported to React over FHIR |
+| Deployed at `64.177.42.210`? | **Yes**, the whole Week 1 surface | **Yes.** The host runs `main@d61f739`: upload, extraction, write-back, the scoped ask path, the Documents & Sources card, export to the production Langfuse, and the patient dashboard on port 8444 |
 | Start reading | [Week 1 baseline](#week-1-baseline) below | [Week 2: start here](#week-2-start-here), next |
 
 ---
 
 ## Week 2: start here
 
-Everything in this section is on the snapshot below.
+**Snapshot: `main@d6119e6`**, which is on `origin`. Every path, number and
+decision below is on that commit. Numbers measured elsewhere name the build
+they were measured on.
 
-**Snapshot: `main@056cba9`**, which is on `origin`. Every path, number and
-decision below is on that commit. It includes these merges:
+**The host runs `main@d61f739`**, the build the 10-user load test ran
+against on 2026-09-26 (`docs/w2/LOAD_TEST.md` §8). Between it and the
+snapshot, only documentation and calibration files changed; no code did.
 
-| Merge | At | What it brought |
-|---|---|---|
-| `feat/w2-php-wiring` | `2ae4d98` | the Documents & Sources card, its routes, the upload guard |
-| `chore/w2-deploy-rehearsal` | `21f1053` | D41 |
-| its first post-deploy figures | `bc5236f` | `DEPLOY.md` §8.0 |
-| its D50-redeploy figures | `5ad81c5` | `DEPLOY.md` §8.00 |
-| `feat/w2-eval-gate` | `0b4ae04` | the eval gate, D42–D48 |
-| `feat/w2-answer-scope` | `ea198c8` | D50 |
-| the DECISIONS restore | `caa92f8` | the dropped decision entries |
-| `EVAL_GATE.md` | `0318c35` | the gate's page for reviewers |
-| the decisions guard | `c1c5e21` | D51 |
-| the event-tags fix | `056cba9` | D52 |
+**Host figures name the build they were measured on:**
 
-**The host runs `main@ea198c8`** since 2026-09-23 17:12 UTC (`DEPLOY.md`
-§8.00). It lacks only the event-tags telemetry fix (D52) and the
-documentation and test commits after it. Neither changes an answer.
+| Build | Deployed | What it added | Measured in |
+|---|---|---|---|
+| `21f1053` | 2026-09-23 16:40 UTC | the first Week 2 deploy: card, routes, upload guard, D41 | `docs/w2/DEPLOY.md` §8.0 |
+| `ea198c8` | 2026-09-23 17:12 UTC | D50, the scoped document answer; the eval gate | `DEPLOY.md` §8.00 |
+| `06f0d45` | 2026-09-25 14:44 UTC | D54's upload scopes, D56, D58 (production Langfuse); then the patient dashboard on port 8444 | `docs/w2/evidence/prod-langfuse/deploy-2026-09-25/`, `docs/w2/evidence/dashboard-deploy-2026-09-25/` |
+| **`d61f739`** | 2026-09-26 | D60 (degraded documents, quarantine), drafting thinking off, the duplicate-result guard | `LOAD_TEST.md` §8 |
 
-**Three kinds of host figure:**
-
-- **`DEPLOY.md` §8.00:** the D50 redeploy, on `ea198c8`.
-- **`DEPLOY.md` §8.0:** the earlier deploy, on `21f1053`, **before D50**.
-  D50 changes only how a document answer is scoped, so these still describe
-  extraction, retrieval and memory. They do not describe the answer step.
-- **Before any Week 2 deploy:** labelled "rehearsal host, before the Week 2
-  deploy".
+Figures labelled "rehearsal host, before the Week 2 deploy" predate all four.
 
 ### What Week 2 adds, and where it runs
 
-| Piece | Code | On `main` | On the host (`main@ea198c8`; figures from `docs/w2/DEPLOY.md` §8.0 on `21f1053` unless marked) |
-|---|---|---|---|
-| Document extraction: text layer / OCR → one vision call → deterministic locate → flag cross-check → discrepancies | `agent/app/graph/intake_extractor.py`, `agent/app/workers/intake_extractor/`, `agent/app/extraction/` | yes | yes: one vision call per document, 15.7–54.5 s |
-| Supervisor + workers, `POST /w2/ask` | `agent/app/graph/supervisor.py`, `agent/app/supervisor/`, `agent/app/api/ask.py` | yes | yes. After D50, the whole-report question answers in 6.9–8.4 s on 22 rows. Before D50, the document + guideline question answered 3 of 3 in 15.3–21.2 s |
-| Guideline retrieval: 28 documents, BM25 + local embeddings + local rerank | `agent/app/retrieval/` | yes | yes: every rerank ran after the deploy, 1.55–1.68 s |
-| Week 2 verifier, citation contract | `agent/app/verification/w2_checker.py`, `agent/app/models/w2/` | yes | yes: 0 unverified in 3 answers before D50, and in 6 after |
-| Source-grounded answer view: PDF.js with bbox overlay | `interface/modules/custom_modules/oe-module-clinical-copilot/public/assets/w2/` | yes, in the chart: the Documents & Sources card, its upload, status and ask routes (since `2ae4d98`) | yes |
-| Lab write-back endpoint + idempotency ledger | the same module, `src/WriteBack/` | yes | yes, rehearsed |
-| Eval gate: 98 cases, CI job | `agent/evals/w2/gate/`, `.gitlab-ci.yml` | yes (`0b4ae04`) | n/a: runs on recorded fixtures |
+| Piece | Code | On the host (`main@d61f739`) |
+|---|---|---|
+| Document extraction: text layer / OCR → one vision call → deterministic locate → flag cross-check → discrepancies | `agent/app/graph/intake_extractor.py`, `agent/app/workers/intake_extractor/`, `agent/app/extraction/` | yes: one vision call per document, 15.7–54.5 s (`DEPLOY.md` §8.0, on `21f1053`) |
+| Supervisor + workers, `POST /w2/ask` | `agent/app/graph/supervisor.py`, `agent/app/supervisor/`, `agent/app/api/ask.py` | yes. The whole-report question answers in 6.9–8.4 s on 22 rows (§8.00, on `ea198c8`). A conversation turn at 10 users: p50 13.25 s, p95 19.47 s, 0 errors in 125 (`LOAD_TEST.md` §8, on `d61f739`) |
+| Guideline retrieval: 28 documents, BM25 + local embeddings + local rerank | `agent/app/retrieval/` | yes: every rerank ran after the deploy, 1.55–1.68 s (§8.0) |
+| Week 2 verifier, citation contract | `agent/app/verification/w2_checker.py`, `agent/app/models/w2/` | yes: 0 unverified in 3 answers before D50, and in 6 after |
+| Source-grounded answer view: PDF.js with bbox overlay | `interface/modules/custom_modules/oe-module-clinical-copilot/public/assets/w2/` | yes, in the chart's Documents & Sources card |
+| Lab write-back endpoint + idempotency ledger; a lab upload writes its verified rows back (D54) | the same module, `src/WriteBack/`; `agent/app/writeback/` | yes; rows land in Pending Review |
+| Degraded documents: extractions kept on disk, wrong-patient uploads quarantined, a degraded-scan notice (D60) | `agent/app/workers/document_store.py`, `agent/app/api/documents.py`, the module's `src/W2/` | yes |
+| **Patient dashboard**: the OpenEMR patient dashboard as a React SPA behind a same-origin BFF over FHIR (D59) | `dashboard/`; [PATIENT_DASHBOARD_MIGRATION.md](PATIENT_DASHBOARD_MIGRATION.md) | **yes, at <https://64.177.42.210:8444>** since 2026-09-25 ([evidence](docs/w2/evidence/dashboard-deploy-2026-09-25/README.md)) |
+| Production observability: stdout plus a self-hosted Langfuse (D58) | `agent/app/middleware/{telemetry,langfuse_export}.py`, `agent/observability/prod/`, `docs/w2/OBSERVABILITY.md` §7 | **yes, at <https://64-177-51-119.sslip.io>** |
+| Eval gate: 98 cases, four CI jobs | `agent/evals/w2/gate/`, `.gitlab-ci.yml` | n/a: runs on recorded fixtures |
 
 Where the facts in this table come from, and what is not wired yet:
 [`W2_ARCHITECTURE.md`](W2_ARCHITECTURE.md) §8 and §11.
 
+### Grader access
+
+| What | Where | Sign in |
+|---|---|---|
+| OpenEMR with both co-pilot cards | <https://64.177.42.210:9300> | `physician` / `physician` (a seeded demo account, below) |
+| Patient dashboard (React port) | <https://64.177.42.210:8444> | the same OpenEMR login, through OpenEMR's own OAuth sign-in and consent |
+| Production Langfuse, read-only | <https://64-177-51-119.sslip.io> | a read-only grader account. **Its credentials are not in the repository; they are provided in the submission notes.** |
+
+All three certificates are self-signed or from a private CA, so the browser
+warns once per origin.
+
 ### Run the core Week 2 flow
 
 Every command runs from the repository root unless it starts with `cd`.
-Python 3.12 (the agent image is `python:3.12-slim`) and Tesseract are
-required.
+
+**Prerequisites:**
+
+| Tool | Version | Needed for |
+|---|---|---|
+| Python | **3.12** (the agent image is `python:3.12-slim`) | the agent, its tests and the eval gate. The pinned requirements do not install on 3.9 |
+| Tesseract | any 5.x; results differ by build (see [`W2_ARCHITECTURE.md`](W2_ARCHITECTURE.md) §11) | OCR on scanned pages, and five gate cases |
+| Node.js | **22 or newer** (`dashboard/package.json` `engines`) | the answer-view fixture server, and the patient dashboard's build and tests |
+| Google Chrome | installed, not downloaded | the dashboard's e2e tests (Playwright `channel: 'chrome'`) |
+| Docker | as in §1 below | OpenEMR, and the delegated PHP suite (`scripts/w2-writeback-result.sh`) |
+
+**The pre-push hook needs Python 3.12 too.** `scripts/install-w2-pre-push-hook.sh`
+installs a hook that uses `$W2_GATE_PYTHON` if set, then `agent/.venv/bin/python`,
+and only then a bare `python3`, which on many machines is the system 3.9
+and cannot import the agent. In a worktree without `agent/.venv`, export
+`W2_GATE_PYTHON=/path/to/python3.12` (with the requirements installed) before
+pushing.
 
 ```bash
 git clone https://labs.gauntletai.com/paawandesai/openemr-clinical-copilot.git
@@ -192,18 +209,17 @@ purpose.
 | [KEY_METRICS.md](KEY_METRICS.md) | the Week 2 metrics, with honest denominators; the Week 1 six are in [docs/KEY_METRICS.md](docs/KEY_METRICS.md) |
 | [docs/w2/COST_AND_LATENCY.md](docs/w2/COST_AND_LATENCY.md) | actual dev spend, per-encounter cost, projections at 100 to 100K encounters a day, p50/p95 and bottlenecks |
 | [docs/w2/DEMO_SCRIPT.md](docs/w2/DEMO_SCRIPT.md) | the recorded walkthrough |
-| [docs/w2/DECISIONS.md](docs/w2/DECISIONS.md) | every Week 2 decision, D1–D53; a numbering test (`agent/tests/test_decisions_log.py`) fails on a duplicate or a gap |
+| [PATIENT_DASHBOARD_MIGRATION.md](PATIENT_DASHBOARD_MIGRATION.md) | the patient dashboard port (D59): why React + a BFF, the parity matrix, tradeoffs, how to run it; live at <https://64.177.42.210:8444> ([deploy evidence](docs/w2/evidence/dashboard-deploy-2026-09-25/README.md)) |
+| [docs/w2/DECISIONS.md](docs/w2/DECISIONS.md) | every Week 2 decision, D1–D61; a numbering test (`agent/tests/test_decisions_log.py`) fails on a duplicate or a gap |
 | [EVAL_GATE.md](EVAL_GATE.md) | the eval gate: find, run and read it; the blocked merge request |
 | [docs/w2/EVAL_DESIGN.md](docs/w2/EVAL_DESIGN.md), [docs/w2/GATE.md](docs/w2/GATE.md) | why the gate is shaped as it is, and how gate files are protected |
+| [docs/w2/EVAL_GATE_EVIDENCE.md](docs/w2/EVAL_GATE_EVIDENCE.md), [docs/w2/calibration/](docs/w2/calibration/README.md) | the planted-regression proof against the committed baseline; the judge's calibration sets and its first independent measurement |
+| [docs/w2/DEPLOY.md](docs/w2/DEPLOY.md), [docs/w2/LOAD_TEST.md](docs/w2/LOAD_TEST.md) | the host deploy procedure and its measurements; the load tests, including 10 users on the live host |
+| [docs/w2/OBSERVABILITY.md](docs/w2/OBSERVABILITY.md), [docs/w2/ALERTS.md](docs/w2/ALERTS.md) | events, one trace per encounter, the dashboards, the production Langfuse, alerts |
 | [docs/w2/retrieval-bakeoff.md](docs/w2/retrieval-bakeoff.md) | the corpus, its licensing, and the retrieval measurements |
 | [docs/w2/spikes/writeback.md](docs/w2/spikes/writeback.md), [docs/w2/deploy-writeback.md](docs/w2/deploy-writeback.md) | how OpenEMR can be written to, and how the endpoint deploys |
-| [docs/w2/ui-integration.md](docs/w2/ui-integration.md) | the answer view, and the PHP still to wire |
+| [docs/w2/ui-integration.md](docs/w2/ui-integration.md) | the answer view and its module routes |
 | [docs/w2/WEEK1_DEBT.md](docs/w2/WEEK1_DEBT.md), [docs/w2/LOCAL_ENV.md](docs/w2/LOCAL_ENV.md), [docs/w2/root-run-trace-gap.md](docs/w2/root-run-trace-gap.md) | Week 1 debt triage, a local stack that matches the host, and the trace-containment finding |
-
-`docs/w2/OBSERVABILITY.md`, `ALERTS.md` and `LOAD_TEST.md` (tracing,
-dashboard, alerts, load tests and the real-route `/w2/ask` measurements)
-are on `main`, and so is `docs/w2/DEPLOY.md`, the host rehearsal and its
-measurements (merged at `21f1053`).
 
 ---
 
@@ -326,6 +342,10 @@ The graded documents live under `docs/` and `agent/`.
 
 Docker Desktop is not used. Colima must be sized up from its defaults before the
 stack will run comfortably — see step 2.
+
+**Week 2 also needs** Python 3.12, Tesseract, Node.js 22 or newer and an
+installed Google Chrome: see the prerequisites table under
+[Run the core Week 2 flow](#run-the-core-week-2-flow).
 
 ### Inside the containers
 

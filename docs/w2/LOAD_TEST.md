@@ -386,7 +386,8 @@ because the estimate used §2's per-turn cost.
 
 ## What it cost
 
-Three sets of real model calls, **about $3.72** in total. The unplanned
+Four sets of real model calls, **about $14.85** in total: $3.72 for the
+first three, and $11.13 for the live-host run added in §8. The unplanned
 $3.00 was a mistake: I assumed the stub covered the conversation route, and
 the module docstring says it does not.
 
@@ -401,6 +402,9 @@ the module docstring says it does not.
 
 - Concurrent vision throughput and Anthropic rate limits.
 - 50 concurrent real conversation turns.
-- Any of this on Vultr.
-- The upload route with the real extractor behind it (not wired on `main`).
+- §1–§7 on Vultr. §8 is the one run on the live host, and it covers the
+  conversation route only.
+- The upload route under load with the real extractor behind it. It is
+  wired on `main` (`feat/w2-graph`); §4a replayed vision, and the host ran
+  uploads one at a time (`DEPLOY.md` §8.0).
 - A fix for the reranker's memory growth (shape-driven; D39 has the options measured).

@@ -81,8 +81,9 @@ python3.12 -m venv .venv
 
 Five cases OCR a scanned page and declare `requires: [tesseract]`: four in
 categories B and C, and W2-H3. Without the binary the runner **skips** them with a
-visible notice rather than failing them; `brew install tesseract` (or
-`apt-get install tesseract-ocr`, as CI does) scores them.
+visible notice rather than failing them, and the run is INCOMPLETE (exit 3),
+never a pass; `brew install tesseract` (or `apt-get install tesseract-ocr`, as
+CI does) scores them.
 
 Then, with `agent/.venv` active or by path:
 
@@ -98,13 +99,13 @@ python -m evals.w2.gate --det-only --allow-incomplete
 python -m evals.w2.gate -v
 ```
 
-Verified from a cold clone on 2026-09-23: the deterministic tier scores
-**71/71** and exits 0, with the eight judge-tier cases and the two delegated
-cases reported as unscored. That clone predates W2-L1; on
-`fix/w2-prompt-pins`, with tesseract installed, the same command scores
-**72/72**, and **73/73** once W2-J8 is in (neither re-verified from a cold
-clone). With the delegated result artifact present, the deterministic tier is
-75/75.
+Verified from a cold clone of `main@d61f739` on 2026-09-26 (work order 36),
+with tesseract installed: `--det-only` scores **73/73** and exits 3, with
+the eight judge-tier cases and the two delegated cases unscored;
+`--allow-incomplete` turns that into 0. After `scripts/w2-writeback-result.sh`
+wrote the delegated result artifact, the same command scored **75/75**, with
+W2-K4 and W2-K6 passing. (The first cold clone, on 2026-09-23 and before
+W2-L1 and W2-J8, scored 71/71.)
 
 Exit codes: **0** pass · **1** blocked · **2** the gate could not run · **3**
 INCOMPLETE.
@@ -196,7 +197,8 @@ Four jobs in `.gitlab-ci.yml`, all tagged `w2-eval`, on merge requests and on
 red:
 
 1. **`w2-writeback-php`** (stage `writeback`, `php:8.3-cli`) — the fork
-   module's PHPUnit suite, 213 tests. Writes `w2-writeback-php.result.json`
+   module's PHPUnit suite, 258 tests and 560 assertions (run locally on
+   `d6119e6` by work order 37). Writes `w2-writeback-php.result.json`
    and its JUnit report as artifacts.
 2. **`w2-eval-gate`** (stage `eval`, `python:3.12-slim`) — the gate. Declares
    `dependencies: [w2-writeback-php]`, so it receives that artifact and can
