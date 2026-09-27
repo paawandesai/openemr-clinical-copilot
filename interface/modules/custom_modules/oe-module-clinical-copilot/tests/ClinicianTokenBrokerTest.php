@@ -18,6 +18,7 @@ use OpenEMR\Modules\ClinicalCopilot\BriefUnavailable;
 use OpenEMR\Modules\ClinicalCopilot\ClinicianTokenBroker;
 use OpenEMR\Modules\ClinicalCopilot\CoreSessionId;
 use OpenEMR\Modules\ClinicalCopilot\PatientUuid;
+use OpenEMR\Modules\ClinicalCopilot\Tests\Fakes\CooperativeTokenFetchLock;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use Psr\Log\NullLogger;
@@ -214,6 +215,8 @@ final class ClinicianTokenBrokerTest extends TestCase
             'client-id',
             'the-secret',
             self::REDIRECT,
+            new CooperativeTokenFetchLock(),
+            '7',
         );
     }
 }

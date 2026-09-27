@@ -181,7 +181,7 @@ $documents = new ChartDocuments(
 
 try {
     $documents->assertNotFiledElsewhere($chart->pid, $digest);
-    $broker = CardServices::broker($config, $globals->getWebRoot(), $session->get('site_id'), $logger);
+    $broker = CardServices::broker($config, $globals->getWebRoot(), $session->get('site_id'), $session->get('authUserID'), $logger);
     $state = CardServices::agent($config, $logger, $correlation)
         ->uploadDocument($broker->issueFor($coreSession, $patient, $kind->uploadScopes()), $patient, $kind, $pdf);
     $owner = filter_var($session->get('authUserID'), FILTER_VALIDATE_INT);

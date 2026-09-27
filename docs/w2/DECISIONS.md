@@ -4217,3 +4217,105 @@ over the chart, which D2 forbids for intake data for the same reason.
   is listed in the work order 34 report.
 
 ---
+
+## D-unassigned (token fetch race) — One clinician's token exchanges run one at a time, under a database lock held from the first authorize until the code is redeemed
+
+**Status:** DECIDED
+**Date:** 2026-09-26
+**Work order:** 38 (`fix/w2-token-race`). Headed "D-unassigned (token fetch
+race)"; numbered at the final docs refresh.
+**Amends:** nothing. D54's upload token (the uploader's own, with the write
+scopes) and D60's reconcile-on-mount (one token, only when the chart holds a
+copy to check) are unchanged; each still brokers its own token. This entry
+decides only that the exchanges behind them do not overlap.
+**Evidence:** the module's `ClinicianTokenBrokerConcurrencyTest` and
+`DatabaseTokenFetchLockTest`; the local runs and the mutation test in
+`docs/w2/evidence/token-race-e2e-run.md`.
+
+**Problem.** Opening a chart fires the brief, D60's reconcile and (when a
+file is chosen) the upload at the same moment, and each brokers a token
+(`ClinicianTokenBroker::issueFor()`: authorize, auto-submitted authorize,
+token). OpenEMR keeps **one `oauth_trusted_user` row per (client, user)**.
+The second authorize of each exchange writes the code it issues into that
+row (`processAuthorizeFlowForLaunch()` → `saveTrustedUser()`, an UPDATE of
+the existing row), and the token endpoint restores the OAuth session by
+looking the code up there (`oauthAuthorizeToken()` →
+`getTrustedUserByCode()`). An exchange whose code is overwritten before it
+redeems it gets 400 "CSRF check failed", and the route answers
+`token_unavailable` (502). Seen on the host once in 56 briefs, only since
+D60, because reconcile brokers a token only on a chart that holds a filed
+copy. Locally, on such a chart, the brief failed 5 opens in 10, with and
+without an upload in flight; 8 of the 27 failed exchanges were reconcile's,
+which answers 200 regardless, so its quarantine check silently did not run.
+
+**Decision.**
+
+1. **The broker holds a per-(client, user) lock from before the first
+   authorize until the token response has been read** (`TokenFetchLock`,
+   taken and released in `issueFor()`, released in a `finally` on every
+   path). A second exchange for the same clinician waits; an exchange for a
+   different clinician, or with a different client, does not.
+2. **The lock is a database advisory lock**
+   (`DatabaseTokenFetchLock`: `GET_LOCK(name, 15)` / `RELEASE_LOCK`), the
+   mechanism OpenEMR's `BackgroundServiceRunner` already uses. It holds
+   across PHP-FPM workers and across web containers sharing the database,
+   and it is the connection's, so a worker that dies holding it releases it.
+   It cannot deadlock the holder: the loopback requests the holder makes run
+   in other workers and never take it, and the core session is opened
+   read-and-close, so a waiter holds nothing the holder needs.
+3. **The name is `openemr.clinical_copilot.token.` + the first 32 hex of
+   SHA-256(client id, newline, `users.id`)**: 63 characters, under
+   GET_LOCK's 64, and carrying neither id. The user is the session's
+   `authUserID`, which is what the trusted-user row is keyed on (through
+   the user's uuid). A session without one — not reachable past
+   `globals.php` — shares one name with every other such session: it can
+   only wait longer, never race.
+4. **The wait is 15 s**: one exchange at its slowest (three requests of up
+   to 5 s). An exchange normally takes well under a second; measured
+   locally, a brief that queued behind reconcile's exchange was no slower
+   than a brief alone (about 1.1 s either way). A lock not obtained in time
+   is `token_unavailable`, logged with `stage: lock`, and no request is
+   sent.
+5. **Every route builds its broker through `CardServices::broker()`**,
+   `brief.php` and `conversation.php` included (they built their own
+   before), so no route can construct a broker without the lock. That
+   covers all seven call sites: brief, conversation turn and end, ask,
+   upload, upload-status (which polls, and could race a brief as well) and
+   reconcile.
+
+**Why a lock rather than one token per chart open.** A shared token would
+cover the card's mount requests and nothing else: not the status poll, not a
+question asked while the brief loads, not a second tab or a second browser
+of the same clinician (the row is per user, not per session). And the
+requests do not want the same token: the brief reads with four scopes, a lab
+upload also carries `api:oemr user/lab-writeback.c` (D54), a turn adds
+Observation and Encounter reads. One token would either widen the brief's
+scopes to the upload's or still need several exchanges, and it would need
+the module to keep a live token in the PHP session between requests, with
+an expiry to track — state the module has never held (D59's BFF made that
+trade for the dashboard, with its own client). The lock fixes the race where
+it happens, for every caller, and changes nothing a token carries.
+
+**Why reconcile was not moved after the brief.** It would not be simpler:
+the brief and the source-documents card are separate cards with separate
+scripts, the brief may never be requested (the card is collapsed by the
+user's saved preference and fires only when opened), and ordering the two
+would leave the upload, the poll and a question still racing. With the lock
+the order does not matter.
+
+**Not settled here.**
+- **Not verified on the host.** The fix was reproduced and proved on the
+  local stack only (work order 38: touch neither host). The host's rate —
+  one in 56 — should fall to zero; that needs a deploy and a watch of
+  `stage=token` log lines.
+- **The dashboard's BFF (D59) uses its own OAuth client**, so its row is
+  different and it does not race the module. Anything else that ran the
+  EHR-launch flow with the module's client for the same user would race it
+  outside this lock; nothing does today.
+- **Reconcile still hides a failed token.** D60 made it fire and forget; a
+  `token_unavailable` there skips the quarantine check without saying so.
+  The race was the only known cause, and it is gone, but the silence stays.
+- **The gate does not cover this.** Module PHPUnit runs in CI
+  (`w2-writeback-php`); no eval case exercises concurrent chart opens.
+
+---

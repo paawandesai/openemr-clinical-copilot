@@ -25,6 +25,11 @@
  * live; the token carries the scopes the client was registered with, as
  * OpenEMR grants them in this flow.
  *
+ * One user's exchanges with the client run one at a time (TokenFetchLock):
+ * OpenEMR keeps a single trusted-user row per user and client, and an
+ * authorize from a concurrent exchange overwrites the code this one has yet
+ * to redeem. A chart open fires several at once.
+ *
  * @package   OpenEMR
  * @link      https://www.open-emr.org
  * @author    Paawan Desai <paawankdesai@gmail.com>
@@ -75,6 +80,8 @@ final readonly class ClinicianTokenBroker
      * @param \Closure(PatientUuid): string $launchToken Serializes the EHR launch context; self::smartLaunchToken(...) outside tests.
      * @param string $oauthBaseUrl Loopback OAuth2 base, e.g. http://localhost/oauth2/default.
      * @param string $audience The FHIR base URL as this server advertises it (ServerConfig::getFhirUrl()).
+     * @param string $user The logged-in user's users.id. The exchanges $lock serializes are this user's with this client:
+     *     those that share OpenEMR's one oauth_trusted_user row (TokenFetchLock).
      */
     public function __construct(
         private HttpClientInterface $http,
@@ -85,6 +92,8 @@ final readonly class ClinicianTokenBroker
         private string $clientId,
         #[\SensitiveParameter] private string $clientSecret,
         private string $redirectUri,
+        private TokenFetchLock $lock,
+        private string $user,
     ) {
     }
 
@@ -110,6 +119,14 @@ final readonly class ClinicianTokenBroker
         ];
         $coreCookie = SessionUtil::CORE_SESSION_ID . '=' . $session->value;
 
+        // From the first authorize until the code is redeemed, no other
+        // exchange of this user's with this client may reach authorize: it
+        // would overwrite the code in OpenEMR's one trusted-user row
+        // (TokenFetchLock).
+        $lockName = self::lockName($this->clientId, $this->user);
+        if (!$this->lock->acquire($lockName)) {
+            throw $this->failed('lock', 0);
+        }
         try {
             // Hop 1: OpenEMR confirms the core session and starts an OAuth session.
             $first = $this->authorize($query, $coreCookie);
@@ -144,12 +161,25 @@ final readonly class ClinicianTokenBroker
         } catch (HttpClientException $e) {
             $this->logger->error('Clinical Co-Pilot could not reach the OAuth2 server over loopback', ['exception' => $e]);
             throw new BriefUnavailable(BriefFailure::TokenUnavailable, null, $e);
+        } finally {
+            $this->lock->release($lockName);
         }
 
         if (!is_string($accessToken) || $accessToken === '') {
             throw $this->failed('token_body', 200);
         }
         return new AccessToken($accessToken);
+    }
+
+    /**
+     * The TokenFetchLock name for one user's exchanges with one client: a
+     * digest, so neither id reaches the database's lock table, prefixed the
+     * way OpenEMR names its own advisory locks, and within GET_LOCK's
+     * 64-character limit.
+     */
+    public static function lockName(string $clientId, string $user): string
+    {
+        return 'openemr.clinical_copilot.token.' . substr(hash('sha256', $clientId . "\n" . $user), 0, 32);
     }
 
     /**

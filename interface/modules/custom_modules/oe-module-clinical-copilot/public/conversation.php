@@ -37,7 +37,6 @@ use OpenEMR\Common\Csrf\CsrfUtils;
 use OpenEMR\Common\Logging\EventAuditLogger;
 use OpenEMR\Common\Session\SessionWrapperFactory;
 use OpenEMR\Core\OEGlobalsBag;
-use OpenEMR\FHIR\Config\ServerConfig;
 use OpenEMR\Modules\ClinicalCopilot\AgentClient;
 use OpenEMR\Modules\ClinicalCopilot\Bootstrap;
 use OpenEMR\Modules\ClinicalCopilot\BriefFailure;
@@ -51,6 +50,7 @@ use OpenEMR\Modules\ClinicalCopilot\FollowUpQuestion;
 use OpenEMR\Modules\ClinicalCopilot\ModuleConfig;
 use OpenEMR\Modules\ClinicalCopilot\ModuleNotConfigured;
 use OpenEMR\Modules\ClinicalCopilot\OpenPatient;
+use OpenEMR\Modules\ClinicalCopilot\W2\CardServices;
 use OpenEMR\Services\PatientService;
 use Symfony\Component\HttpClient\HttpClient;
 use Symfony\Component\HttpFoundation\Request;
@@ -129,17 +129,7 @@ try {
 }
 $conversation = ConversationSessionId::derive($coreSession, $patient, $nonce);
 
-$siteId = $session->get('site_id');
-$broker = new ClinicianTokenBroker(
-    HttpClient::create(),
-    $logger,
-    ClinicianTokenBroker::smartLaunchToken(...),
-    $config->loopbackUrl . $globals->getWebRoot() . '/oauth2/' . rawurlencode(is_string($siteId) && $siteId !== '' ? $siteId : 'default'),
-    (new ServerConfig())->getFhirUrl(),
-    $config->clientId,
-    $config->clientSecret,
-    $config->redirectUri,
-);
+$broker = CardServices::broker($config, $globals->getWebRoot(), $session->get('site_id'), $session->get('authUserID'), $logger);
 $agent = new AgentClient(
     HttpClient::create($config->agentCaFile === null ? [] : ['cafile' => $config->agentCaFile]),
     $logger,

@@ -144,7 +144,7 @@ $audit = static function (bool $success, string $outcome) use ($session, $chart,
 };
 
 try {
-    $broker = CardServices::broker($config, $globals->getWebRoot(), $session->get('site_id'), $logger);
+    $broker = CardServices::broker($config, $globals->getWebRoot(), $session->get('site_id'), $session->get('authUserID'), $logger);
     $answer = CardServices::agent($config, $logger, $correlation)->ask(
         $broker->issueFor($coreSession, $patient, ClinicianTokenBroker::CONVERSATION_SCOPES),
         $patient,

@@ -138,7 +138,7 @@ $documents = new ChartDocuments(
 // Built only when there are copies to ask about: one token for all of them.
 $agent = static function () use ($config, $globals, $session, $logger, $correlation, $coreSession, $patient): \Closure {
     try {
-        $broker = CardServices::broker($config, $globals->getWebRoot(), $session->get('site_id'), $logger);
+        $broker = CardServices::broker($config, $globals->getWebRoot(), $session->get('site_id'), $session->get('authUserID'), $logger);
         $token = $broker->issueFor($coreSession, $patient);
     } catch (BriefUnavailable) {
         return static fn (AgentDocumentId $document): ?ExtractionState => null;
