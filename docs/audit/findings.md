@@ -85,10 +85,13 @@ Pass-2 droplet database commands were run as
 - **Evidence:**
   ```
   $ grep -n "GITHUB_COMPOSER_TOKEN" docker/development-easy/docker-compose.yml
-  75:      GITHUB_COMPOSER_TOKEN: c313de1ed5a00eb6ff9309559ec9ad01fcc553f0
-  76:      GITHUB_COMPOSER_TOKEN_ENCODED: Z2hwX0NpbnJ4aXlNd0NzcGZXWG1UWFUwcXhGa040elFKSDJoZGJXVw==
-  77:      GITHUB_COMPOSER_TOKEN_ENCODED_ALTERNATE: '103 104 112 95 57 54 108 115 88 116 87 72 51 75 81 105 69 88 88 119 97 79 80 78 109 69 66 115 85 97 106 78 112 71 49 81 90 102 74 121'
+  75:      GITHUB_COMPOSER_TOKEN: c313…<redacted: 40 hex characters>
+  76:      GITHUB_COMPOSER_TOKEN_ENCODED: Z2hw…<redacted: base64 of a ghp_ token>
+  77:      GITHUB_COMPOSER_TOKEN_ENCODED_ALTERNATE: '103 104 112 95 …<redacted: the same token as ASCII decimals>'
   ```
+  The values are redacted here (work order 37), so this ledger no longer
+  re-publishes them. The compose files still carry them verbatim, and git
+  history keeps this ledger's earlier, unredacted copy.
 - **Cross-check (pass 2):** the running droplet container carries all three
   variables in its environment (`docker exec … printenv` listed the names
   `GITHUB_COMPOSER_TOKEN`, `GITHUB_COMPOSER_TOKEN_ENCODED`,
