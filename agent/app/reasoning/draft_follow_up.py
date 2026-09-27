@@ -74,7 +74,7 @@ from app.reasoning.draft_claims import (
 _USE_CASE = UseCase.FOLLOW_UP_DRILLING
 
 # The follow-up and conversation turns' thinking, set explicitly
-# (D-unassigned, answer-step thinking; draft_claims.BRIEF_THINKING says why).
+# (D62, answer-step thinking; draft_claims.BRIEF_THINKING says why).
 FOLLOW_UP_THINKING: dict[str, str] = {"type": "disabled"}
 
 # The record types the Pre-Visit Brief retrieves (ARCHITECTURE.md §3) —
@@ -267,7 +267,7 @@ async def stream_structured(
     (app/reasoning/draft_conversation_turn.py) make exactly this call, with
     the same model, effort and refusal fallback. Returns the final message.
     The Week 2 answer step passes a lower `max_tokens` (D50), and its own
-    `thinking` and `effort` (D-unassigned, answer-step thinking); everything
+    `thinking` and `effort` (D62, answer-step thinking); everything
     else runs at FOLLOW_UP_THINKING and EFFORT.
 
     Logs llm_usage_event, or llm_call_failed and re-raises. Raises

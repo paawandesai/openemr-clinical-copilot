@@ -20,34 +20,27 @@ limits.
   arithmetic shown.
 - **Assumed**: an input with no data behind it.
 
-**Snapshot: `main@056cba9`**, which is on `origin`. Every path, number and
-decision below is on that commit. It includes these merges:
+**Snapshot: `main@54266a9`**, which is on `origin`. Every path, number and
+decision below is on that commit. Numbers measured elsewhere name the build
+they were measured on.
 
-| Merge | At | What it brought |
-|---|---|---|
-| `feat/w2-php-wiring` | `2ae4d98` | the Documents & Sources card, its routes, the upload guard |
-| `chore/w2-deploy-rehearsal` | `21f1053` | D41 |
-| its first post-deploy figures | `bc5236f` | `DEPLOY.md` §8.0 |
-| its D50-redeploy figures | `5ad81c5` | `DEPLOY.md` §8.00 |
-| `feat/w2-eval-gate` | `0b4ae04` | the eval gate, D42–D48 |
-| `feat/w2-answer-scope` | `ea198c8` | D50 |
-| the DECISIONS restore | `caa92f8` | the dropped decision entries |
-| `EVAL_GATE.md` | `0318c35` | the gate's page for reviewers |
-| the decisions guard | `c1c5e21` | D51 |
-| the event-tags fix | `056cba9` | D52 |
+**The host runs agent `main@d61f739` and module `main@a434ffd`**, plus the
+patient dashboard on port 8444 (`docs/w2/DEPLOY.md`, "What the host runs
+now"). Between them and the snapshot, no deployed code differs: the agent's
+code (`agent/app/`) is unchanged since `d61f739` and the module since
+`a434ffd`, apart from code comments this branch renumbered to D62–D64.
 
-**The host runs `main@ea198c8`** since 2026-09-23 17:12 UTC (`DEPLOY.md`
-§8.00). It lacks only the event-tags telemetry fix (D52) and the
-documentation and test commits after it. Neither changes an answer.
+**Host figures name the build they were measured on:**
 
-**Three kinds of host figure:**
+| Build | Deployed | What it added | Measured in |
+|---|---|---|---|
+| `21f1053` | 2026-09-23 16:40 UTC | the first Week 2 deploy: card, routes, upload guard, D41 | `DEPLOY.md` §8.0 |
+| `ea198c8` | 2026-09-23 17:12 UTC | D50, the scoped document answer; the eval gate | `DEPLOY.md` §8.00 |
+| `06f0d45` | 2026-09-25 14:44 UTC | D54's upload scopes, D56, D58 (production Langfuse); then the patient dashboard on port 8444 | `docs/w2/evidence/prod-langfuse/deploy-2026-09-25/`, `docs/w2/evidence/dashboard-deploy-2026-09-25/` |
+| **`d61f739`** (agent) | 2026-09-26 18:57 UTC | D60 (degraded documents, quarantine), drafting thinking off (D62), the duplicate-result guard (D63) | `LOAD_TEST.md` §8 |
+| **`a434ffd`** (module only) | 2026-09-27 | the per-user token-fetch lock (D64); the agent was not restarted | `docs/w2/evidence/token-race-deploy-2026-09-27/` |
 
-- **`DEPLOY.md` §8.00:** the D50 redeploy, on `ea198c8`.
-- **`DEPLOY.md` §8.0:** the earlier deploy, on `21f1053`, **before D50**.
-  D50 changes only how a document answer is scoped, so these still describe
-  extraction, retrieval and memory. They do not describe the answer step.
-- **Before any Week 2 deploy:** labelled "rehearsal host, before the Week 2
-  deploy".
+Figures labelled "rehearsal host, before the Week 2 deploy" predate all five.
 
 Short names used below:
 
@@ -61,11 +54,16 @@ Short names used below:
 
 ## Summary
 
-- **Located Week 2 dev spend: about $10.66** (itemised in §1; row 9 uses
-  rounded per-question costs). The true
-  total is higher by an unrecorded amount: no Anthropic Console reading was
-  taken for Week 2, and several sets of live calls left no cost in the
-  repository. Week 1's total was $0.36 (`docs/COST_ANALYSIS.md` §2.2).
+- **Located Week 2 dev spend: about $28.29** (itemised in §1): $10.66 up to
+  2026-09-23, then $17.63 after it, of which the 10-user load test on the
+  live host is $11.13. Rows 9 and 15 are partly estimated. The true total is
+  higher by an unrecorded amount: no Anthropic Console reading was taken
+  for Week 2, and several sets of live calls left no cost in the repository
+  (§1, "Gaps"). Week 1's total was $0.36 (`docs/COST_ANALYSIS.md` §2.2).
+- **On the live host under load** (`main@d61f739`, `LOAD_TEST.md` §8): 10
+  users on the conversation route for 3 minutes, **125 requests, 0
+  errors**, p50/p95/p99 **13.25/19.47/23.58 s**, agent peak **818 MiB**, and
+  **$11.13** for the 125 model calls ($0.089 a turn).
 - **On the deployed host**, one question at a time:
   - a lab page costs **$0.11–0.13** and takes 27.8–39.8 s to extract (on
     `21f1053`, `DEPLOY.md` §8.0);
@@ -136,7 +134,15 @@ rounded up.
 | 8 | Post-deploy run on the host: 5 documents extracted (live vision) and the document + guideline question 3 times | **$1.21341** (vision $0.126 + $0.227 + $0.126 + $0.104 + $0.096 = $0.679; questions 31,109 in × $5 plus 873, 873 and 965 out × $25 per MTok = $0.53441) | Vision: the agent's own `cost_usd`; questions: tokens measured, cost = tokens × list price | `DEPLOY.md` §8.0 |
 | 9 | D50 redeploy run on the host: 2 documents extracted, the whole-report question 3 times on each | **≈ $0.873** (vision $0.126 + $0.228; questions ≈ 3 × $0.084 + 3 × $0.089) | Vision: `cost_usd`; questions: §8.00's rounded per-question cost | `DEPLOY.md` §8.00 |
 | 10 | Week 1 I-suite re-run after the event-tags fix: 17 model calls, 157,403 in / 16,730 out, no cache | **$1.205265** (157,403 × $5 + 16,730 × $25 per MTok) | Tokens measured; cost = tokens × list price | D52, "Result" (`docs/w2/DECISIONS.md`) |
-| | **Total located** | **≈ $10.663 ≈ $10.66** (rows 1–8 and 10 sum to $9.7904; row 9 is approximate) | Sum of the rows | this table |
+| | **Subtotal to 2026-09-23** | **≈ $10.663** (rows 1–8 and 10 sum to $9.7904; row 9 is approximate) | Sum of the rows | this table |
+| 11 | Judge calibration set 1, first run under `w2-judge/1.0.0` (D57): 180 calls | **$0.2154** | Measured | `docs/w2/calibration/README.md` |
+| 12 | Judge calibration set 2, first run (D57): 60 calls | **$0.0755** | Measured | D57 (`docs/w2/DECISIONS.md`) |
+| 13 | Work order 33 (D61): set 1 re-judged twice, three probes, category M five rounds twice, one full gate run | **$0.9477** | Measured | D61, "Billed in this session" |
+| 14 | D61 addendum: set 2 re-judged under `w2-judge/1.1.0`, 60 calls | **$0.0913** | Measured | D61 addendum |
+| 15 | Production Langfuse deploy (D58): the card's extraction and 3 asks, 3 briefs, and an A/B of 4 extractions and 6 asks | **≈ $2.8** | Measured, with the A/B extractions estimated at $0.126 each | `docs/w2/evidence/prod-langfuse/deploy-2026-09-25/README.md`, "Cost of this run" |
+| 16 | I2/I11 event-tagging investigation: two Week 1 I-suite runs, 17 and 16 calls | **≈ $2.37** ($1.20 + $1.17) | Tokens measured; cost = tokens × list price | `docs/w2/evidence/i2-i11-event-tagging.md` |
+| 17 | 10-user load test on the live host, `main@d61f739`: 125 conversation turns | **$11.13** (1,217,125 in / 201,969 out) | Measured, from the host's `llm_usage_event`s | `LOAD_TEST.md` §8 |
+| | **Total located** | **≈ $28.29** ($10.663 + $17.630 for rows 11–17) | Sum of the rows | this table |
 
 **The "~$1.21 I-suite run" is located:** it is row 10. It was the **Week
 1** I-suite (the conversation evals), re-run after the D52 event-tags fix
@@ -153,6 +159,9 @@ makes no model call where it runs.
 | Week 1 live eval re-runs on Vultr, 2026-09-20 and 21 (43 cases) | real model calls | no dollar figure committed |
 | The first Week 1 I-suite run on the event-tags fix (`53b524e`, over `21f1053`) | real model calls | D52 records only the second run's cost |
 | The Week 1 embed check after the deploy (brief 24/24, medication and lab turns) | real model calls | no cost recorded (`DEPLOY.md` §8.0) |
+| Planted-regression harness judge calls after 2026-09-23, including work order 37's regeneration | the judge-prompt regressions miss the cache by design | D61 says the harness "does not total" them; none is recorded |
+| D60's local end-to-end runs, the answer-thinking measurements, the duplicate-results run, the dashboard deploy's chart-card checks | live vision and drafting calls | per-call `cost_usd` appears in some evidence files, but no run is totalled (`docs/w2/evidence/degraded-docs-e2e-run.md`, `answer-thinking/`, `result-dedupe-e2e-run.md`) |
+| CI gate jobs on pushed branches | the judge tier runs on every pipeline with a cold cache | not totalled |
 
 **Zero by design:**
 
@@ -191,6 +200,16 @@ on patient `a2c373ec-57bf-41cb-8767-94410dcf663d`. The run evidence is
 The encounter total is Langfuse's figure (`OBSERVABILITY.md` §2). The other
 run, `c8661931`, took 130.5 s for the document question and cost the same
 $0.82 (`LOAD_TEST.md` §6).
+
+**Two pre-D50 costs for the whole-report question, and which is which.**
+They are two measurements, not one number rounded two ways:
+
+| Figure | Run | Tokens | Used for |
+|---|---|---|---|
+| **$0.45** an answer | `LOAD_TEST.md` §7, the in-process answer-step bench on `lab-clean-001` (22 rows), n = 3 | 32,776 in / 11,511 out | before → after comparisons of the answer step (§4.1d, D50) |
+| **$0.4628** (≈ $0.46) | `LOAD_TEST.md` §6, run `c8661931`, the document question inside the measured $0.82 encounter | 34,948 in / 11,523 out | the encounter's composition, and the $0.44 estimate (§4.1d) |
+
+Every document now uses them that way.
 
 **Where the $0.82 goes (estimated).**
 
@@ -450,12 +469,16 @@ tier.**
 | Document + guideline question, end to end, before D50 | host, `21f1053` | 3 | — | — | 15.3, 20.9, 21.2 s; drafting call 12.7–18.5 s; retrieval incl. rerank 1.55–1.68 s | `DEPLOY.md` §8.0 |
 | **Vision extraction per document** | **host, after the deploy** | 5 | — | — | 15.7–54.5 s; OCR +4.9–6.1 s per scanned page; locate + verify ~1 s | `DEPLOY.md` §8.0 |
 | **Upload → extraction complete, as the card sees it** | **host, after the deploy** | 3 | — | — | 20.8 s (clean intake), 35.3 s (scanned intake), 42.2 s (scanned lab) | `DEPLOY.md` §8.0 |
+| **Conversation turn, real LLM, 10 users** | **host, `d61f739`** | 125 | **13.25 s** | **19.47 s** | p99 23.58 s, max 23.68 s; **0 errors**; `draft` p95 18.52 s, `retrieve` 2.82 s; agent peak 818 MiB | `LOAD_TEST.md` §8 |
 | Brief, LLM stubbed, 10 users | local | 280 | 1.14 s | 1.52 s | 0% errors | `LOAD_TEST.md` §1 |
 | Brief, LLM stubbed, 50 users | local | 200 | 16.08 s | 28.05 s | **58% errors**, all `fhir_unavailable` | `LOAD_TEST.md` §1 |
 
 A "—" means the source gives no percentile. A p95 from two or three samples
 would be invented, so none is shown. `/w2/ask` has **not** been load-tested.
-The two runs above are single encounters.
+The two runs above are single encounters. The host row at 10 users is the
+conversation route: against the local run (p95 6.41 s) it read a different
+patient, with about 9.7k input tokens a turn against 4,250 in all, so it is not a
+build-against-build comparison (`LOAD_TEST.md` §8).
 
 **An estimate that the measurements confirmed.** Before §6 of
 `LOAD_TEST.md` existed, a sum of measured parts predicted about 10.4 s for a
@@ -678,11 +701,12 @@ Under that load, that property holds for 1 retrieval in 16.
 |---|---|
 | Two real-route Week 2 encounters: cost ($0.82 each) and per-request latency; the deployed flow one document at a time: vision cost and latency per page, the combined answer, memory (`DEPLOY.md` §8.0) | `/w2/ask` under any concurrent load |
 | Vision cost per document: six samples plus three more live runs | Concurrent vision throughput and Anthropic rate limits (`LOAD_TEST.md`, "Not measured") |
-| Brief + 4-turn session cost on three live-host charts | Any Week 2 route on the host **under load**: both deploys were measured one question at a time |
+| Brief + 4-turn session cost on three live-host charts | Uploads and `/w2/ask` on the host **under load**: only the conversation route was load-tested there (`LOAD_TEST.md` §8) |
 | Whole-report question on the host after D50, one question at a time (`DEPLOY.md` §8.00) | A whole encounter on the D50 code; the document + guideline question after D50 |
 | Rerank, OCR and retrieval latency on the live host (rehearsal host, before the Week 2 deploy) | The per-call token split inside the $0.82 encounter, other than the document question |
 | Judge cost per cold CI run | Judge calls spent selecting fixtures and on cold harness runs |
-| Ten rows of dev spend (§1) | A Week 2 Anthropic Console total |
+| Seventeen rows of dev spend (§1) | A Week 2 Anthropic Console total |
+| The conversation route on the host at 10 users (`LOAD_TEST.md` §8) | |
 | | A cheaper vision or answer model; prompt caching on the extraction prompt |
 
 The two measurements that would move this document most, in order:

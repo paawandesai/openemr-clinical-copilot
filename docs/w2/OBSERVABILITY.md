@@ -121,12 +121,12 @@ spans now name the service, `clinical-copilot-agent` (D55).
 
 | # | Break | State |
 |---|---|---|
-| 1 | The chart card (OpenEMR module, `AgentClient.php`) never sends `X-Correlation-ID`, so from the UI each request is its own trace. It reads the agent's id back, but does not send one. | **Open, PHP.** The header it must send: `X-Correlation-ID: <UUID4>`, one per chart open, reused on upload, status, ask and write-back. |
+| 1 | The chart card (OpenEMR module, `AgentClient.php`) never sent `X-Correlation-ID`, so from the UI each request was its own trace. | **Closed** on `main` at `2ae4d98` (`feat/w2-php-wiring`): the card mints one UUID4 per chart open (`CorrelationId.php`), and `AgentClient.php` sends it on upload, status and ask. |
 | 2 | `POST /documents` was a stub. | **Closed** by `feat/w2-graph`. The real route runs the extractor. |
 | 3 | `ExtractionJobs.submit` minted its own id, cutting extraction off the upload's trace. | **Fixed here**: inherits a UUID id, or links a non-UUID one. |
 | 4 | The extractor's nodes did not emit `step_event`. | **Fixed here** (`Pipeline.INTAKE_EXTRACTOR`). |
 | 5 | No supervisor, no Week 2 ask route. | **Closed** by `feat/w2-graph`. Its nodes now emit `step_event`s (`Pipeline.SUPERVISOR`), and its FHIR, LLM and retriever calls are tool calls. |
-| 6 | Write-back: nothing in the agent calls `write_lab_results()`. The client is instrumented (a `writeback` step and a `lab_writeback` tool call under the caller's id), but the only caller is the OpenEMR module (or the collection) posting to the PHP endpoint directly, which receives no correlation id. | **Open.** It closes when an agent route posts the write-back, or when the module forwards the header of break 1. |
+| 6 | Write-back: nothing in the agent called `write_lab_results()`, and the PHP endpoint received no correlation id. | **Closed by D54.** A lab extraction now writes its verified rows back itself (`agent/app/writeback/after_extraction.py`), with the extraction's `correlation_id` in the request body, and `LabWriteBackService.php` logs it. It travels in the body, not as the `X-Correlation-ID` header; a direct call to the endpoint supplies its own. |
 | 7 | Week 1 failure lines (`pre_visit_brief_failed`, `conversation_turn_failed`) are plain structlog lines, not exported. The failure itself **is** exported, as an `error` step, a tool call and a 5xx request. | Left as is. |
 
 ## 3. Dashboard
@@ -218,6 +218,30 @@ Every failure mode was verified by breaking the dependency (local stack,
 | Anthropic API unreachable | 200 | **503** | `LLM provider unreachable` |
 | Langfuse web paused | 200 | 200 | `observability_backend: unhealthy, Langfuse unreachable`; healthy again on unpause |
 | Langfuse keys wrong | 200 | 200 | `observability_backend: unhealthy, Langfuse rejected the configured API keys` |
+
+**The evidence file predates D58.** `evidence/ready-failure-modes.txt`
+(2026-09-22) was captured before D58 introduced `degraded`, so its two
+Langfuse rows show `"status":"ready"` at 200. The HTTP codes still hold;
+the `status` field for those rows is now `degraded`, per D58, and no newer
+capture is committed.
+
+**Known blip: the first `/ready` after an idle period can read
+`degraded`.** Operator-observed on the graded host, twice, by the deploy
+session of work order 30: on 2026-09-25 during the dashboard deploy, and on
+2026-09-26 while staging the D60 redeploy. After a quiet period the first
+call returned `degraded`, with OpenEMR and the LLM provider healthy and only
+the Langfuse check unhealthy; the next call returned `ready`. No evidence
+file captured it.
+
+- **Cause, per that session's reading of the code:** the Langfuse check's
+  result is cached and refreshed only when `/ready` is polled. After a quiet
+  period the cached result is treated as stale and reported unhealthy until
+  the next poll refreshes it (the D37/D58 design).
+- **Impact:** `/ready` stays 200 (`degraded`, never the 503 `not_ready`),
+  and no clinical answer is affected. A monitor that polls rarely would see
+  false `degraded` readings.
+- **Fix, not done:** refresh the check on read, or keep it fresh with a
+  background refresher.
 
 ## 5. The stdout dashboard
 

@@ -29,11 +29,17 @@ Caught by **W2-D2**, a critical case, under three rules at once — (b) the
 deterministic tier is not at 100%, (c) a critical case that passed on the
 baseline now fails, (e) the category regressed against the baseline.
 
+What the gate prints for this regression today (regression 1 in
+[`docs/w2/EVAL_GATE_EVIDENCE.md`](docs/w2/EVAL_GATE_EVIDENCE.md), run
+2026-09-27 against baseline `4835f74`):
+
 ```
-VERDICT: BLOCKED | specs 96 | active 79 | pending 15 | det 72/73 | judge 8/8
+VERDICT: BLOCKED | specs 98 | active 81 | pending 15 | det 74/75 | judge 8/8 (RUN [UNCALIBRATED])
 ```
 
-(Recorded on that MR's pipeline, before W2-L1 and W2-J8 existed — 96 specs then, 98 now.)
+The MR's own pipeline ran before W2-L1 and W2-J8 existed, and before the
+verdict line named the judge state, so it printed
+`specs 96 | active 79 | pending 15 | det 72/73 | judge 8/8`.
 
 That MR is left open with a red pipeline on purpose. It must not be merged.
 
@@ -81,8 +87,9 @@ python3.12 -m venv .venv
 
 Five cases OCR a scanned page and declare `requires: [tesseract]`: four in
 categories B and C, and W2-H3. Without the binary the runner **skips** them with a
-visible notice rather than failing them; `brew install tesseract` (or
-`apt-get install tesseract-ocr`, as CI does) scores them.
+visible notice rather than failing them, and the run is INCOMPLETE (exit 3),
+never a pass; `brew install tesseract` (or `apt-get install tesseract-ocr`, as
+CI does) scores them.
 
 Then, with `agent/.venv` active or by path:
 
@@ -98,13 +105,13 @@ python -m evals.w2.gate --det-only --allow-incomplete
 python -m evals.w2.gate -v
 ```
 
-Verified from a cold clone on 2026-09-23: the deterministic tier scores
-**71/71** and exits 0, with the eight judge-tier cases and the two delegated
-cases reported as unscored. That clone predates W2-L1; on
-`fix/w2-prompt-pins`, with tesseract installed, the same command scores
-**72/72**, and **73/73** once W2-J8 is in (neither re-verified from a cold
-clone). With the delegated result artifact present, the deterministic tier is
-75/75.
+Verified from a cold clone of `main@d61f739` on 2026-09-26 (work order 36),
+with tesseract installed: `--det-only` scores **73/73** and exits 3, with
+the eight judge-tier cases and the two delegated cases unscored;
+`--allow-incomplete` turns that into 0. After `scripts/w2-writeback-result.sh`
+wrote the delegated result artifact, the same command scored **75/75**, with
+W2-K4 and W2-K6 passing. (The first cold clone, on 2026-09-23 and before
+W2-L1 and W2-J8, scored 71/71.)
 
 Exit codes: **0** pass · **1** blocked · **2** the gate could not run · **3**
 INCOMPLETE.
@@ -196,7 +203,8 @@ Four jobs in `.gitlab-ci.yml`, all tagged `w2-eval`, on merge requests and on
 red:
 
 1. **`w2-writeback-php`** (stage `writeback`, `php:8.3-cli`) — the fork
-   module's PHPUnit suite, 213 tests. Writes `w2-writeback-php.result.json`
+   module's PHPUnit suite, 272 tests and 597 assertions (run locally on
+   `main@54266a9`, which carries D64's new tests, by work order 37). Writes `w2-writeback-php.result.json`
    and its JUnit report as artifacts.
 2. **`w2-eval-gate`** (stage `eval`, `python:3.12-slim`) — the gate. Declares
    `dependencies: [w2-writeback-php]`, so it receives that artifact and can

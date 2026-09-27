@@ -19,38 +19,31 @@ says when there is no value.
 denominator. A metric whose denominator is small says so. A metric with no
 live measurement says "not measured", not a target.
 
-**Snapshot: `main@056cba9`**, which is on `origin`. Every path, number and
-decision below is on that commit. It includes these merges:
+**Snapshot: `main@54266a9`**, which is on `origin`. Every path, number and
+decision below is on that commit. Numbers measured elsewhere name the build
+they were measured on.
 
-| Merge | At | What it brought |
-|---|---|---|
-| `feat/w2-php-wiring` | `2ae4d98` | the Documents & Sources card, its routes, the upload guard |
-| `chore/w2-deploy-rehearsal` | `21f1053` | D41 |
-| its first post-deploy figures | `bc5236f` | `DEPLOY.md` §8.0 |
-| its D50-redeploy figures | `5ad81c5` | `DEPLOY.md` §8.00 |
-| `feat/w2-eval-gate` | `0b4ae04` | the eval gate, D42–D48 |
-| `feat/w2-answer-scope` | `ea198c8` | D50 |
-| the DECISIONS restore | `caa92f8` | the dropped decision entries |
-| `EVAL_GATE.md` | `0318c35` | the gate's page for reviewers |
-| the decisions guard | `c1c5e21` | D51 |
-| the event-tags fix | `056cba9` | D52 |
+**The host runs agent `main@d61f739` and module `main@a434ffd`**, plus the
+patient dashboard on port 8444 (`docs/w2/DEPLOY.md`, "What the host runs
+now"). Between them and the snapshot, no deployed code differs: the agent's
+code (`agent/app/`) is unchanged since `d61f739` and the module since
+`a434ffd`, apart from code comments this branch renumbered to D62–D64.
 
-**The host runs `main@ea198c8`** since 2026-09-23 17:12 UTC (`DEPLOY.md`
-§8.00). It lacks only the event-tags telemetry fix (D52) and the
-documentation and test commits after it. Neither changes an answer.
+**Host figures name the build they were measured on:**
 
-**Three kinds of host figure:**
+| Build | Deployed | What it added | Measured in |
+|---|---|---|---|
+| `21f1053` | 2026-09-23 16:40 UTC | the first Week 2 deploy: card, routes, upload guard, D41 | `DEPLOY.md` §8.0 |
+| `ea198c8` | 2026-09-23 17:12 UTC | D50, the scoped document answer; the eval gate | `DEPLOY.md` §8.00 |
+| `06f0d45` | 2026-09-25 14:44 UTC | D54's upload scopes, D56, D58 (production Langfuse); then the patient dashboard on port 8444 | `docs/w2/evidence/prod-langfuse/deploy-2026-09-25/`, `docs/w2/evidence/dashboard-deploy-2026-09-25/` |
+| **`d61f739`** (agent) | 2026-09-26 18:57 UTC | D60 (degraded documents, quarantine), drafting thinking off (D62), the duplicate-result guard (D63) | `LOAD_TEST.md` §8 |
+| **`a434ffd`** (module only) | 2026-09-27 | the per-user token-fetch lock (D64); the agent was not restarted | `docs/w2/evidence/token-race-deploy-2026-09-27/` |
 
-- **`DEPLOY.md` §8.00:** the D50 redeploy, on `ea198c8`.
-- **`DEPLOY.md` §8.0:** the earlier deploy, on `21f1053`, **before D50**.
-  D50 changes only how a document answer is scoped, so these still describe
-  extraction, retrieval and memory. They do not describe the answer step.
-- **Before any Week 2 deploy:** labelled "rehearsal host, before the Week 2
-  deploy".
+Figures labelled "rehearsal host, before the Week 2 deploy" predate all five.
 
 | # | Metric | Current value | Target | Strength of evidence |
 |---|---|---|---|---|
-| W2-1 | Located rate, text-layer pages | 97.8% (391/400) in replay; 98% (102/104) and 92% (45/49) with real vision | ≥ 85% (alert) | real model, n = 2 documents |
+| W2-1 | Located rate, text-layer pages | 97.8% (391/400) in replay; 98% (102/104) and 92% (45/49) with real vision. Heavy scan: 33.6% on the laptop's Tesseract, 10.3% on the deployed image's | ≥ 85% (alert) | real model, n = 2 documents |
 | W2-2 | Unlocated values stated as fact | 0, enforced by the type system | 0, absolute | gate critical case plus planted regression |
 | W2-3 | Flag cross-check agreement, comparable flags only | 100% (**1/1**) | none set; the denominator is the finding | very weak: n = 1 |
 | W2-4 | Intake discrepancy accuracy; never merged | precision 2/2, recall 2/2, false positives 0/25; merges 0 | 0 merges, absolute | weak: n = 2 |
@@ -58,7 +51,15 @@ documentation and test commits after it. Neither changes an answer.
 | W2-6 | Critical values surfaced | **not measured live**; gate H6 and G7 pass | 100%, absolute | one fixture |
 | W2-7 | Guideline retrieval: recall and the share actually reranked | recall@4 0.666, zero-recall queries 0/30; reranked 35% at 10 paced users, 6.2% at 50 | reranked rate is watched, not targeted | 30 dev queries; laptop measurements only |
 | W2-8 | Eval gate: regressions caught | 22/22 planted regressions blocked; 81/98 cases active | every planted regression blocks | harness-proved; judge uncalibrated |
-| W2-9 | Cost and latency per encounter | $0.82 measured before D50 (n = 2), about $0.44 estimated after; latency tracks what the model writes, ~4.1 s + 7.45 s per 1k output tokens; whole-report question **6.9–8.4 s** on the host after D50 (88–92 s before) | ≤ 90 s per answer (Week 1 budget) | **passes on the host**, one question at a time; 44-row "show me all" at 43.4 s |
+| W2-9 | Cost and latency per encounter | $0.82 measured before D50 (n = 2), about $0.44 estimated after; latency tracks what the model writes, ~4.1 s + 7.45 s per 1k output tokens; whole-report question **6.9–8.4 s** on the host after D50 (88–92 s before); conversation turn on the host at 10 users p95 **19.47 s**, 0 errors in 125 | ≤ 90 s per answer (Week 1 budget) | **passes on the host**: `/w2/ask` one question at a time, the conversation route at 10 users; 44-row "show me all" at 43.4 s |
+
+**Limitations.** Every known limitation, with its evidence, is in
+[`W2_ARCHITECTURE.md` §11](W2_ARCHITECTURE.md#11-known-limitations). The
+ones that bear on these numbers: the judge's small independent measurement
+(W2-8), the OCR build behind the heavy-scan rate (W2-1), unmeasured live
+vision variance (W2-1), the one host load test covering the conversation
+route only (W2-9), and the broad ~110-claim conversation question that has
+no output bound (W2-9).
 
 ---
 
@@ -88,8 +89,8 @@ often a real document yields values the clinician can actually use.
 |---|---|---|
 | text layer | lab 98% (102/104), intake 92% (45/49) | 97.8% (391/400) across 4 samples |
 | light scan | — | 87.5% (49/56) |
-| **heavy scan** | **34% (36/107)** | **33.6% (36/107)** |
-| all six samples | — | 84.5% (476/563) |
+| **heavy scan** | **34% (36/107)** | **33.6% (36/107)** on Tesseract 5.5.3; **10.3% (11/107)** on the deployed image's 5.5.0 |
+| all six samples | — | 84.5% (476/563), Tesseract 5.5.3 |
 
 Sources:
 
@@ -100,6 +101,12 @@ Sources:
   run this session with `cd agent && python -m tests.intake_extractor_measurement`.
 - Box correctness in replay: 100% (391/391) of text-layer locates sit over
   the right ink at IoU ≥ 0.5.
+- **The heavy-scan figure depends on the OCR build.** Both columns were
+  measured on the laptop's Homebrew Tesseract 5.5.3. The deployed agent
+  image and CI run Debian's Tesseract 5.5.0, which locates **11 of 107
+  (10.3%)** on the same replayed transcription (D60; CI pipeline 28822). The
+  host's rate for a heavy scan is therefore about a third of the laptop's.
+  Text-layer pages need no OCR and are unaffected.
 
 **Why the heavy scan is low, and why that is accepted.** Numbers, units,
 dates and flags are matched exactly or not at all (D24). A one-character OCR
@@ -314,7 +321,7 @@ Under load it mostly does not.
 
 **Claims.** A change that breaks a Week 2 invariant cannot merge green.
 
-**Measured.** The planted-regression harness applies 12 literal regressions
+**Measured.** The planted-regression harness applies 22 literal regressions
 to copies of the tree, runs the gate on each, and reads the catching case
 from the run's own JSON (`python -m evals.w2.gate.planted_regressions`).
 
@@ -337,7 +344,7 @@ from the run's own JSON (`python -m evals.w2.gate.planted_regressions`).
 | Refusal of prompt injection inside a PDF (W2-I5), and W2-I4 | pending. W2-I1, W2-I2 and W2-I3 are active for **containment only**; I3 shows an injection cannot redirect a chart write, because the patient is a caller argument: the payload reaches no log, trace, extraction output or disclosure. Their extraction bypasses the vision model, so nothing yet tests whether a model that reads the payload declines it |
 | W2-H1 | dosing refusal prose, which needs the judge on real output |
 | W2-C7 to W2-C9 | box tolerance on scans, and the D24 policy asserted from the gate |
-| The judge's agreement with human labels | the judge is **UNCALIBRATED** (D43, D48): its eight meta-check fixtures detect a judge that has drifted, not whether it was right to begin with |
+| The judge's agreement with human labels | the judge is **UNCALIBRATED** (D43, D48): its eight meta-check fixtures detect a judge that has drifted, not whether it was right to begin with. The first independent measurement (D61 addendum, blind set 2) is **82% (14/17), Wilson 95% 59–94%, kappa 0.64**: too small to calibrate on, so the label stays |
 
 **It has blocked a real merge request.** [MR !1](https://labs.gauntletai.com/paawandesai/openemr-clinical-copilot/-/merge_requests/1), left open with a red
 pipeline, plants "blank flag means normal" and is blocked by W2-D2 under
@@ -383,8 +390,11 @@ three rules at once. How to run the gate, read a verdict and set up CI:
     over six cases from 461 to 24,762 tokens (R² = 0.9998, estimated from
     `LOAD_TEST.md` §7).
   - **Before D50,** a whole-report answer wrote all 91 citations, ~11.5k
-    tokens, in **88.2–91.8 s** (answer step, n = 3). That was over the 90 s
-    budget, and about $0.46 of the $0.82.
+    tokens, in **88.2–91.8 s** for about **$0.45** an answer (answer step,
+    n = 3, `LOAD_TEST.md` §7). That was over the 90 s budget. Inside the
+    measured $0.82 encounter the same question, on a different run, cost
+    **$0.4628** (`LOAD_TEST.md` §6); the two are separate measurements, not
+    one figure rounded two ways (`docs/w2/COST_AND_LATENCY.md` §2.1).
   - **After D50,** on the host, the same question answers in **6.9–8.4 s**
     end to end on 22 rows and 12.0–13.1 s on 44, from 368–461 output tokens
     on 22 rows, for about $0.084 (`DEPLOY.md` §8.00).
@@ -396,6 +406,12 @@ three rules at once. How to run the gate, read a verdict and set up CI:
   - A guideline question is **10.5–10.6 s** (`LOAD_TEST.md` §6).
 - Extraction is 15–33 s per document, and it runs at upload (D7).
 - A Week 1 conversation turn is p95 6.41 s locally at 10 users.
+- **On the live host at 10 users** (`main@d61f739`, `LOAD_TEST.md` §8): 125
+  conversation turns in 3 minutes, **0 errors**, p50/p95/p99
+  **13.25/19.47/23.58 s**, the model about 90% of the wait; agent peak
+  **818 MiB** (18% of its cap); **$11.13** for the 125 model calls
+  ($0.089 a turn). This is the one host load test; it drove the
+  conversation route, not uploads or `/w2/ask`.
 
 **This metric passes on the host after D50, one question at a time**
 (`DEPLOY.md` §8.00).
@@ -404,8 +420,8 @@ three rules at once. How to run the gate, read a verdict and set up CI:
   every extracted result.
 - **Still at the edge:** "Show me all the results" on a 44-row report is
   43.4 s p50, at the 45 s alert (`LOAD_TEST.md` §7).
-- **Not measured on the host:** any load, and the document + guideline
-  question after D50.
+- **Not measured on the host:** load on uploads and on `/w2/ask`, and the
+  document + guideline question after D50.
 
 **On the deployed host at `21f1053`, before D50** (`DEPLOY.md` §8.0), one document at a time:
 

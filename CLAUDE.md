@@ -64,7 +64,7 @@ they miss, and the merge check: [`docs/w2/GATE.md`](docs/w2/GATE.md).
 |---|---|
 | Agent service (FastAPI) | `agent/app/main.py`, routes in `agent/app/api/` |
 | Graphs | `agent/app/graph/{pre_visit_brief,conversation,follow_up}.py` |
-| **Tracing wrapper** `UntracedGraph` + `_untraced` node guard | `agent/app/graph/pre_visit_brief.py:211` and `:199` |
+| **Tracing wrapper** `UntracedGraph` + `_untraced` node guard | `agent/app/graph/pre_visit_brief.py:228` and `:216` |
 | **Verifier** (deterministic, no LLM, no network) | `agent/app/verification/checker.py` |
 | **W2 ask path**: supervisor graph, routing, verifier extension, route | `agent/app/graph/supervisor.py`, `agent/app/supervisor/`, `agent/app/verification/w2_checker.py`, `agent/app/api/ask.py` (D40) |
 | W2 live end-to-end run (costs one model call) | `agent/scripts/w2_e2e_ask.py` |

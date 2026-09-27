@@ -145,7 +145,8 @@ suddenly mostly are not.
 **Why text-layer only.**
 
 - A heavy scan legitimately locates about a third of what the model reads
-  (**34%**, 36/107, measured live; D24 records the recall cost). Averaging
+  (**34%**, 36/107, measured live on the laptop's Tesseract 5.5.3; 11/107 on
+  the deployed image's 5.5.0, D60; D24 records the recall cost). Averaging
   scans in would make this alert either always firing or blind.
 - On a clean text layer there is no OCR noise. A drop there can only come
   from the model's transcription changing shape, or from a regression in the

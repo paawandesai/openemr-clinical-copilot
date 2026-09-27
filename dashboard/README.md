@@ -5,8 +5,9 @@ same-origin BFF (Hono on Node) that signs the clinician in with OpenEMR's
 OAuth2/OIDC and holds the tokens, so the browser never does. Read-only; it
 changes nothing in OpenEMR.
 
-**Why it is built this way, the parity matrix, the tradeoffs, and how to
-deploy it:** [`../PATIENT_DASHBOARD_MIGRATION.md`](../PATIENT_DASHBOARD_MIGRATION.md).
+**Live at <https://64.177.42.210:8444>** (sign in with an OpenEMR clinician
+account). **Why it is built this way, the parity matrix, the tradeoffs, and how
+it was deployed:** [`../PATIENT_DASHBOARD_MIGRATION.md`](../PATIENT_DASHBOARD_MIGRATION.md).
 Decision: `docs/w2/DECISIONS.md` D59.
 
 ```bash
@@ -29,4 +30,4 @@ deployed host.
 | `web/src/` | the SPA: `components/`, `mapping/` (FHIR to view models), `fhir/types.ts`, `api.ts` |
 | `bff/src/` | the BFF: `app.ts`, `oauth.ts`, `fhirProxy.ts` (the allowlist), `sessions.ts`, `log.ts`, `upstream.ts`, `static.ts` |
 | `test/` | `unit/` (Vitest), `e2e/` (Playwright, installed Chrome), `fixtures/` (captured from the local API; synthetic patients, SSN replaced) |
-| `Dockerfile`, `deploy/` | the container and the proposed host compose file (not deployed) |
+| `Dockerfile`, `deploy/` | the container and the host compose file, deployed at <https://64.177.42.210:8444> since 2026-09-25 ([evidence](../docs/w2/evidence/dashboard-deploy-2026-09-25/README.md)) |

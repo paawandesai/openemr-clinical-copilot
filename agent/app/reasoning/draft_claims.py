@@ -81,7 +81,7 @@ MODEL = "claude-opus-5"
 EFFORT = "medium"
 
 # Thinking is off, set explicitly on every drafting call rather than left
-# to the model's default, which on claude-opus-5 is adaptive (D-unassigned,
+# to the model's default, which on claude-opus-5 is adaptive (D62,
 # answer-step thinking). Each call copies values out of records into a
 # schema, and every claim is then checked by the deterministic verifier
 # (app/verification/), so thinking buys latency, not safety. Adaptive

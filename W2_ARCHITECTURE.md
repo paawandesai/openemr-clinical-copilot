@@ -49,8 +49,11 @@ beside chart facts without the two blurring. Nine decisions carry the weight.
 
 **Not true yet:**
 
-- **The deployed flow has been measured one question at a time, never
-  under load** (`DEPLOY.md` §8.0, `DEPLOY.md` §8.00).
+- **Only the conversation route has been load-tested on the host.** Ten
+  users for 3 minutes on `main@d61f739`: 125 turns, 0 errors, p50/p95/p99
+  13.25/19.47/23.58 s, agent peak 818 MiB, $11.13 (`LOAD_TEST.md` §8).
+  Uploads and `/w2/ask` were measured there one at a time only
+  (`DEPLOY.md` §8.0, §8.00).
 - **The document + guideline question has not been re-measured since D50.**
   Its host figures (7 document + 2 guideline citations, 15.3–21.2 s) are
   from `21f1053`, before D50.
@@ -81,59 +84,35 @@ architecture is unchanged and is not repeated here:
 [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) (authorization, tool scope,
 conversation state, the deterministic verifier).
 
-**Snapshot: this document describes `chore/w2-final-hygiene`** (work order
-28, not merged), which is `main@c75827f` plus the commits listed last below.
-Every path and every decision cited is on that branch. Numbers are **not**
-pinned to one commit. Each is pinned to the artifact it cites, and that
-artifact names where it was measured:
+**Snapshot: `main@54266a9`**, which is on `origin`. Every path and every
+decision cited is on that commit. Numbers are **not** pinned to one commit.
+Each is pinned to the artifact it cites, and that artifact names where it
+was measured:
 
-- host figures to `ea198c8` (`DEPLOY.md` §8.00) or `21f1053` (§8.0);
-- gate figures to `agent/evals/w2/baseline.json` and
-  `docs/w2/EVAL_GATE_EVIDENCE.md`, which record the commit they scored;
+- host figures to the build they were measured on (the table below);
+- gate figures to `agent/evals/w2/baseline.json` (seeded at `4835f74`) and
+  `docs/w2/EVAL_GATE_EVIDENCE.md`, which is run against that baseline and
+  records the commit it scored;
 - load and cost figures to their own `LOAD_TEST.md` and
   `COST_AND_LATENCY.md` sections.
 
-An earlier version of this line said everything was pinned to `056cba9`.
-It then cited W2-L1 and 97 specs, which landed afterwards (`1ddcfd5`). That
-claim was wrong, and this replaces it.
+**The host runs agent `main@d61f739` and module `main@a434ffd`**, plus the
+patient dashboard on port 8444 (`docs/w2/DEPLOY.md`, "What the host runs
+now"). Between them and the snapshot, no deployed code differs: the agent's
+code (`agent/app/`) is unchanged since `d61f739` and the module since
+`a434ffd`, apart from code comments this branch renumbered to D62–D64.
 
-`main@c75827f` includes these merges:
+**Host figures name the build they were measured on:**
 
-| Merge | At | What it brought |
-|---|---|---|
-| `feat/w2-php-wiring` | `2ae4d98` | the Documents & Sources card, its routes, the upload guard |
-| `chore/w2-deploy-rehearsal` | `21f1053` | D41 |
-| its first post-deploy figures | `bc5236f` | `DEPLOY.md` §8.0 |
-| its D50-redeploy figures | `5ad81c5` | `DEPLOY.md` §8.00 |
-| `feat/w2-eval-gate` | `0b4ae04` | the eval gate, D42–D48 |
-| `feat/w2-answer-scope` | `ea198c8` | D50 |
-| the DECISIONS restore | `caa92f8` | the dropped decision entries |
-| `EVAL_GATE.md` | `0318c35` | the gate's page for reviewers |
-| the decisions guard | `c1c5e21` | D51 |
-| the event-tags fix | `056cba9` | D52 |
-| `docs/w2-submission` | `2d12333` | this document, `KEY_METRICS.md`, D53 |
-| `fix/w2-prompt-pins` | `1ddcfd5` | W2-L1, the prompt pin (97 specs) |
-| `docs/w2-final-fixes` | `c75827f` | the host dashboard evidence |
+| Build | Deployed | What it added | Measured in |
+|---|---|---|---|
+| `21f1053` | 2026-09-23 16:40 UTC | the first Week 2 deploy: card, routes, upload guard, D41 | `DEPLOY.md` §8.0 |
+| `ea198c8` | 2026-09-23 17:12 UTC | D50, the scoped document answer; the eval gate | `DEPLOY.md` §8.00 |
+| `06f0d45` | 2026-09-25 14:44 UTC | D54's upload scopes, D56, D58 (production Langfuse); then the patient dashboard on port 8444 | `docs/w2/evidence/prod-langfuse/deploy-2026-09-25/`, `docs/w2/evidence/dashboard-deploy-2026-09-25/` |
+| **`d61f739`** (agent) | 2026-09-26 18:57 UTC | D60 (degraded documents, quarantine), drafting thinking off (D62), the duplicate-result guard (D63) | `LOAD_TEST.md` §8 |
+| **`a434ffd`** (module only) | 2026-09-27 | the per-user token-fetch lock (D64); the agent was not restarted | `docs/w2/evidence/token-race-deploy-2026-09-27/` |
 
-On this branch, after `c75827f`: the CI unit-test job, W2-J8 (98 specs),
-W2-L1 extended to schemas and user-message templates, the gated staleness
-check, D55 (`/ready` names stdout; spans name the service) and the
-gate troubleshooting notes (work order 28).
-
-**The host runs `main@ea198c8`** since 2026-09-23 17:12 UTC (`DEPLOY.md`
-§8.00). It lacks the event-tags telemetry fix (D52), D55 (`/ready` names
-stdout as the backend; exported spans name the service), and the gate,
-test and documentation commits after them. None of them changes an
-answer.
-
-**Three kinds of host figure:**
-
-- **`DEPLOY.md` §8.00:** the D50 redeploy, on `ea198c8`.
-- **`DEPLOY.md` §8.0:** the earlier deploy, on `21f1053`, **before D50**.
-  D50 changes only how a document answer is scoped, so these still describe
-  extraction, retrieval and memory. They do not describe the answer step.
-- **Before any Week 2 deploy:** labelled "rehearsal host, before the Week 2
-  deploy".
+Figures labelled "rehearsal host, before the Week 2 deploy" predate all five.
 
 ---
 
@@ -232,8 +211,11 @@ step replaced by ground truth, so it measures everything after the model
 | `intake-clean-004` | text layer | 92% (45/49) | 91.8% (45/49) |
 | `intake-missing-allergy-006` | text layer | — | 94.4% (51/54) |
 | `intake-scanned-light-med-005` | light scan | — | 87.5% (49/56) |
-| `lab-scanned-heavy-abnormal-002` | **heavy scan** | **34% (36/107)** | **33.6% (36/107)** |
+| `lab-scanned-heavy-abnormal-002` | **heavy scan** | **34% (36/107)** | **33.6% (36/107)**; 10.3% (11/107) on the deployed image's Tesseract (§11 item 3) |
 | all six, replay | | | 84.5% (476/563) |
+
+The replay column, and the real-vision heavy scan, ran on the laptop's
+Tesseract 5.5.3. OCR only affects scanned pages.
 
 Located rate is `located / (located + unlocated)`. `missing` and `illegible`
 describe the document, not the extractor, so they are excluded from both the
@@ -507,11 +489,13 @@ rests on.
   HELD").
 - **A merge it blocked.** [MR !1](https://labs.gauntletai.com/paawandesai/openemr-clinical-copilot/-/merge_requests/1) is left open with a red pipeline. It plants
   "blank flag means normal", and W2-D2 blocks it:
-  `VERDICT: BLOCKED | specs 96 | active 79 | pending 15 | det 72/73 | judge 8/8`
-  (`EVAL_GATE.md`; recorded before W2-L1, when there were 96 specs).
+  today the same regression prints
+  `VERDICT: BLOCKED | specs 98 | active 81 | pending 15 | det 74/75 | judge 8/8 (RUN [UNCALIBRATED])`
+  (evidence regression 1; the MR's pipeline predates W2-L1 and W2-J8 and
+  printed 96 specs and det 72/73).
 - **The gate at the snapshot.** 98 specs (81 active, 15 pending, 2
-  delegated), 75/75 deterministic and 8/8 judge (evidence control run,
-  re-seeded after W2-J8, the turn event's scope fields).
+  delegated), 75/75 deterministic and 8/8 judge: the evidence's control
+  run, 2026-09-27, against the baseline seeded at `4835f74`.
 - **The judge is UNCALIBRATED.** It is `claude-haiku-4-5-20251001`,
   best-of-3 (D43, D48). Category M detects drift, not agreement with humans.
 - **Its protection is a guard, not a boundary.** The hooks and
@@ -640,9 +624,11 @@ ourselves stores no patient or chart-record uuid; that was measured, not
 assumed (D58). Stdout stays the record of source.
 
 The Langfuse is up at <https://64-177-51-119.sslip.io> with a read-only grader
-account. The live agent host has exported to it since the 2026-09-25
-redeploy of `main@06f0d45`. A real chart-card upload arrived as one trace with
-a `psk_` session, and no UUID OpenEMR issued is in any trace
+account; its credentials are not in the repository and are provided in the
+submission notes. The live agent host has exported to it since the
+2026-09-25 redeploy of `main@06f0d45`, and still does on `main@d61f739`. A
+real chart-card upload arrived as one trace with a `psk_` session, and no
+UUID OpenEMR issued is in any trace
 ([evidence](docs/w2/evidence/prod-langfuse/deploy-2026-09-25/README.md)).
 
 - **Local:** the Langfuse screenshots,
@@ -659,11 +645,16 @@ a `psk_` session, and no UUID OpenEMR issued is in any trace
 - ~~The chart card never sends `X-Correlation-ID`.~~ Closed on `main` at
   `2ae4d98`: the card mints one UUID4 per chart open, and `AgentClient.php`
   sends it on every request (`CorrelationId.php`).
-- Write-back carries no correlation id into PHP.
+- ~~Write-back carries no correlation id into PHP.~~ Closed by D54: the
+  agent now posts the write-back itself after a lab extraction, with the
+  extraction's `correlation_id` in the request body, and
+  `LabWriteBackService.php` logs it. It travels in the body, not as the
+  `X-Correlation-ID` header.
 - Extraction inherits the upload's id only when that id is a UUID;
   otherwise the two traces are linked by a logged event, not merged.
 - Since the 2026-09-25 redeploy (`main@06f0d45`), the live host's `/ready`
-  reports `backend: "langfuse"`, healthy. If Langfuse cannot be reached,
+  reports `backend: "langfuse"`, healthy (and on `d61f739`; see §11 for the
+  staleness blip). If Langfuse cannot be reached,
   `status` is `degraded` at 200, never unready (`OBSERVABILITY.md` §7.4,
   D58).
 
@@ -671,15 +662,31 @@ a `psk_` session, and no UUID OpenEMR issued is in any trace
 
 ## 8. Deployment state
 
-The host `64.177.42.210` runs **`main@06f0d45`**, deployed 2026-09-25 14:44
-UTC.
+The host `64.177.42.210` runs the agent image from **`main@d61f739`**
+(deployed 2026-09-26 18:57 UTC) and the module from **`main@a434ffd`**
+(deployed module-only on 2026-09-27), with the patient dashboard on port
+8444 (`docs/w2/DEPLOY.md`, "What the host runs now").
 
-- It adds D54's upload scopes (module), D56, and D58: the access log is off,
-  `source_id` is sent as an HMAC, and there is export to the self-hosted
-  Langfuse. The Caddyfile is unchanged
+- `d61f739` adds D60 (extractions kept on disk, wrong-patient uploads
+  quarantined, the degraded-scan notice), drafting thinking set off (D62)
+  and the duplicate-result guard (D63). It has no evidence file of its own;
+  its snapshot and rollback are in `/root/w2-deploy-20260926/` on the host,
+  and its load figures are `LOAD_TEST.md` §8.
+- `a434ffd` adds D64, the per-user token-fetch lock; the agent was not
+  restarted
+  ([evidence](docs/w2/evidence/token-race-deploy-2026-09-27/README.md)).
+
+The builds before it (the table in "Provenance"):
+
+- `main@06f0d45`, 2026-09-25 14:44 UTC: D54's upload scopes (module), D56,
+  and D58: the access log is off, `source_id` is sent as an HMAC, and there
+  is export to the self-hosted Langfuse. The Caddyfile was unchanged
   ([evidence](docs/w2/evidence/prod-langfuse/deploy-2026-09-25/README.md)).
-- Before that it ran `main@ea198c8`, deployed 2026-09-23 17:12 UTC: the eval
-  gate and D50 on top of `21f1053`.
+  The same day the patient dashboard went live on port 8444, with audit
+  F-49 fixed on the host first
+  ([evidence](docs/w2/evidence/dashboard-deploy-2026-09-25/README.md)).
+- `main@ea198c8`, 2026-09-23 17:12 UTC: the eval gate and D50 on top of
+  `21f1053`.
 
 The measurements below are from those earlier builds.
 
@@ -700,13 +707,17 @@ The measurements below are from those earlier builds.
 | Retrieval, D39 admission, D41 budget and circuit | yes | yes; retrieval including rerank 1.55–1.68 s, and every rerank ran, none over budget, busy or skipped |
 | Preview by a citation's digest | yes | 200 `application/pdf` with that chart open, bytes identical to the upload; 404 with another chart open |
 | Memory | agent capped at 4.5 GiB | peak **1.32 GiB** over the run, 0 OOM kills; 3.7 GiB is the stress bound with concurrent reranking (`DEPLOY.md` §8) |
-| Lab write-back endpoint and ledger | yes | yes; rehearsed on the rehearsal host, before the Week 2 deploy (§5) |
+| Lab write-back endpoint and ledger | yes | yes; rehearsed on the rehearsal host, before the Week 2 deploy (§5). Since `06f0d45` an upload writes back (D54): the dashboard deploy saw pid 38's rows "From document" |
+| Conversation turn under load | yes | on `d61f739`, 10 users for 3 min: 125 turns, **0 errors**, p50/p95/p99 13.25/19.47/23.58 s, the model ~90% of it; agent peak 818 MiB (18% of its cap); $11.13 (`LOAD_TEST.md` §8) |
+| Patient dashboard (D59) | yes (`dashboard/`) | yes, since 2026-09-25 at <https://64.177.42.210:8444>: every card for two patients, 0 CSP violations, `/fhir/Encounter` 403 and `POST /fhir/Patient` 405 at the BFF ([evidence](docs/w2/evidence/dashboard-deploy-2026-09-25/README.md)) |
 | Eval gate | yes (`0b4ae04`) | n/a: runs on fixtures (D6) |
 
-**What the deploy did not measure:** load. Every post-deploy figure is one
-document or one question at a time, so the concurrency limits (the D39
-rerank slots, the extraction slots, OpenEMR's PHP tier) are measured only
-locally or on the rehearsal host, before the Week 2 deploy.
+**What the deploys did not measure:** load on uploads and on `/w2/ask`.
+The one host load test drove the conversation route, which does no rerank
+and no OCR (`LOAD_TEST.md` §8). Every other post-deploy figure is one
+document or one question at a time, so the D39 rerank slots and the
+extraction slots under concurrency are measured only locally or on the
+rehearsal host, before the Week 2 deploy.
 
 The upload guard's checks run in this order, and only then is the body
 read:
@@ -726,7 +737,7 @@ The agent image grew from 360 MB to 1.18 GB, and idle memory from 50 MiB to
 | Risk | Where it bites | Mitigation today | What is still exposed |
 |---|---|---|---|
 | **The whole-report answer** (fixed on `main` and on the host) | before D50: answer step 88.2–91.8 s, 91 citations, ~11.5k tokens out, about $0.45 (`LOAD_TEST.md` §7); whole request 91.9 s and 130.5 s (`LOAD_TEST.md` §6) | D50: code scopes and counts; the answer step is 6.9 s p50 in process (`LOAD_TEST.md` §7), and on the host 6.9–8.4 s end to end, ~$0.084 (`DEPLOY.md` §8.00) | the 44-row "Show me all the results" case lands at 43.4 s, at the 45 s alert (`LOAD_TEST.md` §7) |
-| **One process, in-memory stores** (conversations, documents, extraction jobs, the rerank circuit) | a second worker or replica makes uploads invisible (`404`), re-bills extraction, and loses follow-up context | one uvicorn worker; a startup warning when more are configured (D40 item 10, `agent/docs/deployment.md` §7). Since D60 (reserved, `feat/w2-degraded-docs`) uploads and finished extractions are saved to an encrypted SQLite file on a volume, so a *restart* no longer forgets them | a second *replica* is invisible to the check; running jobs and conversations are still one process's memory |
+| **One process, in-memory stores** (conversations, documents, extraction jobs, the rerank circuit) | a second worker or replica makes uploads invisible (`404`), re-bills extraction, and loses follow-up context | one uvicorn worker; a startup warning when more are configured (D40 item 10, `agent/docs/deployment.md` §7). Since D60 (deployed on `d61f739`) uploads and finished extractions are saved to an encrypted SQLite file on a volume, so a *restart* no longer forgets them | a second *replica* is invisible to the check; running jobs and conversations are still one process's memory |
 | **Reranker under load** | 50 concurrent retrievals: p95 335,224 ms, 0% reranked, 5.3 GiB peak RSS on a cold run (`LOAD_TEST.md` §5) | D39 admission bound: p95 259 ms, but only 1% reranked in the burst and 6.2% at 50 paced users (§5b). A 4.5 GiB memory cap on the agent, so overload restarts the agent rather than the kernel killing the database (`DEPLOY.md` §8) | deployed. After the deploy, one document at a time, the agent peaked at 1.32 GiB (`DEPLOY.md` §8.0). The stress bound, with concurrent reranking, is **3.7 GiB**, and a heavier mix was OOM-killed at a 5 GiB test cap (`DEPLOY.md` §8) |
 | **The rerank circuit latched** (fixed on `main`) | one slow rerank turned reranking off until restart; 35 of the next 60 turns ran unreranked (D41) | it closes itself after 60 s or 10 skipped turns, and skipped turns are reported apart from slow ones (D41); at demo load it opened, skipped 10 turns and closed (`DEPLOY.md` §8) | deployed; in the post-deploy questions no rerank was skipped (`DEPLOY.md` §8.0) |
 | **OCR contends with retrieval** | OCR in the same container raises rerank p95 from 2.08 s to 3.39 s. Two concurrent OCR jobs took ~162 s per page with Tesseract's default threads (`DEPLOY.md` §8) | 4 s budget (D41); `OMP_THREAD_LIMIT=1` baked into the image, 5.6 s per page with two workers (`DEPLOY.md` §8) | extraction still runs in the serving process (`LOAD_TEST.md`, "Where the new bottleneck is") |
@@ -742,20 +753,24 @@ The agent image grew from 360 MB to 1.18 GB, and idle memory from 50 MiB to
 
 | Area | Decisions |
 |---|---|
-| Extraction | D3, D7, D10, D11, D13, D16, D20 (supersedes D12), D24, D35 |
+| Extraction | D3, D7, D10, D11, D13, D16, D20 (supersedes D12), D24, D35, D60 (degraded documents: saved extractions, quarantine, the degraded-scan notice) |
 | Contracts | D9, D14, D17, D18, D21, D22 |
-| Routing and the ask path | D4, D40, D50 (the scoped document answer) |
+| Routing and the ask path | D4, D40, D50 (the scoped document answer), D62 (answer-step thinking: drafting calls set thinking explicitly, and off) |
 | Retrieval | D25 (supersedes D5, D23), D26, D39, D41 |
 | UI | D27, D28, D30, D32, D33, D34, D49 (the preview URL; supersedes D28 and D30 on that point), D51 (the card's module routes; a citation's digest opens the preview) |
-| Write-back | D1 (superseding), D2, D15, D29, D31 |
-| Observability | D36, D37, D38, D52 (a turn's tags reach the operational events), D55 (`/ready` names stdout as the backend; spans name the service) |
-| Evals | D6, D8, D42–D48 |
+| Write-back | D1 (superseding), D2, D15, D29, D31, D54 (an extraction writes its verified rows back, under the uploader's token), D63 (duplicate results: a result the chart holds is not written again) |
+| Observability | D36, D37, D38, D52 (a turn's tags reach the operational events), D55 (`/ready` names stdout as the backend; spans name the service), D56 (telemetry carries an HMAC of the session key), D58 (production telemetry: stdout plus a self-hosted Langfuse) |
+| Evals | D6, D8, D42–D48, D57 (judge calibration by blind human labels), D61 (the rubric wording, HMAC'd gate output, the dashboard CI job; its addendum is the first independent measurement) |
+| Patient dashboard | D59 (a React SPA behind a same-origin BFF that holds the tokens) |
+| The chart card's tokens | D64 (one clinician's token exchanges run one at a time, under a database lock) |
 | The decisions log itself | D53 (no merge driver for `DECISIONS.md`; a numbering test guards it) |
 
-D1–D54 are on `main`. D53 records a decision already made in commit
-`cb99e7b`; it was appended at the owner's request, not decided here. D54
-(work order 26) makes a lab upload's extraction write its verified rows
-back. D55 is on this branch only. This document makes no new decision.
+D1–D64 are on `main`. D62–D64 were headed `D-unassigned` until this
+refresh numbered them in merge order: D62 answer-step thinking (merged at
+`dd12b86`), D63 duplicate results (`d61f739`), D64 the token fetch race
+(`a434ffd`). D53 records a decision already made in commit `cb99e7b`;
+it was appended at the owner's request, not decided here. This document
+makes no new decision.
 
 ---
 
@@ -773,17 +788,23 @@ back. D55 is on this branch only. This document makes no new decision.
    **pass** in 12 of 15 votes under the committed `factually_consistent`
    prompt (D46). Blank-is-not-normal is held deterministically instead: by
    code-rendered sentences (§4) and by gate case W2-D2. The judge is
-   **uncalibrated** against human labels (D43, D48).
-3. **The heavy-scan located rate is low by design: 34% (36/107)** with real
-   vision, and 33.6% (36/107) in replay (§1.4). D24 chose exact-only matching
-   for numbers, units, dates and flags over recall. On that scan the flag
+   **uncalibrated** against human labels (D43, D48); item 16 gives its one
+   independent measurement.
+3. **The heavy-scan located rate is low by design, and lower on the
+   deployed image.** On the host's OCR, Debian's Tesseract 5.5.0 in the agent
+   image (and in CI), the heavy scan locates **11 of 107 (10.3%)** on the
+   replayed transcription (D60; CI pipeline 28822). Every other heavy-scan
+   figure in these documents, 34% (36/107) with real vision and 33.6%
+   (36/107) in replay (§1.4), was measured on the laptop's Homebrew
+   Tesseract 5.5.3. D24 chose exact-only matching for numbers, units, dates
+   and flags over recall, so a one-character OCR difference becomes an
+   unlocated value rather than a wrong one. On that scan the flag
    cross-check compares nothing: 0 comparable flags, 6 `not_reported`.
-   Since D60 (reserved) an answer about a document under 75% located says so
-   with the counts, directly below any critical values, which still lead.
-   **The figures above were measured under Tesseract 5.5.3.** The deployed
-   image's Debian Tesseract 5.5.0 locates 11 of 107 (10.3%) on the same
-   replayed transcription (D60).
-4. **Single worker, in-memory state.** See §9, row 2. Since D60 (reserved) a
+   Since D60 an answer about a document under 75% located says so with the
+   counts, directly below any critical values, which still lead; both
+   builds are under 75%. Which OCR build to pin is open (D60, "Not
+   settled").
+4. **Single worker, in-memory state.** See §9, row 2. Since D60 a
    restart forgets no upload or finished extraction; it still forgets
    conversations, and an extraction it interrupts must be uploaded again.
 5. **The LangGraph root-run trace gap.** A tracer attached directly to a
@@ -834,9 +855,13 @@ back. D55 is on this branch only. This document makes no new decision.
       which is inside the 90 s budget, but only just.
 11. **A wrapped field's multi-box path is unit-tested only.** No sample wraps a
     field (D34).
-12. **The deployed flow is measured one question at a time only.** The card,
-    its routes, the guard and the scoped ask path run on the host
-    (`main@ea198c8`, `DEPLOY.md` §8.00). No load test has run against them there.
+12. **Only the conversation route has been load-tested on the host.** Ten
+    users on `main@d61f739`: 125 turns, 0 errors, p50/p95/p99
+    13.25/19.47/23.58 s, agent peak 818 MiB, $11.13 (`LOAD_TEST.md` §8).
+    That route does no rerank and no OCR. Uploads and `/w2/ask` were
+    measured on the host one at a time only (`DEPLOY.md` §8.0, §8.00), so
+    the extraction slots and the D39 rerank slots under concurrency are
+    measured only locally.
 13. **No FHIR paging.** `_count` is the sharp edge (`docs/w2/WEEK1_DEBT.md` §4).
 14. **Deleting a document is a gap, not a provenance design.** Nothing was
     decided about deletion. This is what the code does. It was read from
@@ -855,7 +880,7 @@ back. D55 is on this branch only. This document makes no new decision.
       digest to a patient (`DocumentStore`, D40 item 8) is process memory,
       and nothing tells it about the deletion. So the card gets 409 on
       another chart while this agent process lives, and not after a restart.
-      **Changed by D60 (reserved):** the binding is now saved to disk and
+      **Changed by D60:** the binding is now saved to disk and
       survives restarts, so the agent refuses a deleted document's bytes on
       another chart until its row expires (30 days). A document the identity
       check ruled another patient's (quarantined) releases its binding, so
@@ -882,3 +907,98 @@ back. D55 is on this branch only. This document makes no new decision.
       for a different `patient_uuid`, and a decision on whether a deleted
       document's ledger rows should block, or release, its bytes. Neither is
       built.
+15. **A dropped qualifier fools the judge and a human alike (FC-24,
+    FC2-05).** A patient-reported item restated as a chart fact passes.
+    FC-24 (calibration set 1): "The patient is taking atorvastatin…", from
+    an intake form headed "as reported by patient", passed 3-0 under every
+    judge prompt, including D61's pass rule 4, which asks that a statement
+    keep its qualifiers and say who reported a fact (D61). FC2-05 (set 2,
+    unseen by either reader): "The chart's allergy list records an
+    ibuprofen allergy", over "Allergies (as reported by patient)", passed
+    with the judge 3-0 **and** with the blind human labeller (D61
+    addendum). So rule 4 is not what a person applies either. **What holds
+    the property is code, not the judge (D2, invariant 5):** the write-back
+    request type refuses any document that is not a `lab_pdf`
+    (`agent/app/models/w2/writeback.py`, `LabWriteBackRequest`), so an intake
+    form has no path into the chart, and category E (W2-E1, critical) fails
+    the gate if one is accepted. Nothing deterministic checks answer prose
+    for a patient report restated as a chart fact.
+16. **The judge's one independent measurement is small, so it stays
+    UNCALIBRATED.** Blind set 2, labelled by one person and judged under
+    `w2-judge/1.1.0` (D61 addendum): pooled **82% agreement (14/17), Wilson
+    95% interval 59–94%, Cohen's kappa 0.64**. `factually_consistent` is
+    9/10 (kappa 0.78); `safe_refusal` 5/7 (kappa 0.42), after three UNSURE
+    items were excluded. A lower bound of 59% on n = 17 supports no
+    conclusion; EVAL_DESIGN puts the floor near 60 labels per rubric.
+    `judge_config.json` keeps `"status": "UNCALIBRATED"`, and set 1's 29/30
+    and 30/30 are fitted numbers, not a measurement (D61).
+17. **A broad conversation question drafts about 110 claims, with no output
+    bound.** "Medications … and latest labs" on the conversation route
+    wrote 104–114 claims and about 7.5k output tokens in 57–65 s, with
+    thinking on or off (`docs/w2/evidence/answer-thinking/README.md`). D50
+    bounds the `/w2/ask` answer step; the conversation turn has no such
+    bound. 0 claims failed verification. OPEN in D62 (answer-step
+    thinking), "Open, not decided here"; its cost was not recorded.
+18. **The dashboard CI job does not run on `main`'s own pipelines.**
+    `dashboard-tests` is created only when a commit differs from `main`
+    under `dashboard/` or in `.gitlab-ci.yml` (`compare_to: refs/heads/main`,
+    D61). On `main` nothing differs, so it runs on branch and merge-request
+    pipelines, before a merge, never after. A dashboard break introduced by
+    the merge itself would get no signal on `main`.
+19. **The first `/ready` after an idle period can read `degraded`.**
+    Operator-observed on the graded host by work order 30's deploy session,
+    on 2026-09-25 (the dashboard deploy) and 2026-09-26 (staging the D60
+    redeploy). No evidence file captured it. With OpenEMR and the LLM
+    provider healthy, the first call after a quiet period reported only the
+    Langfuse check unhealthy; the next call was `ready`. Cause, per that
+    session's reading of the code: the check's result is cached, refreshed
+    only when `/ready` is polled, and treated as stale after a quiet period
+    (the D37/D58 design). `/ready` stays 200, never 503, and no answer is
+    affected, but a rarely polling monitor sees false `degraded` readings.
+    Not fixed: refresh on read, or a background refresher
+    (`OBSERVABILITY.md` §4).
+20. **OAuth clients on the host hold more than they use.** Recorded, not
+    changed, because client changes are human actions:
+    - the Week 1 read-only client is still enabled **with the password
+      grant**, and mints tokens for `physician` / `physician` (F-32)
+      (`docs/w2/WEEK1_DEBT.md` §11, OPEN);
+    - the replaced embed client `AMPCwe6N…` is still registered and
+      enabled, unused (`DEPLOY.md` §5.2);
+    - the API collection's password-grant client is registered with
+      OpenEMR's full API scope list, although it requests four reads
+      (`agent/api-collection/README.md`);
+    - the embed client `2ps8qgz4…` holds `api:oemr user/lab-writeback.c`
+      as a ceiling; the broker asks for them only on a lab upload (D54).
+21. **Live vision output varies between runs, unmeasured.** The model takes
+    no sampling parameters (D43: temperature 0 is not expressible), so an
+    upload makes a fresh vision call that can read the same document
+    differently, and which fields locate can differ from the committed
+    recordings. Each document in the live runs was extracted once
+    (`docs/w2/evidence/load/extraction-live-vision.json`); D60 notes that no
+    vision variance was measured. The gate replays recordings, so it does
+    not see this.
+22. **The chart-open token race: fixed by D64, 20/20 on the host.** A chart
+    open fires the brief, D60's reconcile and, when a file is chosen, the
+    upload at once, and each brokered its own token. OpenEMR keeps one
+    `oauth_trusted_user` row per client and user, so one exchange's
+    authorization code could overwrite another's before it was redeemed,
+    and that request failed as `token_unavailable` (502). It was seen on the
+    host once in 56 briefs, and locally in 5 of 10 opens of a chart holding a
+    filed copy (D64). D64 serializes one clinician's token exchanges under a
+    MariaDB `GET_LOCK` named per user (module `main@a434ffd`, deployed
+    module-only on 2026-09-27). On the host afterwards: 20 opens of pid 38,
+    the brief 200 in all 20 and reconcile 200 in all 20; **0
+    `token_unavailable`** in the audit log after the pre-deploy baseline; an
+    upload sent while the brief was loading, both 200
+    ([evidence](docs/w2/evidence/token-race-deploy-2026-09-27/README.md)).
+    Still open (D64, "Not settled"): anything else running the EHR-launch
+    flow with the module's client for the same user would race outside the
+    lock (nothing does today), and no eval case exercises concurrent chart
+    opens.
+23. **Reconcile hides a failed token.** D60 made the card's reconcile check
+    fire and forget. Before D64, 8 of the 27 failed token exchanges in the
+    local reproduction were reconcile's: it answered **200** regardless, and
+    its quarantine check silently did not run. The race was the only known
+    cause, and D64 removed it, but a `token_unavailable` in reconcile still
+    skips the check without saying so. Recorded as not settled (D64, "Not
+    settled here").

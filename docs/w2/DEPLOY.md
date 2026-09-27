@@ -23,28 +23,27 @@ it with `/w2/ask` forwarded too (`a78ba51`).
 **What the host runs now:**
 
 - **Agent image:** **`main@d61f739`**, deployed 2026-09-26 18:57 UTC:
-  D60's extraction store and quarantine, result dedupe, and drafting
-  thinking off.
+  D60's extraction store and quarantine, result dedupe (D63), and drafting
+  thinking off (D62).
   - Its snapshot and rollback are in `/root/w2-deploy-20260926/` on the
     host.
   - It has no committed evidence file of its own. Its load figures are
-    `LOAD_TEST.md` §8.
+    `LOAD_TEST.md` §8 (10 users, 2026-09-26 21:18–21:22 UTC).
 - **Module files:** **`main@a434ffd`**, deployed 2026-09-27: the per-user
-  token-fetch lock
+  token-fetch lock (D64)
   ([`evidence/token-race-deploy-2026-09-27/`](evidence/token-race-deploy-2026-09-27/README.md)).
 - **Proxy:** the Caddyfile adds the patient dashboard's `:8444` site (WO31,
   `evidence/dashboard-deploy-2026-09-25/`).
+- **Export** to the self-hosted Langfuse stays on (D58).
 
 Before these, the host ran `main@06f0d45`, deployed 2026-09-25 14:44 UTC.
 
-- **What it adds:** D54's upload scopes, D56, and D58. Export to the
-  self-hosted Langfuse is on (`OBSERVABILITY.md` §7).
-- **Unchanged:** the Caddyfile is still `a78ba51`'s.
-- **Evidence and rollback:**
-  [`evidence/prod-langfuse/deploy-2026-09-25/README.md`](evidence/prod-langfuse/deploy-2026-09-25/README.md).
-- **§2's cold start** now needs `-e AGENT_TELEMETRY_HMAC_SECRET=<throwaway>`,
-  because the image refuses to start in production without it (D56).
-- **Previous:** `main@ea198c8` (§8.00).
+- **What it added:** D54's upload scopes, D56 and D58, with the Caddyfile
+  still `a78ba51`'s
+  ([evidence and rollback](evidence/prod-langfuse/deploy-2026-09-25/README.md)).
+- **§2's cold start** needs `-e AGENT_TELEMETRY_HMAC_SECRET=<throwaway>` since
+  then, because the image refuses to start in production without it (D56).
+- **Before that:** `main@ea198c8` (§8.00).
 
 Background, not repeated here: [`deploy-writeback.md`](deploy-writeback.md)
 (why the ledger and the client re-registration), [`retrieval-deploy.md`](retrieval-deploy.md)
@@ -53,7 +52,13 @@ laptop).
 
 ---
 
-## 0. What Week 2 on `main` actually contains
+## 0. What Week 2 on `main` actually contained, at the rehearsal
+
+**Historical, as of `d65dac4` (2026-09-22).** Everything this section lists
+as missing has since landed and is deployed: the supervisor, the real
+`/documents` route, the card and its routes, and the write-back after
+extraction (D54). The current state is "What the host runs now" above and
+`W2_ARCHITECTURE.md` §8.
 
 Read this before promising a demo. As of `d65dac4`, these pieces exist and
 **deploy and work**:
