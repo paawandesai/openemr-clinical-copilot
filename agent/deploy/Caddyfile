@@ -59,6 +59,11 @@ https://{$AGENT_PUBLIC_HOST}:8443 {
 	handle /ready* {
 		reverse_proxy agent:8000
 	}
+	# Build identity (GET /version, docs/w3-target-hooks.md): the commit the
+	# Week 3 regression harness anchors its results on. Exact path only.
+	handle /version {
+		reverse_proxy agent:8000
+	}
 	handle /docs* {
 		reverse_proxy agent:8000
 	}

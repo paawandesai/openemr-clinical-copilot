@@ -354,3 +354,12 @@ class ReadyResponse(_Contract):
     # SerializeAsAny: `observability_backend` is an ObservabilityCheck, and its
     # `backend` must survive serialisation through the base type.
     checks: dict[str, SerializeAsAny[DependencyCheck]]
+
+
+class VersionResponse(_Contract):
+    # The git commit the image was built from, stamped at build time
+    # (agent/Dockerfile, AGENT_GIT_COMMIT). "unknown" when the build was not
+    # given one, so a regression harness can refuse to anchor on it.
+    commit: str
+    # UTC ISO-8601 build time (AGENT_BUILT_AT); null when not given one.
+    built_at: str | None

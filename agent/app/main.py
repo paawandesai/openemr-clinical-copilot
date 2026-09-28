@@ -4,6 +4,7 @@ FastAPI entrypoint — Clinical Co-Pilot agent service.
 Routes:
   GET  /health           liveness (app/health.py)
   GET  /ready            dependency readiness (app/health.py)
+  GET  /version          the commit this image was built from (app/version.py)
   POST /documents        upload a document for a patient; the intake-extractor
                          starts at upload, not at question time (D7,
                          app/api/documents.py)
@@ -52,6 +53,7 @@ from app.middleware.telemetry_key import require_secret
 from app.models.api import ErrorCode, ErrorResponse
 from app.process_state import warn_if_multi_process
 from app.retrieval.preload import preload_enabled, preload_retrieval
+from app.version import router as version_router
 from app.workers import document_store
 
 configure_logging()
@@ -150,6 +152,7 @@ async def _invalid_request(request: Request, exc: RequestValidationError) -> JSO
 
 
 app.include_router(health_router)
+app.include_router(version_router)
 app.include_router(pre_visit_brief_router)
 app.include_router(follow_up_router)
 app.include_router(conversation_router)

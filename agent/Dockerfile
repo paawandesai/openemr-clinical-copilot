@@ -81,6 +81,15 @@ RUN mkdir -p /var/lib/clinical-copilot \
  && chmod 700 /var/lib/clinical-copilot
 ENV AGENT_EXTRACTION_STORE_PATH=/var/lib/clinical-copilot/extractions.sqlite3
 
+# Build identity for GET /version (app/version.py; docs/w3-target-hooks.md).
+# Passed by docker-compose.agent.yml from the deploying shell's git checkout;
+# declared this late so a new commit rebuilds only this layer, not the model
+# downloads above. The image has no .git to read it from at runtime.
+ARG AGENT_GIT_COMMIT=unknown
+ARG AGENT_BUILT_AT=
+ENV AGENT_GIT_COMMIT=${AGENT_GIT_COMMIT} \
+    AGENT_BUILT_AT=${AGENT_BUILT_AT}
+
 USER 10001
 
 EXPOSE 8000

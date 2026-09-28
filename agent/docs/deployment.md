@@ -176,8 +176,19 @@ Start (and, after later deploys, rebuild) — on the host:
 
 ```bash
 cd /opt/clinical-copilot/agent/deploy
+export AGENT_GIT_COMMIT=$(git rev-parse HEAD) AGENT_BUILT_AT=$(date -u +%Y-%m-%dT%H:%M:%SZ)
 docker compose --env-file /etc/clinical-copilot/agent.env -f docker-compose.agent.yml up -d --build --wait
+curl -sk https://127.0.0.1:8443/version   # must name the commit just deployed
 ```
+
+`AGENT_GIT_COMMIT` and `AGENT_BUILT_AT` are build args, stamped into the image
+and served by `GET /version` (`app/version.py`, `docs/w3-target-hooks.md`): the
+Week 3 regression harness anchors its results on that commit. If the tree on
+the host is not a git checkout, export the SHA of the commit that was copied
+there instead. Left unset, `/version` answers `"commit": "unknown"`, which the
+harness treats as a build it cannot anchor on. Exporting them in the shell,
+not the env file, is deliberate: a stale value in the env file would outlive
+the next deploy.
 
 Verify the bindings — on the host:
 

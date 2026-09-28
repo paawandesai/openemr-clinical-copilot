@@ -20,6 +20,13 @@ services:
   agent:
     build:
       context: ..
+      # GET /version (app/version.py): the commit and build time this image
+      # answers with. Export both from the checkout being deployed, or the
+      # endpoint reports "unknown" (agent/docs/deployment.md):
+      #   AGENT_GIT_COMMIT=$(git rev-parse HEAD) AGENT_BUILT_AT=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+      args:
+        AGENT_GIT_COMMIT: ${AGENT_GIT_COMMIT:-unknown}
+        AGENT_BUILT_AT: ${AGENT_BUILT_AT:-}
     image: clinical-copilot-agent:local
     restart: unless-stopped
     # No `ports:` — reachable only from the proxy, on this project's network.
