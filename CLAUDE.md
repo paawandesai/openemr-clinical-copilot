@@ -90,6 +90,7 @@ they miss, and the merge check: [`docs/w2/GATE.md`](docs/w2/GATE.md).
 | **Patient dashboard port** (WO31, D59): React SPA + same-origin BFF over FHIR | `dashboard/` — defence and parity matrix in `PATIENT_DASHBOARD_MIGRATION.md`, inventory in `docs/dashboard/` |
 | **Lab write-back** (D1): endpoint, ledger, PDF preview | `interface/modules/custom_modules/oe-module-clinical-copilot/` — agent side in `agent/app/writeback/` |
 | Deployment | `agent/deploy/docker-compose.agent.yml`, `agent/deploy/Caddyfile`, `agent/docs/deployment.md`, `docs/w2/deploy-writeback.md` |
+| **Week 3 target hooks**: `GET /version`, seeded test users + panels, canary patients | `docs/w3-target-hooks.md`, `docs/w3-test-users.md`, `agent/app/version.py`, `scripts/w3/seed-target.sh` |
 | New worktree for a work order | `scripts/new-worktree.sh` — creates `agent/.venv` and installs requirements |
 
 ## Commands
