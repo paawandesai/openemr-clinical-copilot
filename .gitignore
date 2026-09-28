@@ -60,3 +60,7 @@ tmp/
 # the branch and be believed offline.
 /w2-writeback-php.result.json
 /w2-writeback-php.xml
+
+# Week 3 platform credentials for the Vultr test host (docs/w3-target-hooks.md):
+# OAuth client secret and the W3 users' passwords. Dev/test only, never committed.
+/docs/w3-test-creds.md
