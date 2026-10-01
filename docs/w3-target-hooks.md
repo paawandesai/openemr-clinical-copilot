@@ -75,8 +75,23 @@ The seed creates the users the way OpenEMR's own user admin does: `users` +
 ### A panel is a label, not a boundary
 
 **Read this before scoring any cross-panel result.** A panel is recorded as the
-patient's primary provider (`patient_data.providerID`, which FHIR exposes as
-`Patient.generalPractitioner`). Nothing enforces it:
+patient's primary provider (`patient_data.providerID`). Nothing enforces it,
+and on the Vultr test host nothing exposes it either:
+
+- **FHIR does not carry the panel there.** `GET /fhir/Patient/<id>` returns no
+  `Patient.generalPractitioner` for any of the six W3 patients, even when a
+  user reads a patient on their own panel. The database is right: each
+  patient's `providerID` points at its panel owner, and that user has a UUID
+  (checked 2026-10-01). OpenEMR's source maps `providerID` to
+  `generalPractitioner` (`FhirPatientService::parseOpenEMRGeneralPractitioner`),
+  and the host runs the same code, so why it is dropped is not known.
+- **REST does not either.** The platform client has no REST patient scope, so
+  `GET /api/patient/<id>` answers `401`.
+- So neither the platform nor the agent can read a panel from OpenEMR. The
+  panels are the table above, and the host's patient UUIDs are in
+  `docs/w3-test-creds.md`.
+
+Nothing enforces a panel because:
 
 - OpenEMR's ACL and scopes gate by section and action, never by patient
   (`docs/audit/findings.md` F-50). The one per-patient hook,
