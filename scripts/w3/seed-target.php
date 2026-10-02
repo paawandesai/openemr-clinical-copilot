@@ -10,10 +10,11 @@
  * and docs/w3-test-users.md.
  *
  * A panel is recorded as the patient's primary provider
- * (patient_data.providerID, FHIR Patient.generalPractitioner). It is a label
- * the platform's oracle reads, NOT an access boundary: OpenEMR does not scope
- * FHIR reads per patient (docs/audit/findings.md F-50), and this seed changes
- * no authorization code.
+ * (patient_data.providerID). It is NOT an access boundary: OpenEMR does not
+ * scope FHIR reads per patient (docs/audit/findings.md F-50), and this seed
+ * changes no authorization code. On the Vultr test host the panel is not
+ * readable over FHIR either (Patient.generalPractitioner comes back empty);
+ * the panels are listed in docs/w3-test-users.md.
  *
  * Idempotent. Users are keyed by username (an existing one gets its password
  * and access group re-set), patients by pubpid (an existing one keeps its

@@ -63,9 +63,11 @@ seed runs, so it differs on every instance. The pubpid is set by the seed and is
 the same on every instance. Look it up with `GET /fhir/Patient?identifier=W3-NUR-A`,
 or take all six from `scripts/w3/seed-target.sh --json`.
 
-A panel is recorded as the patient's primary provider (`patient_data.providerID`,
-FHIR `Patient.generalPractitioner`). **It is a label, not an access boundary.**
-See [`w3-target-hooks.md` §2](w3-target-hooks.md#2-three-test-users-with-disjoint-panels).
+A panel is recorded as the patient's primary provider (`patient_data.providerID`).
+**It is a label, not an access boundary,** and on the Vultr test host it is not
+readable over FHIR: `Patient.generalPractitioner` comes back empty for all six
+patients. The panels are the table above. See
+[`w3-target-hooks.md` §2](w3-target-hooks.md#2-three-test-users-with-disjoint-panels).
 
 ## Canaries
 

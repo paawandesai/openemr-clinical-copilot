@@ -58,14 +58,18 @@ Where the facts in this table come from, and what is not wired yet:
 
 ### Grader access
 
+How to reach each one, liveness checks and the certificate notes:
+[`docs/DEPLOYMENT_ACCESS.md`](docs/DEPLOYMENT_ACCESS.md).
+
 | What | Where | Sign in |
 |---|---|---|
+| Agent API (FastAPI behind Caddy) | <https://64.177.42.210:8443> | none for `/health`, `/ready`, `/version`; every data route needs a clinician's OpenEMR OAuth2 token. `curl -k` |
 | OpenEMR with both co-pilot cards | <https://64.177.42.210:9300> | `physician` / `physician` (a seeded demo account, below) |
 | Patient dashboard (React port) | <https://64.177.42.210:8444> | the same OpenEMR login, through OpenEMR's own OAuth sign-in and consent |
 | Production Langfuse, read-only | <https://64-177-51-119.sslip.io> | a read-only grader account. **Its credentials are not in the repository; they are provided in the submission notes.** |
 
-All three certificates are self-signed or from a private CA, so the browser
-warns once per origin.
+All four certificates are self-signed or from a private CA, so the browser
+warns once per origin and `curl` needs `-k`.
 
 ### Run the core Week 2 flow
 
